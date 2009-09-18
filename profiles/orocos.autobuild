@@ -1,0 +1,40 @@
+# If the user wants prepackaged software, install the rubotics-base gem. This
+# gem will install the required Gem-based dependencies, and -- if on a Debian
+# system -- will also install the Debian packages.
+
+if !Rubotics.on_debian?
+    raise "Not on a Debian/Ubuntu system, I don't know how to install prepackaged dependencies"
+end
+
+Rubotics.install_debian_profile 'orocos', 'install'
+Rubotics.install_gem_profile    'orocos'
+
+# Obviously, we will have to install the Orocos/RTT
+cmake_package 'orocos/rtt' do |pkg, config|
+    pkg.always_reconfigure = true
+    pkg.doc_dir = File.join('doc', 'api', 'html')
+    pkg.with_doc('docapi')
+
+    pkg.define "OROCOS_TARGET", config['target']
+    if config['target'] == 'xenomai'
+        pkg.define 'XENOMAI_INSTALL_DIR', '/usr'
+    end
+    pkg.define "ENABLE_CORBA", "YES"
+    pkg.define "CORBA_IMPLEMENTATION", "OMNIORB"
+end
+
+# Install the OCL only to get the task browser
+cmake_package 'orocos/ocl' => 'orocos/rtt' do |pkg|
+    %w{REPORTING HELLOWORLD DEPLOYMENT HARDWARE TESTS TIMER VIEWER}.
+        each { |name| pkg.define "BUILD_#{name}", "OFF" }
+    pkg.always_reconfigure = true
+    pkg.doc_dir = File.join('doc', 'api', 'html')
+    pkg.with_doc('docapi')
+end
+
+ruby_package  'utilrb'
+cmake_package 'utilmm'
+cmake_package 'typelib'   => 'utilmm'
+ruby_package  'orogen'    => ['typelib', 'orocos/rtt']
+ruby_package  'orocos.rb' => ['orogen', 'typelib', 'orocos/rtt']
+

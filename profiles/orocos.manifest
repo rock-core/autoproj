@@ -1,0 +1,26 @@
+orocos/rtt:
+    repository: git://github.com/doudou/orocos-rtt
+    branch: new_data_flow
+    options:
+        target: [gnulinux, xenomai]
+        corba: boolean
+    defaults:
+        target: gnulinux
+        corba: true
+
+orocos/ocl:
+    repository: git://github.com/doudou/orocos-ocl
+    branch: new_data_flow
+
+utilmm:
+    repository: git://github.com/doudou/utilmm
+    branch: master
+
+typelib:
+    repository: git://github.com/doudou/typelib
+    branch: master
+
+utilrb:
+    repository: git://github.com/doudou/util-rb
+    branch: master
+
