@@ -1,0 +1,8 @@
+sources:
+    - ./local
+    - git:remote1.git
+    - type: git
+      url: remote2.git
+      branch: next
+        
+

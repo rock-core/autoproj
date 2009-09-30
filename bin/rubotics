@@ -1,0 +1,131 @@
+#! /usr/bin/env ruby
+
+require 'rubotics'
+include Rubotics
+
+module Rubotics
+    @verbose = false
+    class << self
+        attr_accessor :verbose
+    end
+end
+
+def tail(file, count)
+    lines = File.readlines(file)
+    if lines.size < count
+        lines
+    else
+        lines[-count, count]
+    end
+end
+
+# Find the rubotics root dir
+root_dir = Rubotics.root_dir
+
+# Load autobuild-related stuff from rubotics (not loaded by default)
+require 'rubotics/autobuild'
+
+Rubotics.verbose  = false
+Autobuild.verbose = false
+Rake.application.options.trace = false
+packages = []
+
+# Set up some important autobuild parameters
+Autobuild.prefix  = Rubotics.build_dir
+Autobuild.srcdir  = root_dir
+Autobuild.doc_errors = false
+Autobuild.do_doc = false
+Autobuild::Reporting << Autobuild::StdoutReporter.new
+if Autobuild.mail[:to]
+    if !Autobuild::HAS_RMAIL
+        STDERR.puts "RMail is not available. Mail notification is disabled"
+    else
+        Autobuild::Reporting << MailReporter.new(Autobuild.mail)
+    end
+end
+
+begin
+    Dir.chdir(root_dir) do
+        # Load the manifest
+        manifest = Rubotics.manifest = Manifest.load(File.join('rubotics', 'manifest'))
+        STDERR.puts "rubotics: updating remote sources"
+        manifest.update_remote_sources
+
+        # If in verbose mode, list the sources
+        if Rubotics.verbose
+            STDERR.puts "Sources:"
+            manifest.each_source do |source|
+                STDERR.puts "  #{source.name}: #{source.vcs}, local: #{source.local_dir} with options #{source.vcs.options.inspect}"
+            end
+        end
+
+        # Load the required autobuild definitions
+        manifest.each_autobuild_file do |source, name|
+            Rubotics.import_autobuild_file source, name
+        end
+
+        # Now, load the package's importer configurations
+        manifest.load_importers
+
+        if Rubotics.verbose
+            # List defined packages, and in which autobuild files they are defined
+            STDERR.puts "Available packages:"
+            Rubotics.manifest.packages.each_value do |package, source, file|
+                STDERR.puts "  #{package.name}: #{file} from #{source.name}"
+            end
+        end
+
+        # Create the build target from the manifest if the user did not provide an
+        # explicit one
+        if packages.empty?
+            packages = manifest.each_package.map(&:name)
+        end
+
+        if Rubotics.verbose
+            STDERR.puts "will install #{packages.join(", ")}"
+        end
+
+        # Do the import, so that we can load the manifests
+        STDERR.puts "rubotics: updating packages"
+        begin
+            import_targets = packages.map { |pkg| "#{pkg}-import" }
+            task "rubotics-import" => import_targets
+            Rake::Task["rubotics-import"].invoke
+        rescue Autobuild::SubcommandFailed => e
+            lines = File.readlines(e.logfile)
+            lines = if lines.size > 13
+                        lines[-10, 10]
+                    else
+                        lines[3..-1]
+                    end
+
+            STDERR.puts
+            STDERR.puts "ERROR: cannot import #{e.target}, the importer failed with"
+            lines.each do |line|
+                STDERR.puts "ERROR: #{line}"
+            end
+            exit(1)
+        end
+
+        # Load package manifests, apply dependencies to the autobuild definitions
+        # and install OS packages
+        pkg_manifests = []
+        manifest.each_package do |pkg|
+            pkg_manifests << File.join(pkg.srcdir, "manifest.xml")
+        end
+        manifest.load_package_manifests
+        manifest.install_os_dependencies
+
+        # And now build
+        STDERR.puts "rubotics: building and installing packages"
+        Autobuild::Reporting.report do
+            Autobuild.apply(packages)
+            Autobuild::Reporting.success
+        end
+    end
+rescue ConfigError => e
+    STDERR.puts e.message
+rescue Interrupt
+    STDERR.puts "Interrupted by user"
+end
+

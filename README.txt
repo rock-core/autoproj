@@ -13,6 +13,11 @@ is:
  * leverage the actual OS package management system. Right now, only Debian-like
    systems (like Ubuntu) are supported, simply because it is the only one I have
    access to.
+ * handle code generation properly
+
+It tries as much as possible to follow the lead of Willow Garage on the package
+specification. More specifically, the package manifest files are common between
+ROS package management and rubotics.
 
 Profiles
 --------
