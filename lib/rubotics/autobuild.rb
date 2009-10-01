@@ -1,4 +1,5 @@
 require 'autobuild'
+require 'set'
 
 module Rubotics
     def self.warn(message)
@@ -36,21 +37,17 @@ module Rubotics
         Rubotics.manifest.register_package package, *current_file
     end
 
+    @loaded_autobuild_files = Set.new
     def self.import_autobuild_file(source, path)
+        return if @loaded_autobuild_files.include?(path)
+
         @file_stack.push([source, File.basename(path)])
         load path
+        @loaded_autobuild_files << path
 
     ensure
         @file_stack.pop
     end
-
-    # Loads this other source as
-    def self.import_source(name)
-    end
-end
-
-def import_source(name)
-    Rubotics.import_source(name)
 end
 
 def ruby_doc(pkg, target = 'doc')

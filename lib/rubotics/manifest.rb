@@ -226,15 +226,28 @@ module Rubotics
 
         # Lists the autobuild files that are part of the sources listed in this
         # manifest
-	def each_autobuild_file
+	def each_autobuild_file(source_name = nil, &block)
             if !block_given?
-                return enum_for(:each_source_file)
+                return enum_for(:each_source_file, source_name)
             end
 
-            each_source do |source|
-		Dir.glob(File.join(source.local_dir, "*.autobuild")).each do |file|
-		    yield(source, file)
-		end
+            # This looks very inefficient, but it is because source names
+            # are contained in the source definition file (source.yml) and
+            # we must therefore load that file to check the source name ...
+            #
+            # And honestly I don't think someone will have 20 000 sources
+            done_something = false
+            each_source do |source| 
+                next if source_name && source.name != source_name
+                done_something = true
+
+                Dir.glob(File.join(source.local_dir, "*.autobuild")).each do |file|
+                    yield(source, file)
+                end
+            end
+
+            if source_name && !done_something
+                raise ConfigError, "source '#{source_name}' does not exist"
             end
 	end
 
@@ -354,6 +367,14 @@ module Rubotics
                     raise "#{package_source.name} defines #{package.name}, but does not provide a version control definition for it"
                 end
             end
+        end
+
+        def enabled_source?(source)
+            data['setup'].include?(source.name)
+        end
+
+        def enabled_sources
+            each_source.find_all { |source| data['setup'].include?(source.name) }
         end
 
         # Loads the package's manifest.xml files, and extracts dependency

@@ -68,7 +68,9 @@ begin
             STDERR.puts "run 'rubotics --reconfigure' to change configuration values"
         end
         manifest.each_autobuild_file do |source, name|
-            Rubotics.import_autobuild_file source, name
+            if Rubotics.manifest.enabled_source?(source)
+                Rubotics.import_autobuild_file source, name
+            end
         end
 
         Rubotics.save_config
@@ -87,7 +89,16 @@ begin
         # Create the build target from the manifest if the user did not provide an
         # explicit one
         if packages.empty?
-            packages = manifest.each_package.map(&:name)
+            enabled_sources = Rubotics.manifest.enabled_sources
+            packages = manifest.packages.values.map do |package, source, _|
+                package.name if Rubotics.manifest.enabled_source?(source)
+            end.compact
+        end
+
+        if packages.empty?
+            STDERR.puts
+            STDERR.puts "rubotics: no packages defined"
+            exit 0
         end
 
         if Rubotics.verbose
