@@ -25,6 +25,8 @@ root_dir = Rubotics.root_dir
 # Load autobuild-related stuff from rubotics (not loaded by default)
 require 'rubotics/autobuild'
 
+Rubotics.load_config
+
 Rubotics.verbose  = false
 Autobuild.verbose = false
 Rake.application.options.trace = false
@@ -60,9 +62,16 @@ begin
         end
 
         # Load the required autobuild definitions
+        STDERR.puts
+        STDERR.puts "rubotics: loading build files and configuring build"
+        if !Rubotics.reconfigure?
+            STDERR.puts "run 'rubotics --reconfigure' to change configuration values"
+        end
         manifest.each_autobuild_file do |source, name|
             Rubotics.import_autobuild_file source, name
         end
+
+        Rubotics.save_config
 
         # Now, load the package's importer configurations
         manifest.load_importers

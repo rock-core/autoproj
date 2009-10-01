@@ -6,6 +6,7 @@ require "enumerator"
 require 'rubotics/manifest'
 require 'rubotics/osdeps'
 require 'rubotics/system'
+require 'rubotics/options'
 require 'logger'
 require 'utilrb/logger'
 
