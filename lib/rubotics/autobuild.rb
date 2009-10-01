@@ -12,14 +12,6 @@ module Rubotics
         attr_reader :definition_files
     end
 
-    #def self.definition_file(package_name)
-    #    if file = @definition_files[package_name.to_str]
-    #        file
-    #    else
-    #        "I don't know where #{package_name} has been defined"
-    #    end
-    #end
-
     def self.package_name_from_options(spec)
         if spec.kind_of?(Hash)
             spec.to_a.first.first.to_str
