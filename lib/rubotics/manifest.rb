@@ -398,7 +398,11 @@ module Rubotics
                     if Rubotics.verbose
                         STDERR.puts "  #{package.name} depends on #{name}"
                     end
-                    package.depends_on name
+                    begin
+                        package.depends_on name
+                    rescue Autobuild::ConfigException => e
+                        raise ConfigError, "manifest of #{package.name} from #{source.name} lists '#{name}' as dependency, but this package does not exist (manifest file: #{manifest_path})"
+                    end
                 end
             end
         end
