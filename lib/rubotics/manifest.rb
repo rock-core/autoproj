@@ -383,8 +383,6 @@ module Rubotics
         end
 
         def install_os_dependencies
-            Rubotics.info "installing OS dependencies"
-
             # Generate the list of OS dependencies, load the osdeps files, and
             # call OSDependencies#install
             osdeps = OSDependencies.new

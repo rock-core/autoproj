@@ -95,6 +95,7 @@ begin
         end
 
         # Do the import, so that we can load the manifests
+        STDERR.puts
         STDERR.puts "rubotics: updating packages"
         begin
             import_targets = packages.map { |pkg| "#{pkg}-import" }
@@ -123,9 +124,12 @@ begin
             pkg_manifests << File.join(pkg.srcdir, "manifest.xml")
         end
         manifest.load_package_manifests
+        STDERR.puts
+        STDERR.puts "rubotics: installing prepackaged dependencies"
         manifest.install_os_dependencies
 
         # And now build
+        STDERR.puts
         STDERR.puts "rubotics: building and installing packages"
         Autobuild::Reporting.report do
             Autobuild.apply(packages)

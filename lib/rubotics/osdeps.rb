@@ -107,7 +107,6 @@ module Rubotics
                 STDERR.puts shell_script
             end
 
-            STDERR.puts "rubotics: installing OS dependencies"
             File.open('osdeps.sh', 'w') do |file|
                 file.write shell_script
             end
@@ -120,7 +119,6 @@ module Rubotics
                     STDERR.puts "Installing rubygems dependencies with"
                     STDERR.puts "gem install #{gems.join(" ")}"
                 end
-                STDERR.puts "rubotics: installing RubyGems dependencies"
                 Autobuild::Subprocess.run 'rubotics', 'osdeps', 'gem', 'install', *gems
             end
         end
