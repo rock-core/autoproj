@@ -132,9 +132,6 @@ end
 
 def orogen_package(options, &block)
     package_common(:orogen, options) do |pkg|
-        unless %w{modules/logger modules/base}.include?(pkg.name)
-            pkg.depends_on 'modules/logger' 
-        end
         yield(pkg) if block_given?
     end
 end
