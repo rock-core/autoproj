@@ -27,17 +27,68 @@ require 'rubotics/autobuild'
 
 Rubotics.load_config
 
-Rubotics.verbose  = false
-Autobuild.verbose = false
-Rake.application.options.trace = false
-packages = []
-
 # Set up some important autobuild parameters
 Autobuild.prefix  = Rubotics.build_dir
 Autobuild.srcdir  = root_dir
 Autobuild.doc_errors = false
 Autobuild.do_doc = false
 Autobuild::Reporting << Autobuild::StdoutReporter.new
+
+# Parse the configuration options
+mail_config = Hash.new
+parser = OptionParser.new do |opts|
+    opts.on("--reconfigure", "re-ask all configuration options") do
+        Rubotics.reconfigure = true
+    end
+    opts.on("--no-update", "do not update already checked-out sources") do
+        Autobuild.do_update = false
+    end
+    opts.on("--doc", "only build documentation") do
+        Autobuild.do_doc = true
+        Autobuild.only_doc = true
+    end
+
+    opts.on("--verbose", "verbose output") do
+        Rubotics.verbose  = true
+        Autobuild.verbose = true
+        Rake.application.options.trace = false
+    end
+    opts.on("--debug", "debugging output") do
+        Rubotics.verbose  = true
+        Autobuild.verbose = true
+        Rake.application.options.trace = true
+    end
+    opts.on('--nice NICE', Integer, 'nice the subprocesses to the given value') do |value|
+        Autobuild.nice = value
+    end
+    opts.on("-h", "--help", "Show this message") do
+        puts opts
+        exit
+    end
+    opts.on("--mail-from EMAIL", String, "From: field of the sent mails") do |from_email|
+        mail[:from] = from_email
+    end
+    opts.on("--mail-to EMAILS", String, "comma-separated list of emails to which the reports should be sent") do |emails| 
+        mail[:to] ||= []
+        mail[:to] += emails.split(',')
+    end
+    opts.on("--mail-subject SUBJECT", String, "Subject: field of the sent mails") do |subject_email|
+        mail[:subject] = subject_email
+    end
+    opts.on("--mail-smtp HOSTNAME", String, " address of the mail server written as hostname[:port]") do |smtp|
+        raise "invalid SMTP specification #{smtp}" unless smtp =~ /^([^:]+)(?::(\d+))?$/
+            mail[:smtp] = $1
+        mail[:port] = Integer($2) if $2 && !$2.empty?
+    end
+    opts.on("--mail-only-errors", "send mail only on errors") do
+        mail[:only_errors] = true
+    end
+end
+
+args = ARGV.dup
+parser.parse!(args)
+packages = args
+
 if Autobuild.mail[:to]
     if !Autobuild::HAS_RMAIL
         STDERR.puts "RMail is not available. Mail notification is disabled"
@@ -141,7 +192,12 @@ begin
 
         # And now build
         STDERR.puts
-        STDERR.puts "rubotics: building and installing packages"
+        if Autobuild.only_doc
+            STDERR.puts "rubotics: building and installing documentation"
+        else
+            STDERR.puts "rubotics: building and installing packages"
+        end
+
         Autobuild::Reporting.report do
             Autobuild.apply(packages)
             Autobuild::Reporting.success
