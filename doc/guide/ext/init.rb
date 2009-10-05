@@ -9,6 +9,9 @@
 # website.
 config = Webgen::WebsiteAccess.website.config
 
+config = Webgen::WebsiteAccess.website.config
+config['sourcehandler.patterns']['Webgen::SourceHandler::Copy'] << '**/*.sh'
+
 $LOAD_PATH.unshift File.expand_path('..', File.dirname(__FILE__))
 require 'ext/rdoc_links'
 require 'ext/previous_next'

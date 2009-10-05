@@ -50,5 +50,21 @@ named manifest.xml. Its format is described later in this user's guide.
 
 Bootstrapping
 -------------
-TBD
+"Bootstrapping" means getting rubotics itself before it can work its magic ...
+The canonical way is the following:
+
+ * install ruby version 1.8 and RubyGems on your system. On Debian and Ubuntu
+   systems, it is done with
+
+   sudo apt-get install rubygems ruby1.8 libopenssl-ruby1.8
+   {.cmdline}
+
+ * then, [download this script](rubotics_bootstrap.sh), save it *in the
+   directory where you want to install rubotics-related stuff*, and, in a
+   console, run
+
+   sh rubotics\_bootstrap.sh
+   {.cmdline}
+
+ * follow the instructions printed by the script above :)
 
