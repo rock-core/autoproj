@@ -1,7 +1,13 @@
 ---
-title: Writing the source.yml
+title: Creating a source
 sort_info: 100
 ---
+A source is made of three things:
+
+ * the source description file (source.yml)
+ * an optional initialization script (init.rb)
+ * autobuild scripts (\*.autobuild)
+
 The source.yml file gives generic information on the source itself (most
 importantly its name), and version control information (i.e. where to get the
 packages). It is a YAML file, and looks like:
