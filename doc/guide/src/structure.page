@@ -1,0 +1,112 @@
+---
+title: Managing rubotics installations
+sort_info: 50
+---
+
+This page describes the structure of a rubotics installation, and describes how
+to manage one. See [the introduction](index.page) for the bootstrapping process.
+
+Structure
+---------
+
+A rubotics installation is characterized by a rubotics/ directory in which all
+rubotics-related configuration is saved. The contained files are as follows:
+
+ * rubotics/manifest: list of available sources, enabled sources and required
+   packages. See "Management" below.
+ * rubotics/remotes/\*: remote sources, i.e. sources that have been imported from
+   a remote version control system or directory.
+ * rubotics/source1/: local sources, i.e. sources that have not been imported
+   from a remote version control system.
+
+The build is done in two steps:
+
+ * each package is being built in <tt>package_directory/build/</tt>
+ * it is then installed in the build/ directory at the toplevel of the rubotics
+   installation
+
+Moreover, the <tt>build/log</tt> directory contains the output of all commands
+that have been run during the build. Finally, a <tt>env.sh</tt> script is
+generated to set up your shell for the use of the installed software.
+
+Toplevel manifest
+-----------------
+The <tt>rubotics/manifest</tt> file is a yaml file which describes the sources
+that are available, the ones that are currently enabled and the packages whose
+build is required by the installation. It looks like this:
+
+{coderay:: yaml}
+enabled_sources:
+  - dfki.imoby
+  - rubotics.orocos
+    
+sources:
+  - imoby
+  - type: git
+    url:  git://github.com/doudou/rubotics-orocos.git
+
+packages:
+  - orocos/rtt
+{coderay}
+
+The first section, the <tt>enabled_sources</tt> section, lists the source names
+that we want to enable in this installation. It is source _names_, i.e. it
+refers to the name that is given in the [source's <tt>source.yml</tt> file](source_yml.html)
+
+The second section, the <tt>sources</tt> section, lists both local and remote
+sources that are available to this installation. Local sources are
+subdirectories of the <tt>rubotics/</tt> directory: for instance, in the above
+example, rubotics will look at the <tt>rubotics/imoby/</tt> directory. Remote
+sources are taken from remote version control systems. Its general format is:
+
+{coderay:: yaml}
+  - type: version_control_type # git, svn, cvs, darcs
+    url: repository_url
+{coderay}
+
+For the git importer, one of 'branch' or 'tag' options can be provided as well:
+{coderay:: yaml}
+  - type: version_control_type # git, svn, cvs, darcs
+    url: repository_url
+    branch: branch_to_track
+    tag: tag_to_stick_to # it is branch OR tag
+{coderay}
+
+Management
+----------
+
+To update and build a rubotics installation, simply do:
+
+rubotics build
+{.commandline}
+
+It will ask the value of newly defined configuration options, import (or update)
+code hosted remotely, and build it. rubotics will *not* ask you again about the
+configuration questions you already answered, so if you want to change them, do:
+
+rubotics build --reconfigure
+{.commandline}
+
+Alternatively, you can edit the rubotics/config.yml file directly.
+
+If you are in a disconnected environment (i.e. no access to remote
+repositories), use the <tt>--no-update</tt> option to skip the update phase.
+rubotics will still have to checkout new packages, though:
+
+rubotics build --no-update
+{.commandline}
+
+If, on the other hand, you only want to update the sources, do
+
+rubotics update
+{.commandline}
+
+To add a new source, one edits the <tt>rubotics/manifest</tt> file and adds it
+there. Then, simply starting the build will update everything and rebuild what
+is needed.
+
+Documentation is generated only when asked explicitely:
+
+rubotics doc
+{.commandline}
+

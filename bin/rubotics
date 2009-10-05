@@ -37,15 +37,12 @@ Autobuild::Reporting << Autobuild::StdoutReporter.new
 # Parse the configuration options
 mail_config = Hash.new
 parser = OptionParser.new do |opts|
+    opts.banner = "rubotics mode [options]"
     opts.on("--reconfigure", "re-ask all configuration options") do
         Rubotics.reconfigure = true
     end
     opts.on("--no-update", "do not update already checked-out sources") do
         Autobuild.do_update = false
-    end
-    opts.on("--doc", "only build documentation") do
-        Autobuild.do_doc = true
-        Autobuild.only_doc = true
     end
 
     opts.on("--verbose", "verbose output") do
@@ -87,14 +84,45 @@ end
 
 args = ARGV.dup
 parser.parse!(args)
+mode     = args.shift
 packages = args
+only_update_sources = false
 
-if Autobuild.mail[:to]
-    if !Autobuild::HAS_RMAIL
-        STDERR.puts "RMail is not available. Mail notification is disabled"
-    else
-        Autobuild::Reporting << MailReporter.new(Autobuild.mail)
-    end
+case mode
+when "bootstrap"
+    sample_dir = File.expand_path(File.join("..", "samples"), File.dirname(__FILE__))
+    FileUtils.mkdir_p "rubotics"
+    FileUtils.cp File.join(sample_dir, "manifest"), "rubotics"
+    exit 1
+
+when "build"
+when "update"
+    Autobuild.do_build  = false
+when "update-sources"
+    only_update_sources = true
+when "list-sources"
+    only_update_sources = true
+    Autobuild.do_update = false
+when "doc"
+    Autobuild.do_update = false
+    Autobuild.do_doc    = true
+    Autobuild.only_doc  = true
+else
+    puts parser
+    exit(1)
+end
+
+# Set up the environment
+ENV['GEM_HOME'] = File.join(Rubotics.config_dir, ".gem")
+ORIG_PATH = "/usr/bin:/bin"
+ENV['PATH'] = "#{ENV['GEM_HOME']}/bin:/usr/local/bin:/usr/bin:/bin"
+ORIG_PKG_CONFIG_PATH = "/usr/lib/pkgconfig"
+ENV['PKG_CONFIG_PATH'] = ''
+ORIG_RUBYLIB = ""
+ENV['RUBYLIB'] = ""
+
+if mail_config[:to]
+    Autobuild::Reporting << MailReporter.new(mail_config)
 end
 
 begin
@@ -104,11 +132,29 @@ begin
         STDERR.puts "rubotics: updating remote sources"
         manifest.update_remote_sources
 
-        # If in verbose mode, list the sources
-        if Rubotics.verbose
-            STDERR.puts "Sources:"
+        # If in verbose mode, or if we only update sources, list the sources
+        if Rubotics.verbose || only_update_sources
+            STDERR.puts "rubotics: available sources"
             manifest.each_source do |source|
-                STDERR.puts "  #{source.name}: #{source.vcs}, local: #{source.local_dir} with options #{source.vcs.options.inspect}"
+                STDERR.puts "  #{source.name}"
+                if source.local?
+                    STDERR.puts "    local source in #{source.local_dir}"
+                else
+                    STDERR.puts "    vcs:   #{source.vcs}, #{source.vcs.options.inspect}"
+                    STDERR.puts "    local: #{source.local_dir}"
+                end
+            end
+        end
+        if only_update_sources
+            exit(0)
+        end
+
+        # Load init.rb files. each_source must not load the source.yml file, as
+        # init.rb may define configuration options that are used there
+        manifest.each_source(false) do |source|
+            init_rb = File.join(source.local_dir, "init.rb")
+            if File.exists?(init_rb)
+                load init_rb
             end
         end
 

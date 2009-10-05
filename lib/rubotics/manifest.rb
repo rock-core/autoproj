@@ -71,7 +71,7 @@ module Rubotics
         # local? returns true.
         attr_accessor :vcs
         attr_reader :source_definition
-        attr_reader :common_url_definitions
+        attr_reader :constants_definitions
 
         # Create this source from a VCSDefinition object
         def initialize(vcs)
@@ -94,7 +94,7 @@ module Rubotics
 
         # A name generated from the VCS url
         def automatic_name
-            vcs.url.gsub(/[^\w]/, '_')
+            vcs.to_s.gsub(/[^\w]/, '_')
         end
 
         # Returns the source name
@@ -112,19 +112,22 @@ module Rubotics
             end
 
             @source_definition = YAML.load(File.read(source_file))
+            if !@source_definition
+                raise ConfigError, "#{source_file} does not have a name field"
+            end
 
-            # Compute the definition of common URLs
-            urls = source_definition['urls'] || Hash.new
-            urls['HOME'] = ENV['HOME']
+            # Compute the definition of constants
+            constants = source_definition['constants'] || Hash.new
+            constants['HOME'] = ENV['HOME']
 
             redo_expansion = true
-            @common_url_definitions = urls 
+            @constants_definitions = constants 
             while redo_expansion
                 redo_expansion = false
-                urls.dup.each do |name, url|
+                constants.dup.each do |name, url|
                     if contains_expansion?(url)
-                        urls[name] = expand(url)
-                        if urls[name] == url
+                        constants[name] = single_expansion(url)
+                        if constants[name] == url
                             raise "recursive definition of variable #{name} in source.yml"
                         end
                         redo_expansion = true
@@ -135,6 +138,12 @@ module Rubotics
 
         # True if the given string contains expansions
         def contains_expansion?(string); string =~ /\$/ end
+        def single_expansion(data, additional_expansions = Hash.new)
+            (additional_expansions.merge(constants_definitions)).each do |name, expanded|
+                data = data.gsub /\$#{Regexp.quote(name)}\b/, expanded
+            end
+        end
+
         # Expands the given string as much as possible using the expansions
         # listed in the source.yml file, and returns it. Raises if not all
         # variables can be expanded.
@@ -148,9 +157,7 @@ module Rubotics
                     data[name] = expand(value, additional_expansions)
                 end
             else
-                (additional_expansions.merge(common_url_definitions)).each do |name, expanded|
-                    data = data.gsub /\$#{name}\b/, expanded
-                end
+                data = single_expansion(data, additional_expansions)
                 if contains_expansion?(data)
                     raise "some variables cannot be expanded, the result is #{data.inspect}"
                 end
@@ -264,11 +271,11 @@ module Rubotics
         end
 
         # Like #each_source, but filters out local sources
-        def each_remote_source
+        def each_remote_source(load_description = true)
             if !block_given?
-                enum_for(:each_remote_source)
+                enum_for(:each_remote_source, load_description)
             else
-                each_source do |source|
+                each_source(load_description) do |source|
                     if !source.local?
                         yield(source)
                     end
@@ -281,10 +288,12 @@ module Rubotics
         #
         # Lists all sources defined in this manifest, by yielding a Source
         # object that describes the source.
-        def each_source
+        def each_source(load_description = true)
             if !block_given?
                 return enum_for(:each_source)
             end
+
+            return if !data['sources']
 
 	    data['sources'].each do |spec|
                 # Look up for short notation (i.e. not an explicit hash). It is
@@ -297,7 +306,7 @@ module Rubotics
                           end
 
                 source = Source.new(vcs_def)
-                if source.present?
+                if source.present? && load_description
                     source.load_description_file
                 end
 
@@ -326,7 +335,9 @@ module Rubotics
         end
 
         def update_remote_sources
-            each_remote_source do |source|
+            # Iterate on the remote sources, without loading the source.yml
+            # file (we're not ready for that yet)
+            each_remote_source(false) do |source|
                 importer     = source.vcs.create_autobuild_importer
                 fake_package = FakePackage.new(source.automatic_name, source.local_dir)
 
@@ -370,11 +381,11 @@ module Rubotics
         end
 
         def enabled_source?(source)
-            data['setup'].include?(source.name)
+            data['enabled_sources'].include?(source.name)
         end
 
         def enabled_sources
-            each_source.find_all { |source| data['setup'].include?(source.name) }
+            each_source.find_all { |source| data['enabled_sources'].include?(source.name) }
         end
 
         # Loads the package's manifest.xml files, and extracts dependency

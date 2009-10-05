@@ -1,0 +1,13 @@
+sources:
+# Example source from a git repository
+#   - type: git
+#     url: git://github.com/doudou/rubotics-orocos.git
+#
+# If you want to enable only a subset of the listed sources,
+# list their names in the following section. Note that the
+# name is given in the source's source.yml file
+# enabled_sources:
+#   - rubotics.orocos
+#
+# 
+

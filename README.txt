@@ -1,8 +1,7 @@
-
 What is Rubotics
 ----------------
 The goal of this project is to ease the pain of installing robotics-related
-software. Unlike (the ROS project)[http://ros.org], it is not bound to one build
+software. Unlike [the ROS project](http://ros.org), it is not bound to one build
 system, one VCS and one integration framework. The philosophy behind rubotics
 is:
  * supports both CMake and autotools, and can be adapted to other tools
@@ -17,95 +16,39 @@ is:
 
 It tries as much as possible to follow the lead of Willow Garage on the package
 specification. More specifically, the package manifest files are common between
-ROS package management and rubotics.
+ROS package management and rubotics (more details in the following of this
+document).
 
-Profiles
---------
-A Rubotics profile is a whole system stack, that you will be able to customize
-to fit your needs. The following profiles are available:
+Components of a Rubotics installation
+-------------------------------------
+A rubotics installation is seeded by _sources_. A source is a local or remote
+directory in which there is:
+ * autobuild scripts that describe what can be built and how it should be built.
+   These scripts an also list a set of configuration options that allow to
+   parametrize the build. In general, there should be only a limited number of
+   such options.
+ * a source.yml file which describes the source itself, and where the software
+   packages are located (what version control system and what URL).
+ * optionally, a file that describe prepackaged dependencies that can be
+   installed by using the operating system package management system.
 
- * base
- * drivers
- * libs
- * orocos-base
- * orocos-drivers
- * orocos-libs
+Software packages
+-----------------
+In the realm of rubotics, a software package should be a self-contained build
+system, that could be built outside of a rubotics tree. In practice, it means
+that the package writer should leverage its build system (for instance, cmake)
+to discover if the package dependencies are installed, and what are the
+appropriate build options that should be given (for instance, include
+directories or library names).
 
-The workflow to install packages is the following:
- * use <tt>rubotics get <profile></tt> to get the profile files. These files
-   define what packages are available in this profile, where to get the code,
-   and how to build it, and will also install the OS software packages.
- * edit the profile's manifest to hand-pick packages you want. By default, a
-   profile will build all software that you actually need.
- * use <tt>rubotics build <profile></tt> to actuall build the software.
+As a guideline, we recommend that inter-package dependencies are managed by
+using pkg-config.
 
-Then, during the development,
- * <tt>rubotics status</tt> shows the status of all source packages, comparing
-   them to their source repositories.
- * <tt>rubotics doc</tt> will generate the documentation
- * <tt>rubotics update</tt> will update the source code for all packages and
-   rebuild it. The <tt>--only-update</tt> option allows to *not* build 
- * <tt>rubotics rebuild</tt> will rebuild everything from scratch.
+To describe the package, and more importantly to setup cross-package
+dependencies, an optional manifest file can be added. This manifest file is
+named manifest.xml. Its format is described later in this user's guide.
 
-The last two commands accept package IDs to update/rebuild only the specified
-package and their dependencies.
-
-Finally, one can update the rubotics system itself:
- * rubotics is installed with RubyGems, so one updates it with <tt>gem
-   update</tt>
- * profiles can be updated with <tt>rubotics profile-update</tt>
-
-Filesystem structure
---------------------
-
- - tools/: generic tools and framework libraries
- - robot/: the actual robot code (see below)
-
-Moreover, when considering specific integration frameworks, as for instance the
-Orocos/RTT, an toplevel directory is created, which will contain the code
-specific to that integration framework. For instance, the rubotics-orocos
-profile will create the following directory structure:
-
- - tools/
- - robot/
- - orocos/tools/
- - orocos/robot/
-
-As long as it is possible, no code in tools/ and robot/ should contain code that
-is specific to the integration framework (in our example, no Orocos-specific
-code). It is sometime impossible, as a library can have a generic part and a
-framework-specific part. Examples of these situations are all ROS-provided
-libraries (unfortunately), and the Orocos Kinematics and Dynamics Library (KDL).
-
-Robot code
-----------
-
-These are imported into the robot/ subdirectory, and classified into
-subcategories.
-
- - drivers/: contains sensor/hardware driver libraries
- - lowlevel/: contains lowlevel control libraries, including specialized
-   controllers
- - navigation/: contains navigation-related code: mapping, SLAM, motion
-   planning, path planning, ...
- - supervision/: contains task-planning and supervision related code including
-   task planners, plan management, ...
-
-Installation procedure
-----------------------
-
-Each software package will be installed in the following way:
- * the package is checked out or updated
- * the package is built in a build/ subdirectory of its source tree
- * the package is installed in the build/ subdirectory from the toplevel of the
-   rubotics installation. After installation, the following filesystem structure
-   can be found:
-   - tools/
-   - robot/
-   - tools/orocos/
-   - robot/orocos/
-   - build/tools/
-   - build/robot/
-   - build/tools/orocos/
-   - build/robot/orocos/
+Bootstrapping
+-------------
+TBD
 
