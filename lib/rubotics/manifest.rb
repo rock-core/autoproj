@@ -3,6 +3,17 @@ require 'utilrb/kernel/options'
 require 'nokogiri'
 require 'set'
 
+module Autobuild
+    class Package
+        attr_reader :os_packages
+
+        def depends_on_os_package(name)
+            @os_packages ||= Array.new
+            @os_packages << name
+        end
+    end
+end
+
 module Rubotics
     class VCSDefinition
         attr_reader :type
@@ -402,7 +413,7 @@ module Rubotics
                     next
                 end
 
-                manifest = PackageManifest.load(manifest_path)
+                manifest = PackageManifest.load(package, manifest_path)
                 package_manifests[package.name] = manifest
 
                 manifest.each_package_dependency do |name|
@@ -441,13 +452,18 @@ module Rubotics
     end
 
     class PackageManifest
-        def self.load(file)
+        def self.load(package, file)
             doc = Nokogiri::XML(File.read(file))
-            PackageManifest.new(doc)
+            PackageManifest.new(package, doc)
         end
 
+        # The Autobuild::Package instance this manifest applies on
+        attr_reader :package
+        # The raw XML data as a Nokogiri document
         attr_reader :xml
-        def initialize(doc)
+
+        def initialize(package, doc)
+            @package = package
             @xml = doc
         end
 
@@ -455,6 +471,9 @@ module Rubotics
             if block_given?
                 xml.xpath('//rosdep').each do |node|
                     yield(node['name'])
+                end
+                package.os_packages.each do |name|
+                    yield(name)
                 end
             else
                 enum_for :each_os_dependency
