@@ -37,11 +37,22 @@ Autobuild::Reporting << Autobuild::StdoutReporter.new
 # Parse the configuration options
 mail_config = Hash.new
 parser = OptionParser.new do |opts|
-    opts.banner = "rubotics mode [options]"
-    opts.on("--reconfigure", "re-ask all configuration options") do
+    opts.banner = <<-EOBANNER
+rubotics mode [options]
+where 'mode' is one of:
+  build:  import, build and install all selected packages
+  doc:    generate and install documentation for packages that have some
+  update: only import/update packages, do not build them
+  
+  list-sources:   list all available sources
+  update-sources: update all remote sources, but do not build
+
+Additional options:
+    EOBANNER
+    opts.on("--reconfigure", "re-ask all configuration options (build mode only)") do
         Rubotics.reconfigure = true
     end
-    opts.on("--no-update", "do not update already checked-out sources") do
+    opts.on("--no-update", "do not update already checked-out sources (build mode only)") do
         Autobuild.do_update = false
     end
 
