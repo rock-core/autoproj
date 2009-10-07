@@ -130,7 +130,9 @@ begin
         # Load the manifest
         manifest = Rubotics.manifest = Manifest.load(File.join('rubotics', 'manifest'))
         STDERR.puts "rubotics: updating remote sources"
-        manifest.update_remote_sources
+        Autobuild::Reporting.report do
+            manifest.update_remote_sources
+        end
 
         # If in verbose mode, or if we only update sources, list the sources
         if Rubotics.verbose || only_update_sources
@@ -205,24 +207,10 @@ begin
         # Do the import, so that we can load the manifests
         STDERR.puts
         STDERR.puts "rubotics: updating packages"
-        begin
+        Autobuild::Reporting.report do
             import_targets = packages.map { |pkg| "#{pkg}-import" }
             task "rubotics-import" => import_targets
             Rake::Task["rubotics-import"].invoke
-        rescue Autobuild::SubcommandFailed => e
-            lines = File.readlines(e.logfile)
-            lines = if lines.size > 13
-                        lines[-10, 10]
-                    else
-                        lines[3..-1]
-                    end
-
-            STDERR.puts
-            STDERR.puts "ERROR: cannot import #{e.target}, the importer failed with"
-            lines.each do |line|
-                STDERR.puts "ERROR: #{line}"
-            end
-            exit(1)
         end
 
         # Load package manifests, apply dependencies to the autobuild definitions

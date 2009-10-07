@@ -19,7 +19,7 @@ module Rubotics
                 codename = File.read('/etc/debian_version').chomp
                 ['debian', codename]
             else
-                raise "Unknown operating system"
+                raise ConfigError, "Unknown operating system"
             end
         end
 
@@ -41,16 +41,16 @@ module Rubotics
             dependencies.each do |name|
                 dep_def = definitions[name]
                 if !dep_def
-                    raise ArgumentError, "the OS dependency #{name} is not defined"
+                    raise ConfigError, "I don't know how to install '#{name}'"
                 elsif !dep_def[os_name]
-                    raise ArgumentError, "no data for installing the OS dependency #{name} on #{os_name} #{os_version}"
+                    raise ConfigError, "I don't know how to install '#{name}' on #{os_name}"
                 end
 
                 data = dep_def[os_name]
                 if data.kind_of?(Hash)
                     data = data[os_version]
                     if !data
-                        raise "no information for installing the OS dependency #{name} on this specific version of #{os_name} (#{os_version})"
+                        raise ConfigError, "I don't know how to install '#{name}' on this specific version of #{os_name} (#{os_version})"
                     end
                 end
 
@@ -75,7 +75,7 @@ module Rubotics
             package_set.to_set.each do |name|
                 pkg_def = definitions[name]
                 if !pkg_def
-                    raise ArgumentError, "the OS dependency #{name} is not defined"
+                    raise ConfigError, "I know nothing about a prepackaged '#{name}' software"
                 end
 
                 if pkg_def.respond_to?(:to_str)
@@ -83,7 +83,7 @@ module Rubotics
                     when "gem" then
                         gems << name
                     else
-                        raise "unknown OS-independent package management type #{pkg_def}"
+                        raise ConfigError, "unknown OS-independent package management type #{pkg_def}"
                     end
                 else
                     osdeps << name

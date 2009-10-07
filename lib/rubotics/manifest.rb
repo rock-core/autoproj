@@ -23,7 +23,7 @@ module Rubotics
         def initialize(type, url, options)
             @type, @url, @options = type, url, options
             if type != "local" && !Autobuild.respond_to?(type)
-                raise "version control #{type} is unknown to rubotics"
+                raise ConfigError, "version control #{type} is unknown to rubotics"
             end
         end
 
@@ -64,7 +64,7 @@ module Rubotics
     def self.normalize_vcs_definition(spec)
         spec = vcs_definition_to_hash(spec)
         if !(spec[:type] && spec[:url])
-            raise ConfigError, "the source specification #{spec} misses either the VCS type or an URL"
+            raise ConfigError, "the source specification #{spec.inspect} misses either the VCS type or an URL"
         end
 
         spec, vcs_options = Kernel.filter_options spec, :type => nil, :url => nil
@@ -114,17 +114,17 @@ module Rubotics
         # Load the source.yml file that describes this source
         def load_description_file
             if !present?
-                raise "source #{vcs.type}:#{vcs.url} has not been fetched yet, cannot load description for it"
+                raise InternalError, "source #{vcs} has not been fetched yet, cannot load description for it"
             end
 
             source_file = File.join(local_dir, "source.yml")
             if !File.exists?(source_file)
-                raise "source #{vcs.type}:#{vcs.url} has been fetched, but does not have a source description file"
+                raise ConfigError, "source #{vcs.type}:#{vcs.url} should have a source.yml file, but does not"
             end
 
             @source_definition = YAML.load(File.read(source_file))
             if !@source_definition
-                raise ConfigError, "#{source_file} does not have a name field"
+                raise ConfigError, "#{source_file} does not have a 'name' field"
             end
 
             # Compute the definition of constants
@@ -139,7 +139,7 @@ module Rubotics
                     if contains_expansion?(url)
                         constants[name] = single_expansion(url)
                         if constants[name] == url
-                            raise "recursive definition of variable #{name} in source.yml"
+                            raise ConfigError, "recursive definition of '#{name}' in #{source_file}"
                         end
                         redo_expansion = true
                     end
@@ -170,7 +170,7 @@ module Rubotics
             else
                 data = single_expansion(data, additional_expansions)
                 if contains_expansion?(data)
-                    raise "some variables cannot be expanded, the result is #{data.inspect}"
+                    raise ConfigError, "some expansions are not defined in #{data.inspect}"
                 end
             end
 
@@ -217,13 +217,15 @@ module Rubotics
                     raise e.class, "cannot load package #{package_name}: #{e.message}"
                 end
             end
+        rescue ConfigError => e
+            raise ConfigError.new(File.join(local_dir, "source.yml")), e.message, e.backtrace
         end
     end
 
     class Manifest
         FakePackage = Struct.new :name, :srcdir
 	def self.load(file)
-	    Manifest.new(YAML.load(File.read(file)))
+	    Manifest.new(file, YAML.load(File.read(file)))
 	end
 
         # The manifest data as a Hash
@@ -236,7 +238,10 @@ module Rubotics
         # A mapping from package names into PackageManifest objects
         attr_reader :package_manifests
 
-	def initialize(data)
+        attr_reader :file
+
+	def initialize(file, data)
+            @file = file
 	    @data = data
             @packages = Hash.new
             @package_manifests = Hash.new
@@ -312,8 +317,8 @@ module Rubotics
                 # 'url' to be a path to a local directory
                 vcs_def = begin
                               Rubotics.normalize_vcs_definition(spec)
-                          rescue Exception => e
-                              raise "cannot load source #{spec}: #{e.message}"
+                          rescue ConfigError => e
+                              raise ConfigError, "in #{file}: #{e.message}"
                           end
 
                 source = Source.new(vcs_def)
@@ -386,7 +391,7 @@ module Rubotics
                 if vcs
                     package.importer = vcs.create_autobuild_importer
                 else
-                    raise "#{package_source.name} defines #{package.name}, but does not provide a version control definition for it"
+                    raise ConfigError, "source #{package_source.name} defines #{package.name}, but does not provide a version control definition for it"
                 end
             end
         end
@@ -483,7 +488,12 @@ module Rubotics
         def each_package_dependency
             if block_given?
                 xml.xpath('//depend').each do |node|
-                    yield(node['package'])
+                    dependency = node['package']
+                    if dependency
+                        yield(dependency)
+                    else
+                        raise ConfigError, "manifest of #{package.name} has a <depend> tag without a 'package' attribute"
+                    end
                 end
             else
                 enum_for :each_package_dependency

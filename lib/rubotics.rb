@@ -1,5 +1,6 @@
 module Rubotics
     class ConfigError < RuntimeError; end
+    class InternalError < RuntimeError; end
 end
 
 require "enumerator"
