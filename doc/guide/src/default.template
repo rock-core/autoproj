@@ -23,7 +23,7 @@
         <div id="logo">
           <h1>[<a href="{relocatable: /index.html}" accesskey="4">oroGen</a>]</h1>
           <span id="tagline">User's guide</span><BR />
-          for {execute_cmd: ruby -rlib/rubotics/version -e "puts Rubotics::VERSION"}
+          for v{execute_cmd: ruby -rlib/rubotics/version -e "puts Rubotics::VERSION"}
         </div>
 
         <div id="intro">
