@@ -1,0 +1,12 @@
+git:
+    debian: git-core
+
+svn:
+    debian: svn
+
+cmake:
+    debian: cmake
+
+autotools:
+    debian: [automake1.9, autoconf]
+

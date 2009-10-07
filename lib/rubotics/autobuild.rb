@@ -68,6 +68,7 @@ end
 
 def cmake_package(options, &block)
     package_common(:cmake, options) do |pkg|
+        Rubotics.add_build_system_dependency 'cmake'
         yield(pkg) if block_given?
         unless pkg.has_doc?
             pkg.with_doc do
@@ -84,6 +85,7 @@ end
 # groupfiles server, on the autonomy project folder
 def autotools_package(options, &block)
     package_common(:autotools, options) do |pkg|
+        Rubotics.add_build_system_dependency 'autotools'
         yield(pkg) if block_given?
         unless pkg.has_doc?
             pkg.with_doc do

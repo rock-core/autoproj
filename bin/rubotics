@@ -216,6 +216,11 @@ begin
             STDERR.puts "will install #{packages.join(", ")}"
         end
 
+        STDERR.puts
+        STDERR.puts "rubotics: installing prepackaged dependencies for build system & version control"
+        osdeps = manifest.known_os_packages
+        osdeps.install(Rubotics.build_system_dependencies)
+
         # Do the import, so that we can load the manifests
         STDERR.puts
         STDERR.puts "rubotics: updating packages"
@@ -233,7 +238,7 @@ begin
         end
         manifest.load_package_manifests
         STDERR.puts
-        STDERR.puts "rubotics: installing prepackaged dependencies"
+        STDERR.puts "rubotics: installing prepackaged dependencies required by the packages"
         manifest.install_os_dependencies
 
         # And now build

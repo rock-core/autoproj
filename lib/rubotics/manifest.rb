@@ -16,6 +16,14 @@ module Autobuild
 end
 
 module Rubotics
+    @build_system_dependencies = Array.new
+    def self.add_build_system_dependency(*names)
+        @build_system_dependencies.concat names
+    end
+    class << self
+        attr_reader :build_system_dependencies
+    end
+
     class VCSDefinition
         attr_reader :type
         attr_reader :url
@@ -26,6 +34,10 @@ module Rubotics
             if type != "local" && !Autobuild.respond_to?(type)
                 raise ConfigError, "version control #{type} is unknown to rubotics"
             end
+        end
+
+        def local?
+            @type == 'local'
         end
 
         def create_autobuild_importer
@@ -214,7 +226,11 @@ module Rubotics
                 end
                 vcs_spec
 
-                Rubotics.normalize_vcs_definition(vcs_spec)
+                vcs_spec = Rubotics.normalize_vcs_definition(vcs_spec)
+                if !vcs_spec.local?
+                    Rubotics.add_build_system_dependency(vcs_spec.type.to_s)
+                end
+                vcs_spec
             end
         rescue ConfigError => e
             raise ConfigError.new(File.join(local_dir, "source.yml")), e.message, e.backtrace
@@ -441,13 +457,20 @@ module Rubotics
             end
         end
 
-        def install_os_dependencies
-            # Generate the list of OS dependencies, load the osdeps files, and
-            # call OSDependencies#install
-            osdeps = OSDependencies.new
+        RUBOTICS_OSDEPS = File.join(File.expand_path(File.dirname(__FILE__)), 'default.osdeps')
+        # Returns an OSDependencies instance that defined the known OS packages,
+        # as well as how to install them
+        def known_os_packages
+            osdeps = OSDependencies.load(RUBOTICS_OSDEPS)
+
             each_osdeps_file do |source, file|
                 osdeps.merge(OSDependencies.load(file))
             end
+            osdeps
+        end
+
+        def install_os_dependencies
+            osdeps = known_os_packages
 
             all_packages = Set.new
             package_manifests.each_value do |pkg_manifest|
