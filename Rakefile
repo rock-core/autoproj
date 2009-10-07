@@ -11,8 +11,10 @@ begin
             self.changes     = ""#paragraphs_of('History.txt', 0..1).join("\n\n")
 
             extra_deps << 
-                ['autobuild',   '>= 1.3.4'] <<
-                ['rmail',   '>= 1.0.0']
+                ['autobuild',   '>= 1.2.15'] <<
+                ['rmail',   '>= 1.0.0'] <<
+                ['utilrb', '>= 1.3.3'] <<
+                ['nokogiri', '>= 1.3.3']
 
             extra_dev_deps <<
                 ['webgen', '>= 0.5.9']
