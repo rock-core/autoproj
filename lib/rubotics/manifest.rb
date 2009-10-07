@@ -186,37 +186,26 @@ module Rubotics
             urls = source_definition['urls'] || Hash.new
             urls['HOME'] = ENV['HOME']
 
-            vcs         = source_definition['version_control']
-            default_vcs = source_definition['default_version_control']
-            vcs_spec = if vcs && vcs[package_name]
-                           vcs[package_name]
-                       elsif default_vcs
-                           default_vcs
-                       end
-
-            if vcs_spec
-                expansions = Hash["PACKAGE" => package_name]
-                if default_vcs
-                    expansions["DEFAULT"] = expand(default_vcs, expansions)
+            all_vcs     = source_definition['version_control']
+            vcs_spec = Hash.new
+            all_vcs.each do |spec|
+                name, spec = spec.to_a.first
+                if Regexp.new(name) =~ package_name
+                    vcs_spec = vcs_spec.merge(spec)
                 end
+            end
+
+            if !vcs_spec.empty?
+                expansions = Hash["PACKAGE" => package_name]
 
                 vcs_spec = expand(vcs_spec, expansions)
                 vcs_spec = Rubotics.vcs_definition_to_hash(vcs_spec)
-                if default_vcs
-                    default_vcs = expand(default_vcs, expansions)
-                    default_vcs_spec = Rubotics.vcs_definition_to_hash(default_vcs)
-                    vcs_spec = default_vcs_spec.merge(vcs_spec)
-                end
-
                 vcs_spec.dup.each do |name, value|
                     vcs_spec[name] = expand(value, expansions)
                 end
+                vcs_spec
 
-                begin
-                    Rubotics.normalize_vcs_definition(vcs_spec)
-                rescue Exception => e
-                    raise e.class, "cannot load package #{package_name}: #{e.message}"
-                end
+                Rubotics.normalize_vcs_definition(vcs_spec)
             end
         rescue ConfigError => e
             raise ConfigError.new(File.join(local_dir, "source.yml")), e.message, e.backtrace
