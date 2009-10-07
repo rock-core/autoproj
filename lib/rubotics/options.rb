@@ -32,7 +32,7 @@ module Rubotics
             if answer == ''
                 answer = default_value
             end
-            result[name] = validate(answer)
+            validate(answer)
         rescue InputError
             retry
         end
@@ -87,8 +87,11 @@ module Rubotics
 
     def self.configure(option_name)
         if opt = @declared_options[option_name]
-            value = opt.ask(@user_config[option_name].first)
-            @user_config = [value, true]
+            if current_value = @user_config[option_name]
+                current_value = current_value.first
+            end
+            value = opt.ask(current_value)
+            @user_config[option_name] = [value, true]
         else
             raise ConfigError, "undeclared option '#{option_name}'"
         end
