@@ -29,6 +29,10 @@ module Rubotics
         end
 
         def create_autobuild_importer
+            url = Rubotics.single_expansion(self.url, 'HOME' => ENV['HOME'])
+            if url && url !~ /^(\w+:\/)?\/|^\w+\@/
+                url = File.expand_path(url, Rubotics.root_dir)
+            end
             Autobuild.send(type, url, options)
         end
 
@@ -41,7 +45,7 @@ module Rubotics
             spec = if url.empty?
                        source_dir = File.expand_path(File.join(Rubotics.config_dir, spec))
                        if !File.directory?(source_dir)
-                           raise ConfigError, "'#{spec}' is neither a remote source specification, nor a local source definition"
+                           raise ConfigError, "'#{spec.inspect}' is neither a remote source specification, nor a local source definition"
                        end
 
                        Hash[:type => 'local', :url => source_dir]
@@ -50,10 +54,9 @@ module Rubotics
                    end
         end
 
-        if spec[:url] && spec[:url] !~ /^(\w+:\/\/)?\//
-            spec[:url] = File.expand_path(spec[:url], Rubotics.root_dir)
-        end
-        return spec
+        spec, vcs_options = Kernel.filter_options spec, :type => nil, :url => nil
+
+        return spec.merge(vcs_options)
     end
 
     # Rubotics configuration files accept VCS definitions in three forms:
@@ -70,6 +73,13 @@ module Rubotics
 
         spec, vcs_options = Kernel.filter_options spec, :type => nil, :url => nil
         return VCSDefinition.new(spec[:type], spec[:url], vcs_options)
+    end
+
+    def self.single_expansion(data, definitions)
+        definitions.each do |name, expanded|
+            data = data.gsub /\$#{Regexp.quote(name)}\b/, expanded
+        end
+        data
     end
 
     # A source is a version control repository which contains general source
@@ -150,10 +160,9 @@ module Rubotics
 
         # True if the given string contains expansions
         def contains_expansion?(string); string =~ /\$/ end
+
         def single_expansion(data, additional_expansions = Hash.new)
-            (additional_expansions.merge(constants_definitions)).each do |name, expanded|
-                data = data.gsub /\$#{Regexp.quote(name)}\b/, expanded
-            end
+            Rubotics.single_expansion(data, additional_expansions.merge(constants_definitions))
         end
 
         # Expands the given string as much as possible using the expansions
@@ -340,14 +349,18 @@ module Rubotics
             packages.each_value { |package, _| yield(package) }
         end
 
+        def self.update_remote_source(source)
+            importer     = source.vcs.create_autobuild_importer
+            fake_package = FakePackage.new(source.automatic_name, source.local_dir)
+
+            importer.import(fake_package)
+        end
+
         def update_remote_sources
             # Iterate on the remote sources, without loading the source.yml
             # file (we're not ready for that yet)
             each_remote_source(false) do |source|
-                importer     = source.vcs.create_autobuild_importer
-                fake_package = FakePackage.new(source.automatic_name, source.local_dir)
-
-                importer.import(fake_package)
+                Manifest.update_remote_source(source)
             end
         end
 
