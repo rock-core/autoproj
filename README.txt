@@ -32,8 +32,28 @@ directory in which there is:
  * optionally, a file that describe prepackaged dependencies that can be
    installed by using the operating system package management system.
 
-Software packages
------------------
+Bootstrapping
+-------------
+"Bootstrapping" means getting rubotics itself before it can work its magic ...
+The canonical way is the following:
+
+ * install Ruby by yourself. On Debian or Ubuntu, this is done with
+   done with
+
+   sudo apt-get install wget ruby
+   {.cmdline}
+
+ * then, [download this script](rubotics_bootstrap) *in the directory where
+   you want to create a rubotics installation*, and run it. This can be done with
+
+   wget http://doudou.github.com/rubotics/rubotics\_bootstrap <br />
+   ruby rubotics\_bootstrap
+   {.cmdline}
+
+ * follow the instructions printed by the script above :)
+
+Software packages in Rubotics
+-----------------------------
 In the realm of rubotics, a software package should be a self-contained build
 system, that could be built outside of a rubotics tree. In practice, it means
 that the package writer should leverage its build system (for instance, cmake)
@@ -47,24 +67,4 @@ using pkg-config.
 To describe the package, and more importantly to setup cross-package
 dependencies, an optional manifest file can be added. This manifest file is
 named manifest.xml. Its format is described later in this user's guide.
-
-Bootstrapping
--------------
-"Bootstrapping" means getting rubotics itself before it can work its magic ...
-The canonical way is the following:
-
- * install Ruby by yourself. On Debian or Ubuntu, this is done with
-   done with
-
-   sudo apt-get install ruby
-   {.cmdline}
-
- * then, [download this script](rubotics_bootstrap) *in the directory where
-   you want to create a rubotics installation*, and run it. This can be done with
-
-   wget http://doudou.github.com/rubotics/rubotics\_bootstrap
-   ruby rubotics\_bootstrap
-   {.cmdline}
-
- * follow the instructions printed by the script above :)
 
