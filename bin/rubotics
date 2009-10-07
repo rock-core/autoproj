@@ -114,6 +114,7 @@ when "update-sources"
 when "list-sources"
     only_update_sources = true
     Autobuild.do_update = false
+    
 when "doc"
     Autobuild.do_update = false
     Autobuild.do_doc    = true
@@ -124,7 +125,7 @@ else
 end
 
 # Set up the environment
-ENV['GEM_HOME'] = File.join(Rubotics.config_dir, ".gem")
+ENV['GEM_HOME'] = File.join(Rubotics.config_dir, "gems")
 ORIG_PATH = "/usr/bin:/bin"
 ENV['PATH'] = "#{ENV['GEM_HOME']}/bin:/usr/local/bin:/usr/bin:/bin"
 ORIG_PKG_CONFIG_PATH = "/usr/lib/pkgconfig"
