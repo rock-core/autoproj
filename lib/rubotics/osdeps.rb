@@ -113,7 +113,14 @@ module Rubotics
             Autobuild::Subprocess.run 'rubotics', 'osdeps', 'bash', './osdeps.sh'
             FileUtils.rm_f 'osdeps.sh'
 
-            # Now install the gems
+            # Don't install gems that are already there ...
+            gems.delete_if do |name|
+                version_requirements = Gem::Requirement.default
+                available = Gem.source_index.find_name(name, version_requirements)
+                !available.empty?
+            end
+
+            # Now install what is left
             if !gems.empty?
                 if Rubotics.verbose
                     STDERR.puts "Installing rubygems dependencies with"
