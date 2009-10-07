@@ -5,8 +5,9 @@ require 'set'
 
 module Autobuild
     class Package
-        attr_reader :os_packages
-
+        def os_packages
+            @os_packages || Array.new
+        end
         def depends_on_os_package(name)
             @os_packages ||= Array.new
             @os_packages << name
@@ -397,11 +398,15 @@ module Rubotics
         end
 
         def enabled_source?(source)
-            data['enabled_sources'].include?(source.name)
+            if !data['enabled_sources']
+                true
+            else
+                data['enabled_sources'].include?(source.name)
+            end
         end
 
         def enabled_sources
-            each_source.find_all { |source| data['enabled_sources'].include?(source.name) }
+            each_source.find_all { |source| enabled_source?(source.name) }
         end
 
         # Loads the package's manifest.xml files, and extracts dependency
