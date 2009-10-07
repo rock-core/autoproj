@@ -53,17 +53,17 @@ Bootstrapping
 "Bootstrapping" means getting rubotics itself before it can work its magic ...
 The canonical way is the following:
 
- * install ruby version 1.8 and RubyGems on your system. On Debian and Ubuntu
-   systems, it is done with
+ * install Ruby by yourself. On Debian or Ubuntu, this is done with
+   done with
 
-   sudo apt-get install rubygems ruby1.8 libopenssl-ruby1.8
+   sudo apt-get install ruby
    {.cmdline}
 
- * then, [download this script](rubotics_bootstrap.sh), save it *in the
-   directory where you want to install rubotics-related stuff*, and, in a
-   console, run
+ * then, [download this script](rubotics_bootstrap) *in the directory where
+   you want to create a rubotics installation*, and run it. This can be done with
 
-   sh rubotics\_bootstrap.sh
+   wget http://doudou.github.com/rubotics/rubotics\_bootstrap
+   ruby rubotics\_bootstrap
    {.cmdline}
 
  * follow the instructions printed by the script above :)

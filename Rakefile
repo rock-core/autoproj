@@ -21,6 +21,15 @@ begin
         end
     end
 
+    task 'dist:bootstrap' do
+        osdeps_code = File.read(File.join(Dir.pwd, 'lib', 'rubotics', 'osdeps.rb'))
+        bootstrap_code = File.read(File.join(Dir.pwd, 'bin', 'rubotics_bootstrap.in')).
+            gsub('OSDEPS_CODE', osdeps_code)
+        File.open(File.join(Dir.pwd, 'doc', 'guide', 'src', 'rubotics_bootstrap'), 'w') do |io|
+            io.write bootstrap_code
+        end
+    end
+
     # This sucks, I know, but Hoe's handling of documentation is not
     # enough for me
     tasks = Rake.application.instance_variable_get :@tasks
@@ -59,6 +68,7 @@ if do_doc
                 config['output'] = ['Webgen::Output::FileSystem', File.join(Dir.pwd, 'doc', 'html')]
             end
         end
+        task 'guide' => 'dist:bootstrap'
         RDoc::Task.new("api") do |rdoc|
             rdoc.rdoc_dir = 'doc/html/api'
             rdoc.title    = "oroGen"
