@@ -16,9 +16,9 @@ module Autobuild
 end
 
 module Rubotics
-    @build_system_dependencies = Array.new
+    @build_system_dependencies = Set.new
     def self.add_build_system_dependency(*names)
-        @build_system_dependencies.concat names
+        @build_system_dependencies |= names.to_set
     end
     class << self
         attr_reader :build_system_dependencies
@@ -116,7 +116,7 @@ module Rubotics
         # installation
         def present?; File.directory?(local_dir) end
         # True if this source is local, i.e. is not under a version control
-        def local?; vcs.type == "local" end
+        def local?; vcs.local? end
         # The directory in which data for this source will be checked out
         def local_dir
             if local?
@@ -226,11 +226,7 @@ module Rubotics
                 end
                 vcs_spec
 
-                vcs_spec = Rubotics.normalize_vcs_definition(vcs_spec)
-                if !vcs_spec.local?
-                    Rubotics.add_build_system_dependency(vcs_spec.type.to_s)
-                end
-                vcs_spec
+                Rubotics.normalize_vcs_definition(vcs_spec)
             end
         rescue ConfigError => e
             raise ConfigError.new(File.join(local_dir, "source.yml")), e.message, e.backtrace
@@ -299,6 +295,10 @@ module Rubotics
 		    yield(source, file)
 		end
             end
+        end
+
+        def has_remote_sources?
+            each_remote_source(false).any? { true }
         end
 
         # Like #each_source, but filters out local sources
@@ -408,6 +408,7 @@ module Rubotics
                 end
 
                 if vcs
+                    Rubotics.add_build_system_dependency vcs.type
                     package.importer = vcs.create_autobuild_importer
                 else
                     raise ConfigError, "source #{package_source.name} defines #{package.name}, but does not provide a version control definition for it"

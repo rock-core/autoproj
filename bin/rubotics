@@ -141,9 +141,22 @@ begin
     Dir.chdir(root_dir) do
         # Load the manifest
         manifest = Rubotics.manifest = Manifest.load(File.join('rubotics', 'manifest'))
-        STDERR.puts "rubotics: updating remote sources"
-        Autobuild::Reporting.report do
-            manifest.update_remote_sources
+        source_os_dependencies = manifest.each_remote_source.
+            inject(Set.new) do |set, source|
+                set << source.vcs.type if !source.local?
+            end
+
+        if !source_os_dependencies.empty?
+            STDERR.puts "rubotics: installing prepackaged dependencies to access the source definitions"
+            osdeps = manifest.known_os_packages
+            osdeps.install(source_os_dependencies)
+        end
+        if manifest.has_remote_sources?
+            STDERR.puts "rubotics: updating remote sources"
+            Autobuild::Reporting.report do
+                manifest.update_remote_sources
+            end
+            STDERR.puts
         end
 
         # If in verbose mode, or if we only update sources, list the sources
@@ -173,7 +186,6 @@ begin
         end
 
         # Load the required autobuild definitions
-        STDERR.puts
         STDERR.puts "rubotics: loading build files and configuring build"
         if !Rubotics.reconfigure?
             STDERR.puts "run 'rubotics --reconfigure' to change configuration values"
@@ -219,7 +231,7 @@ begin
         STDERR.puts
         STDERR.puts "rubotics: installing prepackaged dependencies for build system & version control"
         osdeps = manifest.known_os_packages
-        osdeps.install(Rubotics.build_system_dependencies)
+        osdeps.install(Rubotics.build_system_dependencies - source_os_dependencies)
 
         # Do the import, so that we can load the manifests
         STDERR.puts
