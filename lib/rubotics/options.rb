@@ -100,6 +100,7 @@ module Rubotics
             end
             value = opt.ask(current_value)
             @user_config[option_name] = [value, true]
+            value
         else
             raise ConfigError, "undeclared option '#{option_name}'"
         end
