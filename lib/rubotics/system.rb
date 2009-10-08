@@ -36,5 +36,21 @@ module Rubotics
             raise "failed to run #{args.join(" ")} as root"
         end
     end
+
+    def self.export_env_sh
+        File.open(File.join(Rubotics.root_dir, "env.sh"), "w") do |io|
+            Autobuild.environment.each do |name, value|
+                shell_line = "export #{name}=#{value.join(":")}"
+                if Rubotics.env_inherit?(name)
+                    if value.empty?
+                        next
+                    else
+                        shell_line << ":$#{name}"
+                    end
+                end
+                io.puts shell_line
+            end
+        end
+    end
 end
 

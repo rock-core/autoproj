@@ -66,6 +66,14 @@ module Rubotics
     end
 
     @user_config = Hash.new
+
+    def self.option_set
+        @user_config.inject(Hash.new) do |h, (k, v)|
+            h[k] = v.first
+            h
+        end
+    end
+
     def self.user_config(key)
         value, seen = @user_config[key]
 

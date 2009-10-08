@@ -24,6 +24,52 @@ module Rubotics
         attr_reader :build_system_dependencies
     end
 
+    def self.expand_environment(value)
+        # Perform constant expansion on the defined environment variables,
+        # including the option set
+        options = Rubotics.option_set
+        if Rubotics.manifest
+            loop do
+                new_value = Rubotics.manifest.single_expansion(value, options)
+                if new_value == value
+                    break
+                else
+                    value = new_value
+                end
+            end
+        else
+            value
+        end
+    end
+
+    @env_inherit = Set.new
+    def self.env_inherit?(name)
+        @env_inherit.include?(name)
+    end
+    def self.env_inherit(*names)
+        @env_inherit |= names
+    end
+
+    # Set a new environment variable
+    def self.env_set(name, *value)
+        Autobuild.environment.delete(name)
+        env_add(name, *value)
+    end
+    def self.env_add(name, *value)
+        value = value.map { |v| expand_environment(v) }
+        Autobuild.env_add(name, *value)
+    end
+    def self.env_set_path(name, *value)
+        Autobuild.environment.delete(name)
+        env_add_path(name, *value)
+    end
+    def self.env_add_path(name, *value)
+        puts value.inspect
+        value = value.map { |v| expand_environment(v) }
+        puts value.inspect
+        Autobuild.env_add_path(name, *value)
+    end
+
     class VCSDefinition
         attr_reader :type
         attr_reader :url

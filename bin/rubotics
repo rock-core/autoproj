@@ -146,13 +146,12 @@ else
 end
 
 # Set up the environment
-ENV['GEM_HOME'] = File.join(Rubotics.config_dir, "gems")
-ORIG_PATH = "/usr/bin:/bin"
-ENV['PATH'] = "#{ENV['GEM_HOME']}/bin:/usr/local/bin:/usr/bin:/bin"
-ORIG_PKG_CONFIG_PATH = "/usr/lib/pkgconfig"
-ENV['PKG_CONFIG_PATH'] = ''
-ORIG_RUBYLIB = ""
-ENV['RUBYLIB'] = ""
+gem_home = File.join(Rubotics.config_dir, "gems")
+Rubotics.env_set 'GEM_HOME', gem_home
+Rubotics.env_set_path 'PATH', "#{gem_home}/bin", "/usr/local/bin", "/usr/bin", "/bin"
+Rubotics.env_set 'PKG_CONFIG_PATH'
+Rubotics.env_set 'RUBYLIB'
+Rubotics.env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB'
 
 def color(*args)
     Rubotics.console.color(*args)

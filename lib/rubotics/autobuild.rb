@@ -110,6 +110,13 @@ def ruby_common(pkg)
     Autobuild.update_environment pkg.srcdir
 end
 
+def env_set(name, value)
+    Rubotics.env_set(name, value)
+end
+def env_add(name, value)
+    Rubotics.env_add(name, value)
+end
+
 def ruby_package(options)
     package_common(:import, options) do |pkg|
         class << pkg
