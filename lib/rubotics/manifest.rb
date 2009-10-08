@@ -469,7 +469,7 @@ module Rubotics
         end
 
         def enabled_sources
-            each_source.find_all { |source| enabled_source?(source.name) }
+            each_source.find_all { |source| enabled_source?(source) }
         end
 
         # Loads the package's manifest.xml files, and extracts dependency
