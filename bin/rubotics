@@ -44,6 +44,7 @@ where 'mode' is one of:
   build:  import, build and install all selected packages
   doc:    generate and install documentation for packages that have some
   update: only import/update packages, do not build them
+  status: displays the state of the packages w.r.t. their source VCS
   
   list-sources:   list all available sources
   update-sources: update all remote sources, but do not build
@@ -110,6 +111,9 @@ when "bootstrap"
 when "build"
 when "update"
     Autobuild.do_build  = false
+when "status"
+    only_do_status      = true
+    Autobuild.do_update = false
 when "update-sources"
     only_update_sources = true
 when "list-sources"
@@ -133,6 +137,8 @@ ORIG_PKG_CONFIG_PATH = "/usr/lib/pkgconfig"
 ENV['PKG_CONFIG_PATH'] = ''
 ORIG_RUBYLIB = ""
 ENV['RUBYLIB'] = ""
+
+console = HighLine.new
 
 if mail_config[:to]
     Autobuild::Reporting << MailReporter.new(mail_config)
@@ -233,6 +239,61 @@ begin
         STDERR.puts console.color("rubotics: installing prepackaged dependencies for build system & version control", :bold)
         osdeps = manifest.known_os_packages
         osdeps.install(Rubotics.build_system_dependencies - source_os_dependencies)
+
+        # We are doing a status, so do it now
+        STDERR.puts
+        Autobuild::Reporting.report do
+            packages.sort.each do |pkg|
+                pkg = Autobuild::Package[pkg]
+
+                STDERR.print "#{pkg.name}:"
+
+                if !pkg.importer.respond_to?(:status)
+                    # This importer does not support status display
+                    STDERR.puts console.color("  this package's importer does not support status display", :bold, :red)
+                    next
+                end
+
+                lines = []
+                status = pkg.importer.status(pkg)
+                if status.uncommitted_code
+                    lines << console.color("  contains uncommitted modifications", :red)
+                end
+
+                case status.status
+                when Autobuild::Importer::Status::UP_TO_DATE
+                    lines << console.color("  local and remote are in sync", :green)
+                when Autobuild::Importer::Status::ADVANCED
+                    lines << console.color("  local contains #{status.local_commits.size} commit that remote does not have:", :magenta)
+                    status.local_commits.each do |line|
+                        lines << console.color("    #{line}", :magenta)
+                    end
+                when Autobuild::Importer::Status::SIMPLE_UPDATE
+                    lines << console.color("  remote contains #{status.remote_commits.size} commit that local does not have:", :magenta)
+                    status.remote_commits.each do |line|
+                        lines << console.color("    #{line}", :green)
+                    end
+                when Autobuild::Importer::Status::MERGE
+                    lines << console.color("  local and remote have diverged with respectively #{status.local_commits.size} and #{status.remote_commits} commits each", :magenta)
+                    lines << "  -- local commits --"
+                    status.local_commits.each do |line|
+                        lines << "   #{line}"
+                    end
+                    lines << "  -- remote commits --"
+                    status.remote_commits.each do |line|
+                        lines << "   #{line}"
+                    end
+                end
+
+                if lines.size == 1
+                    STDERR.puts lines.first
+                else
+                    STDERR.puts
+                    STDERR.puts lines.join("\n")
+                end
+            end
+            exit(0)
+        end
 
         # Do the import, so that we can load the manifests
         STDERR.puts
