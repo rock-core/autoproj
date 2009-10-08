@@ -51,7 +51,7 @@ if ARGV.first != "dev"
 end
 
 osdeps_management = Rubotics::OSDependencies.new(YAML.load(DEFS))
-STDERR.puts "rubotics: installing rubotics and its dependencies"
+STDERR.puts "rubotics: installing rubotics and its dependencies (this can take a long time)"
 osdeps_management.install(packages)
 
 File.open('env.sh', 'w') do |io|
