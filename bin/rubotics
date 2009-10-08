@@ -50,6 +50,7 @@ Autobuild.prefix  = Rubotics.build_dir
 Autobuild.srcdir  = root_dir
 Autobuild.doc_errors = false
 Autobuild.do_doc = false
+debug = false
 Autobuild::Reporting << RuboticsReporter.new
 
 # Parse the configuration options
@@ -84,6 +85,7 @@ Additional options:
         Rubotics.verbose  = true
         Autobuild.verbose = true
         Rake.application.options.trace = true
+        debug = true
     end
     opts.on('--nice NICE', Integer, 'nice the subprocesses to the given value') do |value|
         Autobuild.nice = value
@@ -222,7 +224,7 @@ begin
     Dir.chdir(root_dir) do
         # Load the manifest
         manifest = Rubotics.manifest = Manifest.load(File.join('rubotics', 'manifest'))
-        source_os_dependencies = manifest.each_remote_source.
+        source_os_dependencies = manifest.each_remote_source(false).
             inject(Set.new) do |set, source|
                 set << source.vcs.type if !source.local?
             end
@@ -243,7 +245,7 @@ begin
         # If in verbose mode, or if we only update sources, list the sources
         if Rubotics.verbose || only_update_sources
             STDERR.puts color("rubotics: available sources", :bold)
-            manifest.each_source do |source|
+            manifest.each_source(false) do |source|
                 STDERR.puts "  #{source.name}"
                 if source.local?
                     STDERR.puts "    local source in #{source.local_dir}"
@@ -360,8 +362,10 @@ begin
 rescue ConfigError => e
     STDERR.puts
     STDERR.puts color(e.message, :red, :bold)
+    raise if debug
 rescue Interrupt
     STDERR.puts
     STDERR.puts color("Interrupted by user", :red, :bold)
+    raise if debug
 end
 

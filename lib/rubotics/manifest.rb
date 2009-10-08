@@ -176,7 +176,13 @@ module Rubotics
         end
 
         # Returns the source name
-        def name; @source_definition['name'] end
+        def name
+            if @source_definition then
+                @source_definition['name'] || automatic_name
+            else
+                automatic_name
+            end
+        end
 
         # Load the source.yml file that describes this source
         def load_description_file
