@@ -64,9 +64,7 @@ module Rubotics
         env_add_path(name, *value)
     end
     def self.env_add_path(name, *value)
-        puts value.inspect
         value = value.map { |v| expand_environment(v) }
-        puts value.inspect
         Autobuild.env_add_path(name, *value)
     end
 
