@@ -22,6 +22,7 @@ doc/guide/src/source_yml.page
 doc/guide/src/structure.page
 lib/rubotics.rb
 lib/rubotics/autobuild.rb
+lib/rubotics/default.osdeps
 lib/rubotics/manifest.rb
 lib/rubotics/options.rb
 lib/rubotics/osdeps.rb
