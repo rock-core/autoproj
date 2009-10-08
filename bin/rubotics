@@ -6,6 +6,7 @@ require 'rubotics/autobuild'
 require 'highline'
 include Rubotics
 
+InputError = Rubotics::InputError
 module Rubotics
     @verbose = false
     @console = HighLine.new

@@ -33,7 +33,9 @@ module Rubotics
                 answer = default_value
             end
             validate(answer)
-        rescue InputError
+
+        rescue InputError => e
+            STDERR.puts Rubotics.console.color("invalid value: #{e.message}", :red)
             retry
         end
 
