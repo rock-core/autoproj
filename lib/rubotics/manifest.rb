@@ -252,11 +252,18 @@ module Rubotics
             urls['HOME'] = ENV['HOME']
 
             all_vcs     = source_definition['version_control']
+            if all_vcs && !all_vcs.kind_of?(Array)
+                raise ConfigError, "wrong format for the version_control field"
+            end
+
             vcs_spec = Hash.new
-            all_vcs.each do |spec|
-                name, spec = spec.to_a.first
-                if Regexp.new(name) =~ package_name
-                    vcs_spec = vcs_spec.merge(spec)
+
+            if all_vcs
+                all_vcs.each do |spec|
+                    name, spec = spec.to_a.first
+                    if Regexp.new(name) =~ package_name
+                        vcs_spec = vcs_spec.merge(spec)
+                    end
                 end
             end
 
