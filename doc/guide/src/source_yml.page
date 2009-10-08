@@ -8,6 +8,27 @@ A source is made of three things:
  * an optional initialization script (init.rb)
  * autobuild scripts (\*.autobuild)
 
+Autobuild scripts
+-----------------
+The autobuild scripts lists all the packages defined by this source. It is a
+Ruby script (but you don't need to know Ruby to write one). In its most simple
+form, it looks like:
+
+{coderay:: ruby}
+cmake_package "orocos/rtt"
+autotools_package "drivers/imu"
+{coderay}
+
+The above snippet defines two packages. The first one uses CMake as a build
+system and will be installed in the <tt>orocos/rtt</tt> subdirectory of the
+rubotics installation. The second one is an autotools package. There is, for
+now, only support for these two build systems, and for Ruby packages. Package
+definitions can be tweaked quite a lot, including the ability to generate
+documentation. See [the next page](autobuild.html) for more information on how to write autobuild
+scripts.
+
+source.yml
+----------
 The source.yml file gives generic information on the source itself (most
 importantly its name), and version control information (i.e. where to get the
 packages). It is a YAML file, and looks like:
@@ -18,12 +39,12 @@ constants:
   ROOT_DIR: $HOME/share
   
 version_control:
-  "modules/.*":
-    type: git
-    url: $ROOT_DIR/$PACKAGE.git
-  "drivers/.*":
-    type: svn
-    url: svn+ssh://rlbsvn.informatik.uni-bremen.de/trunk/$PACKAGE.git
+  - "modules/.*":
+      type: git
+      url: $ROOT_DIR/$PACKAGE.git
+  - "drivers/.*":
+      type: svn
+      url: svn+ssh://rlbsvn.informatik.uni-bremen.de/trunk/$PACKAGE.git
 {coderay}
 
 The name field gives a name for the source. It is arbitrary, but the guideline
@@ -43,7 +64,10 @@ package_name:
 {coderay}
 
 Where package\_name is a regular expression that matches the package name, i.e.
-use ".\*" to match all packages for instance.
+use ".\*" to match all packages for instance. The package name is the one given
+to the <tt>blabla_package</tt> stanza in the autobuild file. In the above
+autobuild example, the package names are therefore "orocos/rtt" and
+"drivers/imu".
 
 For the git importer, one of 'branch' or 'tag' options can be provided as well:
 {coderay:: yaml}
@@ -58,12 +82,12 @@ packages, and then override for specific packages:
 
 {coderay:: yaml}
 version_control:
-  "modules/logger": # we don't follow master on this module
-    branch: imoby
+  - "modules/logger": # we don't follow master on this module
+      branch: imoby
 
-  .*: # common options for all packages
-    type: git
-    url: $ROOT_DIR/$PACKAGE.git
+  - .*: # common options for all packages
+      type: git
+      url: $ROOT_DIR/$PACKAGE.git
 {coderay}
 
 Interaction between source definition files
@@ -83,9 +107,10 @@ when searching for version control information:
 Using configuration options
 ---------------------------
 rubotics offers a configuration system that allows the user to tweak the build
-to its needs. It is possible to use this system in the source.yml file. To do
-that, create an init.rb file next to the source.yml file, and add the following
-line:
+to its needs. If the version control definitions depend on such configuration
+options (as, for instance, because you want to parametrize the source URLs),
+then create an init.rb file next to the source.yml file, and add lines looking
+like:
 
 {coderay:: ruby}
 configuration_option "option_name", "option_type",
@@ -96,11 +121,19 @@ configuration_option "option_name", "option_type",
 
 where the option\_type field can either be "string" or "boolean".
 
-Then, you can use the option\_name as an expansion in the source.yml file. For
-instance:
+Then, you can use the option\_name as an expansion in the source.yml file.
+
+For instance, with an init.rb looking like:
+{coderay:: ruby}
+configuration_option "MOUNT_POINT", "string",
+    :default => "$HOME/nfs",
+    :doc => "mount point of the NFS server"
+{coderay}
 
 {coderay:: yaml}
-constants:
-  ROOT_DIR: $option_name/$PACKAGE.git
+version_control:
+  ".*":
+    url: $MOUNT_POINT/git/$PACKAGE.git
+    type: git
 {coderay}
 

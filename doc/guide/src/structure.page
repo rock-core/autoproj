@@ -21,7 +21,8 @@ rubotics-related configuration is saved. The contained files are as follows:
 
 The build is done in two steps:
 
- * each package is being built in <tt>package_directory/build/</tt>
+ * each package is being built in a <tt>build</tt> subdirectory of the package's
+   source (<tt>package_directory/build/</tt>)
  * it is then installed in the build/ directory at the toplevel of the rubotics
    installation
 

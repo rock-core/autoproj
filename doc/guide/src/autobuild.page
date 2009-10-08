@@ -3,4 +3,109 @@ title: Writing autobuild scripts
 sort_info: 200
 ---
 
+Defining CMake packages
+-----------------------
+A simple cmake package is defined with
+
+{coderay:: ruby}
+cmake_package "package_name"
+{coderay}
+
+More complex tweaking is achieved with
+
+{coderay:: ruby}
+cmake_package "package_name" do |pkg|
+  [modify the pkg object]
+end
+{coderay}
+
+In particular, cmake build options can be given with
+
+{coderay:: ruby}
+cmake_package "package_name" do |pkg|
+  pkg.define "VAR", "VALUE"
+end
+{coderay}
+
+The above snippet being equivalent to calling <tt>cmake -DVAR=VALUE</tt>
+
+<b>Note to advanced users</b>
+<br />
+The "pkg" variable holds an object that represents the package. This
+object is an instance of the Autobuild::CMake. See [the autobuild
+API](http://doudou.github.com/autobuild/Autobuild/CMake.html) for more
+details.
+{.note}
+
+Defining autotools packages
+---------------------------
 TBD
+
+Declaring documentation targets
+-------------------------------
+Both autotools and cmake packages use <tt>make</tt> as the low-level build tool.
+For both packages, you can declare a documentation target that will be used
+during the call to <tt>rubotics doc</tt> to generate documentation:
+
+{coderay:: ruby}
+cmake_package "package_name" do |pkg|
+  pkg.with_doc 'doc'
+  pkg.doc_dir = "doc/html"
+end
+{coderay}
+
+The doc\_dir assignment above is needed if the package installs its documentation
+elsewhere than "doc".
+
+Defining dependencies
+---------------------
+Inter-package dependencies can be defined with
+
+{coderay:: ruby}
+pkg.depends_on "package_name"
+{coderay}
+
+In the same way, if the source package depends on an OS package (see
+[Prepackaged dependencies](os_deps.html) for details), you can use
+
+{coderay:: ruby}
+pkg.depends_on_os_package "package_name"
+{coderay}
+
+Both methods should be used only for dynamic dependencies, i.e. dependencies
+that are dependent on build options (see below). Static dependencies should be
+defined in the package's manifest.xml
+{.warning}
+
+Defining and using options
+--------------------------
+
+It is possible to define configuration options which are set by your user at
+build time. These options can then be used in the autobuild scripts to
+parametrize the build.
+
+The general form of an option declaration is:
+
+{coderay:: ruby}
+configuration_option "option_name", "option_type",
+    :default => "default_value",
+    :values => ["set", "of", "possible", "values"],
+    :doc => "description of the option"
+{coderay}
+
+Once declared, it can be used in autobuild scripts with:
+
+{coderay:: ruby}
+Rubotics.user_config("option_name")
+{coderay}
+
+Options are saved in <tt>rubotics/config.yml</tt> after the build. Options that
+are already set won't be asked again unless the <tt>--reconfigure</tt> option is
+given to <tt>rubotics build</tt>.
+
+Do not try to have too many options, that is in general bad policy as
+non-advanced users won't be able to know what to answer. Advanced users will
+always have the option to override your autobuild definitions to tweak the
+builds to their needs.
+{.warning}
+
