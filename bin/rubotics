@@ -195,8 +195,8 @@ def do_status(packages)
                 status.remote_commits.each do |line|
                     lines << color("    #{line}", :magenta)
                 end
-            when Autobuild::Importer::Status::MERGE
-                lines << color("  local and remote have diverged with respectively #{status.local_commits.size} and #{status.remote_commits} commits each", :magenta)
+            when Autobuild::Importer::Status::NEEDS_MERGE
+                lines << color("  local and remote have diverged with respectively #{status.local_commits.size} and #{status.remote_commits.size} commits each", :magenta)
                 lines << "  -- local commits --"
                 status.local_commits.each do |line|
                     lines << color("   #{line}", :magenta)
