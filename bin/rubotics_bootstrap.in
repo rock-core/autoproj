@@ -54,6 +54,13 @@ osdeps_management = Rubotics::OSDependencies.new(YAML.load(DEFS))
 STDERR.puts "rubotics: installing rubotics and its dependencies (this can take a long time)"
 osdeps_management.install(packages)
 
+if ARGV.first != "dev"
+    ENV['RUBYOPT']  = "-rubygems"
+    ENV['GEM_HOME'] = "#{Dir.pwd}/rubotics/gems"
+    ENV['PATH']     = "#{ENV['GEM_HOME']}/bin:$PATH"
+    Autobuild::Subprocess.run('bootstrap', 'post', 'rubotics', 'bootstrap')
+end
+
 File.open('env.sh', 'w') do |io|
     io.write <<-EOSHELL
 export RUBYOPT=-rubygems
