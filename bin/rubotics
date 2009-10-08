@@ -1,13 +1,32 @@
 #! /usr/bin/env ruby
 
 require 'rubotics'
+require 'rubotics/autobuild'
+
 require 'highline'
 include Rubotics
 
 module Rubotics
     @verbose = false
+    @console = HighLine.new
+
     class << self
         attr_accessor :verbose
+        attr_reader :console
+    end
+end
+
+class RuboticsReporter < Autobuild::Reporter
+    def error(error)
+        error_lines = error.to_s.split("\n")
+        STDERR.puts color("Build failed: #{error_lines.shift}", :bold, :red)
+        STDERR.puts error_lines.join("\n")
+    end
+    def success
+        STDERR.puts color("Build finished successfully at #{Time.now}", :bold, :green)
+        if Autobuild.post_success_message
+            puts Autobuild.post_success_message
+        end
     end
 end
 
@@ -23,9 +42,6 @@ end
 # Find the rubotics root dir
 root_dir = Rubotics.root_dir
 
-# Load autobuild-related stuff from rubotics (not loaded by default)
-require 'rubotics/autobuild'
-
 Rubotics.load_config
 
 # Set up some important autobuild parameters
@@ -33,7 +49,7 @@ Autobuild.prefix  = Rubotics.build_dir
 Autobuild.srcdir  = root_dir
 Autobuild.doc_errors = false
 Autobuild.do_doc = false
-Autobuild::Reporting << Autobuild::StdoutReporter.new
+Autobuild::Reporting << RuboticsReporter.new
 
 # Parse the configuration options
 mail_config = Hash.new
@@ -138,10 +154,68 @@ ENV['PKG_CONFIG_PATH'] = ''
 ORIG_RUBYLIB = ""
 ENV['RUBYLIB'] = ""
 
-console = HighLine.new
+def color(*args)
+    Rubotics.console.color(*args)
+end
 
 if mail_config[:to]
     Autobuild::Reporting << MailReporter.new(mail_config)
+end
+
+def do_status(packages)
+    console = Rubotics.console
+
+    Autobuild::Reporting.report do
+        packages.sort.each do |pkg|
+            pkg = Autobuild::Package[pkg]
+
+            STDERR.print "#{pkg.name}:"
+
+            if !pkg.importer.respond_to?(:status)
+                # This importer does not support status display
+                STDERR.puts color("  this package's importer does not support status display", :bold, :red)
+                next
+            end
+
+            lines = []
+            status = pkg.importer.status(pkg)
+            if status.uncommitted_code
+                lines << color("  contains uncommitted modifications", :red)
+            end
+
+            case status.status
+            when Autobuild::Importer::Status::UP_TO_DATE
+                lines << color("  local and remote are in sync", :green)
+            when Autobuild::Importer::Status::ADVANCED
+                lines << color("  local contains #{status.local_commits.size} commit that remote does not have:", :magenta)
+                status.local_commits.each do |line|
+                    lines << color("    #{line}", :magenta)
+                end
+            when Autobuild::Importer::Status::SIMPLE_UPDATE
+                lines << color("  remote contains #{status.remote_commits.size} commit that local does not have:", :magenta)
+                status.remote_commits.each do |line|
+                    lines << color("    #{line}", :magenta)
+                end
+            when Autobuild::Importer::Status::MERGE
+                lines << color("  local and remote have diverged with respectively #{status.local_commits.size} and #{status.remote_commits} commits each", :magenta)
+                lines << "  -- local commits --"
+                status.local_commits.each do |line|
+                    lines << color("   #{line}", :magenta)
+                end
+                lines << "  -- remote commits --"
+                status.remote_commits.each do |line|
+                    lines << color("   #{line}", :magenta)
+                end
+            end
+
+            if lines.size == 1
+                STDERR.puts lines.first
+            else
+                STDERR.puts
+                STDERR.puts lines.join("\n")
+            end
+        end
+    end
 end
 
 begin
@@ -154,12 +228,12 @@ begin
             end
 
         if !source_os_dependencies.empty?
-            STDERR.puts console.color("rubotics: installing prepackaged dependencies to access the source definitions", :bold)
+            STDERR.puts color("rubotics: installing prepackaged dependencies to access the source definitions", :bold)
             osdeps = manifest.known_os_packages
             osdeps.install(source_os_dependencies)
         end
         if manifest.has_remote_sources?
-            STDERR.puts console.color("rubotics: updating remote sources", :bold)
+            STDERR.puts color("rubotics: updating remote sources", :bold)
             Autobuild::Reporting.report do
                 manifest.update_remote_sources
             end
@@ -168,7 +242,7 @@ begin
 
         # If in verbose mode, or if we only update sources, list the sources
         if Rubotics.verbose || only_update_sources
-            STDERR.puts console.color("rubotics: available sources", :bold)
+            STDERR.puts color("rubotics: available sources", :bold)
             manifest.each_source do |source|
                 STDERR.puts "  #{source.name}"
                 if source.local?
@@ -193,9 +267,9 @@ begin
         end
 
         # Load the required autobuild definitions
-        STDERR.puts console.color("rubotics: loading build files and configuring build", :bold)
+        STDERR.puts color("rubotics: loading build files and configuring build", :bold)
         if !Rubotics.reconfigure?
-            STDERR.puts console.color("run 'rubotics --reconfigure' to change configuration values", :bold)
+            STDERR.puts color("run 'rubotics --reconfigure' to change configuration values", :bold)
         end
         manifest.each_autobuild_file do |source, name|
             if Rubotics.manifest.enabled_source?(source)
@@ -227,7 +301,7 @@ begin
 
         if packages.empty?
             STDERR.puts
-            STDERR.puts console.color("rubotics: no packages defined", :red)
+            STDERR.puts color("rubotics: no packages defined", :red)
             exit 0
         end
 
@@ -236,68 +310,20 @@ begin
         end
 
         STDERR.puts
-        STDERR.puts console.color("rubotics: installing prepackaged dependencies for build system & version control", :bold)
+        STDERR.puts color("rubotics: installing prepackaged dependencies for build system & version control", :bold)
         osdeps = manifest.known_os_packages
         osdeps.install(Rubotics.build_system_dependencies - source_os_dependencies)
 
         # We are doing a status, so do it now
         STDERR.puts
-        Autobuild::Reporting.report do
-            packages.sort.each do |pkg|
-                pkg = Autobuild::Package[pkg]
-
-                STDERR.print "#{pkg.name}:"
-
-                if !pkg.importer.respond_to?(:status)
-                    # This importer does not support status display
-                    STDERR.puts console.color("  this package's importer does not support status display", :bold, :red)
-                    next
-                end
-
-                lines = []
-                status = pkg.importer.status(pkg)
-                if status.uncommitted_code
-                    lines << console.color("  contains uncommitted modifications", :red)
-                end
-
-                case status.status
-                when Autobuild::Importer::Status::UP_TO_DATE
-                    lines << console.color("  local and remote are in sync", :green)
-                when Autobuild::Importer::Status::ADVANCED
-                    lines << console.color("  local contains #{status.local_commits.size} commit that remote does not have:", :magenta)
-                    status.local_commits.each do |line|
-                        lines << console.color("    #{line}", :magenta)
-                    end
-                when Autobuild::Importer::Status::SIMPLE_UPDATE
-                    lines << console.color("  remote contains #{status.remote_commits.size} commit that local does not have:", :magenta)
-                    status.remote_commits.each do |line|
-                        lines << console.color("    #{line}", :green)
-                    end
-                when Autobuild::Importer::Status::MERGE
-                    lines << console.color("  local and remote have diverged with respectively #{status.local_commits.size} and #{status.remote_commits} commits each", :magenta)
-                    lines << "  -- local commits --"
-                    status.local_commits.each do |line|
-                        lines << "   #{line}"
-                    end
-                    lines << "  -- remote commits --"
-                    status.remote_commits.each do |line|
-                        lines << "   #{line}"
-                    end
-                end
-
-                if lines.size == 1
-                    STDERR.puts lines.first
-                else
-                    STDERR.puts
-                    STDERR.puts lines.join("\n")
-                end
-            end
-            exit(0)
+        if only_do_status
+            do_status(packages)
+            exit 0
         end
 
         # Do the import, so that we can load the manifests
         STDERR.puts
-        STDERR.puts console.color("rubotics: updating packages", :bold)
+        STDERR.puts color("rubotics: updating packages", :bold)
         Autobuild::Reporting.report do
             import_targets = packages.map { |pkg| "#{pkg}-import" }
             task "rubotics-import" => import_targets
@@ -312,25 +338,28 @@ begin
         end
         manifest.load_package_manifests
         STDERR.puts
-        STDERR.puts console.color("rubotics: installing prepackaged dependencies required by the packages", :bold)
+        STDERR.puts color("rubotics: installing prepackaged dependencies required by the packages", :bold)
         manifest.install_os_dependencies
 
         # And now build
         STDERR.puts
         if Autobuild.only_doc
-            STDERR.puts console.color("rubotics: building and installing documentation", :bold)
+            STDERR.puts color("rubotics: building and installing documentation", :bold)
         else
-            STDERR.puts console.color("rubotics: building and installing packages", :bold)
+            STDERR.puts color("rubotics: building and installing packages", :bold)
         end
 
         Autobuild::Reporting.report do
             Autobuild.apply(packages)
+            STDERR.puts
             Autobuild::Reporting.success
         end
+
+        Rubotics.export_env_sh
     end
 rescue ConfigError => e
-    STDERR.puts console.color(e.message, :red, :bold)
+    STDERR.puts color(e.message, :red, :bold)
 rescue Interrupt
-    STDERR.puts console.color("Interrupted by user", :red, :bold)
+    STDERR.puts color("Interrupted by user", :red, :bold)
 end
 
