@@ -31,7 +31,7 @@ module Rubotics
         EOSCRIPT
 
         OS_PACKAGE_INSTALL = {
-            'debian' => 'apt-get install %s'
+            'debian' => 'apt-get install -y %s'
         }
 
         def generate_os_script(dependencies)
