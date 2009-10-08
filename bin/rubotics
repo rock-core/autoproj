@@ -357,8 +357,10 @@ begin
         Rubotics.export_env_sh
     end
 rescue ConfigError => e
+    STDERR.puts
     STDERR.puts color(e.message, :red, :bold)
 rescue Interrupt
+    STDERR.puts
     STDERR.puts color("Interrupted by user", :red, :bold)
 end
 
