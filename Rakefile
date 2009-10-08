@@ -14,7 +14,8 @@ begin
                 ['autobuild',   '>= 1.2.16'] <<
                 ['rmail',   '>= 1.0.0'] <<
                 ['utilrb', '>= 1.3.3'] <<
-                ['nokogiri', '>= 1.3.3']
+                ['nokogiri', '>= 1.3.3'] <<
+                ['highline', '>= 1.5.0']
 
             extra_dev_deps <<
                 ['webgen', '>= 0.5.9']

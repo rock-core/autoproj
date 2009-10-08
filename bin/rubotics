@@ -1,6 +1,7 @@
 #! /usr/bin/env ruby
 
 require 'rubotics'
+require 'highline'
 include Rubotics
 
 module Rubotics
@@ -147,12 +148,12 @@ begin
             end
 
         if !source_os_dependencies.empty?
-            STDERR.puts "rubotics: installing prepackaged dependencies to access the source definitions"
+            STDERR.puts console.color("rubotics: installing prepackaged dependencies to access the source definitions", :bold)
             osdeps = manifest.known_os_packages
             osdeps.install(source_os_dependencies)
         end
         if manifest.has_remote_sources?
-            STDERR.puts "rubotics: updating remote sources"
+            STDERR.puts console.color("rubotics: updating remote sources", :bold)
             Autobuild::Reporting.report do
                 manifest.update_remote_sources
             end
@@ -161,7 +162,7 @@ begin
 
         # If in verbose mode, or if we only update sources, list the sources
         if Rubotics.verbose || only_update_sources
-            STDERR.puts "rubotics: available sources"
+            STDERR.puts console.color("rubotics: available sources", :bold)
             manifest.each_source do |source|
                 STDERR.puts "  #{source.name}"
                 if source.local?
@@ -186,9 +187,9 @@ begin
         end
 
         # Load the required autobuild definitions
-        STDERR.puts "rubotics: loading build files and configuring build"
+        STDERR.puts console.color("rubotics: loading build files and configuring build", :bold)
         if !Rubotics.reconfigure?
-            STDERR.puts "run 'rubotics --reconfigure' to change configuration values"
+            STDERR.puts console.color("run 'rubotics --reconfigure' to change configuration values", :bold)
         end
         manifest.each_autobuild_file do |source, name|
             if Rubotics.manifest.enabled_source?(source)
@@ -220,7 +221,7 @@ begin
 
         if packages.empty?
             STDERR.puts
-            STDERR.puts "rubotics: no packages defined"
+            STDERR.puts console.color("rubotics: no packages defined", :red)
             exit 0
         end
 
@@ -229,13 +230,13 @@ begin
         end
 
         STDERR.puts
-        STDERR.puts "rubotics: installing prepackaged dependencies for build system & version control"
+        STDERR.puts console.color("rubotics: installing prepackaged dependencies for build system & version control", :bold)
         osdeps = manifest.known_os_packages
         osdeps.install(Rubotics.build_system_dependencies - source_os_dependencies)
 
         # Do the import, so that we can load the manifests
         STDERR.puts
-        STDERR.puts "rubotics: updating packages"
+        STDERR.puts console.color("rubotics: updating packages", :bold)
         Autobuild::Reporting.report do
             import_targets = packages.map { |pkg| "#{pkg}-import" }
             task "rubotics-import" => import_targets
@@ -250,15 +251,15 @@ begin
         end
         manifest.load_package_manifests
         STDERR.puts
-        STDERR.puts "rubotics: installing prepackaged dependencies required by the packages"
+        STDERR.puts console.color("rubotics: installing prepackaged dependencies required by the packages", :bold)
         manifest.install_os_dependencies
 
         # And now build
         STDERR.puts
         if Autobuild.only_doc
-            STDERR.puts "rubotics: building and installing documentation"
+            STDERR.puts console.color("rubotics: building and installing documentation", :bold)
         else
-            STDERR.puts "rubotics: building and installing packages"
+            STDERR.puts console.color("rubotics: building and installing packages", :bold)
         end
 
         Autobuild::Reporting.report do
@@ -267,8 +268,8 @@ begin
         end
     end
 rescue ConfigError => e
-    STDERR.puts e.message
+    STDERR.puts console.color(e.message, :red, :bold)
 rescue Interrupt
-    STDERR.puts "Interrupted by user"
+    STDERR.puts console.color("Interrupted by user", :red, :bold)
 end
 
