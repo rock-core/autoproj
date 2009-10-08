@@ -280,7 +280,7 @@ module Rubotics
                 Rubotics.normalize_vcs_definition(vcs_spec)
             end
         rescue ConfigError => e
-            raise ConfigError.new(File.join(local_dir, "source.yml")), e.message, e.backtrace
+            raise ConfigError, "#{e.message} in the source.yml file of #{name} (#{File.join(local_dir, "source.yml")})", e.backtrace
         end
     end
 
