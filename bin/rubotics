@@ -326,25 +326,19 @@ begin
                 Rake::Task["rubotics-#{name}-import"].invoke
             end
 
-            # Call the prepare target for all packages as it may be useful for
-            # the rest of the builds and for the generation of the env.sh file
-            #
-            # Note that we don't really have to care about dependencies, but we do
-            # it anyway
-            Autobuild::Reporting.report do
-                task "rubotics-#{name}-prepare" => packages.map { |pkg_name| "#{pkg_name}-prepare" }
-                Rake::Task["rubotics-#{name}-prepare"].invoke
-            end
-
             # Load package manifests, apply dependencies to the autobuild definitions
             # and install OS packages
-            pkg_manifests = []
-            manifest.each_package do |pkg|
-                pkg_manifests << File.join(pkg.srcdir, "manifest.xml")
-            end
-            manifest.load_package_manifests(enabled_packages)
+            manifest.load_package_manifests(packages)
             STDERR.puts color("  installing prepackaged dependencies", :bold)
             manifest.install_os_dependencies
+
+            # Call the prepare target now, after we did the import *and* loaded
+            # the manifests
+            Autobuild::Reporting.report do
+                prepare_targets = enabled_packages.map { |pkg| "#{pkg}-prepare" }
+                task "rubotics-#{name}-prepare" => prepare_targets
+                Rake::Task["rubotics-#{name}-prepare"].invoke
+            end
 
             # And now build
             if Autobuild.only_doc
