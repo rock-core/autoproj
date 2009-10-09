@@ -184,8 +184,7 @@ module Rubotics
             end
         end
 
-        # Load the source.yml file that describes this source
-        def load_description_file
+        def raw_description_file
             if !present?
                 raise InternalError, "source #{vcs} has not been fetched yet, cannot load description for it"
             end
@@ -195,10 +194,19 @@ module Rubotics
                 raise ConfigError, "source #{vcs.type}:#{vcs.url} should have a source.yml file, but does not"
             end
 
-            @source_definition = YAML.load(File.read(source_file))
-            if !@source_definition
+            source_definition = YAML.load(File.read(source_file))
+            if !source_definition
                 raise ConfigError, "#{source_file} does not have a 'name' field"
             end
+
+            source_definition
+        end
+
+        # Load the source.yml file that describes this source, and resolve the
+        # $BLABLA values that are in there. Use #raw_description_file to avoid
+        # resolving those values
+        def load_description_file
+            @source_definition = raw_description_file
 
             # Compute the definition of constants
             constants = source_definition['constants'] || Hash.new
