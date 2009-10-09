@@ -17,15 +17,6 @@ module Rubotics
     end
 end
 
-def tail(file, count)
-    lines = File.readlines(file)
-    if lines.size < count
-        lines
-    else
-        lines[-count, count]
-    end
-end
-
 # Find the rubotics root dir
 root_dir = Rubotics.root_dir
 
