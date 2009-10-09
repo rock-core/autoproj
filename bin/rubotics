@@ -307,10 +307,13 @@ begin
     Rubotics.manifest.each_package_set(selected_packages) do |name, packages, enabled_packages|
         srcdir  = File.join(Rubotics.root_dir, name)
         prefix  = File.join(Rubotics.build_dir, name)
+        logdir  = File.join(prefix, "log")
+        Autobuild.logdir = logdir
         packages.each do |pkg_name|
             pkg = Autobuild::Package[pkg_name]
             pkg.srcdir = File.join(srcdir, pkg_name)
             pkg.prefix = prefix
+            pkg.logdir = logdir
         end
 
         # ... but build only the selected packages (and avoid display of
