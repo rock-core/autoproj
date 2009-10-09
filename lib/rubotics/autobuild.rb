@@ -17,7 +17,7 @@ module Rubotics
     end
 
     def self.warn(message)
-        STDERR.puts "WARN: #{message}"
+        STDERR.puts Rubotics.console.color("  WARN: #{message}", :magenta)
     end
 
     @definition_files = Hash.new
