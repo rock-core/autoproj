@@ -279,7 +279,7 @@ begin
         selected_packages = Rubotics.manifest.default_packages
     end
     if Rubotics.verbose
-        STDERR.puts "will install #{selected_packages.join(", ")}"
+        STDERR.puts "will install #{selected_packages.to_a.join(", ")}"
     end
     if selected_packages.empty? # no packages, terminate
         STDERR.puts
