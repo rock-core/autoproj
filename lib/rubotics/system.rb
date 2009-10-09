@@ -47,8 +47,8 @@ module Rubotics
         Rubotics.env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB'
     end
 
-    def self.export_env_sh
-        File.open(File.join(Rubotics.root_dir, "env.sh"), "w") do |io|
+    def self.export_env_sh(subdir)
+        File.open(File.join(Rubotics.root_dir, subdir, "env.sh"), "w") do |io|
             Autobuild.environment.each do |name, value|
                 shell_line = "export #{name}=#{value.join(":")}"
                 if Rubotics.env_inherit?(name)

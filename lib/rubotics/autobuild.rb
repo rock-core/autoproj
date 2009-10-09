@@ -161,3 +161,4 @@ end
 def configuration_option(*opts, &block)
     Rubotics.configuration_option(*opts, &block)
 end
+

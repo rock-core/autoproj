@@ -37,22 +37,25 @@ that are available, the ones that are currently enabled and the packages whose
 build is required by the installation. It looks like this:
 
 {coderay:: yaml}
-enabled_sources:
-  - dfki.imoby
+layout:
   - rubotics.orocos
+  - asguard:
+    - dfki.imoby
     
 sources:
   - imoby
   - type: git
     url:  git://github.com/doudou/rubotics-orocos.git
-
-packages:
-  - orocos/rtt
 {coderay}
 
-The first section, the <tt>enabled_sources</tt> section, lists the source names
-that we want to enable in this installation. It is source _names_, i.e. it
-refers to the name that is given in the [source's <tt>source.yml</tt> file](source_yml.html)
+The first section, the <tt>layout</tt> section, lists the packages or sources we
+want to have in this installation.  It is a layout, meaning that some packages
+or sources can be built and installed in a subdirectory of the main installation
+(see Layouts and dependencies below). Packages are referred to by the name they
+have in the autobuild file (see [this page for more details](source_yml.hml).
+Sources are referred to by the name given in the [source's <tt>source.yml</tt>
+file](source_yml.html), and are interpreted as "build all packages of the given
+source".
 
 The second section, the <tt>sources</tt> section, lists both local and remote
 sources that are available to this installation. Local sources are
@@ -110,4 +113,41 @@ Documentation is generated only when asked explicitely:
 
 rubotics doc
 {.commandline}
+
+Building packages selectively on the command line
+-------------------------------------------------
+
+All the build-related commands given above (i.e. build, doc, and update) can be
+given a package name or a name used as a subdirectory in the layout section of
+the manifest.
+
+In the first case, only the package and the dependencies _that are on the same
+level on the installation layout_ are built. It means that with the following
+layout:
+
+{coderay:: yaml}
+layout:
+  - typelib
+  - asguard:
+    - modules/base
+    - modules/logger
+{coderay}
+
+If the command line is
+
+rubotics build modules/logger
+{.cmdline}
+
+then only modules/logger and modules/base will be built -- assuming
+modules/logger depends on modules/base -- but typelib will be left alone
+_regardless of its state_. It may speed up the build process tremendously, but
+also may generate errors if other packages needed to be updated.
+
+Idem, if the command line is:
+
+rubotics build asguard
+{.cmdline}
+
+then all packages or asguard/ are built _but none of the dependencies that are
+defined in other places in the layout_.
 

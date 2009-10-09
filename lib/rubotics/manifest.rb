@@ -492,16 +492,89 @@ module Rubotics
             end
         end
 
-        def enabled_source?(source)
-            if !data['enabled_sources']
-                true
+        # +name+ can either be the name of a source or the name of a package. In
+        # the first case, we return all packages defined by that source. In the
+        # latter case, we return the singleton array [name]
+        def resolve_package_set(name)
+            if Autobuild::Package[name]
+                [name]
             else
-                data['enabled_sources'].include?(source.name)
+                source = each_source.find { |source| source.name == name }
+                if !source
+                    raise ConfigError, "#{name} is neither a package nor a source"
+                end
+                packages.values.find_all { |pkg, pkg_src, _| pkg_src.name == source.name }.
+                    map { |pkg, _| pkg.name }
             end
         end
 
-        def enabled_sources
-            each_source.find_all { |source| enabled_source?(source) }
+        # Returns the packages contained in the provided layout definition
+        #
+        # If recursive is false, yields only the packages at this level.
+        # Otherwise, return all packages.
+        def layout_packages(layout_def, recursive)
+            result = []
+            layout_def.each do |value|
+                if !value.kind_of?(Hash) # sublayout
+                    result.concat(resolve_package_set(value))
+                end
+            end
+
+            if recursive
+                each_sublayout(layout_def) do |sublayout_name, sublayout_def|
+                    result.concat(layout_packages(sublayout_def, true))
+                end
+            end
+
+            result
+        end
+
+        def each_sublayout(layout_def)
+            layout_def.each do |value|
+                if value.kind_of?(Hash)
+                    name, layout = value.find { true }
+                    yield(name, layout)
+                end
+            end
+        end
+
+        # Looks into the layout setup in the manifest, and yields each layout
+        # and sublayout in order
+        def each_package_set(selection, layout_name = '/', layout_def = data['layout'], &block)
+            if !layout_def
+                yield('', default_packages)
+                nil
+            end
+
+            selection = selection.to_set
+
+            # First of all, do the packages at this level
+            packages = layout_packages(layout_def, false)
+            if selection && !selection.any? { |sel| layout_name =~ /^\/?#{Regexp.new(sel)}\/?/ }
+                selected_packages = packages.find_all { |pkg_name| selection.include?(pkg_name) }
+            else
+                selected_packages = packages.dup
+            end
+            if !packages.empty?
+                yield(layout_name, packages.to_set, selected_packages.to_set)
+            end
+
+            # Now, enumerate the sublayouts
+            each_sublayout(layout_def) do |subname, sublayout|
+                each_package_set(selection, "#{layout_name}#{subname}/", sublayout, &block)
+            end
+        end
+
+        def default_packages
+            names = if layout = data['layout']
+                        layout_packages(layout, true)
+                    else
+                        # No layout, all packages are selected
+                        packages.values.map do |package, source, _|
+                            package.name
+                        end
+                    end
+            names.to_set
         end
 
         # Loads the package's manifest.xml files, and extracts dependency
@@ -510,8 +583,9 @@ module Rubotics
         #
         # Right now, the absence of a manifest makes rubotics only issue a
         # warning. This will later be changed into an error.
-        def load_package_manifests
+        def load_package_manifests(selected_packages)
             packages.each_value do |package, source, file|
+                next unless selected_packages.include?(package.name)
                 manifest_path = File.join(package.srcdir, "manifest.xml")
                 if !File.file?(manifest_path)
                     Rubotics.warn "#{package.name} from #{source.name} does not have a manifest"
