@@ -313,16 +313,6 @@ begin
             pkg.prefix = prefix
         end
 
-        # Call the prepare target for all packages as it may be useful for
-        # the rest of the builds and for the generation of the env.sh file
-        #
-        # Note that we don't really have to care about dependencies, but we do
-        # it anyway
-        Autobuild::Reporting.report do
-            task "rubotics-#{name}-prepare" => packages.map { |pkg_name| "#{pkg_name}-prepare" }
-            Rake::Task["rubotics-#{name}-prepare"].invoke
-        end
-
         # ... but build only the selected packages (and avoid display of
         # progress messages if there is nothing to build)
         if !enabled_packages.empty?
@@ -336,6 +326,16 @@ begin
                 Rake::Task["rubotics-#{name}-import"].invoke
             end
 
+            # Call the prepare target for all packages as it may be useful for
+            # the rest of the builds and for the generation of the env.sh file
+            #
+            # Note that we don't really have to care about dependencies, but we do
+            # it anyway
+            Autobuild::Reporting.report do
+                task "rubotics-#{name}-prepare" => packages.map { |pkg_name| "#{pkg_name}-prepare" }
+                Rake::Task["rubotics-#{name}-prepare"].invoke
+            end
+
             # Load package manifests, apply dependencies to the autobuild definitions
             # and install OS packages
             pkg_manifests = []
@@ -343,7 +343,7 @@ begin
                 pkg_manifests << File.join(pkg.srcdir, "manifest.xml")
             end
             manifest.load_package_manifests(enabled_packages)
-            STDERR.puts color("  installing prepackaged dependencies required by the packages", :bold)
+            STDERR.puts color("  installing prepackaged dependencies", :bold)
             manifest.install_os_dependencies
 
             # And now build
@@ -359,6 +359,22 @@ begin
             end
         end
 
+        # Now call the prepare target for all packages as it may be useful for
+        # the rest of the builds and for the generation of the env.sh file
+        #
+        # Note that we don't really have to care about dependencies, but we do
+        # it anyway
+        old_update_flag = Autobuild.do_update
+        begin
+            Autobuild.do_update = false
+            Autobuild::Reporting.report do
+                prepare_targets = (packages - enabled_packages).map { |pkg_name| "#{pkg_name}-prepare" }
+                task "rubotics-#{name}-prepare" => prepare_targets
+                Rake::Task["rubotics-#{name}-prepare"].invoke
+            end
+        ensure
+            Autobuild.do_update = old_update_flag
+        end
 
         Rubotics.export_env_sh(name)
     end
