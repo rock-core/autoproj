@@ -209,15 +209,26 @@ module Rubotics
             while redo_expansion
                 redo_expansion = false
                 constants.dup.each do |name, url|
-                    if contains_expansion?(url)
-                        constants[name] = single_expansion(url)
-                        if constants[name] == url
-                            raise ConfigError, "recursive definition of '#{name}' in #{source_file}"
+                    # Extract all expansions in the url
+                    if url =~ /\$(\w+)/
+                        expansion_name = $1
+
+                        if constants[expansion_name]
+                            constants[name] = single_expansion(url)
+                        else
+                            begin constants[name] = single_expansion(url,
+                                             expansion_name => Rubotics.user_config(expansion_name))
+                            rescue ConfigError => e
+                                raise ConfigError, "constant '#{expansion_name}', used in the definition of '#{name}' is defined nowhere"
+                            end
                         end
                         redo_expansion = true
                     end
                 end
             end
+
+        rescue ConfigError => e
+            raise ConfigError, "#{e.message} in #{source_file}", e.backtrace
         end
 
         # True if the given string contains expansions
