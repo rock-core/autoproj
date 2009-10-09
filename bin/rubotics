@@ -148,14 +148,6 @@ else
     exit(1)
 end
 
-# Set up the environment
-gem_home = File.join(Rubotics.config_dir, "gems")
-Rubotics.env_set 'GEM_HOME', gem_home
-Rubotics.env_set_path 'PATH', "#{gem_home}/bin", "/usr/local/bin", "/usr/bin", "/bin"
-Rubotics.env_set 'PKG_CONFIG_PATH'
-Rubotics.env_set 'RUBYLIB'
-Rubotics.env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB'
-
 def color(*args)
     Rubotics.console.color(*args)
 end
@@ -220,6 +212,8 @@ def do_status(packages)
     end
 end
 
+# Set the initial environment
+Rubotics.set_initial_env
 begin
     Dir.chdir(root_dir) do
         # Load the manifest

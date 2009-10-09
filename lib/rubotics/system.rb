@@ -37,6 +37,16 @@ module Rubotics
         end
     end
 
+    def self.set_initial_env
+        gem_home = File.join(Rubotics.config_dir, "gems")
+        Rubotics.env_set 'RUBYOPT', "-rubygems"
+        Rubotics.env_set 'GEM_HOME', gem_home
+        Rubotics.env_set_path 'PATH', "#{gem_home}/bin", "/usr/local/bin", "/usr/bin", "/bin"
+        Rubotics.env_set 'PKG_CONFIG_PATH'
+        Rubotics.env_set 'RUBYLIB'
+        Rubotics.env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB'
+    end
+
     def self.export_env_sh
         File.open(File.join(Rubotics.root_dir, "env.sh"), "w") do |io|
             Autobuild.environment.each do |name, value|
