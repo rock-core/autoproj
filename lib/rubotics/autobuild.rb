@@ -2,6 +2,20 @@ require 'autobuild'
 require 'set'
 
 module Rubotics
+    class RuboticsReporter < Autobuild::Reporter
+        def error(error)
+            error_lines = error.to_s.split("\n")
+            STDERR.puts color("Build failed: #{error_lines.shift}", :bold, :red)
+            STDERR.puts error_lines.join("\n")
+        end
+        def success
+            STDERR.puts color("Build finished successfully at #{Time.now}", :bold, :green)
+            if Autobuild.post_success_message
+                puts Autobuild.post_success_message
+            end
+        end
+    end
+
     def self.warn(message)
         STDERR.puts "WARN: #{message}"
     end
