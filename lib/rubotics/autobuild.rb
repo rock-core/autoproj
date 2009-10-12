@@ -113,7 +113,13 @@ def autotools_package(options, &block)
 end
 
 def ruby_common(pkg)
+    def pkg.prepare
+        super
+        Autobuild.update_environment srcdir
+    end
+
     pkg.post_install do
+        Autobuild.progress "  setting up Ruby package #{pkg.name}"
         Autobuild.update_environment pkg.srcdir
         if File.file?('Rakefile')
             if File.directory?('ext')
@@ -121,7 +127,6 @@ def ruby_common(pkg)
             end
         end
     end
-    Autobuild.update_environment pkg.srcdir
 end
 
 def env_set(name, value)
