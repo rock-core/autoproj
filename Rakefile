@@ -20,14 +20,15 @@ begin
             extra_dev_deps <<
                 ['webgen', '>= 0.5.9']
         end
-    end
 
-    task 'dist:bootstrap' do
-        osdeps_code = File.read(File.join(Dir.pwd, 'lib', 'rubotics', 'osdeps.rb'))
-        bootstrap_code = File.read(File.join(Dir.pwd, 'bin', 'rubotics_bootstrap.in')).
-            gsub('OSDEPS_CODE', osdeps_code)
-        File.open(File.join(Dir.pwd, 'doc', 'guide', 'src', 'rubotics_bootstrap'), 'w') do |io|
-            io.write bootstrap_code
+        desc "generate the bootstrap script"
+        task 'bootstrap' do
+            osdeps_code = File.read(File.join(Dir.pwd, 'lib', 'rubotics', 'osdeps.rb'))
+            bootstrap_code = File.read(File.join(Dir.pwd, 'bin', 'rubotics_bootstrap.in')).
+                gsub('OSDEPS_CODE', osdeps_code)
+            File.open(File.join(Dir.pwd, 'doc', 'guide', 'src', 'rubotics_bootstrap'), 'w') do |io|
+                io.write bootstrap_code
+            end
         end
     end
 
