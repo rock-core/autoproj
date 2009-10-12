@@ -21,13 +21,13 @@
       <div id="main">
 
         <div id="logo">
-          <h1>[<a href="{relocatable: /index.html}" accesskey="4">oroGen</a>]</h1>
+          <h1>[<a href="{relocatable: /index.html}" accesskey="4">rubotics</a>]</h1>
           <span id="tagline">User's guide</span><BR />
           for v{execute_cmd: ruby -rlib/rubotics/version -e "puts Rubotics::VERSION"}
         </div>
 
         <div id="intro">
-          <h2><a id="maincontent"></a>Easy generation of Orocos components</h2>
+          <h2><a id="maincontent"></a>Meta build system for Robotics environments</h2>
           <!--
           <p>Here could go a description of your website! Or a quick overview of the page!</p>
           -->
