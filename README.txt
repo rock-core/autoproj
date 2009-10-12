@@ -1,7 +1,18 @@
 What is Rubotics
 ----------------
-The goal of this project is to ease the pain of installing robotics-related
-software. Unlike [the ROS project](http://ros.org), it is not bound to one build
+Rubotics is both a tool and a project. The project aims at promoting the use of
+Ruby for robotics system, in both the toolchain (development of robotics-related
+software) but also on the robots themselves (sensor processing, control, you
+name it).
+
+To allow an easy installation and testing of the software that Rubotics
+describes, a _tool_ has been developped, that allows an easy integration of the
+local operating system (Debian, Ubuntu, Fedora, maybe MacOSX at some point) with
+the tools that come in source code form. What you are reading now is the user's
+guide for the tool.
+
+The goal of this tool is to ease the pain of installing robotics-related
+software. Unlike [the ROS build system](http://ros.org), it is not bound to one build
 system, one VCS and one integration framework. The philosophy behind rubotics
 is:
  * supports both CMake and autotools, and can be adapted to other tools
