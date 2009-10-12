@@ -31,10 +31,9 @@ begin
         end
     end
 
-    # This sucks, I know, but Hoe's handling of documentation is not
-    # enough for me
-    tasks = Rake.application.instance_variable_get :@tasks
-    tasks.delete_if { |n, _| n =~ /dist:(re|clobber_|)docs/ }
+    # Define our own documentation handling. Rake.clear_tasks is defined by Hoe
+    Rake.clear_tasks(/dist:(re|clobber_|)docs/)
+
 rescue LoadError
     STDERR.puts "cannot load the Hoe gem. Distribution is disabled"
 rescue Exception => e
