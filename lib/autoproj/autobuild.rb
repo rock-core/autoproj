@@ -167,3 +167,7 @@ def configuration_option(*opts, &block)
     Autoproj.configuration_option(*opts, &block)
 end
 
+def user_config(*opts)
+    Autoproj.user_config(*opts)
+end
+

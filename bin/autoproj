@@ -230,7 +230,7 @@ Autobuild.prefix  = Autoproj.build_dir
 Autobuild.srcdir  = root_dir
 Autobuild.doc_errors = false
 Autobuild.do_doc = false
-Autobuild::Reporting << AutoprojReporter.new
+Autobuild::Reporting << Autoproj::Reporter.new
 if mail_config[:to]
     Autobuild::Reporting << MailReporter.new(mail_config)
 end

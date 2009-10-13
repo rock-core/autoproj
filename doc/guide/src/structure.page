@@ -16,7 +16,7 @@ autoproj-related configuration is saved. The contained files are as follows:
    installation. See "Management" below.
  * autoproj/remotes/\*: package sets that are imported from a remote version
    control system
- * autoproj/*/: local sets, i.e. sets that have not been imported from a remote
+ * autoproj/\*/: local sets, i.e. sets that have not been imported from a remote
    version control system.
 
 The build is done in two steps:

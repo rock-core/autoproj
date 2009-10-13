@@ -54,7 +54,7 @@ The canonical way is the following:
  * then, [download this script](autoproj_bootstrap) *in the directory where
    you want to create an autoproj installation*, and run it. This can be done with
 
-   wget http://doudou.github.com/autoproj/autoproj_bootstrap <br />
+   wget http://doudou.github.com/autoproj/autoproj\_bootstrap <br />
    ruby autoproj\_bootstrap
    {.cmdline}
 
