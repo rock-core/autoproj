@@ -12,12 +12,12 @@ Structure
 A autoproj installation is characterized by a autoproj/ directory in which all
 autoproj-related configuration is saved. The contained files are as follows:
 
- * autoproj/manifest: list of available sources, enabled sources and required
-   packages. See "Management" below.
- * autoproj/remotes/\*: remote sources, i.e. sources that have been imported from
-   a remote version control system or directory.
- * autoproj/source1/: local sources, i.e. sources that have not been imported
-   from a remote version control system.
+ * autoproj/manifest: list of available package sets, layout of the
+   installation. See "Management" below.
+ * autoproj/remotes/\*: package sets that are imported from a remote version
+   control system
+ * autoproj/*/: local sets, i.e. sets that have not been imported from a remote
+   version control system.
 
 The build is done in two steps:
 
@@ -32,9 +32,9 @@ generated to set up your shell for the use of the installed software.
 
 Toplevel manifest
 -----------------
-The <tt>autoproj/manifest</tt> file is a yaml file which describes the sources
-that are available, the ones that are currently enabled and the packages whose
-build is required by the installation. It looks like this:
+The <tt>autoproj/manifest</tt> file is a yaml file which describes the package
+sets that are available, and how packages are organized in the installation. It
+looks like this:
 
 {coderay:: yaml}
 layout:
@@ -42,26 +42,26 @@ layout:
   - asguard:
     - dfki.imoby
     
-sources:
+package_sets:
   - imoby
   - type: git
     url:  git://github.com/doudou/autoproj-orocos.git
 {coderay}
 
-The first section, the <tt>layout</tt> section, lists the packages or sources we
-want to have in this installation.  It is a layout, meaning that some packages
-or sources can be built and installed in a subdirectory of the main installation
-(see Layouts and dependencies below). Packages are referred to by the name they
-have in the autobuild file (see [this page for more details](source_yml.hml).
-Sources are referred to by the name given in the [source's <tt>source.yml</tt>
+The first section, the <tt>layout</tt> section, lists the packages or package
+sets we want to have in this installation.  It is a layout, meaning that some packages
+can be built and installed in a subdirectory of the main installation
+(see "Layouts and dependencies" below). Packages are referred to by the name they
+have in the autobuild file (see [this page for more details](source_yml.hml)).
+Package sets are referred to by the name given in the [set's <tt>source.yml</tt>
 file](source_yml.html), and are interpreted as "build all packages of the given
-source".
+set".
 
-The second section, the <tt>sources</tt> section, lists both local and remote
-sources that are available to this installation. Local sources are
+The second section, the <tt>package_sets</tt> section, lists both local and remote
+sets that are available to this installation. Local sets are
 subdirectories of the <tt>autoproj/</tt> directory: for instance, in the above
 example, autoproj will look at the <tt>autoproj/imoby/</tt> directory. Remote
-sources are taken from remote version control systems. Its general format is:
+sets are taken from remote version control systems. Its general format is:
 
 {coderay:: yaml}
   - type: version_control_type # git, svn, cvs, darcs
@@ -105,7 +105,7 @@ If, on the other hand, you only want to update the sources, do
 autoproj update
 {.commandline}
 
-To add a new source, one edits the <tt>autoproj/manifest</tt> file and adds it
+To add a new set, one edits the <tt>autoproj/manifest</tt> file and adds it
 there. Then, simply starting the build will update everything and rebuild what
 is needed.
 

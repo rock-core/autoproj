@@ -1,7 +1,7 @@
 What is Autoproj
 ----------------
 Autoproj allows to easily install and maintain software that is under source
-form (usually from a version control system). It has been designed to support a
+code form (usually from a version control system). It has been designed to support a
 package-oriented development process, where each package can have its own
 version control repository (think "distributed version control"). It also
 provides an easy integration of the local operating system (Debian, Ubuntu,
