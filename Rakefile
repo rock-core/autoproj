@@ -3,7 +3,7 @@ $LOAD_PATH.unshift File.join(Dir.pwd, 'lib')
 begin
     require 'hoe'
     namespace 'dist' do
-        config = Hoe.spec 'rubotics' do
+        config = Hoe.spec 'autoproj' do
             self.developer "Sylvain Joyeux", "sylvain.joyeux@dfki.de"
 
             self.summary = 'Easy installation and management of robotics software'
@@ -23,10 +23,10 @@ begin
 
         desc "generate the bootstrap script"
         task 'bootstrap' do
-            osdeps_code = File.read(File.join(Dir.pwd, 'lib', 'rubotics', 'osdeps.rb'))
-            bootstrap_code = File.read(File.join(Dir.pwd, 'bin', 'rubotics_bootstrap.in')).
+            osdeps_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'osdeps.rb'))
+            bootstrap_code = File.read(File.join(Dir.pwd, 'bin', 'autoproj_bootstrap.in')).
                 gsub('OSDEPS_CODE', osdeps_code)
-            File.open(File.join(Dir.pwd, 'doc', 'guide', 'src', 'rubotics_bootstrap'), 'w') do |io|
+            File.open(File.join(Dir.pwd, 'doc', 'guide', 'src', 'autoproj_bootstrap'), 'w') do |io|
                 io.write bootstrap_code
             end
         end

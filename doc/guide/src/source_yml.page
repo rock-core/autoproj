@@ -21,7 +21,7 @@ autotools_package "drivers/imu"
 
 The above snippet defines two packages. The first one uses CMake as a build
 system and will be installed in the <tt>orocos/rtt</tt> subdirectory of the
-rubotics installation. The second one is an autotools package. There is, for
+autoproj installation. The second one is an autotools package. There is, for
 now, only support for these two build systems, and for Ruby packages. Package
 definitions can be tweaked quite a lot, including the ability to generate
 documentation. See [the next page](autobuild.html) for more information on how to write autobuild
@@ -51,7 +51,7 @@ The name field gives a name for the source. It is arbitrary, but the guideline
 is to give a name that is java-like for namespaces, i.e. origin.name.
 
 The <tt>constants:</tt> section lists values that can be reused for different
-packages. Rubotics defines the HOME constant which is the user's home directory,
+packages. Autoproj defines the HOME constant which is the user's home directory,
 and the PACKAGE constant that is the actual package name. We will see later that
 these values can also be configuration variables that are asked to the user.
 
@@ -93,20 +93,20 @@ version_control:
 Interaction between source definition files
 -------------------------------------------
 When multiple sources are defined, it is possible to override the source of
-low-priority source with a higher priority one. Rubotics has the following rules
+low-priority source with a higher priority one. Autoproj has the following rules
 when searching for version control information:
 
- * rubotics looks at the source definition files *in the order they appear in
+ * autoproj looks at the source definition files *in the order they appear in
    the installation manifest*
- * rubotics searches a relevant version\_control field, and stops at the first
+ * autoproj searches a relevant version\_control field, and stops at the first
    source.yml that has one.
- * rubotics *stops searching* at the source that defines the package.
+ * autoproj *stops searching* at the source that defines the package.
    Consequence: this source *must* have a version\_control field for it, and an
    error will be issued otherwise.
 
 Using configuration options
 ---------------------------
-rubotics offers a configuration system that allows the user to tweak the build
+autoproj offers a configuration system that allows the user to tweak the build
 to its needs. If the version control definitions depend on such configuration
 options (as, for instance, because you want to parametrize the source URLs),
 then create an init.rb file next to the source.yml file, and add lines looking

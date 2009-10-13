@@ -2,8 +2,9 @@
 
 require 'yaml'
 require 'set'
+require 'rubygems'
 
-module Rubotics
+module Autoproj
     class << self
         attr_reader :verbose
     end
@@ -39,32 +40,32 @@ libxml2:
 libxslt:
     debian:
         - libxslt1-dev
-rubotics: gem
+autoproj: gem
 EODEFS
 
 PACKAGES      = %w{ruby libxml2 libxslt build-essential}
-USER_PACKAGES = %w{rubotics}
+USER_PACKAGES = %w{autoproj}
 
 packages = PACKAGES.dup
 if ARGV.first != "dev"
     packages += USER_PACKAGES
 end
 
-osdeps_management = Rubotics::OSDependencies.new(YAML.load(DEFS))
-STDERR.puts "rubotics: installing rubotics and its dependencies (this can take a long time)"
+osdeps_management = Autoproj::OSDependencies.new(YAML.load(DEFS))
+STDERR.puts "autoproj: installing autoproj and its dependencies (this can take a long time)"
 osdeps_management.install(packages)
 
 if ARGV.first != "dev"
     ENV['RUBYOPT']  = "-rubygems"
-    ENV['GEM_HOME'] = "#{Dir.pwd}/rubotics/gems"
+    ENV['GEM_HOME'] = "#{Dir.pwd}/autoproj/gems"
     ENV['PATH']     = "#{ENV['GEM_HOME']}/bin:$PATH"
-    Autobuild::Subprocess.run('bootstrap', 'post', 'rubotics', 'bootstrap')
+    Autobuild::Subprocess.run('bootstrap', 'post', 'autoproj', 'bootstrap')
 end
 
 File.open('env.sh', 'w') do |io|
     io.write <<-EOSHELL
 export RUBYOPT=-rubygems
-export GEM_HOME=#{Dir.pwd}/rubotics/gems
+export GEM_HOME=#{Dir.pwd}/autoproj/gems
 export PATH=$GEM_HOME/bin:$PATH
     EOSHELL
 end
@@ -75,7 +76,7 @@ STDERR.puts <<EOTEXT
 add the following line at the bottom of your .bashrc:
   source #{Dir.pwd}/env.sh
 
-WARNING: rubotics will not work until your restart all
+WARNING: autoproj will not work until your restart all
 your consoles, or run the following in them:
   $ source #{Dir.pwd}/env.sh
 

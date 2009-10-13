@@ -1,17 +1,17 @@
-module Rubotics
+module Autoproj
     class ConfigError < RuntimeError; end
     class InternalError < RuntimeError; end
 end
 
 require "enumerator"
-require 'rubotics/manifest'
-require 'rubotics/osdeps'
-require 'rubotics/system'
-require 'rubotics/options'
+require 'autoproj/manifest'
+require 'autoproj/osdeps'
+require 'autoproj/system'
+require 'autoproj/options'
 require 'logger'
 require 'utilrb/logger'
 
-module Rubotics
+module Autoproj
     class << self
         attr_reader :logger
     end

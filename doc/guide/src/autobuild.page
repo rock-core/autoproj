@@ -45,7 +45,7 @@ Declaring documentation targets
 -------------------------------
 Both autotools and cmake packages use <tt>make</tt> as the low-level build tool.
 For both packages, you can declare a documentation target that will be used
-during the call to <tt>rubotics doc</tt> to generate documentation:
+during the call to <tt>autoproj doc</tt> to generate documentation:
 
 {coderay:: ruby}
 cmake_package "package_name" do |pkg|
@@ -96,12 +96,12 @@ configuration_option "option_name", "option_type",
 Once declared, it can be used in autobuild scripts with:
 
 {coderay:: ruby}
-Rubotics.user_config("option_name")
+Autoproj.user_config("option_name")
 {coderay}
 
-Options are saved in <tt>rubotics/config.yml</tt> after the build. Options that
+Options are saved in <tt>autoproj/config.yml</tt> after the build. Options that
 are already set won't be asked again unless the <tt>--reconfigure</tt> option is
-given to <tt>rubotics build</tt>.
+given to <tt>autoproj build</tt>.
 
 Do not try to have too many options, that is in general bad policy as
 non-advanced users won't be able to know what to answer. Advanced users will

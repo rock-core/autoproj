@@ -1,29 +1,29 @@
 ---
-title: Managing rubotics installations
+title: Managing autoproj installations
 sort_info: 50
 ---
 
-This page describes the structure of a rubotics installation, and describes how
+This page describes the structure of a autoproj installation, and describes how
 to manage one. See [the introduction](index.page) for the bootstrapping process.
 
 Structure
 ---------
 
-A rubotics installation is characterized by a rubotics/ directory in which all
-rubotics-related configuration is saved. The contained files are as follows:
+A autoproj installation is characterized by a autoproj/ directory in which all
+autoproj-related configuration is saved. The contained files are as follows:
 
- * rubotics/manifest: list of available sources, enabled sources and required
+ * autoproj/manifest: list of available sources, enabled sources and required
    packages. See "Management" below.
- * rubotics/remotes/\*: remote sources, i.e. sources that have been imported from
+ * autoproj/remotes/\*: remote sources, i.e. sources that have been imported from
    a remote version control system or directory.
- * rubotics/source1/: local sources, i.e. sources that have not been imported
+ * autoproj/source1/: local sources, i.e. sources that have not been imported
    from a remote version control system.
 
 The build is done in two steps:
 
  * each package is being built in a <tt>build</tt> subdirectory of the package's
    source (<tt>package_directory/build/</tt>)
- * it is then installed in the build/ directory at the toplevel of the rubotics
+ * it is then installed in the build/ directory at the toplevel of the autoproj
    installation
 
 Moreover, the <tt>build/log</tt> directory contains the output of all commands
@@ -32,20 +32,20 @@ generated to set up your shell for the use of the installed software.
 
 Toplevel manifest
 -----------------
-The <tt>rubotics/manifest</tt> file is a yaml file which describes the sources
+The <tt>autoproj/manifest</tt> file is a yaml file which describes the sources
 that are available, the ones that are currently enabled and the packages whose
 build is required by the installation. It looks like this:
 
 {coderay:: yaml}
 layout:
-  - rubotics.orocos
+  - autoproj.orocos
   - asguard:
     - dfki.imoby
     
 sources:
   - imoby
   - type: git
-    url:  git://github.com/doudou/rubotics-orocos.git
+    url:  git://github.com/doudou/autoproj-orocos.git
 {coderay}
 
 The first section, the <tt>layout</tt> section, lists the packages or sources we
@@ -59,8 +59,8 @@ source".
 
 The second section, the <tt>sources</tt> section, lists both local and remote
 sources that are available to this installation. Local sources are
-subdirectories of the <tt>rubotics/</tt> directory: for instance, in the above
-example, rubotics will look at the <tt>rubotics/imoby/</tt> directory. Remote
+subdirectories of the <tt>autoproj/</tt> directory: for instance, in the above
+example, autoproj will look at the <tt>autoproj/imoby/</tt> directory. Remote
 sources are taken from remote version control systems. Its general format is:
 
 {coderay:: yaml}
@@ -79,39 +79,39 @@ For the git importer, one of 'branch' or 'tag' options can be provided as well:
 Management
 ----------
 
-To update and build a rubotics installation, simply do:
+To update and build a autoproj installation, simply do:
 
-rubotics build
+autoproj build
 {.commandline}
 
 It will ask the value of newly defined configuration options, import (or update)
-code hosted remotely, and build it. rubotics will *not* ask you again about the
+code hosted remotely, and build it. autoproj will *not* ask you again about the
 configuration questions you already answered, so if you want to change them, do:
 
-rubotics build --reconfigure
+autoproj build --reconfigure
 {.commandline}
 
-Alternatively, you can edit the rubotics/config.yml file directly.
+Alternatively, you can edit the autoproj/config.yml file directly.
 
 If you are in a disconnected environment (i.e. no access to remote
 repositories), use the <tt>--no-update</tt> option to skip the update phase.
-rubotics will still have to checkout new packages, though:
+autoproj will still have to checkout new packages, though:
 
-rubotics build --no-update
+autoproj build --no-update
 {.commandline}
 
 If, on the other hand, you only want to update the sources, do
 
-rubotics update
+autoproj update
 {.commandline}
 
-To add a new source, one edits the <tt>rubotics/manifest</tt> file and adds it
+To add a new source, one edits the <tt>autoproj/manifest</tt> file and adds it
 there. Then, simply starting the build will update everything and rebuild what
 is needed.
 
 Documentation is generated only when asked explicitely:
 
-rubotics doc
+autoproj doc
 {.commandline}
 
 Building packages selectively on the command line
@@ -135,7 +135,7 @@ layout:
 
 If the command line is
 
-rubotics build modules/logger
+autoproj build modules/logger
 {.cmdline}
 
 then only modules/logger and modules/base will be built -- assuming
@@ -145,7 +145,7 @@ also may generate errors if other packages needed to be updated.
 
 Idem, if the command line is:
 
-rubotics build asguard
+autoproj build asguard
 {.cmdline}
 
 then all packages or asguard/ are built _but none of the dependencies that are

@@ -1,5 +1,5 @@
 require 'tempfile'
-module Rubotics
+module Autoproj
     class OSDependencies
         def self.load(file)
             OSDependencies.new(YAML.load(File.read(file)))
@@ -102,7 +102,7 @@ module Rubotics
             # So, for now, reimplement rosdep by ourselves. Given how things
             # are done, this is actually not so hard.
             shell_script = generate_os_script(osdeps)
-            if Rubotics.verbose
+            if Autoproj.verbose
                 STDERR.puts "Installing non-ruby OS dependencies with"
                 STDERR.puts shell_script
             end
@@ -110,7 +110,7 @@ module Rubotics
             File.open('osdeps.sh', 'w') do |file|
                 file.write shell_script
             end
-            Autobuild::Subprocess.run 'rubotics', 'osdeps', 'bash', './osdeps.sh'
+            Autobuild::Subprocess.run 'autoproj', 'osdeps', 'bash', './osdeps.sh'
             FileUtils.rm_f 'osdeps.sh'
 
             # Don't install gems that are already there ...
@@ -122,11 +122,11 @@ module Rubotics
 
             # Now install what is left
             if !gems.empty?
-                if Rubotics.verbose
+                if Autoproj.verbose
                     STDERR.puts "Installing rubygems dependencies with"
                     STDERR.puts "gem install #{gems.join(" ")}"
                 end
-                Autobuild::Subprocess.run 'rubotics', 'osdeps', 'gem', 'install', *gems
+                Autobuild::Subprocess.run 'autoproj', 'osdeps', 'gem', 'install', *gems
             end
         end
     end

@@ -1,13 +1,14 @@
 #! /usr/bin/env ruby
 
-require 'rubotics'
-require 'rubotics/autobuild'
+require 'autoproj'
+require 'autoproj/autobuild'
+require 'open-uri'
 
 require 'highline'
-include Rubotics
+include Autoproj
 
-InputError = Rubotics::InputError
-module Rubotics
+InputError = Autoproj::InputError
+module Autoproj
     @verbose = false
     @console = HighLine.new
 
@@ -21,17 +22,20 @@ end
 mail_config = Hash.new
 only_update_sources = false
 only_do_status      = false
+no_os_deps = false
 debug = false
 
 # Parse the configuration options
 parser = OptionParser.new do |opts|
     opts.banner = <<-EOBANNER
-rubotics mode [options]
+autoproj mode [options]
 where 'mode' is one of:
   build:  import, build and install all selected packages
   doc:    generate and install documentation for packages that have some
   update: only import/update packages, do not build them
   status: displays the state of the packages w.r.t. their source VCS
+  bootstrap: starts a new autoproj installation. Usage:
+    autoproj bootstrap [manifest_url|source_vcs source_url opt1=value1 opt2=value2 ...]
   
   list-sources:   list all available sources
   update-sources: update all remote sources, but do not build
@@ -39,19 +43,23 @@ where 'mode' is one of:
 Additional options:
     EOBANNER
     opts.on("--reconfigure", "re-ask all configuration options (build mode only)") do
-        Rubotics.reconfigure = true
+        Autoproj.reconfigure = true
     end
     opts.on("--no-update", "do not update already checked-out sources (build mode only)") do
         Autobuild.do_update = false
     end
 
+    opts.on("--no-osdeps", "do not install prepackaged dependencies") do
+        no_os_deps = true
+    end
+
     opts.on("--verbose", "verbose output") do
-        Rubotics.verbose  = true
+        Autoproj.verbose  = true
         Autobuild.verbose = true
         Rake.application.options.trace = false
     end
     opts.on("--debug", "debugging output") do
-        Rubotics.verbose  = true
+        Autoproj.verbose  = true
         Autobuild.verbose = true
         Rake.application.options.trace = true
         debug = true
@@ -88,40 +96,12 @@ parser.parse!(args)
 mode     = args.shift
 selected_packages = args.dup
 
-case mode
-when "bootstrap"
-    sample_dir = File.expand_path(File.join("..", "samples"), File.dirname(__FILE__))
-    FileUtils.mkdir_p "rubotics"
-    FileUtils.cp File.join(sample_dir, "manifest"), "rubotics"
-    exit 1
-
-when "build"
-when "update"
-    Autobuild.do_build  = false
-when "status"
-    only_do_status      = true
-    Autobuild.do_update = false
-when "update-sources"
-    only_update_sources = true
-when "list-sources"
-    only_update_sources = true
-    Autobuild.do_update = false
-    
-when "doc"
-    Autobuild.do_update = false
-    Autobuild.do_doc    = true
-    Autobuild.only_doc  = true
-else
-    puts parser
-    exit(1)
-end
-
 def color(*args)
-    Rubotics.console.color(*args)
+    Autoproj.console.color(*args)
 end
 
 def do_status(packages)
-    console = Rubotics.console
+    console = Autoproj.console
 
     Autobuild::Reporting.report do
         packages.sort.each do |pkg|
@@ -176,18 +156,81 @@ def do_status(packages)
     end
 end
 
-# Find the rubotics root dir
-root_dir = Rubotics.root_dir
+
+def do_bootstrap(*args)
+    if args.empty? # no argument, simply add a manifest template
+        sample_dir = File.expand_path(File.join("..", "samples"), File.dirname(__FILE__))
+        FileUtils.mkdir_p "autoproj"
+        manifest_data = File.read(File.join(sample_dir, "manifest"))
+
+    elsif args.size == 1 # must be a manifest file
+        manifest_url = args.first
+        STDERR.puts color("autoproj: downloading manifest file #{manifest_url}", :bold)
+        manifest_data = open(manifest_url) { |file| file.read }
+
+    else # must be a source definition
+        manifest_data = <<-EOF
+sources:
+    - type: #{args.shift}
+      url: #{args.shift}
+        EOF
+        while !args.empty?
+            name, value = args.shift.split("=")
+            manifest_data << "      #{name}: #{value}\n"
+        end
+
+    end
+
+    File.open(File.join(Autoproj.config_dir, "manifest"), "w") do |io|
+        io.write(manifest_data)
+    end
+end
+
+case mode
+when "bootstrap"
+    # If there is no argument, We need one more argument. It is either a VCS type or a path to a
+    # manifest.
+    #
+    # In the first case, we create a new manifest and add the source given on
+    # the command line to it. In the second case, we simply use it as a
+    # manifest.
+    do_bootstrap(*args)
+    only_update_sources = true
+
+when "build"
+when "update"
+    Autobuild.do_build  = false
+when "status"
+    only_do_status      = true
+    Autobuild.do_update = false
+    no_os_deps = true
+when "update-sources"
+    only_update_sources = true
+when "list-sources"
+    only_update_sources = true
+    Autobuild.do_update = false
+    
+when "doc"
+    Autobuild.do_update = false
+    Autobuild.do_doc    = true
+    Autobuild.only_doc  = true
+else
+    puts parser
+    exit(1)
+end
+
+# Find the autoproj root dir
+root_dir = Autoproj.root_dir
 # Load user configuration
-Rubotics.load_config
+Autoproj.load_config
 # Set the initial environment
-Rubotics.set_initial_env
+Autoproj.set_initial_env
 # Set up some important autobuild parameters
-Autobuild.prefix  = Rubotics.build_dir
+Autobuild.prefix  = Autoproj.build_dir
 Autobuild.srcdir  = root_dir
 Autobuild.doc_errors = false
 Autobuild.do_doc = false
-Autobuild::Reporting << RuboticsReporter.new
+Autobuild::Reporting << AutoprojReporter.new
 if mail_config[:to]
     Autobuild::Reporting << MailReporter.new(mail_config)
 end
@@ -196,22 +239,22 @@ end
 Dir.chdir(root_dir)
 begin
     # Load the installation's manifest
-    manifest = Rubotics.manifest = Manifest.load(File.join('rubotics', 'manifest'))
+    manifest = Autoproj.manifest = Manifest.load(File.join('autoproj', 'manifest'))
     source_os_dependencies = manifest.each_remote_source(false).
         inject(Set.new) do |set, source|
             set << source.vcs.type if !source.local?
         end
 
     # If we need to install some packages to import our remote sources, do it
-    if !source_os_dependencies.empty?
-        STDERR.puts color("rubotics: installing prepackaged dependencies to access the source definitions", :bold)
+    if !no_os_deps && !source_os_dependencies.empty?
+        STDERR.puts color("autoproj: installing prepackaged dependencies to access the source definitions", :bold)
         osdeps = manifest.known_os_packages
         osdeps.install(source_os_dependencies)
     end
 
     # Update the remote sources if there are any
     if manifest.has_remote_sources?
-        STDERR.puts color("rubotics: updating remote sources", :bold)
+        STDERR.puts color("autoproj: updating remote sources", :bold)
         Autobuild::Reporting.report do
             manifest.update_remote_sources
         end
@@ -223,16 +266,22 @@ begin
     # Note that we can't have the Manifest class load the source.yml file, as it
     # cannot resolve all constants. So we need to do it ourselves to get the
     # name ...
-    if Rubotics.verbose || only_update_sources
-        STDERR.puts color("rubotics: available sources", :bold)
-        manifest.each_source(false) do |source|
-            source_yml = source.raw_description_file
-            STDERR.puts "  #{source_yml['name']}"
-            if source.local?
-                STDERR.puts "    local source in #{source.local_dir}"
-            else
-                STDERR.puts "    vcs:   #{source.vcs}, #{source.vcs.options.inspect}"
-                STDERR.puts "    local: #{source.local_dir}"
+    if Autoproj.verbose || only_update_sources
+        sources = manifest.each_source(false).to_a
+
+        if sources.empty?
+            STDERR.puts color("autoproj: no sources defined in autoproj/manifest", :bold, :red)
+        else
+            STDERR.puts color("autoproj: available sources", :bold)
+            manifest.each_source(false) do |source|
+                source_yml = source.raw_description_file
+                STDERR.puts "  #{source_yml['name']}"
+                if source.local?
+                    STDERR.puts "    local source in #{source.local_dir}"
+                else
+                    STDERR.puts "    vcs:   #{source.vcs}, #{source.vcs.options.inspect}"
+                    STDERR.puts "    local: #{source.local_dir}"
+                end
             end
         end
     end
@@ -250,25 +299,25 @@ begin
     end
 
     # Load the required autobuild definitions
-    STDERR.puts color("rubotics: loading build files and configuring build", :bold)
-    if !Rubotics.reconfigure?
-        STDERR.puts color("run 'rubotics --reconfigure' to change configuration values", :bold)
+    STDERR.puts color("autoproj: loading build files and configuring build", :bold)
+    if !Autoproj.reconfigure?
+        STDERR.puts color("run 'autoproj --reconfigure' to change configuration values", :bold)
     end
     manifest.each_autobuild_file do |source, name|
-        Rubotics.import_autobuild_file source, name
+        Autoproj.import_autobuild_file source, name
     end
 
     # The user is asked for configuration values both during the manifest
     # loading and the loading of autobuild files. Save it now.
-    Rubotics.save_config
+    Autoproj.save_config
 
     # Now, load the package's importer configurations (from the various
     # source.yml files)
     manifest.load_importers
-    if Rubotics.verbose
+    if Autoproj.verbose
         # List defined packages, and in which autobuild files they are defined
         STDERR.puts "Available packages:"
-        Rubotics.manifest.packages.each_value do |package, source, file|
+        Autoproj.manifest.packages.each_value do |package, source, file|
             STDERR.puts "  #{package.name}: #{file} from #{source.name}"
         end
     end
@@ -276,37 +325,32 @@ begin
     # Create the build target from the manifest if the user did not provide an
     # explicit one
     if selected_packages.empty?
-        selected_packages = Rubotics.manifest.default_packages
+        selected_packages = Autoproj.manifest.default_packages
     end
-    if Rubotics.verbose
+    if Autoproj.verbose
         STDERR.puts "will install #{selected_packages.to_a.join(", ")}"
     end
     if selected_packages.empty? # no packages, terminate
         STDERR.puts
-        STDERR.puts color("rubotics: no packages defined", :red)
+        STDERR.puts color("autoproj: no packages defined", :red)
         exit 0
     end
     selected_packages = selected_packages.to_set
 
     # Install prepackaged dependencies needed to import and build the packages
-    STDERR.puts
-    STDERR.puts color("rubotics: installing prepackaged dependencies for build system & version control", :bold)
-    osdeps = manifest.known_os_packages
-    osdeps.install(Rubotics.build_system_dependencies - source_os_dependencies)
-
-    # We are doing a status, now is the right time
-    STDERR.puts
-    if only_do_status
-        do_status(selected_packages)
-        exit 0
+    if !no_os_deps
+        STDERR.puts
+        STDERR.puts color("autoproj: installing prepackaged dependencies for build system & version control", :bold)
+        osdeps = manifest.known_os_packages
+        osdeps.install(Autoproj.build_system_dependencies - source_os_dependencies)
     end
 
     # Now starts a different stage of the whole build. Until now, we were
     # working on the whole package set. Starting from now, we need to build the
     # package sets based on the layout file
-    Rubotics.manifest.each_package_set(selected_packages) do |name, packages, enabled_packages|
-        srcdir  = File.join(Rubotics.root_dir, name)
-        prefix  = File.join(Rubotics.build_dir, name)
+    Autoproj.manifest.each_package_set(selected_packages) do |name, packages, enabled_packages|
+        srcdir  = File.join(Autoproj.root_dir, name)
+        prefix  = File.join(Autoproj.build_dir, name)
         logdir  = File.join(prefix, "log")
         Autobuild.logdir = logdir
         packages.each do |pkg_name|
@@ -316,31 +360,41 @@ begin
             pkg.logdir = logdir
         end
 
+        # We are doing a status, now is the right time
+        STDERR.puts
+        if only_do_status
+            do_status(packages)
+            next
+        end
+
+
         # ... but build only the selected packages (and avoid display of
         # progress messages if there is nothing to build)
         if !enabled_packages.empty?
             STDERR.puts
-            STDERR.puts color("rubotics: now building #{name}", :bold)
+            STDERR.puts color("autoproj: now building #{name}", :bold)
 
             STDERR.puts color("  updating packages", :bold)
             Autobuild::Reporting.report do
                 import_targets = enabled_packages.map { |pkg| "#{pkg}-import" }
-                task "rubotics-#{name}-import" => import_targets
-                Rake::Task["rubotics-#{name}-import"].invoke
+                task "autoproj-#{name}-import" => import_targets
+                Rake::Task["autoproj-#{name}-import"].invoke
             end
 
             # Load package manifests, apply dependencies to the autobuild definitions
             # and install OS packages
             manifest.load_package_manifests(packages)
-            STDERR.puts color("  installing prepackaged dependencies", :bold)
-            manifest.install_os_dependencies
+            if !no_os_deps
+                STDERR.puts color("  installing prepackaged dependencies", :bold)
+                manifest.install_os_dependencies
+            end
 
             # Call the prepare target now, after we did the import *and* loaded
             # the manifests
             Autobuild::Reporting.report do
                 prepare_targets = enabled_packages.map { |pkg| "#{pkg}-prepare" }
-                task "rubotics-#{name}-prepare" => prepare_targets
-                Rake::Task["rubotics-#{name}-prepare"].invoke
+                task "autoproj-#{name}-prepare" => prepare_targets
+                Rake::Task["autoproj-#{name}-prepare"].invoke
             end
 
             # And now build
@@ -351,7 +405,7 @@ begin
             end
 
             Autobuild::Reporting.report do
-                Autobuild.apply(enabled_packages, "rubotics-#{name}")
+                Autobuild.apply(enabled_packages, "autoproj-#{name}")
                 Autobuild::Reporting.success
             end
         end
@@ -366,14 +420,14 @@ begin
             Autobuild.do_update = false
             Autobuild::Reporting.report do
                 prepare_targets = (packages - enabled_packages).map { |pkg_name| "#{pkg_name}-prepare" }
-                task "rubotics-#{name}-prepare" => prepare_targets
-                Rake::Task["rubotics-#{name}-prepare"].invoke
+                task "autoproj-#{name}-prepare" => prepare_targets
+                Rake::Task["autoproj-#{name}-prepare"].invoke
             end
         ensure
             Autobuild.do_update = old_update_flag
         end
 
-        Rubotics.export_env_sh(name)
+        Autoproj.export_env_sh(name)
     end
 
 rescue ConfigError => e

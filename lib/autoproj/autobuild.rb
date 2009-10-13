@@ -1,8 +1,8 @@
 require 'autobuild'
 require 'set'
 
-module Rubotics
-    class RuboticsReporter < Autobuild::Reporter
+module Autoproj
+    class Reporter < Autobuild::Reporter
         def error(error)
             error_lines = error.to_s.split("\n")
             STDERR.puts color("Build failed: #{error_lines.shift}", :bold, :red)
@@ -17,7 +17,7 @@ module Rubotics
     end
 
     def self.warn(message)
-        STDERR.puts Rubotics.console.color("  WARN: #{message}", :magenta)
+        STDERR.puts Autoproj.console.color("  WARN: #{message}", :magenta)
     end
 
     @definition_files = Hash.new
@@ -40,7 +40,7 @@ module Rubotics
 
     def self.define(package_type, spec, &block)
         package = Autobuild.send(package_type, spec, &block)
-        Rubotics.manifest.register_package package, *current_file
+        Autoproj.manifest.register_package package, *current_file
     end
 
     @loaded_autobuild_files = Set.new
@@ -66,15 +66,15 @@ end
 
 # Common setup for packages hosted on groupfiles/Autonomy
 def package_common(package_type, spec)
-    package_name = Rubotics.package_name_from_options(spec)
+    package_name = Autoproj.package_name_from_options(spec)
 
     begin
         Rake::Task[package_name]
-        Rubotics.warn "#{package_name} in #{Rubotics.current_file[0]} has been overriden in #{Rubotics.definition_source(package_name)}"
+        Autoproj.warn "#{package_name} in #{Autoproj.current_file[0]} has been overriden in #{Autoproj.definition_source(package_name)}"
     rescue
     end
 
-    Rubotics.define(package_type, spec) do |pkg|
+    Autoproj.define(package_type, spec) do |pkg|
         pkg.srcdir   = pkg.name
         yield(pkg) if block_given?
     end
@@ -82,7 +82,7 @@ end
 
 def cmake_package(options, &block)
     package_common(:cmake, options) do |pkg|
-        Rubotics.add_build_system_dependency 'cmake'
+        Autoproj.add_build_system_dependency 'cmake'
         yield(pkg) if block_given?
         unless pkg.has_doc?
             pkg.with_doc do
@@ -99,7 +99,7 @@ end
 # groupfiles server, on the autonomy project folder
 def autotools_package(options, &block)
     package_common(:autotools, options) do |pkg|
-        Rubotics.add_build_system_dependency 'autotools'
+        Autoproj.add_build_system_dependency 'autotools'
         yield(pkg) if block_given?
         unless pkg.has_doc?
             pkg.with_doc do
@@ -130,10 +130,10 @@ def ruby_common(pkg)
 end
 
 def env_set(name, value)
-    Rubotics.env_set(name, value)
+    Autoproj.env_set(name, value)
 end
 def env_add(name, value)
-    Rubotics.env_add(name, value)
+    Autoproj.env_add(name, value)
 end
 
 def ruby_package(options)
@@ -164,6 +164,6 @@ def source_package(options)
 end
 
 def configuration_option(*opts, &block)
-    Rubotics.configuration_option(*opts, &block)
+    Autoproj.configuration_option(*opts, &block)
 end
 

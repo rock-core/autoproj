@@ -15,7 +15,7 @@ module Autobuild
     end
 end
 
-module Rubotics
+module Autoproj
     @build_system_dependencies = Set.new
     def self.add_build_system_dependency(*names)
         @build_system_dependencies |= names.to_set
@@ -27,10 +27,10 @@ module Rubotics
     def self.expand_environment(value)
         # Perform constant expansion on the defined environment variables,
         # including the option set
-        options = Rubotics.option_set
-        if Rubotics.manifest
+        options = Autoproj.option_set
+        if Autoproj.manifest
             loop do
-                new_value = Rubotics.manifest.single_expansion(value, options)
+                new_value = Autoproj.manifest.single_expansion(value, options)
                 if new_value == value
                     break
                 else
@@ -76,7 +76,7 @@ module Rubotics
         def initialize(type, url, options)
             @type, @url, @options = type, url, options
             if type != "local" && !Autobuild.respond_to?(type)
-                raise ConfigError, "version control #{type} is unknown to rubotics"
+                raise ConfigError, "version control #{type} is unknown to autoproj"
             end
         end
 
@@ -85,9 +85,9 @@ module Rubotics
         end
 
         def create_autobuild_importer
-            url = Rubotics.single_expansion(self.url, 'HOME' => ENV['HOME'])
+            url = Autoproj.single_expansion(self.url, 'HOME' => ENV['HOME'])
             if url && url !~ /^(\w+:\/)?\/|^\w+\@/
-                url = File.expand_path(url, Rubotics.root_dir)
+                url = File.expand_path(url, Autoproj.root_dir)
             end
             Autobuild.send(type, url, options)
         end
@@ -99,7 +99,7 @@ module Rubotics
         if spec.respond_to?(:to_str)
             vcs, *url = spec.to_str.split ':'
             spec = if url.empty?
-                       source_dir = File.expand_path(File.join(Rubotics.config_dir, spec))
+                       source_dir = File.expand_path(File.join(Autoproj.config_dir, spec))
                        if !File.directory?(source_dir)
                            raise ConfigError, "'#{spec.inspect}' is neither a remote source specification, nor a local source definition"
                        end
@@ -115,7 +115,7 @@ module Rubotics
         return spec.merge(vcs_options)
     end
 
-    # Rubotics configuration files accept VCS definitions in three forms:
+    # Autoproj configuration files accept VCS definitions in three forms:
     #  * as a plain string, which is a relative/absolute path
     #  * as a plain string, which is a vcs_type:url string
     #  * as a hash
@@ -156,7 +156,7 @@ module Rubotics
             @vcs = vcs
         end
 
-        # True if this source has already been checked out on the local rubotics
+        # True if this source has already been checked out on the local autoproj
         # installation
         def present?; File.directory?(local_dir) end
         # True if this source is local, i.e. is not under a version control
@@ -166,7 +166,7 @@ module Rubotics
             if local?
                 vcs.url
             else
-                File.join(Rubotics.config_dir, "remotes", automatic_name)
+                File.join(Autoproj.config_dir, "remotes", automatic_name)
             end
         end
 
@@ -194,7 +194,12 @@ module Rubotics
                 raise ConfigError, "source #{vcs.type}:#{vcs.url} should have a source.yml file, but does not"
             end
 
-            source_definition = YAML.load(File.read(source_file))
+            begin
+                source_definition = YAML.load(File.read(source_file))
+            rescue ArgumentError => e
+                raise ConfigError, "error in #{source_file}: #{e.message}"
+            end
+
             if !source_definition
                 raise ConfigError, "#{source_file} does not have a 'name' field"
             end
@@ -209,41 +214,43 @@ module Rubotics
             @source_definition = raw_description_file
 
             # Compute the definition of constants
-            constants = source_definition['constants'] || Hash.new
-            constants['HOME'] = ENV['HOME']
+            begin
+                constants = source_definition['constants'] || Hash.new
+                constants['HOME'] = ENV['HOME']
 
-            redo_expansion = true
-            @constants_definitions = constants 
-            while redo_expansion
-                redo_expansion = false
-                constants.dup.each do |name, url|
-                    # Extract all expansions in the url
-                    if url =~ /\$(\w+)/
-                        expansion_name = $1
+                redo_expansion = true
+                @constants_definitions = constants 
+                while redo_expansion
+                    redo_expansion = false
+                    constants.dup.each do |name, url|
+                        # Extract all expansions in the url
+                        if url =~ /\$(\w+)/
+                            expansion_name = $1
 
-                        if constants[expansion_name]
-                            constants[name] = single_expansion(url)
-                        else
-                            begin constants[name] = single_expansion(url,
-                                             expansion_name => Rubotics.user_config(expansion_name))
-                            rescue ConfigError => e
-                                raise ConfigError, "constant '#{expansion_name}', used in the definition of '#{name}' is defined nowhere"
+                            if constants[expansion_name]
+                                constants[name] = single_expansion(url)
+                            else
+                                begin constants[name] = single_expansion(url,
+                                                 expansion_name => Autoproj.user_config(expansion_name))
+                                rescue ConfigError => e
+                                    raise ConfigError, "constant '#{expansion_name}', used in the definition of '#{name}' is defined nowhere"
+                                end
                             end
+                            redo_expansion = true
                         end
-                        redo_expansion = true
                     end
                 end
-            end
 
-        rescue ConfigError => e
-            raise ConfigError, "#{e.message} in #{source_file}", e.backtrace
+            rescue ConfigError => e
+                raise ConfigError, "#{e.message} in #{File.join(local_dir, "source.yml")}", e.backtrace
+            end
         end
 
         # True if the given string contains expansions
         def contains_expansion?(string); string =~ /\$/ end
 
         def single_expansion(data, additional_expansions = Hash.new)
-            Rubotics.single_expansion(data, additional_expansions.merge(constants_definitions))
+            Autoproj.single_expansion(data, additional_expansions.merge(constants_definitions))
         end
 
         # Expands the given string as much as possible using the expansions
@@ -296,13 +303,13 @@ module Rubotics
                 expansions = Hash["PACKAGE" => package_name]
 
                 vcs_spec = expand(vcs_spec, expansions)
-                vcs_spec = Rubotics.vcs_definition_to_hash(vcs_spec)
+                vcs_spec = Autoproj.vcs_definition_to_hash(vcs_spec)
                 vcs_spec.dup.each do |name, value|
                     vcs_spec[name] = expand(value, expansions)
                 end
                 vcs_spec
 
-                Rubotics.normalize_vcs_definition(vcs_spec)
+                Autoproj.normalize_vcs_definition(vcs_spec)
             end
         rescue ConfigError => e
             raise ConfigError, "#{e.message} in the source.yml file of #{name} (#{File.join(local_dir, "source.yml")})", e.backtrace
@@ -312,7 +319,12 @@ module Rubotics
     class Manifest
         FakePackage = Struct.new :name, :srcdir
 	def self.load(file)
-	    Manifest.new(file, YAML.load(File.read(file)))
+            begin
+                data = YAML.load(File.read(file))
+            rescue ArgumentError => e
+                raise ConfigError, "error in #{file}: #{e.message}"
+            end
+	    Manifest.new(file, data)
 	end
 
         # The manifest data as a Hash
@@ -407,7 +419,7 @@ module Rubotics
                 # either vcs_type:url or just url. In the latter case, we expect
                 # 'url' to be a path to a local directory
                 vcs_def = begin
-                              Rubotics.normalize_vcs_definition(spec)
+                              Autoproj.normalize_vcs_definition(spec)
                           rescue ConfigError => e
                               raise ConfigError, "in #{file}: #{e.message}"
                           end
@@ -460,7 +472,7 @@ module Rubotics
         # the source's source.yml 
         #
         # The priority logic is that we take the sources one by one in the order
-        # listed in the rubotics main manifest, and first come first used.
+        # listed in the autoproj main manifest, and first come first used.
         #
         # A source that defines a particular package in its autobuild file
         # *must* provide the corresponding VCS line in its source.yml file.
@@ -484,7 +496,7 @@ module Rubotics
                 end
 
                 if vcs
-                    Rubotics.add_build_system_dependency vcs.type
+                    Autoproj.add_build_system_dependency vcs.type
                     package.importer = vcs.create_autobuild_importer
                 else
                     raise ConfigError, "source #{package_source.name} defines #{package.name}, but does not provide a version control definition for it"
@@ -542,8 +554,8 @@ module Rubotics
         # and sublayout in order
         def each_package_set(selection, layout_name = '/', layout_def = data['layout'], &block)
             if !layout_def
-                yield('', default_packages)
-                nil
+                yield('', default_packages, default_packages)
+                return nil
             end
 
             selection = selection.to_set
@@ -581,14 +593,14 @@ module Rubotics
         # information from them. The dependency information is then used applied
         # to the autobuild packages.
         #
-        # Right now, the absence of a manifest makes rubotics only issue a
+        # Right now, the absence of a manifest makes autoproj only issue a
         # warning. This will later be changed into an error.
         def load_package_manifests(selected_packages)
             packages.each_value do |package, source, file|
                 next unless selected_packages.include?(package.name)
                 manifest_path = File.join(package.srcdir, "manifest.xml")
                 if !File.file?(manifest_path)
-                    Rubotics.warn "#{package.name} from #{source.name} does not have a manifest"
+                    Autoproj.warn "#{package.name} from #{source.name} does not have a manifest"
                     next
                 end
 
@@ -596,7 +608,7 @@ module Rubotics
                 package_manifests[package.name] = manifest
 
                 manifest.each_package_dependency do |name|
-                    if Rubotics.verbose
+                    if Autoproj.verbose
                         STDERR.puts "  #{package.name} depends on #{name}"
                     end
                     begin
@@ -608,11 +620,11 @@ module Rubotics
             end
         end
 
-        RUBOTICS_OSDEPS = File.join(File.expand_path(File.dirname(__FILE__)), 'default.osdeps')
+        AUTOPROJ_OSDEPS = File.join(File.expand_path(File.dirname(__FILE__)), 'default.osdeps')
         # Returns an OSDependencies instance that defined the known OS packages,
         # as well as how to install them
         def known_os_packages
-            osdeps = OSDependencies.load(RUBOTICS_OSDEPS)
+            osdeps = OSDependencies.load(AUTOPROJ_OSDEPS)
 
             each_osdeps_file do |source, file|
                 osdeps.merge(OSDependencies.load(file))

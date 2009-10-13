@@ -1,4 +1,4 @@
-module Rubotics
+module Autoproj
     class InputError < RuntimeError; end
 
     class BuildOption
@@ -35,7 +35,7 @@ module Rubotics
             validate(answer)
 
         rescue InputError => e
-            STDERR.puts Rubotics.console.color("invalid value: #{e.message}", :red)
+            STDERR.puts Autoproj.console.color("invalid value: #{e.message}", :red)
             retry
         end
 
@@ -79,7 +79,7 @@ module Rubotics
     def self.user_config(key)
         value, seen = @user_config[key]
 
-        if value.nil? || (!seen && Rubotics.reconfigure?)
+        if value.nil? || (!seen && Autoproj.reconfigure?)
             value = configure(key)
         else
             if !seen
@@ -109,7 +109,7 @@ module Rubotics
     end
 
     def self.save_config
-        File.open(File.join(Rubotics.config_dir, "config.yml"), "w") do |io|
+        File.open(File.join(Autoproj.config_dir, "config.yml"), "w") do |io|
             config = Hash.new
             @user_config.each_key do |key|
                 config[key] = @user_config[key].first
@@ -120,7 +120,7 @@ module Rubotics
     end
 
     def self.load_config
-        config_file = File.join(Rubotics.config_dir, "config.yml")
+        config_file = File.join(Autoproj.config_dir, "config.yml")
         if File.exists?(config_file)
             config = YAML.load(File.read(config_file))
             config.each do |key, value|
