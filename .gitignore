@@ -1,5 +1,5 @@
 doc/html
 *.sw*
 webgen.cache
-doc/guide/src/rubotics_bootstrap
-pkg/*.gem
+doc/guide/src/autoproj_bootstrap
+pkg/
