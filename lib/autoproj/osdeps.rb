@@ -110,8 +110,11 @@ module Autoproj
             File.open('osdeps.sh', 'w') do |file|
                 file.write shell_script
             end
-            Autobuild::Subprocess.run 'autoproj', 'osdeps', 'bash', './osdeps.sh'
-            FileUtils.rm_f 'osdeps.sh'
+            begin
+                Autobuild::Subprocess.run 'autoproj', 'osdeps', 'bash', './osdeps.sh'
+            ensure
+                FileUtils.rm_f 'osdeps.sh'
+            end
 
             # Don't install gems that are already there ...
             gems.delete_if do |name|
