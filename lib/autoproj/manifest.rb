@@ -179,6 +179,8 @@ module Autoproj
         def name
             if @source_definition then
                 @source_definition['name'] || automatic_name
+            elsif @name
+                @name
             else
                 automatic_name
             end
@@ -205,6 +207,12 @@ module Autoproj
             end
 
             source_definition
+        end
+
+        def load_name
+            definition = raw_description_file
+            @name = definition['name']
+        rescue InternalError
         end
 
         # Load the source.yml file that describes this source, and resolve the
@@ -426,6 +434,9 @@ module Autoproj
                 source = Source.new(vcs_def)
                 if source.present? && load_description
                     source.load_description_file
+                else
+                    # Try to load just the name from the source.yml file
+                    source.load_name
                 end
 
                 yield(source)
