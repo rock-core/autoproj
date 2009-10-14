@@ -135,7 +135,7 @@ def ruby_common(pkg)
     end
 
     pkg.post_install do
-        Autobuild.progress "  setting up Ruby package #{pkg.name}"
+        Autobuild.progress "setting up Ruby package #{pkg.name}"
         Autobuild.update_environment pkg.srcdir
         if File.file?('Rakefile')
             if File.directory?('ext')
