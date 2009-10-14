@@ -366,6 +366,10 @@ module Autoproj
 	    @data = data
             @packages = Hash.new
             @package_manifests = Hash.new
+
+            if Autoproj.has_config_key?('manifest_source')
+                @vcs = Autoproj.normalize_vcs_definition(Autoproj.user_config('manifest_source'))
+            end
 	end
 
         # Lists the autobuild files that are in the package sets we know of
@@ -484,6 +488,19 @@ module Autoproj
             importer.import(fake_package)
         rescue Autobuild::ConfigException => e
             raise ConfigError, e.message, e.backtrace
+        end
+
+        attr_reader :vcs
+        def self.import_whole_installation(vcs, into)
+            importer     = vcs.create_autobuild_importer
+            fake_package = FakePackage.new('autoproj main configuration', into)
+            importer.import(fake_package)
+        rescue Autobuild::ConfigException => e
+            raise ConfigError, "cannot import autoproj configuration: #{e.message}", e.backtrace
+        end
+
+        def update_yourself
+            Manifest.import_whole_installation(vcs, Autoproj.config_dir)
         end
 
         def update_remote_sources

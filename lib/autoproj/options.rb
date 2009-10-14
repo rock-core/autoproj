@@ -23,8 +23,8 @@ module Autoproj
         end
 
         def ask(current_value)
-            default_value = if current_value then current_value
-                            else options[:default]
+            default_value = if current_value then current_value.to_s
+                            else options[:default].to_str
                             end
 
             STDERR.print "  #{doc} [#{default_value}] "
@@ -82,7 +82,7 @@ module Autoproj
         if value.nil? || (!seen && Autoproj.reconfigure?)
             value = configure(key)
         else
-            if !seen
+            if !seen && @declared_options[key]
                 STDERR.puts "  #{@declared_options[key].doc}: #{value}"
                 @user_config[key] = [value, true]
             end
@@ -117,6 +117,10 @@ module Autoproj
 
             io.write YAML.dump(config)
         end
+    end
+
+    def self.has_config_key?(name)
+        @user_config.has_key?(name)
     end
 
     def self.load_config

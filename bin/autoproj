@@ -177,92 +177,119 @@ end
 
 
 def do_bootstrap(*args)
+    if File.exists?("autoproj")
+        raise ConfigError, "this installation is already bootstrapped. Remove the autoproj directory if it is not the case"
+    end
+
     if args.empty? # no argument, simply add a manifest template
         sample_dir = File.expand_path(File.join("..", "samples"), File.dirname(__FILE__))
         FileUtils.mkdir_p "autoproj"
         manifest_data = File.read(File.join(sample_dir, "manifest"))
+        File.open(File.join(Autoproj.config_dir, "manifest"), "w") do |io|
+            io.write(manifest_data)
+        end
 
     elsif args.size == 1 # must be a manifest file
         manifest_url = args.first
+        FileUtils.mkdir_p "autoproj"
         STDERR.puts color("autoproj: downloading manifest file #{manifest_url}", :bold)
         manifest_data = open(manifest_url) { |file| file.read }
-
-    else # must be a source definition
-        manifest_data = <<-EOF
-package_sets:
-    - type: #{args.shift}
-      url: #{args.shift}
-        EOF
-        while !args.empty?
-            name, value = args.shift.split("=")
-            manifest_data << "      #{name}: #{value}\n"
+        File.open(File.join(Autoproj.config_dir, "manifest"), "w") do |io|
+            io.write(manifest_data)
         end
 
-    end
+    else # is a VCS definition for the manifest itself ...
+        vcs_def = Hash.new
+        vcs_def[:type] = args.shift
+        vcs_def[:url]  = args.shift
+        while !args.empty?
+            name, value = args.shift.split("=")
+            vcs_def[name] = value
+        end
+        vcs = Autoproj.normalize_vcs_definition(vcs_def)
+        Autoproj::Manifest.import_whole_installation(vcs, File.join(Dir.pwd, "autoproj"))
 
-    File.open(File.join(Autoproj.config_dir, "manifest"), "w") do |io|
-        io.write(manifest_data)
+        # Now write it in the config file
+        File.open(File.join(Autoproj.config_dir, "config.yml"), "a") do |io|
+            io.puts <<-EOTEXT
+manifest_source:
+    type: #{vcs_def.delete(:type)}
+    url: #{vcs_def.delete(:url)}
+    #{vcs_def.map { |k, v| "#{k}: #{v}" }.join("\n    ")}
+            EOTEXT
+        end
     end
-end
-
-case mode
-when "bootstrap"
-    # If there is no argument, We need one more argument. It is either a VCS type or a path to a
-    # manifest.
-    #
-    # In the first case, we create a new manifest and add the source given on
-    # the command line to it. In the second case, we simply use it as a
-    # manifest.
-    do_bootstrap(*args)
-    if args.empty?
-        # no package sets defined, we're done
-        exit(0)
-    end
-    only_update_sources = true
-
-when "build"
-when "update"
-    Autobuild.do_build  = false
-when "status"
-    only_do_status      = true
-    Autobuild.do_update = false
-    no_os_deps = true
-when "update-sets"
-    only_update_sources = true
-when "list-sets"
-    only_update_sources = true
-    Autobuild.do_update = false
-    
-when "doc"
-    Autobuild.do_update = false
-    Autobuild.do_doc    = true
-    Autobuild.only_doc  = true
-else
-    puts parser
-    exit(1)
 end
 
 # Find the autoproj root dir
-root_dir = Autoproj.root_dir
-# Load user configuration
-Autoproj.load_config
-# Set the initial environment
-Autoproj.set_initial_env
-# Set up some important autobuild parameters
-Autobuild.prefix  = Autoproj.build_dir
-Autobuild.srcdir  = root_dir
-Autobuild.doc_errors = false
-Autobuild.do_doc = false
-Autobuild::Reporting << Autoproj::Reporter.new
-if mail_config[:to]
-    Autobuild::Reporting << MailReporter.new(mail_config)
-end
-
-
-Dir.chdir(root_dir)
 begin
-    # Load the installation's manifest
-    manifest = Autoproj.manifest = Manifest.load(File.join('autoproj', 'manifest'))
+    case mode
+    when "bootstrap"
+        # If there is no argument, We need one more argument. It is either a VCS type or a path to a
+        # manifest.
+        #
+        # In the first case, we create a new manifest and add the source given on
+        # the command line to it. In the second case, we simply use it as a
+        # manifest.
+        do_bootstrap(*args)
+        if args.empty?
+            # no package sets defined, we're done
+            exit(0)
+        end
+        only_update_sources = true
+
+    when "build"
+    when "update"
+        Autobuild.do_build  = false
+    when "status"
+        only_do_status      = true
+        Autobuild.do_update = false
+        no_os_deps = true
+    when "update-sets"
+        only_update_sources = true
+    when "list-sets"
+        only_update_sources = true
+        Autobuild.do_update = false
+        
+    when "doc"
+        Autobuild.do_update = false
+        Autobuild.do_doc    = true
+        Autobuild.only_doc  = true
+    else
+        puts parser
+        exit(1)
+    end
+
+    root_dir = Autoproj.root_dir
+    Dir.chdir(root_dir)
+
+    # Load user configuration
+    Autoproj.load_config
+    # Set the initial environment
+    Autoproj.set_initial_env
+    # Set up some important autobuild parameters
+    Autobuild.prefix  = Autoproj.build_dir
+    Autobuild.srcdir  = root_dir
+    Autobuild.doc_errors = false
+    Autobuild.do_doc = false
+    Autobuild::Reporting << Autoproj::Reporter.new
+    if mail_config[:to]
+        Autobuild::Reporting << MailReporter.new(mail_config)
+    end
+
+    manifest_path = File.join(Autoproj.config_dir, 'manifest')
+    # Load the installation's manifest a first time, to check if we should
+    # update it ... We assume that the OS dependencies for this VCS is already
+    # installed (i.e. that the user did not remove it)
+    manifest = Manifest.load(manifest_path)
+    if manifest.vcs && mode != "bootstrap"
+        Autobuild::Reporting.report do
+            manifest.update_yourself
+        end
+        manifest = Manifest.load(manifest_path)
+    end
+    Autoproj.manifest = manifest
+
     source_os_dependencies = manifest.each_remote_source(false).
         inject(Set.new) do |set, source|
             set << source.vcs.type if !source.local?
@@ -282,34 +309,6 @@ begin
             manifest.update_remote_sources
         end
         STDERR.puts
-    end
-
-    # If in verbose mode, or if we only update sources, list the sources
-    #
-    # Note that we can't have the Manifest class load the source.yml file, as it
-    # cannot resolve all constants. So we need to do it ourselves to get the
-    # name ...
-    if Autoproj.verbose || only_update_sources
-        sources = manifest.each_source(false).to_a
-
-        if sources.empty?
-            STDERR.puts color("autoproj: no package sets defined in autoproj/manifest", :bold, :red)
-        else
-            STDERR.puts color("autoproj: available package sets", :bold)
-            manifest.each_source(false) do |source|
-                source_yml = source.raw_description_file
-                STDERR.puts "  #{source_yml['name']}"
-                if source.local?
-                    STDERR.puts "    local source in #{source.local_dir}"
-                else
-                    STDERR.puts "    vcs:   #{source.vcs}, #{source.vcs.options.inspect}"
-                    STDERR.puts "    local: #{source.local_dir}"
-                end
-            end
-        end
-    end
-    if only_update_sources
-        exit(0)
     end
 
     # Load init.rb files. each_source must not load the source.yml file, as
@@ -347,6 +346,41 @@ begin
         Autoproj.manifest.packages.each_value do |package, source, file|
             STDERR.puts "  #{package.name}: #{file} from #{source.name}"
         end
+    end
+
+    # If in verbose mode, or if we only update sources, list the sources
+    #
+    # Note that we can't have the Manifest class load the source.yml file, as it
+    # cannot resolve all constants. So we need to do it ourselves to get the
+    # name ...
+    if Autoproj.verbose || only_update_sources
+        sources = manifest.each_source(false).to_a
+
+        if sources.empty?
+            STDERR.puts color("autoproj: no package sets defined in autoproj/manifest", :bold, :red)
+        else
+            STDERR.puts color("autoproj: available package sets", :bold)
+            manifest.each_source(false) do |source|
+                source_yml = source.raw_description_file
+                STDERR.puts "  #{source_yml['name']}"
+                if source.local?
+                    STDERR.puts "    local source in #{source.local_dir}"
+                else
+                    STDERR.puts "    vcs:   #{source.vcs}, #{source.vcs.options.inspect}"
+                    STDERR.puts "    local: #{source.local_dir}"
+                end
+
+                source.each_package.
+                    map { |pkg| pkg.name }.
+                    sort.
+                    each do |name|
+                        STDERR.puts "    #{name}"
+                    end
+            end
+        end
+    end
+    if only_update_sources
+        exit(0)
     end
 
     # Create the build target from the manifest if the user did not provide an
