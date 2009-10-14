@@ -430,7 +430,7 @@ module Autoproj
         # object that describes it.
         def each_source(load_description = true)
             if !block_given?
-                return enum_for(:each_source)
+                return enum_for(:each_source, load_description)
             end
 
             return if !data['package_sets']
