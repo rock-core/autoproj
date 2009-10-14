@@ -322,6 +322,18 @@ module Autoproj
         rescue ConfigError => e
             raise ConfigError, "#{e.message} in the source.yml file of #{name} (#{File.join(local_dir, "source.yml")})", e.backtrace
         end
+
+        def each_package
+            if !block_given?
+                return enum_for(:each_package)
+            end
+
+            Autoproj.manifest.packages.each do |pkg_name, (pkg, source, file)|
+                if source.name == name
+                    yield(pkg)
+                end
+            end
+        end
     end
 
     class Manifest
