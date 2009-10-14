@@ -96,7 +96,7 @@ configuration_option "option_name", "option_type",
 Once declared, it can be used in autobuild scripts with:
 
 {coderay:: ruby}
-Autoproj.user_config("option_name")
+user_config("option_name")
 {coderay}
 
 Options are saved in <tt>autoproj/config.yml</tt> after the build. Options that
