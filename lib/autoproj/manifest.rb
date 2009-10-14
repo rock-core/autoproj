@@ -250,7 +250,7 @@ module Autoproj
                 end
 
             rescue ConfigError => e
-                raise ConfigError, "#{e.message} in #{File.join(local_dir, "source.yml")}", e.backtrace
+                raise ConfigError, "#{File.join(local_dir, "source.yml")}: #{e.message}", e.backtrace
             end
         end
 
