@@ -6,6 +6,9 @@ begin
         config = Hoe.spec 'autoproj' do
             self.developer "Sylvain Joyeux", "sylvain.joyeux@dfki.de"
 
+            self.url = ["http://doudou.github.com/autoproj",
+                "git://github.com/doudou/autoproj.git"]
+            self.rubyforge_name = 'autobuild'
             self.summary = 'Easy installation and management of robotics software'
             self.description = paragraphs_of('README.txt', 0..1).join("\n\n")
             self.changes     = paragraphs_of('History.txt', 0..1).join("\n\n")
