@@ -21,7 +21,8 @@ begin
                 ['highline', '>= 1.5.0']
 
             extra_dev_deps <<
-                ['webgen', '>= 0.5.9']
+                ['webgen', '>= 0.5.9'] <<
+                ['rdoc', '>= 2.4.0']
         end
 
         desc "generate the bootstrap script"
