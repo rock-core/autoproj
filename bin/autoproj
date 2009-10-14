@@ -104,10 +104,9 @@ def do_status(packages)
     console = Autoproj.console
 
     Autobuild::Reporting.report do
+        last_was_in_sync = false
         packages.sort.each do |pkg|
             pkg = Autobuild::Package[pkg]
-
-            STDERR.print "#{pkg.name}:"
 
             if !pkg.importer.respond_to?(:status)
                 # This importer does not support status display
@@ -123,7 +122,17 @@ def do_status(packages)
 
             case status.status
             when Autobuild::Importer::Status::UP_TO_DATE
-                lines << color("  local and remote are in sync", :green)
+                if !status.uncommitted_code
+                    if last_was_in_sync
+                        STDERR.print ", #{pkg.name}"
+                    else
+                        STDERR.print pkg.name
+                    end
+                    last_was_in_sync = true
+                    next
+                else
+                    lines << color("  local and remote are in sync", :green)
+                end
             when Autobuild::Importer::Status::ADVANCED
                 lines << color("  local contains #{status.local_commits.size} commit that remote does not have:", :magenta)
                 status.local_commits.each do |line|
@@ -146,12 +155,22 @@ def do_status(packages)
                 end
             end
 
+            if last_was_in_sync
+                STDERR.puts color(": local and remote are in sync", :green)
+            end
+
+            last_was_in_sync = false
+            STDERR.print "#{pkg.name}:"
+
             if lines.size == 1
                 STDERR.puts lines.first
             else
                 STDERR.puts
                 STDERR.puts lines.join("\n")
             end
+        end
+        if last_was_in_sync
+            STDERR.puts color(": local and remote are in sync", :green)
         end
     end
 end
