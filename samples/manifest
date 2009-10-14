@@ -1,4 +1,4 @@
-sources:
+package_sets:
 # Example source from a git repository
 #   - type: git
 #     url: git://github.com/doudou/autoproj.orocos.git

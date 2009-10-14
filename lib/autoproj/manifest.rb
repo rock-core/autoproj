@@ -144,7 +144,7 @@ module Autoproj
     # dependencies that are provided by the operating system (.osdeps file).
     class Source
         # The VCSDefinition object that defines the version control holding
-        # information for this source. Local sources (i.e. the ones that are not
+        # information for this source. Local package sets (i.e. the ones that are not
         # under version control) use the 'local' version control name. For them,
         # local? returns true.
         attr_accessor :vcs
@@ -346,18 +346,17 @@ module Autoproj
             @package_manifests = Hash.new
 	end
 
-        # Lists the autobuild files that are part of the sources listed in this
-        # manifest
+        # Lists the autobuild files that are in the package sets we know of
 	def each_autobuild_file(source_name = nil, &block)
             if !block_given?
                 return enum_for(:each_source_file, source_name)
             end
 
-            # This looks very inefficient, but it is because source names
-            # are contained in the source definition file (source.yml) and
-            # we must therefore load that file to check the source name ...
+            # This looks very inefficient, but it is because source names are
+            # contained in source.yml and we must therefore load that file to
+            # check the package set name ...
             #
-            # And honestly I don't think someone will have 20 000 sources
+            # And honestly I don't think someone will have 20 000 package sets
             done_something = false
             each_source do |source| 
                 next if source_name && source.name != source_name
@@ -389,7 +388,7 @@ module Autoproj
             each_remote_source(false).any? { true }
         end
 
-        # Like #each_source, but filters out local sources
+        # Like #each_source, but filters out local package sets
         def each_remote_source(load_description = true)
             if !block_given?
                 enum_for(:each_remote_source, load_description)
@@ -405,16 +404,16 @@ module Autoproj
         # call-seq:
         #   each_source { |source_description| ... }
         #
-        # Lists all sources defined in this manifest, by yielding a Source
-        # object that describes the source.
+        # Lists all package sets defined in this manifest, by yielding a Source
+        # object that describes it.
         def each_source(load_description = true)
             if !block_given?
                 return enum_for(:each_source)
             end
 
-            return if !data['sources']
+            return if !data['package_sets']
 
-	    data['sources'].each do |spec|
+	    data['package_sets'].each do |spec|
                 # Look up for short notation (i.e. not an explicit hash). It is
                 # either vcs_type:url or just url. In the latter case, we expect
                 # 'url' to be a path to a local directory
@@ -471,10 +470,10 @@ module Autoproj
         # Sets up the package importers based on the information listed in
         # the source's source.yml 
         #
-        # The priority logic is that we take the sources one by one in the order
-        # listed in the autoproj main manifest, and first come first used.
+        # The priority logic is that we take the package sets one by one in the
+        # order listed in the autoproj main manifest, and first come first used.
         #
-        # A source that defines a particular package in its autobuild file
+        # A set that defines a particular package in its autobuild file
         # *must* provide the corresponding VCS line in its source.yml file.
         # However, it is possible for a source that does *not* define a package
         # to override the VCS

@@ -37,15 +37,15 @@ where 'mode' is one of:
   bootstrap: starts a new autoproj installation. Usage:
     autoproj bootstrap [manifest_url|source_vcs source_url opt1=value1 opt2=value2 ...]
   
-  list-sources:   list all available sources
-  update-sources: update all remote sources, but do not build
+  list-sets:   list all available sources
+  update-sets: update all remote sources, but do not build
 
 Additional options:
     EOBANNER
     opts.on("--reconfigure", "re-ask all configuration options (build mode only)") do
         Autoproj.reconfigure = true
     end
-    opts.on("--no-update", "do not update already checked-out sources (build mode only)") do
+    opts.on("--no-update", "do not update already checked-out packages (build mode only)") do
         Autobuild.do_update = false
     end
 
@@ -189,7 +189,7 @@ def do_bootstrap(*args)
 
     else # must be a source definition
         manifest_data = <<-EOF
-sources:
+package_sets:
     - type: #{args.shift}
       url: #{args.shift}
         EOF
@@ -223,9 +223,9 @@ when "status"
     only_do_status      = true
     Autobuild.do_update = false
     no_os_deps = true
-when "update-sources"
+when "update-sets"
     only_update_sources = true
-when "list-sources"
+when "list-sets"
     only_update_sources = true
     Autobuild.do_update = false
     
@@ -273,7 +273,7 @@ begin
 
     # Update the remote sources if there are any
     if manifest.has_remote_sources?
-        STDERR.puts color("autoproj: updating remote sources", :bold)
+        STDERR.puts color("autoproj: updating remote definitions of package sets", :bold)
         Autobuild::Reporting.report do
             manifest.update_remote_sources
         end
@@ -289,9 +289,9 @@ begin
         sources = manifest.each_source(false).to_a
 
         if sources.empty?
-            STDERR.puts color("autoproj: no sources defined in autoproj/manifest", :bold, :red)
+            STDERR.puts color("autoproj: no package sets defined in autoproj/manifest", :bold, :red)
         else
-            STDERR.puts color("autoproj: available sources", :bold)
+            STDERR.puts color("autoproj: available package sets", :bold)
             manifest.each_source(false) do |source|
                 source_yml = source.raw_description_file
                 STDERR.puts "  #{source_yml['name']}"

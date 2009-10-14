@@ -100,7 +100,7 @@ autoproj will still have to checkout new packages, though:
 autoproj build --no-update
 {.commandline}
 
-If, on the other hand, you only want to update the sources, do
+If, on the other hand, you only want to update the source code, do
 
 autoproj update
 {.commandline}
