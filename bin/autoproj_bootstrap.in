@@ -1,5 +1,14 @@
 #! /usr/bin/ruby
 
+ENV['GEM_HOME'] = "#{Dir.pwd}/autoproj/gems"
+ENV['PATH']     = "#{ENV['GEM_HOME']}/bin:#{ENV['PATH']}"
+if $LOADED_FEATURES.find { |str| str =~ /bygems/ }
+    ENV['RUBYOPT']  = ""
+    exec "ruby", __FILE__
+end
+
+ENV['RUBYOPT']  = "-rubygems"
+
 require 'yaml'
 require 'set'
 require 'rubygems'
@@ -56,9 +65,6 @@ STDERR.puts "autoproj: installing autoproj and its dependencies (this can take a
 osdeps_management.install(packages)
 
 if ARGV.first != "dev"
-    ENV['RUBYOPT']  = "-rubygems"
-    ENV['GEM_HOME'] = "#{Dir.pwd}/autoproj/gems"
-    ENV['PATH']     = "#{ENV['GEM_HOME']}/bin:$PATH"
     Autobuild::Subprocess.run('bootstrap', 'post', 'autoproj', 'bootstrap')
 end
 
