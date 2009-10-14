@@ -482,6 +482,8 @@ module Autoproj
             fake_package = FakePackage.new(source.automatic_name, source.local_dir)
 
             importer.import(fake_package)
+        rescue Autobuild::ConfigException => e
+            raise ConfigError, e.message, e.backtrace
         end
 
         def update_remote_sources
