@@ -95,6 +95,7 @@ args = ARGV.dup
 parser.parse!(args)
 mode     = args.shift
 selected_packages = args.dup
+all_env_sh = Array.new
 
 def color(*args)
     Autoproj.console.color(*args)
@@ -488,8 +489,21 @@ begin
             Autobuild.do_update = old_update_flag
         end
 
+        all_env_sh << name
         Autoproj.export_env_sh(name)
     end
+
+STDERR.puts <<EOTEXT
+
+
+add the following lines at the bottom of your .bashrc:
+  #{all_env_sh.map { |name| "source #{Dir.pwd}#{name}env.sh" }.join("\n  ")}
+
+WARNING: autoproj will not work until your restart all
+your consoles, or run the following in them:
+  #{all_env_sh.map { |name| "$ source #{Dir.pwd}#{name}env.sh" }.join("\n  ")}
+
+EOTEXT
 
 rescue ConfigError => e
     STDERR.puts
