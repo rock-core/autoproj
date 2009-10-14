@@ -8,7 +8,7 @@ begin
 
             self.summary = 'Easy installation and management of robotics software'
             self.description = paragraphs_of('README.txt', 0..1).join("\n\n")
-            self.changes     = ""#paragraphs_of('History.txt', 0..1).join("\n\n")
+            self.changes     = paragraphs_of('History.txt', 0..1).join("\n\n")
 
             extra_deps << 
                 ['autobuild',   '>= 1.3.0'] <<
