@@ -214,6 +214,10 @@ when "bootstrap"
     # the command line to it. In the second case, we simply use it as a
     # manifest.
     do_bootstrap(*args)
+    if args.empty?
+        # no package sets defined, we're done
+        exit(0)
+    end
     only_update_sources = true
 
 when "build"
@@ -313,7 +317,11 @@ begin
     manifest.each_source(false) do |source|
         init_rb = File.join(source.local_dir, "init.rb")
         if File.exists?(init_rb)
-            load init_rb
+            begin
+                load init_rb
+            rescue Exception => e
+                Autoproj.filter_load_exception(e, source, init_rb)
+            end
         end
     end
 

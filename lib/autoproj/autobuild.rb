@@ -44,11 +44,27 @@ module Autoproj
     end
 
     @loaded_autobuild_files = Set.new
+    def self.filter_load_exception(error, source, path)
+        raise error if Autoproj.verbose
+        rx_path = Regexp.quote(path)
+        error_line = error.backtrace.find { |l| l =~ /#{rx_path}/ }
+        line_number = Integer(/#{rx_path}:(\d+)/.match(error_line)[1])
+        if source.local?
+            raise ConfigError, "#{path}:#{line_number}: #{error.message}", error.backtrace
+        else
+            raise ConfigError, "#{File.basename(path)}(source=#{source.name}):#{line_number}: #{error.message}", error.backtrace
+        end
+    end
+
     def self.import_autobuild_file(source, path)
         return if @loaded_autobuild_files.include?(path)
 
         @file_stack.push([source, File.basename(path)])
-        load path
+        begin
+            load path
+        rescue Exception => e
+            filter_load_exception(e, source, path)
+        end
         @loaded_autobuild_files << path
 
     ensure

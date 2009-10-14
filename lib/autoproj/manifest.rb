@@ -329,6 +329,8 @@ module Autoproj
 	def self.load(file)
             begin
                 data = YAML.load(File.read(file))
+            rescue Errno::ENOENT
+                raise ConfigError, "expected an autoproj configuration in #{File.expand_path(File.dirname(file))}, but #{file} does not exist"
             rescue ArgumentError => e
                 raise ConfigError, "error in #{file}: #{e.message}"
             end
