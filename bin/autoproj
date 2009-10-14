@@ -178,7 +178,7 @@ end
 
 
 def do_bootstrap(*args)
-    if File.exists?("autoproj")
+    if File.exists?(File.join("autoproj", "manifest"))
         raise ConfigError, "this installation is already bootstrapped. Remove the autoproj directory if it is not the case"
     end
 
