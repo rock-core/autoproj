@@ -1,2 +1,9 @@
+= Version 1.1
+ * added some sanity checks, especially w.r.t. an already existing GEM
+   installation
+ * improved the bootstrap
+ * autoproj is now able to track a configuration repository (i.e. a VCS that
+   stores both the installation's manifest and the package sets)
+
 = Version 1.0
  * initial release
