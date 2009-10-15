@@ -184,17 +184,22 @@ def do_bootstrap(*args)
 
     if args.empty? # no argument, simply add a manifest template
         sample_dir = File.expand_path(File.join("..", "samples"), File.dirname(__FILE__))
-        FileUtils.mkdir_p "autoproj"
         manifest_data = File.read(File.join(sample_dir, "manifest"))
+        FileUtils.mkdir_p "autoproj"
         File.open(File.join(Autoproj.config_dir, "manifest"), "w") do |io|
             io.write(manifest_data)
         end
 
     elsif args.size == 1 # must be a manifest file
         manifest_url = args.first
-        FileUtils.mkdir_p "autoproj"
         STDERR.puts color("autoproj: downloading manifest file #{manifest_url}", :bold)
-        manifest_data = open(manifest_url) { |file| file.read }
+        manifest_data =
+            begin open(manifest_url) { |file| file.read }
+            rescue
+                raise ConfigError, "cannot read #{manifest_url}, did you mean 'autoproj bootstrap VCSTYPE #{manifest_url}' ?"
+            end
+
+        FileUtils.mkdir_p "autoproj"
         File.open(File.join(Autoproj.config_dir, "manifest"), "w") do |io|
             io.write(manifest_data)
         end
