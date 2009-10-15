@@ -271,6 +271,12 @@ begin
 
     # Load user configuration
     Autoproj.load_config
+    # If we are under rubygems, check that the GEM_HOME is right ...
+    if $LOADED_FEATURES.any? { |l| l =~ /rubygems/ }
+        if ENV['GEM_HOME'] != Autoproj.gem_home
+            raise ConfigError, "RubyGems is already loaded with a different GEM_HOME"
+        end
+    end
     # Set the initial environment
     Autoproj.set_initial_env
     # Set up some important autobuild parameters
