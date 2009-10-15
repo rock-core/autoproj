@@ -37,11 +37,17 @@ module Autoproj
         end
     end
 
+    def self.remotes_dir
+        File.join(root_dir, ".remotes")
+    end
+    def self.gem_home
+        File.join(root_dir, ".gems")
+    end
+
     def self.set_initial_env
-        gem_home = File.join(Autoproj.config_dir, "gems")
         Autoproj.env_set 'RUBYOPT', "-rubygems"
-        Autoproj.env_set 'GEM_HOME', gem_home
-        Autoproj.env_set_path 'PATH', "#{gem_home}/bin", "/usr/local/bin", "/usr/bin", "/bin"
+        Autoproj.env_set 'GEM_HOME', Autoproj.gem_home
+        Autoproj.env_set_path 'PATH', "#{Autoproj.gem_home}/bin", "/usr/local/bin", "/usr/bin", "/bin"
         Autoproj.env_set 'PKG_CONFIG_PATH'
         Autoproj.env_set 'RUBYLIB'
         Autoproj.env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB'

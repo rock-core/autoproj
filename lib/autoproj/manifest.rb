@@ -166,7 +166,7 @@ module Autoproj
             if local?
                 vcs.url
             else
-                File.join(Autoproj.config_dir, "remotes", automatic_name)
+                File.join(Autoproj.remotes_dir, automatic_name)
             end
         end
 

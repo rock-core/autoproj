@@ -14,7 +14,7 @@ autoproj-related configuration is saved. The contained files are as follows:
 
  * autoproj/manifest: list of available package sets, layout of the
    installation. See "Management" below.
- * autoproj/remotes/\*: package sets that are imported from a remote version
+ * .remotes/\*: package sets that are imported from a remote version
    control system
  * autoproj/\*/: local sets, i.e. sets that have not been imported from a remote
    version control system.

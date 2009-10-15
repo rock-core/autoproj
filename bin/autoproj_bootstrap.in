@@ -1,6 +1,6 @@
 #! /usr/bin/ruby
 
-ENV['GEM_HOME'] = "#{Dir.pwd}/autoproj/gems"
+ENV['GEM_HOME'] = "#{Dir.pwd}/.gems"
 ENV['PATH']     = "#{ENV['GEM_HOME']}/bin:#{ENV['PATH']}"
 if $LOADED_FEATURES.find { |str| str =~ /bygems/ }
     ENV['RUBYOPT']  = ""
@@ -71,7 +71,7 @@ end
 File.open('env.sh', 'w') do |io|
     io.write <<-EOSHELL
 export RUBYOPT=-rubygems
-export GEM_HOME=#{Dir.pwd}/autoproj/gems
+export GEM_HOME=#{Dir.pwd}/.gems
 export PATH=$GEM_HOME/bin:$PATH
     EOSHELL
 end
