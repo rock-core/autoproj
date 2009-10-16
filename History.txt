@@ -1,4 +1,14 @@
-= Version 1.1
+= Version 1.1.1
+ * better general error reporting
+ * small fixes w.r.t. bootstrapping
+ * small improvements in the handling of layouts
+ * make it easier to write osdeps scripts: the OS names and version accept lists
+   as for instance:
+     debian,ubuntu:
+       lenny,9.04: package_to_install
+ * detect Ubuntu
+
+= Version 1.1.0
  * added some sanity checks, especially w.r.t. an already existing GEM
    installation
  * improved the bootstrap
