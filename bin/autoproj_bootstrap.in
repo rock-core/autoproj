@@ -4,7 +4,7 @@ ENV['GEM_HOME'] = "#{Dir.pwd}/.gems"
 ENV['PATH']     = "#{ENV['GEM_HOME']}/bin:#{ENV['PATH']}"
 if $LOADED_FEATURES.find { |str| str =~ /bygems/ }
     ENV['RUBYOPT']  = ""
-    exec "ruby", __FILE__
+    exec "ruby", __FILE__, *ARGV
 end
 
 ENV['RUBYOPT']  = "-rubygems"
@@ -66,7 +66,7 @@ STDERR.puts "autoproj: installing autoproj and its dependencies (this can take a
 osdeps_management.install(packages)
 
 if ARGV.first != "dev"
-    Autobuild::Subprocess.run('bootstrap', 'post', 'autoproj', 'bootstrap')
+    Autobuild::Subprocess.run('bootstrap', 'post', 'autoproj', 'bootstrap', *ARGV)
 end
 
 File.open('env.sh', 'w') do |io|
