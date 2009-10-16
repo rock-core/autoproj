@@ -1,9 +1,18 @@
 package_sets:
-# Example source from a git repository
+# Example from the RubyInMotion orocos package set
 #   - type: git
-#     url: git://github.com/doudou/autoproj.orocos.git
-#
-# If you want to enable only a subset of the listed sources,
-# list their names in the following section. Note that the
-# name is given in the source's source.yml file
+#     url: git://github.com/doudou/rubim.orocos.git
 
+# If you want to adapt the layout to your needs, uncomment the following (again,
+# RubyInMotion orocos package set)
+# layout:
+#   - orocos:
+#     - rubim.orocos
+#
+# The principle is to have a hierarchy of names, package names and names of
+# package sets. In the above example, all packages of the rubim.orocos package
+# set will be built under the orocos/ subdirectory. Alternatively, you could do:
+#
+# layout:
+#   - tools:
+#     - rubim.orocos
