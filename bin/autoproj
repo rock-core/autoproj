@@ -433,7 +433,23 @@ begin
     # Now starts a different stage of the whole build. Until now, we were
     # working on the whole package set. Starting from now, we need to build the
     # package sets based on the layout file
+
+    # This keeps a hash of package_name => layout_name for all packages that
+    # have already been handled
+    handled_packages = Hash.new
+
     Autoproj.manifest.each_package_set(selected_packages) do |name, packages, enabled_packages|
+        packages         -= handled_packages.keys.to_set
+        enabled_packages -= handled_packages.keys.to_set
+
+        # Here, 'packages' are the packages listed in the layout configuration,
+        # and 'enabled_packages' the ones that 
+        #
+        # They do not (yet) take into account dependency information -- this is
+        # not doable as the manifests have not been loaded yet (the packages
+        # aren't imported). We add this information later on
+
+        # Setup directories
         srcdir  = File.join(Autoproj.root_dir, name)
         prefix  = File.join(Autoproj.build_dir, name)
         logdir  = File.join(prefix, "log")
@@ -445,54 +461,77 @@ begin
             pkg.logdir = logdir
         end
 
-        # We are doing a status, now is the right time
+        # We are doing a status, now is the right time. Otherwise, build ! But
+        # only if there is some packages to build (and avoid display of progress
+        # messages if there is nothing to build)
+        all_enabled_packages  = Set.new
         STDERR.puts
         if only_do_status
-            do_status(packages)
-            next
-        end
-
-
-        # ... but build only the selected packages (and avoid display of
-        # progress messages if there is nothing to build)
-        if !enabled_packages.empty?
-            STDERR.puts
-            STDERR.puts color("autoproj: now building #{name}", :bold)
-
-            STDERR.puts color("  updating packages", :bold)
+            do_status(enabled_packages)
+        elsif !enabled_packages.empty?
             Autobuild::Reporting.report do
-                import_targets = enabled_packages.map { |pkg| "#{pkg}-import" }
-                task "autoproj-#{name}-import" => import_targets
-                Rake::Task["autoproj-#{name}-import"].invoke
-            end
+                STDERR.puts
+                STDERR.puts color("autoproj: now building #{name}", :bold)
 
-            # Load package manifests, apply dependencies to the autobuild definitions
-            # and install OS packages
-            manifest.load_package_manifests(packages)
-            if !no_os_deps
-                STDERR.puts color("  installing prepackaged dependencies", :bold)
-                manifest.install_os_dependencies
-            end
+                STDERR.puts color("  updating packages", :bold)
+                # We actually have a problem there: the packages in
+                # enabled_packages are *not* taking into account dependencies as
+                # we can't load the manifests yet ...
+                #
+                # So we have to make our own dependency analysis. Fortunately
+                # (for us), there is no need to import packages in order, so we
+                # can do a simple BFS
+                #
+                # Additional benefit: it computes the set of packages 
+                packages_to_import = enabled_packages.dup
+                while !packages_to_import.empty?
+                    import_now, packages_to_import = packages_to_import, Set.new
+                    import_now.each do |pkg_name|
+                        # Already handled at another place in the layout
+                        next if handled_packages.has_key?(pkg_name)
+                        # Already handled in this part of the layout
+                        next if all_enabled_packages.include?(pkg_name)
+                        # Not handled already. Import, load the manifest, add to
+                        # all_enabled_packages and add the dependencies
+                        Rake::Task["#{pkg_name}-import"].invoke
+                        manifest.load_package_manifest(pkg_name)
+                        all_enabled_packages << pkg_name
+                        Autobuild::Package[pkg_name].dependencies.each do |dep_name|
+                            if !handled_packages.has_key?(dep_name) &&
+                                !packages.include?(dep_name)
+                                raise ConfigError, "#{pkg_name}, at #{name} in the layout, depends on #{dep_name} but this package appears in the layout neither at #{name} nor before"
+                            end
+                            packages_to_import << dep_name
+                        end
+                    end
+                end
 
-            # Call the prepare target now, after we did the import *and* loaded
-            # the manifests
-            Autobuild::Reporting.report do
-                prepare_targets = enabled_packages.map { |pkg| "#{pkg}-prepare" }
+                if !no_os_deps
+                    STDERR.puts color("  installing prepackaged dependencies", :bold)
+                    manifest.install_os_dependencies(all_enabled_packages)
+                end
+
+                # Call the prepare target now, after we did the import *and* loaded
+                # the manifests
+                prepare_targets = all_enabled_packages.map { |pkg| "#{pkg}-prepare" }
                 task "autoproj-#{name}-prepare" => prepare_targets
                 Rake::Task["autoproj-#{name}-prepare"].invoke
-            end
 
-            # And now build
-            if Autobuild.only_doc
-                STDERR.puts color("  building and installing documentation", :bold)
-            else
-                STDERR.puts color("  building and installing packages", :bold)
-            end
+                # And now build
+                if Autobuild.only_doc
+                    STDERR.puts color("  building and installing documentation", :bold)
+                else
+                    STDERR.puts color("  building and installing packages", :bold)
+                end
 
-            Autobuild::Reporting.report do
                 Autobuild.apply(enabled_packages, "autoproj-#{name}")
                 Autobuild::Reporting.success
             end
+        end
+        
+        # Now mark them as handled
+        packages.each do |pkg_name|
+            handled_packages[pkg_name] = name
         end
 
         # Now call the prepare target for all packages as it may be useful for

@@ -632,35 +632,44 @@ module Autoproj
             names.to_set
         end
 
-        # Loads the package's manifest.xml files, and extracts dependency
-        # information from them. The dependency information is then used applied
-        # to the autobuild packages.
+        # Loads the package's manifest.xml file for the current package
         #
         # Right now, the absence of a manifest makes autoproj only issue a
         # warning. This will later be changed into an error.
-        def load_package_manifests(selected_packages)
-            packages.each_value do |package, source, file|
-                next unless selected_packages.include?(package.name)
-                manifest_path = File.join(package.srcdir, "manifest.xml")
-                if !File.file?(manifest_path)
-                    Autoproj.warn "#{package.name} from #{source.name} does not have a manifest"
-                    next
+        def load_package_manifest(pkg_name)
+            package, source, file = packages.values.
+                find { |package, source, file| package.name == pkg_name }
+
+            if !pkg_name
+                raise ArgumentError, "package #{pkg_name} is not defined"
+            end
+
+            manifest_path = File.join(package.srcdir, "manifest.xml")
+            if !File.file?(manifest_path)
+                Autoproj.warn "#{package.name} from #{source.name} does not have a manifest"
+                return
+            end
+
+            manifest = PackageManifest.load(package, manifest_path)
+            package_manifests[package.name] = manifest
+
+            manifest.each_package_dependency do |name|
+                if Autoproj.verbose
+                    STDERR.puts "  #{package.name} depends on #{name}"
                 end
-
-                manifest = PackageManifest.load(package, manifest_path)
-                package_manifests[package.name] = manifest
-
-                manifest.each_package_dependency do |name|
-                    if Autoproj.verbose
-                        STDERR.puts "  #{package.name} depends on #{name}"
-                    end
-                    begin
-                        package.depends_on name
-                    rescue Autobuild::ConfigException => e
-                        raise ConfigError, "manifest of #{package.name} from #{source.name} lists '#{name}' as dependency, but this package does not exist (manifest file: #{manifest_path})"
-                    end
+                begin
+                    package.depends_on name
+                rescue Autobuild::ConfigException => e
+                    raise ConfigError, "manifest of #{package.name} from #{source.name} lists '#{name}' as dependency, but this package does not exist (manifest file: #{manifest_path})"
                 end
             end
+        end
+
+        # Loads the manifests for all packages known to this project.
+        #
+        # See #load_package_manifest
+        def load_package_manifests(selected_packages)
+            selected_packages.each(&:load_package_manifest)
         end
 
         # Returns an OSDependencies instance that defined the known OS packages,
@@ -674,15 +683,17 @@ module Autoproj
             osdeps
         end
 
-        def install_os_dependencies
+        def install_os_dependencies(packages)
             osdeps = known_os_packages
 
-            all_packages = Set.new
-            package_manifests.each_value do |pkg_manifest|
-                all_packages |= pkg_manifest.each_os_dependency.to_set
+            required_os_packages = Set.new
+            packages.each do |pkg_name|
+                if manifest = package_manifests[pkg_name]
+                    required_os_packages |= manifest.each_os_dependency.to_set
+                end
             end
 
-            osdeps.install(all_packages)
+            osdeps.install(required_os_packages)
         end
     end
 
