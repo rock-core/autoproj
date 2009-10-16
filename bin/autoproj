@@ -318,8 +318,10 @@ begin
     # If we need to install some packages to import our remote sources, do it
     if !no_os_deps && !source_os_dependencies.empty?
         STDERR.puts color("autoproj: installing prepackaged dependencies to access the source definitions", :bold)
-        osdeps = manifest.known_os_packages
-        osdeps.install(source_os_dependencies)
+        Autobuild::Reporting.report do
+            osdeps = manifest.known_os_packages
+            osdeps.install(source_os_dependencies)
+        end
     end
 
     # Update the remote sources if there are any
@@ -422,8 +424,10 @@ begin
     if !no_os_deps
         STDERR.puts
         STDERR.puts color("autoproj: installing prepackaged dependencies for build system & version control", :bold)
-        osdeps = manifest.known_os_packages
-        osdeps.install(Autoproj.build_system_dependencies - source_os_dependencies)
+        Autobuild::Reporting.report do
+            osdeps = manifest.known_os_packages
+            osdeps.install(Autoproj.build_system_dependencies - source_os_dependencies)
+        end
     end
 
     # Now starts a different stage of the whole build. Until now, we were
