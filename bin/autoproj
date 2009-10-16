@@ -555,7 +555,8 @@ begin
         Autoproj.export_env_sh(name)
     end
 
-STDERR.puts <<EOTEXT
+    if mode == "build"
+        STDERR.puts <<-EOTEXT
 
 
 add the following lines at the bottom of your .bashrc:
@@ -565,7 +566,8 @@ WARNING: autoproj will not work until your restart all
 your consoles, or run the following in them:
   #{all_env_sh.map { |name| "$ source #{Dir.pwd}#{name}env.sh" }.join("\n  ")}
 
-EOTEXT
+        EOTEXT
+    end
 
 rescue ConfigError => e
     STDERR.puts
