@@ -98,7 +98,7 @@ module Autoproj
                 data = os_entry.last
                 if data.kind_of?(Hash)
                     version_entry = data.find do |version_list, data|
-                        version_list.split(',').
+                        version_list.to_s.split(',').
                             map(&:downcase).
                             any? { |v| os_version.include?(v) }
                     end
