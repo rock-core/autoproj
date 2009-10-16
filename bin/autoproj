@@ -274,7 +274,7 @@ begin
     # If we are under rubygems, check that the GEM_HOME is right ...
     if $LOADED_FEATURES.any? { |l| l =~ /rubygems/ }
         if ENV['GEM_HOME'] != Autoproj.gem_home
-            raise ConfigError, "RubyGems is already loaded with a different GEM_HOME"
+            raise ConfigError, "RubyGems is already loaded with a different GEM_HOME, make sure you are loading the right env.sh script !"
         end
     end
     # Set the initial environment
