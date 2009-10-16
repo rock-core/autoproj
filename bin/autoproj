@@ -96,6 +96,7 @@ parser.parse!(args)
 mode     = args.shift
 selected_packages = args.dup
 all_env_sh = Array.new
+Autobuild::Reporting << Autoproj::Reporter.new
 
 def color(*args)
     Autoproj.console.color(*args)
@@ -212,8 +213,15 @@ def do_bootstrap(*args)
             name, value = args.shift.split("=")
             vcs_def[name] = value
         end
+
         vcs = Autoproj.normalize_vcs_definition(vcs_def)
-        Autoproj::Manifest.import_whole_installation(vcs, File.join(Dir.pwd, "autoproj"))
+
+        # Install the OS dependencies required for this VCS
+        Autobuild::Reporting.report do
+            osdeps = Autoproj::OSDependencies.load_default
+            osdeps.install([vcs.type])
+            Autoproj::Manifest.import_whole_installation(vcs, File.join(Dir.pwd, "autoproj"))
+        end
 
         # Now write it in the config file
         File.open(File.join(Autoproj.config_dir, "config.yml"), "a") do |io|
@@ -285,7 +293,6 @@ begin
     Autobuild.logdir = File.join(Autoproj.prefix, 'log')
     Autobuild.doc_errors = false
     Autobuild.do_doc = false
-    Autobuild::Reporting << Autoproj::Reporter.new
     if mail_config[:to]
         Autobuild::Reporting << MailReporter.new(mail_config)
     end
