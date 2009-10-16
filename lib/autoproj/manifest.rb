@@ -663,11 +663,10 @@ module Autoproj
             end
         end
 
-        AUTOPROJ_OSDEPS = File.join(File.expand_path(File.dirname(__FILE__)), 'default.osdeps')
         # Returns an OSDependencies instance that defined the known OS packages,
         # as well as how to install them
         def known_os_packages
-            osdeps = OSDependencies.load(AUTOPROJ_OSDEPS)
+            osdeps = OSDependencies.load_default
 
             each_osdeps_file do |source, file|
                 osdeps.merge(OSDependencies.load(file))

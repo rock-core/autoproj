@@ -4,6 +4,10 @@ module Autoproj
         def self.load(file)
             OSDependencies.new(YAML.load(File.read(file)))
         end
+        AUTOPROJ_OSDEPS = File.join(File.expand_path(File.dirname(__FILE__)), 'default.osdeps')
+        def self.load_default
+            OSDependencies.load(AUTOPROJ_OSDEPS)
+        end
 
         attr_reader :definitions
         def initialize(defs = Hash.new)
@@ -15,13 +19,37 @@ module Autoproj
         end
 
         def operating_system
-            if File.exists?('/etc/debian_version')
-                codename = File.read('/etc/debian_version').chomp
-                ['debian', codename]
+            if @operating_system
+                return @operating_system
+            elsif data = os_from_lsb
+                @operating_system = data
             else
-                raise ConfigError, "Unknown operating system"
+                # Need to do some heuristics unfortunately
+                @operating_system =
+                    if File.exists?('/etc/debian_version')
+                        codename = File.read('/etc/debian_version').chomp
+                        ['debian', [codename]]
+                    else
+                        raise ConfigError, "Unknown operating system"
+                    end
             end
+
+            # Normalize the names to lowercase
+            @operating_system =
+                [@operating_system[0].downcase,
+                 @operating_system[1].map(&:downcase)]
         end
+
+        def os_from_lsb
+            distributor = `lsb_release -i -s`
+            return unless $?.success?
+            distributor = distributor.chomp
+            codename    = `lsb_release -c -s`.chomp
+            version     = `lsb_release -r -s`.chomp
+
+            return [distributor, [codename, version]]
+        end
+
 
         GAIN_ROOT_ACCESS = <<-EOSCRIPT
         if test `id -u` != "0"; then
@@ -31,27 +59,47 @@ module Autoproj
         EOSCRIPT
 
         OS_PACKAGE_INSTALL = {
-            'debian' => 'apt-get install -y %s'
+            'debian' => 'apt-get install -y %s',
+            'ubuntu' => 'apt-get install -y %s'
         }
 
         def generate_os_script(dependencies)
             os_name, os_version = operating_system
+            if !OS_PACKAGE_INSTALL.has_key?(os_name)
+                raise ConfigError, "I don't know how to install packages on #{os_name}"
+            end
+
             shell_snippets = ""
             os_packages    = []
             dependencies.each do |name|
                 dep_def = definitions[name]
                 if !dep_def
                     raise ConfigError, "I don't know how to install '#{name}'"
-                elsif !dep_def[os_name]
+                end
+
+                # Find a matching entry for the OS name
+                os_entry = dep_def.find do |name_list, data|
+                    name_list.split(',').
+                        map(&:downcase).
+                        any? { |n| n == os_name }
+                end
+
+                if !os_entry
                     raise ConfigError, "I don't know how to install '#{name}' on #{os_name}"
                 end
 
-                data = dep_def[os_name]
+                data = os_entry.last
                 if data.kind_of?(Hash)
-                    data = data[os_version]
-                    if !data
-                        raise ConfigError, "I don't know how to install '#{name}' on this specific version of #{os_name} (#{os_version})"
+                    version_entry = data.find do |version_list, data|
+                        version_list.split(',').
+                            map(&:downcase).
+                            any? { |v| os_version.include?(v) }
                     end
+
+                    if !version_entry
+                        raise ConfigError, "I don't know how to install '#{name}' on this specific version of #{os_name} (#{os_version.join(", ")})"
+                    end
+                    data = version_entry.last
                 end
 
                 if data.respond_to?(:to_ary)

@@ -1,12 +1,38 @@
+# The following definitions are needed to bootstrap autoproj
+ruby:
+    debian,ubuntu:
+        9.04,lenny:
+            - ruby1.8-dev
+            - ruby1.8
+            - libopenssl-ruby1.8
+
+build-essential:
+    debian,ubuntu:
+        9.04,lenny: build-essential
+
+libxml2:
+    debian,ubuntu:
+        9.04,lenny: libxml2-dev
+libxslt:
+    debian,ubuntu:
+        9.04,lenny: libxslt1-dev
+
+autoproj: gem
+
+# The following definitions are for the VCS and build systems
 git:
-    debian: git-core
+    debian,ubuntu:
+        9.04,lenny: git-core
 
 svn:
-    debian: svn
+    debian,ubuntu:
+        9.04,lenny: svn
 
 cmake:
-    debian: cmake
+    debian,ubuntu:
+        9.04,lenny: cmake
 
 autotools:
-    debian: [automake1.9, autoconf]
+    debian,ubuntu:
+        9.04,lenny: [automake1.9, autoconf]
 
