@@ -290,7 +290,7 @@ begin
     # Set up some important autobuild parameters
     Autobuild.prefix  = Autoproj.build_dir
     Autobuild.srcdir  = root_dir
-    Autobuild.logdir = File.join(Autoproj.prefix, 'log')
+    Autobuild.logdir = File.join(Autobuild.prefix, 'log')
     Autobuild.doc_errors = false
     Autobuild.do_doc = false
     if mail_config[:to]
