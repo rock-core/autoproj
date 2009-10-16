@@ -2,7 +2,14 @@ require 'tempfile'
 module Autoproj
     class OSDependencies
         def self.load(file)
-            OSDependencies.new(YAML.load(File.read(file)))
+            data =
+                begin
+                    YAML.load(File.read(file))
+                rescue ArgumentError => e
+                    raise ConfigError, "error in #{file}: #{e.message}"
+                end
+
+            OSDependencies.new(data)
         end
         AUTOPROJ_OSDEPS = File.join(File.expand_path(File.dirname(__FILE__)), 'default.osdeps')
         def self.load_default
