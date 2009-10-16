@@ -28,8 +28,10 @@ begin
         desc "generate the bootstrap script"
         task 'bootstrap' do
             osdeps_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'osdeps.rb'))
+            osdeps_defaults = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'default.osdeps'))
             bootstrap_code = File.read(File.join(Dir.pwd, 'bin', 'autoproj_bootstrap.in')).
-                gsub('OSDEPS_CODE', osdeps_code)
+                gsub('OSDEPS_CODE', osdeps_code).
+                gsub('OSDEPS_DEFAULTS', osdeps_defaults)
             File.open(File.join(Dir.pwd, 'doc', 'guide', 'src', 'autoproj_bootstrap'), 'w') do |io|
                 io.write bootstrap_code
             end

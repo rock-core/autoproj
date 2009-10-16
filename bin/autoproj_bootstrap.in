@@ -35,22 +35,7 @@ end
 OSDEPS_CODE
 
 DEFS = <<EODEFS
-ruby:
-    debian: 
-        - ruby1.8-dev
-        - ruby1.8
-        - libopenssl-ruby1.8
-
-build-essential:
-    debian: build-essential
-
-libxml2:
-    debian:
-        - libxml2-dev
-libxslt:
-    debian:
-        - libxslt1-dev
-autoproj: gem
+OSDEPS_DEFAULTS
 EODEFS
 
 PACKAGES      = %w{ruby libxml2 libxslt build-essential}
@@ -61,9 +46,14 @@ if ARGV.first != "dev"
     packages += USER_PACKAGES
 end
 
-osdeps_management = Autoproj::OSDependencies.new(YAML.load(DEFS))
-STDERR.puts "autoproj: installing autoproj and its dependencies (this can take a long time)"
-osdeps_management.install(packages)
+begin
+    osdeps_management = Autoproj::OSDependencies.new(YAML.load(DEFS))
+    STDERR.puts "autoproj: installing autoproj and its dependencies (this can take a long time)"
+    osdeps_management.install(packages)
+rescue Autoproj::ConfigError => e
+    STDERR.puts "failed: #{e.message}"
+    exit(1)
+end
 
 if ARGV.first != "dev"
     Autobuild::Subprocess.run('bootstrap', 'post', 'autoproj', 'bootstrap', *ARGV)
