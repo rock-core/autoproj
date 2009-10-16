@@ -156,19 +156,21 @@ module Autoproj
             #
             # So, for now, reimplement rosdep by ourselves. Given how things
             # are done, this is actually not so hard.
-            shell_script = generate_os_script(osdeps)
-            if Autoproj.verbose
-                STDERR.puts "Installing non-ruby OS dependencies with"
-                STDERR.puts shell_script
-            end
+            if !osdeps.empty?
+                shell_script = generate_os_script(osdeps)
+                if Autoproj.verbose
+                    STDERR.puts "Installing non-ruby OS dependencies with"
+                    STDERR.puts shell_script
+                end
 
-            File.open('osdeps.sh', 'w') do |file|
-                file.write shell_script
-            end
-            begin
-                Autobuild::Subprocess.run 'autoproj', 'osdeps', 'bash', './osdeps.sh'
-            ensure
-                FileUtils.rm_f 'osdeps.sh'
+                File.open('osdeps.sh', 'w') do |file|
+                    file.write shell_script
+                end
+                begin
+                    Autobuild::Subprocess.run 'autoproj', 'osdeps', 'bash', './osdeps.sh'
+                ensure
+                    FileUtils.rm_f 'osdeps.sh'
+                end
             end
 
             # Don't install gems that are already there ...
