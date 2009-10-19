@@ -32,3 +32,7 @@ cmake:
 autotools:
     debian,ubuntu: [automake1.9, autoconf]
 
+lsb_release:
+    debian,ubuntu: lsb-release
+    
+

@@ -29,8 +29,14 @@ module Autoproj
             if @operating_system
                 return @operating_system
             elsif data = os_from_lsb
-                @operating_system = data
-            else
+                if data[0] != "debian"
+                    # Fall back to reading debian_version, as
+                    # sid is listed as lenny by lsb-release
+                    @operating_system = data
+                end
+            end
+
+            if !@operating_system
                 # Need to do some heuristics unfortunately
                 @operating_system =
                     if File.exists?('/etc/debian_version')
@@ -50,9 +56,9 @@ module Autoproj
         def os_from_lsb
             distributor = `lsb_release -i -s`
             return unless $?.success?
-            distributor = distributor.chomp
-            codename    = `lsb_release -c -s`.chomp
-            version     = `lsb_release -r -s`.chomp
+            distributor = distributor.chomp.downcase
+            codename    = `lsb_release -c -s`.chomp.downcase
+            version     = `lsb_release -r -s`.chomp.downcase
 
             return [distributor, [codename, version]]
         end
