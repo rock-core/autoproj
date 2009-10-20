@@ -1,5 +1,7 @@
 = Version 1.1.2
  * fix version detection on Debian, lsb-release cannot be trusted there.
+ * update already installed Gem
+ * update autobuild and autoproj themselves if needed
 
 = Version 1.1.1
  * better general error reporting
