@@ -17,6 +17,7 @@ libxslt:
     debian,ubuntu:
         9.04,squeeze/sid: libxslt1-dev
 
+autobuild: gem
 autoproj: gem
 
 # The following definitions are for the VCS and build systems

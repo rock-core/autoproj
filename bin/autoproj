@@ -297,6 +297,13 @@ begin
         Autobuild::Reporting << MailReporter.new(mail_config)
     end
 
+    # First things first, see if we need to update ourselves
+    osdeps = Autoproj::OSDependencies.load_default
+    if osdeps.install(%w{autobuild autoproj})
+        # We updated autobuild or autoproj themselves ... Restart !
+        exec($0, *ARGV)
+    end
+
     manifest_path = File.join(Autoproj.config_dir, 'manifest')
     # Load the installation's manifest a first time, to check if we should
     # update it ... We assume that the OS dependencies for this VCS is already

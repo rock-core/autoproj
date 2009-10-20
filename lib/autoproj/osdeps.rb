@@ -156,6 +156,8 @@ module Autoproj
         def install(packages)
             osdeps, gems = partition_packages(packages)
 
+            did_something = false
+
             # Ideally, we would feed the OS dependencies to rosdep.
             # Unfortunately, this is C++ code and I don't want to install the
             # whole ROS stack just for rosdep ...
@@ -177,13 +179,25 @@ module Autoproj
                 ensure
                     FileUtils.rm_f 'osdeps.sh'
                 end
+                did_something ||= true
             end
 
             # Don't install gems that are already there ...
             gems.delete_if do |name|
                 version_requirements = Gem::Requirement.default
-                available = Gem.source_index.find_name(name, version_requirements)
-                !available.empty?
+                installed = Gem.source_index.find_name(name, version_requirements)
+                if !installed.empty? && Autobuild.do_update
+                    # Look if we can update the package ...
+                    dep = Gem::Dependency.new(name, version_requirements)
+                    remote   = Gem::SpecFetcher.fetcher
+                    available = remote.find_matching(dep)
+                    installed_version = installed.map(&:version).max
+                    available_version = available.map { |(name, v), source| v }.max
+                    needs_update = (available_version > installed_version)
+                    !needs_update
+                else
+                    !installed.empty?
+                end
             end
 
             # Now install what is left
@@ -193,7 +207,10 @@ module Autoproj
                     STDERR.puts "gem install #{gems.join(" ")}"
                 end
                 Autobuild::Subprocess.run 'autoproj', 'osdeps', 'gem', 'install', *gems
+                did_something ||= true
             end
+
+            did_something
         end
     end
 end
