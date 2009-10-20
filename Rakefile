@@ -25,6 +25,16 @@ begin
                 ['rdoc', '>= 2.4.0']
         end
 
+        Rake.clear_tasks(/dist:publish_docs/)
+        task 'publish_docs' => 'doc' do
+            if !system('doc/update_github')
+                raise "cannot update the gh-pages branch for GitHub"
+            end
+            if !system('git', 'push', 'origin', 'gh-pages')
+                raise "cannot push the documentation"
+            end
+        end
+
         desc "generate the bootstrap script"
         task 'bootstrap' do
             osdeps_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'osdeps.rb'))
