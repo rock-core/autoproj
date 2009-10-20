@@ -54,8 +54,10 @@ module Autoproj
         end
 
         def os_from_lsb
-            distributor = `lsb_release -i -s`
+            has_lsb_release = `which lsb_release`
             return unless $?.success?
+
+            distributor = `lsb_release -i -s`
             distributor = distributor.chomp.downcase
             codename    = `lsb_release -c -s`.chomp.downcase
             version     = `lsb_release -r -s`.chomp.downcase
