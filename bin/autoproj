@@ -559,11 +559,13 @@ begin
             Autobuild.do_update = old_update_flag
         end
 
-        all_env_sh << name
-        Autoproj.export_env_sh(name)
+        if mode == "build"
+            all_env_sh << name
+            Autoproj.export_env_sh(name)
+        end
     end
 
-    if mode == "build"
+    if !all_env_sh.empty?
         STDERR.puts <<-EOTEXT
 
 
