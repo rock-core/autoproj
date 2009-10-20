@@ -174,6 +174,7 @@ module Autoproj
                 File.open('osdeps.sh', 'w') do |file|
                     file.write shell_script
                 end
+                Autobuild.progress "installing/updating OS dependencies: #{osdeps.join(", ")}"
                 begin
                     Autobuild::Subprocess.run 'autoproj', 'osdeps', 'bash', './osdeps.sh'
                 ensure
@@ -206,6 +207,7 @@ module Autoproj
                     STDERR.puts "Installing rubygems dependencies with"
                     STDERR.puts "gem install #{gems.join(" ")}"
                 end
+                Autobuild.progress "installing/updating RubyGems dependencies: #{gems.join(", ")}"
                 Autobuild::Subprocess.run 'autoproj', 'osdeps', 'gem', 'install', *gems
                 did_something ||= true
             end
