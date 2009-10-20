@@ -78,11 +78,13 @@ module Autoproj
 
     def self.user_config(key)
         value, seen = @user_config[key]
+        # All non-user options are always considered as "seen"
+        seen ||= !@declared_options.has_key?(key)
 
         if value.nil? || (!seen && Autoproj.reconfigure?)
             value = configure(key)
         else
-            if !seen && @declared_options[key]
+            if !seen
                 STDERR.puts "  #{@declared_options[key].doc}: #{value}"
                 @user_config[key] = [value, true]
             end
