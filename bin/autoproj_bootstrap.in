@@ -21,6 +21,9 @@ module Autoproj
 end
 
 module Autobuild
+    def self.do_update
+        true
+    end
     def self.progress(str)
         STDERR.puts "  #{str}"
     end
