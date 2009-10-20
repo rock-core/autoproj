@@ -21,6 +21,9 @@ module Autoproj
 end
 
 module Autobuild
+    def self.progress(str)
+        STDERR.puts "  #{str}"
+    end
     module Subprocess
         def self.run(name, phase, *cmd)
             `#{cmd.join(" ")}`
