@@ -1,7 +1,14 @@
+= Version 1.1.3
+ * fix --reconfigure on installations where the main configuration is managed by
+   a VCS
+ * fix: env.sh where updated on "status" or "doc", which made them invalid
+ * shut up the "lsb_release: command not found" message during bootstrapping
+ * fix restartig the autoproj_bootstrap script after a failed attempt
+
 = Version 1.1.2
  * fix version detection on Debian, lsb-release cannot be trusted there.
  * update already installed Gem
- * update autobuild and autoproj themselves if needed
+ * make autoproj update himself, as well as autobuild
 
 = Version 1.1.1
  * better general error reporting
