@@ -31,6 +31,8 @@ parser = OptionParser.new do |opts|
 autoproj mode [options]
 where 'mode' is one of:
   build:  import, build and install all selected packages
+  forced-build: triggers all build commands, i.e. don't be lazy like in "build"
+  rebuild: remove all build products, thus triggering a full rebuild
   doc:    generate and install documentation for packages that have some
   update: only import/update packages, do not build them
   status: displays the state of the packages w.r.t. their source VCS
@@ -254,6 +256,10 @@ begin
         only_update_sources = true
 
     when "build"
+    when "forced-build"
+        Autobuild.do_forced_build = true
+    when "rebuild"
+        Autobuild.do_rebuild = true
     when "update"
         Autobuild.do_build  = false
     when "status"
@@ -519,12 +525,6 @@ begin
                     manifest.install_os_dependencies(all_enabled_packages)
                 end
 
-                # Call the prepare target now, after we did the import *and* loaded
-                # the manifests
-                prepare_targets = all_enabled_packages.map { |pkg| "#{pkg}-prepare" }
-                task "autoproj-#{name}-prepare" => prepare_targets
-                Rake::Task["autoproj-#{name}-prepare"].invoke
-
                 # And now build
                 if Autobuild.only_doc
                     STDERR.puts color("  building and installing documentation", :bold)
@@ -532,7 +532,7 @@ begin
                     STDERR.puts color("  building and installing packages", :bold)
                 end
 
-                Autobuild.apply(enabled_packages, "autoproj-#{name}")
+                Autobuild.apply(all_enabled_packages, "autoproj-#{name}")
                 Autobuild::Reporting.success
             end
         end
