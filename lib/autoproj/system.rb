@@ -50,7 +50,6 @@ module Autoproj
         Autoproj.env_set_path 'PATH', "#{Autoproj.gem_home}/bin", "/usr/local/bin", "/usr/bin", "/bin"
         Autoproj.env_set 'PKG_CONFIG_PATH'
         Autoproj.env_set 'RUBYLIB'
-        Autoproj.env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB'
     end
 
     def self.export_env_sh(subdir)
