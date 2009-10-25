@@ -186,6 +186,9 @@ def do_bootstrap(*args)
     end
     Autobuild.logdir = File.join('build', 'log')
 
+    if args.size > 2
+        raise ConfigError, "usage: autoproj bootstrap [manifest_url | vcs_type vcs_url]"
+    end
     if args.empty? # no argument, simply add a manifest template
         sample_dir = File.expand_path(File.join("..", "samples"), File.dirname(__FILE__))
         manifest_data = File.read(File.join(sample_dir, "manifest"))
