@@ -31,7 +31,7 @@ parser = OptionParser.new do |opts|
 autoproj mode [options]
 where 'mode' is one of:
   build:  import, build and install all selected packages
-  forced-build: triggers all build commands, i.e. don't be lazy like in "build"
+  force-build: triggers all build commands, i.e. don't be lazy like in "build"
   rebuild: remove all build products, thus triggering a full rebuild
   doc:    generate and install documentation for packages that have some
   update: only import/update packages, do not build them
@@ -256,7 +256,7 @@ begin
         only_update_sources = true
 
     when "build"
-    when "forced-build"
+    when "force-build"
         Autobuild.do_forced_build = true
     when "rebuild"
         Autobuild.do_rebuild = true
