@@ -202,7 +202,7 @@ module Autoproj
                 raise ConfigError, "error in #{source_file}: #{e.message}"
             end
 
-            if !source_definition
+            if !source_definition['name']
                 raise ConfigError, "#{source_file} does not have a 'name' field"
             end
 
