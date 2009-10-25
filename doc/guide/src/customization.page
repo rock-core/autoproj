@@ -111,7 +111,7 @@ You can list local packages that are not in an imported package set by placing
 the definitions in autoproj/, in a file ending with <tt>.autobuild</tt>. See [this
 page](source_yml.html) for information on how to write autobuild files.
 
-Setting up the path to specific commands (make, parallel_builds)
+Setting up the path to specific commands (make, parallel builds)
 ----------------------------------------------------------------
 
 The autobuild API allows to specify what specific installed command to use for
