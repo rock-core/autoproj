@@ -68,5 +68,19 @@ module Autoproj
             end
         end
     end
+
+    def self.load(source, *path)
+        path = File.join(*path)
+        Kernel.load path
+    rescue Exception => e
+        Autoproj.filter_load_exception(e, source, path)
+    end
+
+    def self.load_if_present(source, *path)
+        path = File.join(*path)
+        if File.file?(path)
+            self.load(*path)
+        end
+    end
 end
 

@@ -212,6 +212,10 @@ module Autoproj
         def load_name
             definition = raw_description_file
             @name = definition['name']
+            if @name == "local"
+                raise ConfigError, "source #{self} is named 'local', but this is a reserved name"
+            end
+
         rescue InternalError
         end
 
@@ -336,6 +340,33 @@ module Autoproj
         end
     end
 
+    class LocalSource < Source
+        def initialize
+            super(Autoproj.normalize_vcs_definition(:type => 'local', :url => Autoproj.config_dir))
+        end
+
+        def name
+            'local'
+        end
+        def load_name
+        end
+
+        def raw_description_file
+            path = File.join(Autoproj.config_dir, "overrides.yml")
+            if File.file?(path)
+                begin
+                    data = YAML.load(File.read(path))
+                rescue ArgumentError => e
+                    raise ConfigError, "error in #{source_file}: #{e.message}"
+                end
+                data['name'] = 'local'
+                data
+            else
+                { 'name' => 'local' }
+            end
+        end
+    end
+
     class Manifest
         FakePackage = Struct.new :name, :srcdir
 	def self.load(file)
@@ -371,6 +402,30 @@ module Autoproj
                 @vcs = Autoproj.normalize_vcs_definition(Autoproj.user_config('manifest_source'))
             end
 	end
+
+        # True if the given package should not be built, with the packages that
+        # depend on him have this dependency met.
+        #
+        # This is useful if the packages are already installed on this system.
+        def ignored?(package_name)
+            if data['ignored_packages']
+                data['ignored_packages'].any? { |l| Regexp.new(l) =~ package_name }
+            else
+                false
+            end
+        end
+        # True if the given package should not be built and its dependencies
+        # should be considered as met.
+        #
+        # This is useful to avoid building packages that are of no use for the
+        # user.
+        def excluded?(package_name)
+            if data['excluded_packages']
+                data['excluded_packages'].any? { |l| Regexp.new(l) =~ package_name }
+            else
+                false
+            end
+        end
 
         # Lists the autobuild files that are in the package sets we know of
 	def each_autobuild_file(source_name = nil, &block)
@@ -427,6 +482,28 @@ module Autoproj
             end
         end
 
+        def source_from_spec(spec, load_description) # :nodoc:
+            # Look up for short notation (i.e. not an explicit hash). It is
+            # either vcs_type:url or just url. In the latter case, we expect
+            # 'url' to be a path to a local directory
+            vcs_def = begin
+                          Autoproj.normalize_vcs_definition(spec)
+                      rescue ConfigError => e
+                          raise ConfigError, "in #{file}: #{e.message}"
+                      end
+
+            source = Source.new(vcs_def)
+            if source.present? && load_description
+                source.load_description_file
+            else
+                # Try to load just the name from the source.yml file
+                source.load_name
+            end
+
+            source
+        end
+
+
         # call-seq:
         #   each_source { |source_description| ... }
         #
@@ -439,25 +516,17 @@ module Autoproj
 
             return if !data['package_sets']
 
+            # Load the local source first ...
+            local = LocalSource.new
+            if load_description
+                local.load_description_file
+            else
+                local.load_name
+            end
+            yield(local)
+
 	    data['package_sets'].each do |spec|
-                # Look up for short notation (i.e. not an explicit hash). It is
-                # either vcs_type:url or just url. In the latter case, we expect
-                # 'url' to be a path to a local directory
-                vcs_def = begin
-                              Autoproj.normalize_vcs_definition(spec)
-                          rescue ConfigError => e
-                              raise ConfigError, "in #{file}: #{e.message}"
-                          end
-
-                source = Source.new(vcs_def)
-                if source.present? && load_description
-                    source.load_description_file
-                else
-                    # Try to load just the name from the source.yml file
-                    source.load_name
-                end
-
-                yield(source)
+                yield(source_from_spec(spec, load_description))
             end
         end
 
@@ -605,6 +674,9 @@ module Autoproj
 
             # First of all, do the packages at this level
             packages = layout_packages(layout_def, false)
+            # Remove excluded packages
+            packages.delete_if { |pkg_name| excluded?(pkg_name) }
+
             if selection && !selection.any? { |sel| layout_name =~ /^\/?#{Regexp.new(sel)}\/?/ }
                 selected_packages = packages.find_all { |pkg_name| selection.include?(pkg_name) }
             else
@@ -629,6 +701,7 @@ module Autoproj
                             package.name
                         end
                     end
+            names = names.delete_if { |pkg_name| excluded?(pkg_name) }
             names.to_set
         end
 

@@ -61,7 +61,7 @@ module Autoproj
 
         @file_stack.push([source, File.basename(path)])
         begin
-            load path
+            Kernel.load path
         rescue Exception => e
             filter_load_exception(e, source, path)
         end
@@ -86,8 +86,14 @@ def package_common(package_type, spec)
 
     begin
         Rake::Task[package_name]
-        Autoproj.warn "#{package_name} in #{Autoproj.current_file[0]} has been overriden in #{Autoproj.definition_source(package_name)}"
+        Autoproj.warn "#{package_name} from #{Autoproj.current_file[0]} is overriden by the definition in #{Autoproj.definition_source(package_name)}"
+        return
     rescue
+    end
+
+    # Check if this package is ignored
+    if Autoproj.manifest.ignored?(package_name)
+        return Autoproj.define(:dummy, spec)
     end
 
     Autoproj.define(package_type, spec) do |pkg|
