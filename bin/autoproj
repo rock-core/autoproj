@@ -189,6 +189,14 @@ def do_bootstrap(*args)
     if args.size > 2
         raise ConfigError, "usage: autoproj bootstrap [manifest_url | vcs_type vcs_url]"
     end
+
+    # Check if we are being called from another GEM_HOME. If it is the case,
+    # assume that we are bootstrapping from another installation directory and
+    # start by copying the .gems directory
+    if ENV['GEM_HOME'] && ENV['GEM_HOME'] != File.join(Dir.pwd, ".gems")
+        FileUtils.cp_r ENV['GEM_HOME'], ".gems"
+    end
+
     # If we are not getting the installation setup from a VCS, copy the template
     # files
     if args.empty? || args.size == 1
@@ -237,6 +245,27 @@ manifest_source:
             EOTEXT
         end
     end
+
+    # Finally, generate an env.sh script
+    File.open('env.sh', 'w') do |io|
+        io.write <<-EOSHELL
+export RUBYOPT=-rubygems
+export GEM_HOME=#{Dir.pwd}/.gems
+export PATH=$GEM_HOME/bin:$PATH
+        EOSHELL
+    end
+
+    STDERR.puts <<EOTEXT
+
+add the following line at the bottom of your .bashrc:
+  source #{Dir.pwd}/env.sh
+
+WARNING: autoproj will not work until your restart all
+your consoles, or run the following in them:
+  $ source #{Dir.pwd}/env.sh
+
+EOTEXT
+
 end
 
 # Find the autoproj root dir
