@@ -1,3 +1,8 @@
+= Version 1.2.0
+ * added the rebuild and force-build modes
+ * added a local source that allows to override imported package sets and so on.
+ * improved documentation on the subject of customizing the installation
+
 = Version 1.1.3
  * fix --reconfigure on installations where the main configuration is managed by
    a VCS
