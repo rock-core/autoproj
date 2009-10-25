@@ -308,6 +308,10 @@ module Autoproj
             if all_vcs
                 all_vcs.each do |spec|
                     name, spec = spec.to_a.first
+                    if !spec
+                        raise ConfigError, "wrong VCS specification #{YAML.dump(spec)}"
+                    end
+
                     if Regexp.new(name) =~ package_name
                         vcs_spec = vcs_spec.merge(spec)
                     end
