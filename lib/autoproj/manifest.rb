@@ -597,7 +597,7 @@ module Autoproj
         # and sublayout in order
         def each_package_set(selection, layout_name = '/', layout_def = data['layout'], &block)
             if !layout_def
-                yield('', default_packages, default_packages)
+                yield('/', default_packages, default_packages)
                 return nil
             end
 
