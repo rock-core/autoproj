@@ -203,7 +203,7 @@ module Autoproj
                 raise ConfigError, "error in #{source_file}: #{e.message}"
             end
 
-            if !source_definition['name']
+            if !source_definition || !source_definition['name']
                 raise ConfigError, "#{source_file} does not have a 'name' field"
             end
 
@@ -356,7 +356,7 @@ module Autoproj
             path = File.join(Autoproj.config_dir, "overrides.yml")
             if File.file?(path)
                 begin
-                    data = YAML.load(File.read(path))
+                    data = YAML.load(File.read(path)) || Hash.new
                 rescue ArgumentError => e
                     raise ConfigError, "error in #{source_file}: #{e.message}"
                 end
