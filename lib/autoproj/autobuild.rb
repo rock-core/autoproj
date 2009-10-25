@@ -135,6 +135,22 @@ def autotools_package(options, &block)
 end
 
 def ruby_common(pkg)
+    def pkg.prepare_for_forced_build
+        super
+        extdir = File.join(srcdir, 'ext')
+        if File.directory?(extdir)
+            FileUtils.rm_rf File.join(extdir, "build", "CMakeCache.txt")
+            FileUtils.rm_rf File.join(extdir, "Makefile")
+        end
+    end
+    def pkg.prepare_for_rebuild
+        super
+        extdir = File.join(srcdir, 'ext')
+        if File.directory?(extdir)
+            FileUtils.rm_rf File.join(extdir, "build")
+        end
+    end
+
     def pkg.prepare
         super
         Autobuild.update_environment srcdir
