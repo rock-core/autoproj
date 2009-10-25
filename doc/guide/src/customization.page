@@ -102,6 +102,18 @@ You can list local packages that are not in an imported package set by placing
 the definitions in autoproj/, in a file ending with <tt>.autobuild</tt>. See [this
 page](source_yml.html) for information on how to write autobuild files.
 
+Setting up the path to specific commands (make, parallel_builds)
+----------------------------------------------------------------
+
+The autobuild API allows to specify what specific installed command to use for
+each tool needed during the build. These commands can be used in
+<tt>autoproj/init.rb</tt> to tune the build system. Example:
+
+{coderay:: ruby}
+Autobuild.commands['make'] = '/path/to/ccmake'
+Autobuild.parallel_build_level = 10 # build with -j10
+{coderay}
+
 More complex customization
 --------------------------
 

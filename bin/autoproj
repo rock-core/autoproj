@@ -324,6 +324,7 @@ begin
     end
     # Set up some important autobuild parameters
     Autoproj.env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB'
+    Autoproj.env_set 'GEM_HOME', Autoproj.gem_home
     Autobuild.prefix  = Autoproj.build_dir
     Autobuild.srcdir  = root_dir
     Autobuild.logdir = File.join(Autobuild.prefix, 'log')
