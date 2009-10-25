@@ -189,15 +189,14 @@ def do_bootstrap(*args)
     if args.size > 2
         raise ConfigError, "usage: autoproj bootstrap [manifest_url | vcs_type vcs_url]"
     end
-    if args.empty? # no argument, simply add a manifest template
+    # If we are not getting the installation setup from a VCS, copy the template
+    # files
+    if args.empty? || args.size == 1
         sample_dir = File.expand_path(File.join("..", "samples"), File.dirname(__FILE__))
-        manifest_data = File.read(File.join(sample_dir, "manifest"))
-        FileUtils.mkdir_p "autoproj"
-        File.open(File.join(Autoproj.config_dir, "manifest"), "w") do |io|
-            io.write(manifest_data)
-        end
+        FileUtils.cp_r File.join(sample_dir, "autoproj"), "autoproj"
+    end
 
-    elsif args.size == 1 # must be a manifest file
+    if args.size == 1 # the user asks us to download a manifest
         manifest_url = args.first
         STDERR.puts color("autoproj: downloading manifest file #{manifest_url}", :bold)
         manifest_data =
@@ -206,12 +205,11 @@ def do_bootstrap(*args)
                 raise ConfigError, "cannot read #{manifest_url}, did you mean 'autoproj bootstrap VCSTYPE #{manifest_url}' ?"
             end
 
-        FileUtils.mkdir_p "autoproj"
         File.open(File.join(Autoproj.config_dir, "manifest"), "w") do |io|
             io.write(manifest_data)
         end
 
-    else # is a VCS definition for the manifest itself ...
+    elsif args.size == 2 # is a VCS definition for the manifest itself ...
         vcs_def = Hash.new
         vcs_def[:type] = args.shift
         vcs_def[:url]  = args.shift
