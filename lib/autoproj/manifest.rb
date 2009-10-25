@@ -76,7 +76,7 @@ module Autoproj
 
         def initialize(type, url, options)
             @type, @url, @options = type, url, options
-            if type != "local" && !Autobuild.respond_to?(type)
+            if type != "none" && type != "local" && !Autobuild.respond_to?(type)
                 raise ConfigError, "version control #{type} is unknown to autoproj"
             end
         end
@@ -86,6 +86,8 @@ module Autoproj
         end
 
         def create_autobuild_importer
+            return if type == "none"
+
             url = Autoproj.single_expansion(self.url, 'HOME' => ENV['HOME'])
             if url && url !~ /^(\w+:\/)?\/|^\w+\@/
                 url = File.expand_path(url, Autoproj.root_dir)
@@ -553,6 +555,7 @@ module Autoproj
 
         def self.update_remote_source(source)
             importer     = source.vcs.create_autobuild_importer
+            return if !importer # updates  have been disabled 
             fake_package = FakePackage.new(source.automatic_name, source.local_dir)
 
             importer.import(fake_package)
@@ -563,6 +566,7 @@ module Autoproj
         attr_reader :vcs
         def self.import_whole_installation(vcs, into)
             importer     = vcs.create_autobuild_importer
+            return if !importer # updates  have been disabled 
             fake_package = FakePackage.new('autoproj main configuration', into)
             importer.import(fake_package)
         rescue Autobuild::ConfigException => e
