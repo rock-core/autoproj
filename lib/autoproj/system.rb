@@ -78,7 +78,7 @@ module Autoproj
     def self.load_if_present(source, *path)
         path = File.join(*path)
         if File.file?(path)
-            self.load(*path)
+            self.load(source, *path)
         end
     end
 end
