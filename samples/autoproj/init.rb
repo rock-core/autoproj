@@ -1,6 +1,12 @@
 # Write in this file customization code that will get executed before all the
 # soures are loaded.
 
+# Set the path to 'make'
+# Autobuild.commands['make'] = '/path/to/ccmake'
+
+# Set the parallel build level (defaults to the number of CPUs)
+# Autobuild.parallel_build_level = 10
+
 # Uncomment to initialize the environment variables to default values. This is
 # useful to ensure that the build is completely self-contained, but leads to
 # miss external dependencies installed in non-standard locations.
