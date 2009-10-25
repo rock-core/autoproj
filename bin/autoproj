@@ -292,9 +292,8 @@ begin
             raise ConfigError, "RubyGems is already loaded with a different GEM_HOME, make sure you are loading the right env.sh script !"
         end
     end
-    # Set the initial environment
-    Autoproj.set_initial_env
     # Set up some important autobuild parameters
+    Autoproj.env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB'
     Autobuild.prefix  = Autoproj.build_dir
     Autobuild.srcdir  = root_dir
     Autobuild.logdir = File.join(Autobuild.prefix, 'log')
