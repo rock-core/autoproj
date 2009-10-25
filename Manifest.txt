@@ -9,6 +9,7 @@ doc/guide/ext/previous_next.rb
 doc/guide/ext/rdoc_links.rb
 doc/guide/src/autobuild.page
 doc/guide/src/autoproj_bootstrap
+doc/guide/src/customization.page
 doc/guide/src/default.css
 doc/guide/src/default.template
 doc/guide/src/htmldoc.metainfo
@@ -28,7 +29,10 @@ lib/autoproj/options.rb
 lib/autoproj/osdeps.rb
 lib/autoproj/system.rb
 lib/autoproj/version.rb
-samples/manifest
+samples/autoproj/init.rb
+samples/autoproj/manifest
+samples/autoproj/overrides.rb
+samples/autoproj/overrides.yml
 samples/manifest.xml
 samples/osdeps.yml
 test/data/test_manifest/autoproj/local/local.autobuild
