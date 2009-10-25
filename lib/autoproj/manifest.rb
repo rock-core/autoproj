@@ -28,18 +28,19 @@ module Autoproj
         # Perform constant expansion on the defined environment variables,
         # including the option set
         options = Autoproj.option_set
-        if Autoproj.manifest
-            loop do
-                new_value = Autoproj.manifest.single_expansion(value, options)
-                if new_value == value
-                    break
-                else
-                    value = new_value
-                end
-            end
-        else
-            value
+        options.each_key do |k|
+            options[k] = options[k].to_s
         end
+
+        loop do
+            new_value = Autoproj.single_expansion(value, options)
+            if new_value == value
+                break
+            else
+                value = new_value
+            end
+        end
+        value
     end
 
     @env_inherit = Set.new
