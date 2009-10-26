@@ -307,9 +307,18 @@ module Autoproj
 
             if all_vcs
                 all_vcs.each do |spec|
-                    name, spec = spec.to_a.first
-                    if !spec
-                        raise ConfigError, "wrong VCS specification #{YAML.dump(spec)}"
+                    if spec.values.size != 1
+                        # Maybe the user wrote the spec like
+                        #   - package_name:
+                        #     type: git
+                        #     url: blah
+                        #
+                        # In that case, we should have the package name as
+                        # "name => nil". Check that.
+                        name, _ = spec.find { |n, v| v.nil? }
+                        spec.delete(name)
+                    else
+                        name, spec = spec.to_a.first
                     end
 
                     if Regexp.new(name) =~ package_name
