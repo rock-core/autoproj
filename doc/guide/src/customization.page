@@ -144,6 +144,21 @@ Autobuild API directly in the <tt>autoproj/init.rb</tt> and
 files. The former is loaded before all source files and the latter is loaded
 after all source files.
 
+Some examples:
+
+ * fixing dependencies: if a dependency is not listed in a package's manifest,
+   then you can fix it by adding the following in <tt>autoproj/overrides.rb</tt>
+   {coderay:: ruby}
+   a = Autobuild::Package['a_package']
+   a.depends_on "other_package"
+   {coderay}
+
+ * changing the configuration of some cmake package:
+   {coderay:: ruby}
+   a = Autobuild::Package['a_package']
+   a.define "CONFIG_VAR", "CONFIG_VALUE"
+   {coderay}
+
 Building packages selectively on the command line
 -------------------------------------------------
 
