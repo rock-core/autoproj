@@ -43,6 +43,18 @@ layout:
   - orocos/
 {coderay}
 
+Configuration files like <tt>autoproj/manifest</tt> are YAML file. As such, they
+aresensible to indentation. The snippet above should be read as: in the layout, there is first a "lib" part and second the packages whose names start with "orocos/" _(first level of indentation)_. In the "lib" part, the packages are "typelib", "utilmm"
+ and "utilrb" _(second level of indentation)_. 
+{.warning}
+
+Alternatively, the example above could be written:
+{coderay:: yaml}
+layout:
+  - lib: [typelib, utilmm, utilrb]
+  - orocos/
+{coderay}
+
 Finally, names of sublayouts can be used as arguments in the autoproj command
 line, instead of package names:
 
