@@ -88,7 +88,7 @@ if do_doc
         task 'guide' => 'dist:bootstrap'
         RDoc::Task.new("api") do |rdoc|
             rdoc.rdoc_dir = 'doc/html/api'
-            rdoc.title    = "oroGen"
+            rdoc.title    = "autoproj"
             rdoc.options << '--show-hash'
             rdoc.rdoc_files.include('lib/**/*.rb')
         end
