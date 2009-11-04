@@ -1,5 +1,10 @@
 #! /usr/bin/env ruby
 
+if RUBY_VERSION < "1.8.7"
+    STDERR.puts "autoproj requires Ruby >= 1.8.7"
+    exit 1
+end
+
 require 'autoproj'
 require 'autoproj/autobuild'
 require 'open-uri'

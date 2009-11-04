@@ -1,5 +1,10 @@
 #! /usr/bin/ruby
 
+if RUBY_VERSION < "1.8.7"
+    STDERR.puts "autoproj requires Ruby >= 1.8.7"
+    exit 1
+end
+
 ENV['GEM_HOME'] = "#{Dir.pwd}/.gems"
 ENV['PATH']     = "#{ENV['GEM_HOME']}/bin:#{ENV['PATH']}"
 if $LOADED_FEATURES.find { |str| str =~ /bygems/ }
