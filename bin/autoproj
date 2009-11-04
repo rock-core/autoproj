@@ -198,7 +198,7 @@ def do_bootstrap(*args)
     # Check if we are being called from another GEM_HOME. If it is the case,
     # assume that we are bootstrapping from another installation directory and
     # start by copying the .gems directory
-    if ENV['GEM_HOME'] && ENV['GEM_HOME'] != File.join(Dir.pwd, ".gems")
+    if ENV['GEM_HOME'] && ENV['GEM_HOME'] =~ /\.gems\/?$/ && ENV['GEM_HOME'] != File.join(Dir.pwd, ".gems")
         FileUtils.cp_r ENV['GEM_HOME'], ".gems"
     end
 
