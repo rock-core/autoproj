@@ -313,12 +313,28 @@ module Autoproj
                         #     type: git
                         #     url: blah
                         #
+                        # or as
+                        #   - package_name
+                        #     type: git
+                        #     url: blah
+                        #
                         # In that case, we should have the package name as
                         # "name => nil". Check that.
                         name, _ = spec.find { |n, v| v.nil? }
-                        spec.delete(name)
+                        if name
+                            spec.delete(name)
+                        else
+                            name, _ = spec.find { |n, v| n =~ / \w+$/ }
+                            name =~ / (\w+)$/
+                            spec[$1] = spec.delete(name)
+                            name = name.gsub(/ \w+$/, '')
+                        end
                     else
                         name, spec = spec.to_a.first
+                        if name =~ / (\w+)/
+                            spec = { $1 => spec }
+                            name = name.gsub(/ \w+$/, '')
+                        end
                     end
 
                     if Regexp.new(name) =~ package_name
