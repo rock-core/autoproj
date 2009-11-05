@@ -517,6 +517,7 @@ begin
         all_enabled_packages  = Set.new
         STDERR.puts
         if only_do_status
+            STDERR.puts color("autoproj: status of packages in #{name}", :bold)
             do_status(enabled_packages)
         elsif !enabled_packages.empty?
             Autobuild::Reporting.report do
