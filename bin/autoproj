@@ -37,6 +37,7 @@ autoproj mode [options]
 where 'mode' is one of:
   build:  import, build and install all selected packages
   force-build: triggers all build commands, i.e. don't be lazy like in "build"
+  fast-build: builds without updating and installing OS dependencies
   rebuild: remove all build products, thus triggering a full rebuild
   doc:    generate and install documentation for packages that have some
   update: only import/update packages, do not build them
@@ -295,6 +296,9 @@ begin
         Autobuild.do_forced_build = true
     when "rebuild"
         Autobuild.do_rebuild = true
+    when "fast-build"
+        Autobuild.do_update = false
+        no_os_deps = true
     when "update"
         Autobuild.do_build  = false
     when "status"
@@ -598,9 +602,13 @@ begin
             Autobuild.do_update = old_update_flag
         end
 
-        if mode == "build"
-            all_env_sh << name
-            Autoproj.export_env_sh(name)
+        if (mode == "build" || mode == "fast-build")
+            if packages.all? { |pkg_name| File.directory?(Autobuild::Package[pkg_name].srcdir) }
+                all_env_sh << name
+                Autoproj.export_env_sh(name)
+            else
+                STDERR.puts color("WARN: #{name} has not been completely built, #{name}env.sh is not updated", :magenta)
+            end
         end
     end
 
