@@ -1,3 +1,13 @@
+= Version 1.2.2
+ * added support for Ubuntu 9.10 [Karmic Koala]
+ * add the 'fast-build' mode which is equivalent to 
+   "build --no-update --no-osdeps"
+ * add a quick bootstrap method [still experimental]
+   If an autoproj installation is already present, one can simply run autoproj
+   bootstrap [options]. It speeds up the bootstrapping as the gems are taken
+   from the other installation.
+ * minor bugfixes and improvements
+
 = Version 1.2.1
  * accept two layouts for version control description:
    
