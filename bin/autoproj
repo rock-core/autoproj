@@ -200,7 +200,10 @@ def do_bootstrap(*args)
     # assume that we are bootstrapping from another installation directory and
     # start by copying the .gems directory
     if ENV['GEM_HOME'] && ENV['GEM_HOME'] =~ /\.gems\/?$/ && ENV['GEM_HOME'] != File.join(Dir.pwd, ".gems")
+        STDERR.puts "autoproj: reusing bootstrap from #{File.dirname(ENV['GEM_HOME'])}"
         FileUtils.cp_r ENV['GEM_HOME'], ".gems"
+        ENV['GEM_HOME'] = File.join(Dir.pwd, ".gems")
+        exec $0, *ARGV
     end
 
     # If we are not getting the installation setup from a VCS, copy the template
