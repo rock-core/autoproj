@@ -1,3 +1,19 @@
+= Version 1.2.1
+ * accept two layouts for version control description:
+   
+   - package_name:
+       type: git
+       url: blablabla
+
+   and
+
+   - package_name:
+     type: git
+     url: blablabla
+
+   Even though the second one is not the proper YAML data structure,
+   it is actually quite intuitively written by humans, so accept it.
+
 = Version 1.2.0
  * added the rebuild and force-build modes
  * added a local source that allows to override imported package sets and so on.
