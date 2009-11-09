@@ -104,6 +104,9 @@ module Autoproj
                 end
 
                 data = os_entry.last
+                # This package does not need to be installed on this operating system (example: build tools on Gentoo)
+                next if !data
+
                 if data.kind_of?(Hash)
                     version_entry = data.find do |version_list, data|
                         version_list.to_s.split(',').
