@@ -13,6 +13,7 @@ doc/guide/src/customization.page
 doc/guide/src/default.css
 doc/guide/src/default.template
 doc/guide/src/htmldoc.metainfo
+doc/guide/src/htmldoc.virtual
 doc/guide/src/images/bodybg.png
 doc/guide/src/images/contbg.png
 doc/guide/src/images/footerbg.png
