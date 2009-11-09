@@ -1,4 +1,5 @@
 = Version 1.2.2
+ * added support for Gentoo
  * added support for Ubuntu 9.10 [Karmic Koala]
  * add the 'fast-build' mode which is equivalent to 
    "build --no-update --no-osdeps"
