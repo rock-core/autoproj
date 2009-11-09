@@ -4,13 +4,19 @@ ruby:
         - ruby1.8-dev
         - ruby1.8
         - libopenssl-ruby1.8
+    gentoo:
+        - dev-lang/ruby:1.8
 
 build-essential:
     debian,ubuntu: build-essential
+    gentoo:
+
 libxml2:
     debian,ubuntu: libxml2-dev
+    gentoo: dev-libs/libxml2
 libxslt:
     debian,ubuntu: libxslt1-dev
+    gentoo: dev-libs/libxslt
 
 autobuild: gem
 autoproj: gem
@@ -18,17 +24,23 @@ autoproj: gem
 # The following definitions are for the VCS and build systems
 git:
     debian,ubuntu: git-core
+    gentoo: dev-util/git
 
 svn:
     debian,ubuntu: svn
+    gentoo: dev-util/subversion
 
 cmake:
     debian,ubuntu: cmake
+    gentoo: dev-util/cmake
 
 autotools:
     debian,ubuntu: [automake1.9, autoconf]
+    gentoo: [sys-devel/automake:1.9, sys-devel/autoconf]
 
 lsb_release:
     debian,ubuntu: lsb-release
+    gentoo: sys-apps/lsb-release
     
+# vim: expandtab
 

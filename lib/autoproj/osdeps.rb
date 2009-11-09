@@ -42,6 +42,11 @@ module Autoproj
                     if File.exists?('/etc/debian_version')
                         codename = File.read('/etc/debian_version').chomp
                         ['debian', [codename]]
+                    elsif File.exists?('/etc/gentoo-release')
+                        release_string = File.read('/etc/gentoo-release').chomp
+                        release_string =~ /^.*([^\s]+)$/
+                            version = $1
+                        ['gentoo', [version]]
                     else
                         raise ConfigError, "Unknown operating system"
                     end
@@ -75,7 +80,8 @@ module Autoproj
 
         OS_PACKAGE_INSTALL = {
             'debian' => 'apt-get install -y %s',
-            'ubuntu' => 'apt-get install -y %s'
+            'ubuntu' => 'apt-get install -y %s',
+            'gentoo' => 'emerge --noreplace %s'
         }
 
         def generate_os_script(dependencies)
