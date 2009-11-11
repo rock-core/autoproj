@@ -700,18 +700,18 @@ module Autoproj
         # and sublayout in order
         def each_package_set(selection, layout_name = '/', layout_def = data['layout'], &block)
             if !layout_def
-                yield('/', default_packages, default_packages)
+                yield(layout_name, default_packages, default_packages)
                 return nil
             end
 
-            selection = selection.to_set
+            selection = selection.to_set if selection
 
             # First of all, do the packages at this level
             packages = layout_packages(layout_def, false)
             # Remove excluded packages
             packages.delete_if { |pkg_name| excluded?(pkg_name) }
 
-            if selection && !selection.any? { |sel| layout_name =~ /^\/?#{Regexp.new(sel)}\/?/ }
+            if selection
                 selected_packages = packages.find_all { |pkg_name| selection.include?(pkg_name) }
             else
                 selected_packages = packages.dup
@@ -801,6 +801,66 @@ module Autoproj
             end
 
             osdeps.install(required_os_packages)
+        end
+
+        # Package selection can be done in three ways:
+        #  * as a subdirectory in the layout
+        #  * as a on-disk directory
+        #  * as a package name
+        #
+        # This method converts the first two directories into the third one
+        def expand_package_selection(selected_packages)
+            base_dir = Autoproj.root_dir
+
+            expanded_packages = []
+
+            # Get all the package names
+            package_names = Autobuild::Package.each(true).
+                map do |name, pkg|
+                    pkg.name
+                end
+
+            selected_packages = selected_packages.map do |sel|
+                if sel[0] == ?/ # anchored selection
+                    /^#{sel}/
+                else
+                    Regexp.new(sel)
+                end
+            end
+
+            # First, remove packages that are directly referenced by name or by
+            # package set names
+            selected_packages.delete_if do |sel|
+                packages = package_names.find_all { |pkg_name| pkg_name =~ sel }
+                expanded_packages.concat(packages)
+
+                sources = each_source.find_all { |source| source.name =~ sel }
+                sources.each do |source|
+                    expanded_packages.concat(resolve_package_set(source.name))
+                end
+
+                !packages.empty? && !sources.empty?
+            end
+
+            if selected_packages.empty?
+                return expanded_packages
+            end
+
+            # Now, expand sublayout and directory names 
+            each_package_set(nil) do |layout_name, packages, _|
+                selected_packages.delete_if do |sel|
+                    if layout_name[0..-1] =~ Regexp.new("#{sel}\/?$")
+                        expanded_packages.concat(packages.to_a)
+                    else
+                        packages = packages.find_all do |pkg_name|
+                            (layout_name + pkg_name) =~ sel
+                        end
+                        expanded_packages.concat(packages)
+                        !packages.empty?
+                    end
+                end
+            end
+            expanded_packages.to_set
         end
     end
 

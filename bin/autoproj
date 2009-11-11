@@ -323,7 +323,16 @@ begin
         exit(1)
     end
 
+    # Expand directories in the selected_packages set
     root_dir = Autoproj.root_dir
+    selected_packages.map! do |name|
+        if File.directory?(name)
+            File.expand_path(name).gsub(/^#{Regexp.quote(root_dir)}/, '')
+        else
+            name
+        end
+    end
+
     Dir.chdir(root_dir)
 
     # Load user configuration
@@ -490,6 +499,10 @@ begin
     # Now starts a different stage of the whole build. Until now, we were
     # working on the whole package set. Starting from now, we need to build the
     # package sets based on the layout file
+    #
+    # First, we allow to user to specify packages based on disk paths, so
+    # resolve those
+    selected_packages = Autoproj.manifest.expand_package_selection(selected_packages)
 
     # This keeps a hash of package_name => layout_name for all packages that
     # have already been handled
