@@ -711,6 +711,7 @@ module Autoproj
             result
         end
 
+        # Enumerates the sublayouts defined in +layout_def+.
         def each_sublayout(layout_def)
             layout_def.each do |value|
                 if value.kind_of?(Hash)
