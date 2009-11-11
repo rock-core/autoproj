@@ -626,6 +626,11 @@ begin
                 STDERR.puts color("WARN: #{name} has not been completely built, #{name}env.sh is not updated", :magenta)
             end
         end
+
+        libdir = File.join(prefix, "lib")
+        if File.directory?(libdir)
+            Autoproj.validate_solib_dependencies(libdir)
+        end
     end
 
     if !all_env_sh.empty?

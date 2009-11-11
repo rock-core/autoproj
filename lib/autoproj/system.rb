@@ -81,5 +81,17 @@ module Autoproj
             self.load(source, *path)
         end
     end
+
+    def self.validate_solib_dependencies(dir, exclude_paths = [])
+        Find.find(File.expand_path(dir)) do |name|
+            next unless name =~ /\.so$/
+            next if exclude_paths.find { |p| name =~ p }
+
+            output = `ldd -r #{name} 2>&1`
+            if output =~ /undefined symbol/
+                STDERR.puts Autoproj.console.color("WARN: #{name} has undefined symbols", :magenta)
+            end
+        end
+    end
 end
 
