@@ -164,6 +164,12 @@ module Autoproj
         def present?; File.directory?(local_dir) end
         # True if this source is local, i.e. is not under a version control
         def local?; vcs.local? end
+        # True if this source defines nothing
+        def empty?
+            !source_definition['version_control'] &&
+                !each_package.find { true }
+        end
+
         # The directory in which data for this source will be checked out
         def local_dir
             if local?
@@ -307,6 +313,7 @@ module Autoproj
 
             if all_vcs
                 all_vcs.each do |spec|
+                    spec = spec.dup
                     if spec.values.size != 1
                         # Maybe the user wrote the spec like
                         #   - package_name:
@@ -541,9 +548,13 @@ module Autoproj
         #
         # Lists all package sets defined in this manifest, by yielding a Source
         # object that describes it.
-        def each_source(load_description = true)
+        def each_source(load_description = true, &block)
             if !block_given?
                 return enum_for(:each_source, load_description)
+            end
+
+            if @sources
+                return @sources.each(&block)
             end
 
             return if !data['package_sets']
@@ -556,9 +567,16 @@ module Autoproj
                 local.load_name
             end
             yield(local)
+            if load_description
+                        @sources = [local]
+            end
 
 	    data['package_sets'].each do |spec|
-                yield(source_from_spec(spec, load_description))
+                source = source_from_spec(spec, load_description)
+                if load_description
+                    @sources << source
+                end
+                yield(source)
             end
         end
 
