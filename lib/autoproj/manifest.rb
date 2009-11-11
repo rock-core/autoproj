@@ -566,9 +566,15 @@ module Autoproj
             else
                 local.load_name
             end
-            yield(local)
             if load_description
+                if !local.empty?
+                    yield(local)
+                    if load_description
                         @sources = [local]
+                    end
+                end
+            else
+                yield(local)
             end
 
 	    data['package_sets'].each do |spec|
