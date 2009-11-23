@@ -497,7 +497,7 @@ module Autoproj
                 return enum_for(:each_source_file)
             end
 
-            each_source do |source|
+            each_source(false) do |source|
 		Dir.glob(File.join(source.local_dir, "*.osdeps")).each do |file|
 		    yield(source, file)
 		end
