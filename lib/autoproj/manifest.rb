@@ -573,6 +573,7 @@ module Autoproj
                         @sources = [local]
                     end
                 end
+                @sources ||= []
             else
                 yield(local)
             end
