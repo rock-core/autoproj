@@ -532,8 +532,12 @@ module Autoproj
                       end
 
             source = Source.new(vcs_def)
-            if source.present? && load_description
-                source.load_description_file
+            if load_description
+                if source.present?
+                    source.load_description_file
+                else
+                    raise InternalError, "cannot load description file as it has not been checked out yet"
+                end
             else
                 # Try to load just the name from the source.yml file
                 source.load_name
