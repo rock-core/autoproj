@@ -1,3 +1,13 @@
+= Version 1.2.3
+ * fix the definition of the subversion package under ubuntu/debian
+ * improve selection of packages on the command line. Most glitches
+   that appears when using that feature are gone now.
+ * allow to give options to the VCS during boostrap, and to switch
+   the source of the configuration. I.e.
+     autoproj switch-config git URL branch=newbranch
+   will exchange/update the configuration in autoproj/ with the specified one.
+ * bugfixes
+
 = Version 1.2.2
  * added support for Gentoo
  * added support for Ubuntu 9.10 [Karmic Koala]
