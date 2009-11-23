@@ -27,7 +27,7 @@ git:
     gentoo: dev-util/git
 
 svn:
-    debian,ubuntu: svn
+    debian,ubuntu: subversion
     gentoo: dev-util/subversion
 
 cmake:
