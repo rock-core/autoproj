@@ -186,15 +186,40 @@ def do_status(packages)
 end
 
 
+def do_switch_config(*args)
+    vcs_def = Hash.new
+    vcs_def[:type] = args.shift
+    vcs_def[:url]  = args.shift
+    while !args.empty?
+        name, value = args.shift.split("=")
+        vcs_def[name] = value
+    end
+
+    vcs = Autoproj.normalize_vcs_definition(vcs_def)
+
+    # Install the OS dependencies required for this VCS
+    Autobuild::Reporting.report do
+        osdeps = Autoproj::OSDependencies.load_default
+        osdeps.install([vcs.type])
+        Autoproj::Manifest.import_whole_installation(vcs, File.join(Dir.pwd, "autoproj"))
+    end
+
+    # Now write it in the config file
+    File.open(File.join(Autoproj.config_dir, "config.yml"), "a") do |io|
+        io.puts <<-EOTEXT
+manifest_source:
+    type: #{vcs_def.delete(:type)}
+    url: #{vcs_def.delete(:url)}
+    #{vcs_def.map { |k, v| "#{k}: #{v}" }.join("\n    ")}
+        EOTEXT
+    end
+end
+
 def do_bootstrap(*args)
     if File.exists?(File.join("autoproj", "manifest"))
         raise ConfigError, "this installation is already bootstrapped. Remove the autoproj directory if it is not the case"
     end
     Autobuild.logdir = File.join('build', 'log')
-
-    if args.size > 2
-        raise ConfigError, "usage: autoproj bootstrap [manifest_url | vcs_type vcs_url]"
-    end
 
     # Check if we are being called from another GEM_HOME. If it is the case,
     # assume that we are bootstrapping from another installation directory and
@@ -226,33 +251,8 @@ def do_bootstrap(*args)
             io.write(manifest_data)
         end
 
-    elsif args.size == 2 # is a VCS definition for the manifest itself ...
-        vcs_def = Hash.new
-        vcs_def[:type] = args.shift
-        vcs_def[:url]  = args.shift
-        while !args.empty?
-            name, value = args.shift.split("=")
-            vcs_def[name] = value
-        end
-
-        vcs = Autoproj.normalize_vcs_definition(vcs_def)
-
-        # Install the OS dependencies required for this VCS
-        Autobuild::Reporting.report do
-            osdeps = Autoproj::OSDependencies.load_default
-            osdeps.install([vcs.type])
-            Autoproj::Manifest.import_whole_installation(vcs, File.join(Dir.pwd, "autoproj"))
-        end
-
-        # Now write it in the config file
-        File.open(File.join(Autoproj.config_dir, "config.yml"), "a") do |io|
-            io.puts <<-EOTEXT
-manifest_source:
-    type: #{vcs_def.delete(:type)}
-    url: #{vcs_def.delete(:url)}
-    #{vcs_def.map { |k, v| "#{k}: #{v}" }.join("\n    ")}
-            EOTEXT
-        end
+    elsif args.size > 2 # is a VCS definition for the manifest itself ...
+        do_switch_config(*args)
     end
 
     # Finally, generate an env.sh script
