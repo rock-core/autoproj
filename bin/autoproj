@@ -35,23 +35,28 @@ parser = OptionParser.new do |opts|
     opts.banner = <<-EOBANNER
 autoproj mode [options]
 where 'mode' is one of:
-  build:  import, build and install all selected packages
+  build:  import, build and install all packages that need it. A package or package
+    set name can be given, in which case only this package and its dependencies
+    will be taken into account. Example:
+
+    autoproj build drivers/hokuyo
+      
   force-build: triggers all build commands, i.e. don't be lazy like in "build"
-  fast-build: builds without updating and installing OS dependencies
-  rebuild: remove all build products, thus triggering a full rebuild
+  fast-build: builds without updating and without considering OS dependencies
+  rebuild: clean and then rebuild
   doc:    generate and install documentation for packages that have some
   update: only import/update packages, do not build them
   status: displays the state of the packages w.r.t. their source VCS
   bootstrap: starts a new autoproj installation. Usage:
     autoproj bootstrap [manifest_url|source_vcs source_url opt1=value1 opt2=value2 ...]
   
+  list-sets:   list all available package sets
+  update-sets: update the package sets definitions
   switch-config: change where the configuration should be taken from. Syntax:
     autoproj switch-config source_vcs source_url opt1=value1 opt2=value2 ...
 
     For example:
     autoproj switch-config git git://github.com/doudou/rubim-all.git branch=all
-  list-sets:   list all available sources
-  update-sets: update all remote sources, but do not build
 
 Additional options:
     EOBANNER
