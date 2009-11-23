@@ -45,6 +45,11 @@ where 'mode' is one of:
   bootstrap: starts a new autoproj installation. Usage:
     autoproj bootstrap [manifest_url|source_vcs source_url opt1=value1 opt2=value2 ...]
   
+  switch-config: change where the configuration should be taken from. Syntax:
+    autoproj switch-config source_vcs source_url opt1=value1 opt2=value2 ...
+
+    For example:
+    autoproj switch-config git git://github.com/doudou/rubim-all.git branch=all
   list-sets:   list all available sources
   update-sets: update all remote sources, but do not build
 
@@ -185,6 +190,39 @@ def do_status(packages)
     end
 end
 
+def switch_config(*args)
+    Autoproj.load_config
+    if Autoproj.has_config_key?('manifest_source')
+        vcs = Autoproj.normalize_vcs_definition(Autoproj.user_config('manifest_source'))
+    end
+
+    if vcs && (vcs.type == args[0] && vcs.url == args[1])
+        # Don't need to do much: simply change the options and save the config
+        # file, the VCS handler will take care of switching the options
+    else
+        # We will have to delete the current autoproj directory. Ask the user.
+        opt = Autoproj::BuildOption.new("delete current config", "boolean", Hash[:default => "false", :doc => "delete the current configuration ? (required to switch)"], nil)
+        return if !opt.ask(nil)
+        FileUtils.rm_rf File.join(Autoproj.config_dir)
+        do_switch_config(*args)
+    end
+
+    # And now save the options: note that we keep the current option set even
+    # though we switched configuration. This is not a problem as undefined
+    # options will not be reused
+    #
+    # TODO: cleanup the options to only keep the relevant ones
+    vcs_def = Hash['type' => args.shift, 'url' => args.shift]
+    args.each do |opt|
+        opt_name, opt_val = opt.split '='
+        vcs_def[opt_name] = opt_val
+    end
+    # Validate the option hash, just in case
+    Autoproj.normalize_vcs_definition(vcs_def)
+    # Save the new options
+    Autoproj.change_option('manifest_source', vcs_def, true)
+    Autoproj.save_config
+end
 
 def do_switch_config(*args)
     vcs_def = Hash.new
@@ -313,7 +351,12 @@ begin
     when "list-sets"
         only_update_sources = true
         Autobuild.do_update = false
-        
+    when "switch-config"
+        if switch_config(*args)
+            exit 0
+        else
+            exit 1
+        end
     when "doc"
         Autobuild.do_update = false
         Autobuild.do_doc    = true

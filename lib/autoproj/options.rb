@@ -76,6 +76,10 @@ module Autoproj
         end
     end
 
+    def self.change_option(key, value, user_validated = false)
+        @user_config[key] = [value, user_validated]
+    end
+
     def self.user_config(key)
         value, seen = @user_config[key]
         # All non-user options are always considered as "seen"
