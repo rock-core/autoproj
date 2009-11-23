@@ -89,7 +89,7 @@ module Autoproj
             return if type == "none"
 
             url = Autoproj.single_expansion(self.url, 'HOME' => ENV['HOME'])
-            if url && url !~ /^(\w+:\/)?\/|^\w+\@/
+            if url && url !~ /^(\w+:\/)?\/|^\w+\@|^(\w+\@)?[\w\.-]+:/
                 url = File.expand_path(url, Autoproj.root_dir)
             end
             Autobuild.send(type, url, options)
