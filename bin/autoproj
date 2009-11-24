@@ -392,7 +392,7 @@ begin
         end
     end
     # Set up some important autobuild parameters
-    Autoproj.env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB'
+    Autoproj.env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB', 'LD_LIBRARY_PATH'
     Autoproj.env_set 'GEM_HOME', Autoproj.gem_home
     Autoproj.env_set 'RUBYOPT', "-rubygems"
     Autobuild.prefix  = Autoproj.build_dir
