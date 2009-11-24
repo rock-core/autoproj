@@ -1,3 +1,8 @@
+= Version 1.2.4
+ * manage LD_LIBRARY_PATH
+ * only include the values relevant to our packages in the generated env.sh,
+   instead of overcrowding them with inherited values.
+
 = Version 1.2.3
  * fix the definition of the subversion package under ubuntu/debian
  * improve selection of packages on the command line. Most glitches
