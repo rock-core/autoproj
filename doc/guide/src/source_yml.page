@@ -5,8 +5,64 @@ sort_info: 100
 A package set is made of three things:
 
  * the description file (source.yml)
- * an optional initialization script (init.rb)
+ * an optional initialization script (init.rb) and override script
+   (overrides.rb)
  * autobuild scripts (\*.autobuild)
+
+Starting a new package set
+--------------------------
+
+Create a subdirectory in autoproj/ and add a source.yml file that looks like:
+
+{coderay:: yaml}
+name my_package_set_name
+{coderay}
+
+Et voila ! You have a new empty package set
+
+Adding a package
+----------------
+
+Adding a package to a package set involves changing two files:
+
+ * the package set's autobuild file that declares what type of package it is and
+ * the package set's source.yml file that declares where to get it (version
+   control information)
+
+For the first step, you need to add one of the following lines:
+
+{coderay:: ruby}
+cmake_package "my/package" # for CMake package
+autotools_package "my/package" # for autoconf/automake packages
+orogen_package "my/package" # for orogen packages
+{coderay}
+
+The package name will be used to refer to this particular package later on --
+especially for version control definition. If subdirectories are used, like "my"
+in the above example, the package source will be checked out and built in the
+corresponding subdirectory.
+
+Now that the package is declared, we need to add version control information to
+the source.yml file. This needs to be done in the version\_control section of
+the file, as for instance:
+
+{coderay:: yaml}
+version_control:
+  - my/package:
+      type: git
+      url: git://github.com/blabla/my-package.git
+{coderay}
+
+The corresponding subversion definition would be:
+
+{coderay:: yaml}
+version_control:
+  - my/package:
+      type: svn
+      url: svn+ssh://svnhosting.com/blabla/trunk/my/package
+{coderay}
+
+The remaining of this page is a more in-depth description of this process.
 
 Autobuild scripts
 -----------------
