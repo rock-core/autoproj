@@ -53,7 +53,7 @@ module Autoproj
 
     # Set a new environment variable
     def self.env_set(name, *value)
-        Autobuild.environment[name] = nil
+        Autobuild.env_clear(name)
         env_add(name, *value)
     end
     def self.env_add(name, *value)
@@ -61,7 +61,7 @@ module Autoproj
         Autobuild.env_add(name, *value)
     end
     def self.env_set_path(name, *value)
-        Autobuild.environment[name] = nil
+        Autobuild.env_clear(name)
         env_add_path(name, *value)
     end
     def self.env_add_path(name, *value)
