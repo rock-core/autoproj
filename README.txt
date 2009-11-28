@@ -32,14 +32,16 @@ Components of an Autoproj installation
 -------------------------------------
 A autoproj installation is seeded by _package sets_. A package set is a local or remote
 directory in which there is:
- * autobuild scripts that describe what can be built and how it should be built.
-   These scripts an also list a set of configuration options that allow to
-   parametrize the build. In general, there should be only a limited number of
-   such options.
- * a source.yml file which describes the package set itself, and where the software
-   packages are located (what version control system and what URL).
- * optionally, a file that describe prepackaged dependencies that can be
-   installed by using the operating system package management system.
+
+ * a list of available packages, and information on how to build these packages.
+   This list, and the build information, are Ruby scripts that use the autobuild
+   API. [More ...](autobuild.html)
+ * version control information: where to get the source code for each of the
+   packages defined in the set.
+
+Then, an autoproj configuration is simply a list of package sets (i.e. a list of
+packages that are available to build), and a file that selects which packages
+should be built. This file is the <tt>manifest</tt>.
 
 Bootstrapping
 -------------
