@@ -12,6 +12,7 @@ doc/guide/src/autoproj_bootstrap
 doc/guide/src/customization.page
 doc/guide/src/default.css
 doc/guide/src/default.template
+doc/guide/src/error_messages.page
 doc/guide/src/htmldoc.metainfo
 doc/guide/src/htmldoc.virtual
 doc/guide/src/images/bodybg.png
