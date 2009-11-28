@@ -1,3 +1,6 @@
+= Version 1.2.5
+ * Quickfix release: fix "autoproj bootstrap VCS URL"
+
 = Version 1.2.4
  * manage LD_LIBRARY_PATH
  * only include the values relevant to our packages in the generated env.sh,
