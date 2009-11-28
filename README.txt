@@ -59,7 +59,28 @@ The canonical way is the following:
    ruby autoproj\_bootstrap
    {.cmdline}
 
- * follow the instructions printed by the script above :)
+ * follow the instructions printed by the script<tt>manifest</tt>.
+
+Additionally, if you are given a reference to a source code repository in which
+an autoproj configuration is stored (i.e. a directory in which a manifest is
+present), you can bootstrap this configuration directly:
+
+   wget http://doudou.github.com/autoproj/autoproj\_bootstrap <br />
+   ruby autoproj\_bootstrap VCS 
+   {.cmdline}
+
+For instance, to build all packages made available by the RubyInMotion project,
+do
+
+   wget http://doudou.github.com/autoproj/autoproj\_bootstrap <br />
+   ruby autoproj\_bootstrap git git://github.com/doudou/rubim.all.git
+   {.cmdline}
+
+Additional options can be given for the version control system. For instance,
+
+   wget http://doudou.github.com/autoproj/autoproj\_bootstrap <br />
+   ruby autoproj\_bootstrap git git://github.com/doudou/rubim.all.git branch=stable
+   {.cmdline}
 
 Software packages in Autoproj
 -----------------------------
