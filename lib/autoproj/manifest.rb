@@ -478,7 +478,7 @@ module Autoproj
             #
             # And honestly I don't think someone will have 20 000 package sets
             done_something = false
-            each_source do |source| 
+            each_source(false) do |source| 
                 next if source_name && source.name != source_name
                 done_something = true
 
@@ -561,8 +561,6 @@ module Autoproj
                 return @sources.each(&block)
             end
 
-            return if !data['package_sets']
-
             # Load the local source first ...
             local = LocalSource.new
             if load_description
@@ -573,14 +571,15 @@ module Autoproj
             if load_description
                 if !local.empty?
                     yield(local)
-                    if load_description
-                        @sources = [local]
-                    end
+                    @sources = [local]
+                else
+                    @sources = []
                 end
-                @sources ||= []
             else
                 yield(local)
             end
+
+            return if !data['package_sets']
 
 	    data['package_sets'].each do |spec|
                 source = source_from_spec(spec, load_description)
