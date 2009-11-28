@@ -141,21 +141,29 @@ module Autoproj
                 "\n" + shell_snippets
         end
 
-        def partition_packages(package_set)
+        # call-seq:
+        #   partition_packages(package_names) => os_packages, gem_packages
+        def partition_packages(package_set, package_osdeps = Hash.new)
             package_set = package_set.to_set
             osdeps, gems = [], []
             package_set.to_set.each do |name|
                 pkg_def = definitions[name]
                 if !pkg_def
-                    raise ConfigError, "I know nothing about a prepackaged '#{name}' software"
+                    msg = "I know nothing about a prepackaged software called '#{name}'"
+                    if pkg_names = package_osdeps[name]
+                        msg += ", it is listed as dependency of the following package(s): #{pkg_names.join(", ")}"
+                    end
+
+                    raise ConfigError, msg
                 end
 
                 if pkg_def.respond_to?(:to_str)
                     case(pkg_def.to_str)
+                    when "ignore" then
                     when "gem" then
                         gems << name
                     else
-                        raise ConfigError, "unknown OS-independent package management type #{pkg_def}"
+                        raise ConfigError, "unknown OS-independent package management type #{pkg_def} for #{name}"
                     end
                 else
                     osdeps << name
@@ -164,8 +172,9 @@ module Autoproj
             return osdeps, gems
         end
 
-        def install(packages)
-            osdeps, gems = partition_packages(packages)
+        # Requests the installation of the given set of packages
+        def install(packages, package_osdeps = Hash.new)
+            osdeps, gems = partition_packages(packages, package_osdeps)
 
             did_something = false
 

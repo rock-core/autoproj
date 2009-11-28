@@ -820,16 +820,20 @@ module Autoproj
         end
 
         def install_os_dependencies(packages)
-            osdeps = known_os_packages
 
             required_os_packages = Set.new
+            package_os_deps = Hash.new { |h, k| h[k] = Array.new }
             packages.each do |pkg_name|
                 if manifest = package_manifests[pkg_name]
-                    required_os_packages |= manifest.each_os_dependency.to_set
+                    pkg_osdeps = manifest.each_os_dependency.to_set
+                    pkg_osdeps.each do |osdep_name|
+                        package_os_deps[osdep_name] << pkg_name
+                    end
+                    required_os_packages |= pkg_osdeps
                 end
             end
 
-            osdeps.install(required_os_packages)
+            known_os_packages.install(required_os_packages, package_os_deps)
         end
 
         # Package selection can be done in three ways:
