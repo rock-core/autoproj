@@ -65,7 +65,7 @@ Removing packages from the build
 --------------------------------
 Instead of having to list all packages that you do want to build, it is possible
 to list the packages that you don't want to build. Simply list them in the
-<tt>exclude\_packages</tt> section of the manifest file. In the following example, all
+<tt>exclude_packages</tt> section of the manifest file. In the following example, all
 of the rubim.orocos package set will be built *but* the pocosim-log package.
 
 {coderay:: yaml}
@@ -81,7 +81,7 @@ Using packages that are already installed
 
 If some packages are already installed elsewhere, and you want to use that
 version instead of the one listed in the package sets, list them in the
-<tt>ignore\_packages</tt> section of the manifest. In the following example, the
+<tt>ignore_packages</tt> section of the manifest. In the following example, the
 <tt>orocos/rtt</tt> package will *not* be built by autoproj.
 
 {coderay:: yaml}
@@ -95,9 +95,9 @@ ignore_packages:
   - orocos/rtt
 {coderay}
 
-This differs from the <tt>exclude\_packages</tt> mechanism: packages listed in
-<tt>ignore\_packages</tt> are assumed to be present even though autoproj does not manage
-them, while packages in <tt>exclude\_packages</tt> are assumed to be absent and therefore
+This differs from the <tt>exclude_packages</tt> mechanism: packages listed in
+<tt>ignore_packages</tt> are assumed to be present even though autoproj does not manage
+them, while packages in <tt>exclude_packages</tt> are assumed to be absent and therefore
 issue an error if another package in the installation depend on them.
 
 Local overrides of version control information

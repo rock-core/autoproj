@@ -15,7 +15,7 @@ Starting a new package set
 Create a subdirectory in autoproj/ and add a source.yml file that looks like:
 
 {coderay:: yaml}
-name my_package_set_name
+name: my_package_set_name
 {coderay}
 
 Et voila ! You have a new empty package set
@@ -40,7 +40,13 @@ orogen_package "my/package" # for orogen packages
 The package name will be used to refer to this particular package later on --
 especially for version control definition. If subdirectories are used, like "my"
 in the above example, the package source will be checked out and built in the
-corresponding subdirectory.
+corresponding subdirectory. For instance, with
+
+{coderay:: ruby}
+cmake_package "drivers/hokuyo"
+{coderay}
+
+the hokuyo driver will _always_ be built in a <tt>drivers/</tt> subdirectory.
 
 Now that the package is declared, we need to add version control information to
 the source.yml file. This needs to be done in the version\_control section of
@@ -60,6 +66,14 @@ version_control:
   - my/package:
       type: svn
       url: svn+ssh://svnhosting.com/blabla/trunk/my/package
+{coderay}
+
+For testing purposes, it is possible to tell autoproj to *not* take into account
+any VCS information:
+
+{coderay:: yaml}
+version_control:
+  - my/package: none
 {coderay}
 
 The remaining of this page is a more in-depth description of this process.
@@ -107,9 +121,14 @@ The name field gives a name for the set. It is arbitrary, but the guideline
 is to give a name that is java-like for namespaces, i.e. origin.name.
 
 The <tt>constants:</tt> section lists values that can be reused for different
-packages. Autoproj defines the HOME constant which is the user's home directory,
-and the PACKAGE constant that is the actual package name. We will see later that
-these values can also be configuration variables that are asked to the user.
+packages. Autoproj defines two constants:
+ 
+ * HOME is the user's home directory,
+ * PACKAGE is the actual package name, useful when using wildcards in package
+   names (see below)
+
+It is also possible to use configuration variables, that get asked to the user
+during the build (see below).
 
 Finally, the <tt>version_control:</tt> section describes how to import each
 software package. Its general format is:
@@ -119,11 +138,10 @@ package_name:
   url: repository_url
 {coderay}
 
-Where package\_name is a regular expression that matches the package name, i.e.
-use ".\*" to match all packages for instance. The package name is the one given
-to the <tt>blabla_package</tt> stanza in the autobuild file. In the above
-autobuild example, the package names are for instance "orocos/rtt" and
-"drivers/imu".
+Where package\_name is a regular expression that matches the package name (for
+instance, ".\*" will match all packages and "drivers/.\*" will match packages
+whose name starts with 'drivers'). The package name is the one given to the
+<tt>blabla_package</tt> stanza in the autobuild file.
 
 For the git importer, one of 'branch' or 'tag' options can be provided as well:
 {coderay:: yaml}
@@ -132,18 +150,18 @@ package_name:
   tag: tag_to_stick_to # it is branch OR tag
 {coderay}
 
-The options are applied in order, meaning that the toplevel options override the
-lower level ones. In general, one will have a ".\*" entry to give options for all
-packages, and then override for specific packages:
+The options are applied in order, meaning that the top entries will be overriden
+by the lower ones. In general, one will have a ".\*" entry to give options for
+all packages, and then override for specific packages:
 
 {coderay:: yaml}
 version_control:
-  - "modules/logger": # we don't follow master on this module
-      branch: imoby
-
   - .*: # common options for all packages
       type: git
       url: $ROOT_DIR/$PACKAGE.git
+
+  - "modules/logger": # we don't follow master on this module
+      branch: imoby
 {coderay}
 
 Interaction between package sets definition files
@@ -179,12 +197,15 @@ where the option\_type field can either be "string" or "boolean".
 
 Then, you can use the option\_name as an expansion in the source.yml file.
 
-For instance, with an init.rb looking like:
+For instance, at my lab we are using an share filesystem to store the git
+repositories. Our project's init.rb file has the following option definition:
 {coderay:: ruby}
 configuration_option "MOUNT_POINT", "string",
     :default => "$HOME/nfs",
     :doc => "mount point of the NFS server"
 {coderay}
+
+And the source.yml uses it with:
 
 {coderay:: yaml}
 version_control:

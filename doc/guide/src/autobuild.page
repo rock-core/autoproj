@@ -54,7 +54,7 @@ cmake_package "package_name" do |pkg|
 end
 {coderay}
 
-The doc\_dir assignment above is needed if the package installs its documentation
+The <tt>doc_dir</tt> assignment above is needed if the package installs its documentation
 elsewhere than "doc".
 
 Defining dependencies

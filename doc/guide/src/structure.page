@@ -34,7 +34,7 @@ generated to set up your shell for the use of the installed software.
 
 Listing and adding package sets
 -------------------------------
-Package sets are listed in the <tt>package\_sets</tt> section of
+Package sets are listed in the <tt>package_sets</tt> section of
 <tt>autoproj/manifest</tt> file. This section looks like this:
 
 {coderay:: yaml}
