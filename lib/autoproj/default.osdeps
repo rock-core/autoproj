@@ -1,4 +1,6 @@
 # The following definitions are needed to bootstrap autoproj
+none: ignore
+
 ruby:
     debian,ubuntu:
         - ruby1.8-dev

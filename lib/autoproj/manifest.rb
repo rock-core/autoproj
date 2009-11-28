@@ -126,7 +126,7 @@ module Autoproj
     # This method normalizes the three forms into a VCSDefinition object
     def self.normalize_vcs_definition(spec)
         spec = vcs_definition_to_hash(spec)
-        if !(spec[:type] && spec[:url])
+        if !(spec[:type] && (spec[:type] == 'none' || spec[:url]))
             raise ConfigError, "the source specification #{spec.inspect} misses either the VCS type or an URL"
         end
 
@@ -341,6 +341,14 @@ module Autoproj
                         if name =~ / (\w+)/
                             spec = { $1 => spec }
                             name = name.gsub(/ \w+$/, '')
+                        end
+
+                        if spec.respond_to?(:to_str)
+                            if spec == "none"
+                                spec = { :type => "none" }
+                            else
+                                raise ConfigError, "invalid VCS specification '#{name}: #{spec}'"
+                            end
                         end
                     end
 
