@@ -294,7 +294,7 @@ def do_bootstrap(*args)
             io.write(manifest_data)
         end
 
-    elsif args.size > 2 # is a VCS definition for the manifest itself ...
+    elsif args.size >= 2 # is a VCS definition for the manifest itself ...
         do_switch_config(*args)
     end
 
