@@ -502,16 +502,34 @@ begin
                 if source.local?
                     STDERR.puts "    local source in #{source.local_dir}"
                 else
-                    STDERR.puts "    vcs:   #{source.vcs}, #{source.vcs.options.inspect}"
+                    STDERR.puts "    from:  #{source.vcs}"
                     STDERR.puts "    local: #{source.local_dir}"
                 end
 
+                lines = []
                 source.each_package.
-                    map { |pkg| pkg.name }.
-                    sort.
-                    each do |name|
-                        STDERR.puts "    #{name}"
+                    map { |pkg| [pkg.name, Autoproj.manifest.package_manifests[pkg.name]] }.
+                    sort_by { |name, _| name }.
+                    each do |name, manifest|
+                        vcs_def = Autoproj.manifest.importer_definition_for(name)
+                        if manifest
+                            lines << [name, manifest.short_documentation]
+                            lines << ["", vcs_def.to_s]
+                        else
+                            lines << [name, vcs_def.to_s]
+                        end
                     end
+
+                w_col1, w_col2 = nil
+                lines.each do |col1, col2|
+                    w_col1 = col1.size if !w_col1 || col1.size > w_col1
+                    w_col2 = col2.size if !w_col2 || col2.size > w_col2
+                end
+                STDERR.puts "    packages:"
+                format = "    | %-#{w_col1}s | %-#{w_col2}s |"
+                lines.each do |col1, col2|
+                    STDERR.puts(format % [col1, col2])
+                end
             end
         end
     end

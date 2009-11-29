@@ -95,7 +95,13 @@ module Autoproj
             Autobuild.send(type, url, options)
         end
 
-        def to_s; "#{type}:#{url}" end
+        def to_s 
+            desc = "#{type}:#{url}"
+            if !options.empty?
+                desc = "#{desc} #{options.map { |key, value| "#{key}=#{value}" }.join(" ")}"
+            end
+            desc
+        end
     end
 
     def self.vcs_definition_to_hash(spec)
@@ -650,6 +656,22 @@ module Autoproj
             end
         end
 
+        def importer_definition_for(package_name, package_source = nil)
+            if !package_source
+                _, package_source, _ = packages.values.find { |pkg, pkg_source, _| pkg.name == package_name }
+            end
+
+            each_source.each do |source|
+                vcs = source.importer_definition_for(package_name)
+                if vcs
+                    return vcs
+                elsif package_source.name == source.name
+                    return
+                end
+            end
+            nil
+        end
+
         # Sets up the package importers based on the information listed in
         # the source's source.yml 
         #
@@ -668,14 +690,7 @@ module Autoproj
         #    by S1
         def load_importers
             packages.each_value do |package, package_source, package_source_file|
-                vcs = each_source.find do |source|
-                    vcs = source.importer_definition_for(package.name)
-                    if vcs
-                        break(vcs)
-                    elsif package_source.name == source.name
-                        break
-                    end
-                end
+                vcs = importer_definition_for(package.name, package_source)
 
                 if vcs
                     Autoproj.add_build_system_dependency vcs.type
