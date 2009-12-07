@@ -96,11 +96,15 @@ module Autoproj
         end
 
         def to_s 
-            desc = "#{type}:#{url}"
-            if !options.empty?
-                desc = "#{desc} #{options.map { |key, value| "#{key}=#{value}" }.join(" ")}"
+            if type == "none"
+                "none"
+            else
+                desc = "#{type}:#{url}"
+                if !options.empty?
+                    desc = "#{desc} #{options.map { |key, value| "#{key}=#{value}" }.join(" ")}"
+                end
+                desc
             end
-            desc
         end
     end
 
