@@ -362,7 +362,7 @@ module Autoproj
                         end
                     end
 
-                    if Regexp.new(name) =~ package_name
+                    if Regexp.new("^" + name) =~ package_name
                         vcs_spec = vcs_spec.merge(spec)
                     end
                 end
