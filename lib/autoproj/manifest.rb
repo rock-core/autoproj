@@ -369,7 +369,7 @@ module Autoproj
             end
 
             if !vcs_spec.empty?
-                expansions = Hash["PACKAGE" => package_name]
+                expansions = Hash["PACKAGE" => package_name, "PACKAGE_BASENAME" => File.basename(package_name)]
 
                 vcs_spec = expand(vcs_spec, expansions)
                 vcs_spec = Autoproj.vcs_definition_to_hash(vcs_spec)
