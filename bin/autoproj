@@ -577,22 +577,31 @@ report(debug) do
     # resolve those
     selected_packages = Autoproj.manifest.expand_package_selection(selected_packages)
 
-    # This keeps a hash of package_name => layout_name for all packages that
-    # have already been handled
-    handled_packages = Hash.new
+    if only_do_status
+        Autoproj.manifest.handle_enabled_packages(selected_packages) do |name, packages, enabled_packages, handled_packages|
+            STDERR.puts
+            STDERR.puts color("autoproj: status of packages in #{name}", :bold)
+            do_status(enabled_packages)
+        end
+        exit(0)
+    end
 
-    Autoproj.manifest.each_package_set(selected_packages) do |name, packages, enabled_packages|
-        packages         -= handled_packages.keys.to_set
-        enabled_packages -= handled_packages.keys.to_set
 
-        # Here, 'packages' are the packages listed in the layout configuration,
-        # and 'enabled_packages' the ones that 
-        #
-        # They do not (yet) take into account dependency information -- this is
-        # not doable as the manifests have not been loaded yet (the packages
-        # aren't imported). We add this information later on
+    # First thing: do the import. We are handling the imports ourselves as it
+    # allows us to complete the enabled_packages set with the package
+    # dependencies. The scheme is as follows:
+    #  * we import a package, prepare it and load its manifest
+    #  * we look at its dependencies. Dependencies are either already handled
+    #    (and nothing needs to be done) or are to-be-handled at this level.
+    #    Otherwise, it is considered as an error
+    #
+    # A set of packages that need to be built is stored in the build_order array
+    build_order = Array.new
 
-        # Setup directories
+    seen = Set.new
+    Autoproj.manifest.each_package_set do |name, packages, enabled_packages|
+        packages -= seen
+
         srcdir  = File.join(Autoproj.root_dir, name)
         prefix  = File.join(Autoproj.build_dir, name)
         logdir  = File.join(prefix, "log")
@@ -604,120 +613,104 @@ report(debug) do
             pkg.logdir = logdir
         end
 
-        # We are doing a status, now is the right time. Otherwise, build ! But
-        # only if there is some packages to build (and avoid display of progress
-        # messages if there is nothing to build)
-        all_enabled_packages  = Set.new
-        STDERR.puts
-        if only_do_status
-            STDERR.puts color("autoproj: status of packages in #{name}", :bold)
-            do_status(enabled_packages)
-        elsif !enabled_packages.empty?
-            Autobuild::Reporting.report do
-                STDERR.puts
-                STDERR.puts color("autoproj: now building #{name}", :bold)
+        seen |= packages
+    end
 
-                STDERR.puts color("  updating packages", :bold)
-                # We actually have a problem there: the packages in
-                # enabled_packages are *not* taking into account dependencies as
-                # we can't load the manifests yet ...
-                #
-                # So we have to make our own dependency analysis. Fortunately
-                # (for us), there is no need to import packages in order, so we
-                # can do a simple BFS
-                #
-                # Additional benefit: it computes the set of packages 
-                packages_to_import = enabled_packages.dup
-                while !packages_to_import.empty?
-                    import_now, packages_to_import = packages_to_import, Set.new
-                    import_now.each do |pkg_name|
-                        # Already handled at another place in the layout
-                        next if handled_packages.has_key?(pkg_name)
-                        # Already handled in this part of the layout
-                        next if all_enabled_packages.include?(pkg_name)
-                        # Not handled already. Import, load the manifest, add to
-                        # all_enabled_packages and add the dependencies
-                        Rake::Task["#{pkg_name}-import"].invoke
-                        manifest.load_package_manifest(pkg_name)
-                        all_enabled_packages << pkg_name
-                        Autobuild::Package[pkg_name].dependencies.each do |dep_name|
-                            if !handled_packages.has_key?(dep_name) &&
-                                !packages.include?(dep_name)
-                                raise ConfigError, "#{pkg_name}, at #{name} in the layout, depends on #{dep_name} but this package appears in the layout neither at #{name} nor before"
-                            end
-                            packages_to_import << dep_name
-                        end
+    STDERR.puts
+    STDERR.puts color("autoproj: importing and loading selected packages", :bold)
+    all_packages         = Set.new
+    all_enabled_packages = Set.new
+    all_sublayouts       = Set.new
+    Autoproj.manifest.handle_enabled_packages(selected_packages) do |name, packages, enabled_packages, _|
+        packages -= all_enabled_packages
+        enabled_packages -= all_enabled_packages
+        all_sublayouts << name
+
+        packages_to_import = enabled_packages.dup
+        enabled_packages = Set.new
+        while !packages_to_import.empty?
+            import_now, packages_to_import = packages_to_import, Set.new
+            import_now.each do |pkg_name|
+                # Already handled in this part of the layout
+                next if enabled_packages.include?(pkg_name)
+
+                # Not handled already. Import.
+                Rake::Task["#{pkg_name}-import"].invoke
+                manifest.load_package_manifest(pkg_name)
+                all_enabled_packages << pkg_name
+
+                # Add its dependencies to the next import set
+                Autobuild::Package[pkg_name].dependencies.each do |dep_name|
+                    if !all_enabled_packages.include?(dep_name) &&
+                        !packages.include?(dep_name)
+                        raise ConfigError, "#{pkg_name}, at #{name} in the layout, depends on #{dep_name} but this package appears in the layout neither at #{name} nor before"
+                    end
+                    packages_to_import << dep_name
+                end
+            end
+            all_packages.merge(packages)
+        end
+    end
+
+    old_update_flag = Autobuild.do_update
+    begin
+        Autobuild.do_update = false
+        prepare_targets = all_packages.
+            find_all { |pkg_name| File.directory?(Autobuild::Package[pkg_name].srcdir) }.
+            map { |pkg_name| "#{pkg_name}-prepare" }
+        puts prepare_targets.inspect
+        task "autoproj-prepare" => prepare_targets
+        Rake::Task["autoproj-prepare"].invoke
+    ensure
+        Autobuild.do_update = old_update_flag
+    end
+
+    if (mode =~ /build/)
+        missing_packages = all_packages.find_all { |pkg_name| !File.directory?(Autobuild::Package[pkg_name].srcdir) }
+        if missing_packages.empty?
+            # Backward compatibility: check if name/env.sh exists, and if it is
+            # the case, simply replace it with a link to the root one. And issue
+            # a warning
+            all_sublayouts.each do |name|
+                env_file = File.join(Autoproj.root_dir, name, "env.sh")
+                if name != '/' && File.file?(env_file)
+                    File.open(env_file, 'w') do |io|
+                        io.puts "source #{Autoproj.root_dir}/env.sh"
                     end
                 end
-
-                if !no_os_deps
-                    STDERR.puts color("  installing prepackaged dependencies", :bold)
-                    manifest.install_os_dependencies(all_enabled_packages)
-                end
-
-                # And now build
-                if Autobuild.only_doc
-                    STDERR.puts color("  building and installing documentation", :bold)
-                else
-                    STDERR.puts color("  building and installing packages", :bold)
-                end
-
-                Autobuild.apply(all_enabled_packages, "autoproj-#{name}")
-                Autobuild::Reporting.success
             end
+            Autoproj.export_env_sh
+        else
+            STDERR.puts color("WARN: #{missing_packages.join(", ")} are not yet imported, #{Autoproj.root_dir}/env.sh might not be up to date", :magenta)
         end
-        
-        # Now mark them as handled
-        packages.each do |pkg_name|
-            handled_packages[pkg_name] = name
-        end
+    end
 
-        # Now call the prepare target for all packages as it may be useful for
-        # the rest of the builds and for the generation of the env.sh file
-        #
-        # Note that we don't really have to care about dependencies, but we do
-        # it anyway
-        old_update_flag = Autobuild.do_update
-        begin
-            Autobuild.do_update = false
-            Autobuild::Reporting.report do
-                prepare_targets = (packages - enabled_packages).
-                    find_all { |pkg_name| File.directory?(Autobuild::Package[pkg_name].srcdir) }.
-                    map { |pkg_name| "#{pkg_name}-prepare" }
-                task "autoproj-#{name}-prepare" => prepare_targets
-                Rake::Task["autoproj-#{name}-prepare"].invoke
-            end
-        ensure
-            Autobuild.do_update = old_update_flag
+    if !no_os_deps
+        if !all_enabled_packages.empty?
+            STDERR.puts color("autoproj: installing prepackaged dependencies", :bold)
+            manifest.install_os_dependencies(all_enabled_packages)
         end
+    end
 
-        if (mode == "build" || mode == "fast-build")
-            if packages.all? { |pkg_name| File.directory?(Autobuild::Package[pkg_name].srcdir) }
-                all_env_sh << name
-                Autoproj.export_env_sh(name)
-            else
-                STDERR.puts color("WARN: #{name} has not been completely built, #{name}env.sh is not updated", :magenta)
-            end
+    if all_enabled_packages.empty?
+        STDERR.puts color("autoproj: nothing to do", :bold)
+    else
+        if Autobuild.only_doc
+            STDERR.puts color("autoproj: building and installing documentation", :bold)
+        else
+            STDERR.puts color("autoproj: building and installing packages", :bold)
         end
+        Autobuild.apply(all_enabled_packages, "autoproj-build")
+    end
 
+    prefixes = all_enabled_packages.inject(Set.new) do |set, pkg_name|
+        set << Autobuild::Package[pkg_name].prefix
+    end
+    prefixes.each do |prefix|
         libdir = File.join(prefix, "lib")
         if File.directory?(libdir)
             Autoproj.validate_solib_dependencies(libdir)
         end
-    end
-
-    if !all_env_sh.empty?
-        STDERR.puts <<-EOTEXT
-
-
-add the following lines at the bottom of your .bashrc:
-  #{all_env_sh.map { |name| "source #{Dir.pwd}#{name}env.sh" }.join("\n  ")}
-
-WARNING: autoproj will not work until your restart all
-your consoles, or run the following in them:
-  #{all_env_sh.map { |name| "$ source #{Dir.pwd}#{name}env.sh" }.join("\n  ")}
-
-        EOTEXT
     end
 end
 

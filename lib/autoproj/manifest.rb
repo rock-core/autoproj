@@ -758,7 +758,7 @@ module Autoproj
 
         # Looks into the layout setup in the manifest, and yields each layout
         # and sublayout in order
-        def each_package_set(selection, layout_name = '/', layout_def = data['layout'], &block)
+        def each_package_set(selection = nil, layout_name = '/', layout_def = data['layout'], &block)
             if !layout_def
                 yield(layout_name, default_packages, default_packages)
                 return nil
@@ -783,6 +783,36 @@ module Autoproj
             # Now, enumerate the sublayouts
             each_sublayout(layout_def) do |subname, sublayout|
                 each_package_set(selection, "#{layout_name}#{subname}/", sublayout, &block)
+            end
+        end
+
+        def in_sublayout(name, packages)
+            srcdir  = File.join(Autoproj.root_dir, name)
+            prefix  = File.join(Autoproj.build_dir, name)
+            logdir  = File.join(prefix, "log")
+            Autobuild.logdir = logdir
+            packages.each do |pkg_name|
+                pkg = Autobuild::Package[pkg_name]
+                pkg.srcdir = File.join(srcdir, pkg_name)
+                pkg.prefix = prefix
+                pkg.logdir = logdir
+            end
+
+            yield
+        end
+
+        def handle_enabled_packages(selected_packages)
+            handled_packages = Set.new
+            each_package_set(selected_packages) do |name, packages, enabled_packages|
+                packages         -= handled_packages
+                enabled_packages -= handled_packages
+
+                in_sublayout(name, packages) do
+                    if !packages.empty?
+                        yield(name, packages, enabled_packages)
+                    end
+                end
+                handled_packages |= packages
             end
         end
 

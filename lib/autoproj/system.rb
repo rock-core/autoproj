@@ -53,8 +53,14 @@ module Autoproj
         Autoproj.env_set 'LD_LIBRARY_PATH'
     end
 
-    def self.export_env_sh(subdir)
-        File.open(File.join(Autoproj.root_dir, subdir, "env.sh"), "w") do |io|
+    def self.export_env_sh(subdir = nil)
+        filename = if subdir
+                       File.join(Autoproj.root_dir, subdir, "env.sh")
+                   else
+                       File.join(Autoproj.root_dir, "env.sh")
+                   end
+
+        File.open(filename, "w") do |io|
             Autobuild.environment.each do |name, value|
                 shell_line = "export #{name}=#{value.join(":")}"
                 if Autoproj.env_inherit?(name)
