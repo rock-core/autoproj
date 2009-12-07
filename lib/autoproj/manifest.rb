@@ -588,7 +588,6 @@ module Autoproj
             end
             if load_description
                 if !local.empty?
-                    yield(local)
                     @sources = [local]
                 else
                     @sources = []
@@ -603,8 +602,13 @@ module Autoproj
                 source = source_from_spec(spec, load_description)
                 if load_description
                     @sources << source
+                else
+                    yield(source)
                 end
-                yield(source)
+            end
+
+            if load_description
+                @sources.each(&block)
             end
         end
 
