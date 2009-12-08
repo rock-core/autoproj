@@ -658,7 +658,6 @@ report(debug) do
         prepare_targets = all_packages.
             find_all { |pkg_name| File.directory?(Autobuild::Package[pkg_name].srcdir) }.
             map { |pkg_name| "#{pkg_name}-prepare" }
-        puts prepare_targets.inspect
         task "autoproj-prepare" => prepare_targets
         Rake::Task["autoproj-prepare"].invoke
     ensure
