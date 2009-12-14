@@ -698,7 +698,7 @@ report(debug) do
 
     if all_enabled_packages.empty?
         STDERR.puts color("autoproj: nothing to do", :bold)
-    else
+    elsif Autobuild.do_build
         if Autobuild.only_doc
             STDERR.puts color("autoproj: building and installing documentation", :bold)
         else
