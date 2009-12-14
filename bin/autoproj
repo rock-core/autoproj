@@ -126,50 +126,55 @@ def do_status(packages)
     packages.sort.each do |pkg|
         pkg = Autobuild::Package[pkg]
 
+        lines = []
+
         if !pkg.importer.respond_to?(:status)
             # This importer does not support status display
-            STDERR.puts color("  this package's importer does not support status display", :bold, :red)
+            STDERR.puts color("  the importer of #{pkg.name} does not support status display (#{pkg.importer.class.name})", :bold, :red)
             next
         end
 
-        lines = []
-        status = pkg.importer.status(pkg)
-        if status.uncommitted_code
-            lines << color("  contains uncommitted modifications", :red)
-        end
+        if !File.directory?(pkg.srcdir)
+            lines << color("  is not imported yet", :magenta)
+        else
+            status = pkg.importer.status(pkg)
+            if status.uncommitted_code
+                lines << color("  contains uncommitted modifications", :red)
+            end
 
-        case status.status
-        when Autobuild::Importer::Status::UP_TO_DATE
-            if !status.uncommitted_code
-                if last_was_in_sync
-                    STDERR.print ", #{pkg.name}"
+            case status.status
+            when Autobuild::Importer::Status::UP_TO_DATE
+                if !status.uncommitted_code
+                    if last_was_in_sync
+                        STDERR.print ", #{pkg.name}"
+                    else
+                        STDERR.print pkg.name
+                    end
+                    last_was_in_sync = true
+                    next
                 else
-                    STDERR.print pkg.name
+                    lines << color("  local and remote are in sync", :green)
                 end
-                last_was_in_sync = true
-                next
-            else
-                lines << color("  local and remote are in sync", :green)
-            end
-        when Autobuild::Importer::Status::ADVANCED
-            lines << color("  local contains #{status.local_commits.size} commit that remote does not have:", :magenta)
-            status.local_commits.each do |line|
-                lines << color("    #{line}", :magenta)
-            end
-        when Autobuild::Importer::Status::SIMPLE_UPDATE
-            lines << color("  remote contains #{status.remote_commits.size} commit that local does not have:", :magenta)
-            status.remote_commits.each do |line|
-                lines << color("    #{line}", :magenta)
-            end
-        when Autobuild::Importer::Status::NEEDS_MERGE
-            lines << color("  local and remote have diverged with respectively #{status.local_commits.size} and #{status.remote_commits.size} commits each", :magenta)
-            lines << "  -- local commits --"
-            status.local_commits.each do |line|
-                lines << color("   #{line}", :magenta)
-            end
-            lines << "  -- remote commits --"
-            status.remote_commits.each do |line|
-                lines << color("   #{line}", :magenta)
+            when Autobuild::Importer::Status::ADVANCED
+                lines << color("  local contains #{status.local_commits.size} commit that remote does not have:", :magenta)
+                status.local_commits.each do |line|
+                    lines << color("    #{line}", :magenta)
+                end
+            when Autobuild::Importer::Status::SIMPLE_UPDATE
+                lines << color("  remote contains #{status.remote_commits.size} commit that local does not have:", :magenta)
+                status.remote_commits.each do |line|
+                    lines << color("    #{line}", :magenta)
+                end
+            when Autobuild::Importer::Status::NEEDS_MERGE
+                lines << color("  local and remote have diverged with respectively #{status.local_commits.size} and #{status.remote_commits.size} commits each", :magenta)
+                lines << "  -- local commits --"
+                status.local_commits.each do |line|
+                    lines << color("   #{line}", :magenta)
+                end
+                lines << "  -- remote commits --"
+                status.remote_commits.each do |line|
+                    lines << color("   #{line}", :magenta)
+                end
             end
         end
 

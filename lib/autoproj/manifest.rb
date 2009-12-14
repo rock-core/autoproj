@@ -177,7 +177,9 @@ module Autoproj
         # True if this source defines nothing
         def empty?
             !source_definition['version_control'] &&
-                !each_package.find { true }
+                !each_package.find { true } &&
+                !File.exists?(File.join(local_dir, "overrides.rb")) &&
+                !File.exists?(File.join(local_dir, "init.rb"))
         end
 
         # The directory in which data for this source will be checked out
