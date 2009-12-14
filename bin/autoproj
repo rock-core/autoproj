@@ -627,9 +627,6 @@ report(debug) do
     #    (and nothing needs to be done) or are to-be-handled at this level.
     #    Otherwise, it is considered as an error
     #
-    # A set of packages that need to be built is stored in the build_order array
-    build_order = Array.new
-
     seen = Set.new
     Autoproj.manifest.each_package_set do |name, packages, enabled_packages|
         packages -= seen
