@@ -44,5 +44,9 @@ lsb_release:
     debian,ubuntu: lsb-release
     gentoo: sys-apps/lsb-release
     
+archive:
+    debian,ubuntu: [tar, unzip]
+    gentoo: [app-arch/tar, app-arch/unzip]
+
 # vim: expandtab
 
