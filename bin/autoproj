@@ -245,7 +245,7 @@ def do_switch_config(*args)
     # Install the OS dependencies required for this VCS
     osdeps = Autoproj::OSDependencies.load_default
     osdeps.install([vcs.type])
-    Autoproj::Manifest.import_whole_installation(vcs, File.join(Dir.pwd, "autoproj"))
+    Autoproj::Manifest.update_source(vcs, "autoproj main configuration", File.join(Dir.pwd, "autoproj"))
 
     # Now write it in the config file
     File.open(File.join(Autoproj.config_dir, "config.yml"), "a") do |io|

@@ -427,7 +427,13 @@ module Autoproj
     end
 
     class Manifest
-        FakePackage = Struct.new :name, :srcdir
+        FakePackage = Struct.new :name, :srcdir, :importer
+        class FakePackage
+            def import
+                importer.import(self)
+            end
+        end
+
 	def self.load(file)
             begin
                 data = YAML.load(File.read(file))
@@ -634,35 +640,53 @@ module Autoproj
             packages.each_value { |package, _| yield(package) }
         end
 
-        def self.update_remote_source(source)
-            importer     = source.vcs.create_autobuild_importer
-            return if !importer # updates  have been disabled 
-            fake_package = FakePackage.new(source.automatic_name, source.local_dir)
+        # The VCS object for the main configuration itself
+        attr_reader :vcs
 
-            importer.import(fake_package)
-        rescue Autobuild::ConfigException => e
-            raise ConfigError, e.message, e.backtrace
+        def each_configuration_source
+            if !block_given?
+                return enum_for(:each_configuration_source)
+            end
+
+            if vcs
+                yield(vcs, "autoproj main configuration", Autoproj.config_dir)
+            end
+
+            each_remote_source(false) do |source|
+                yield(source.vcs, source.automatic_name, source.local_dir)
+            end
+            self
         end
 
-        attr_reader :vcs
-        def self.import_whole_installation(vcs, into)
+        def self.create_autobuild_package(vcs, name, into)
             importer     = vcs.create_autobuild_importer
-            return if !importer # updates  have been disabled 
-            fake_package = FakePackage.new('autoproj main configuration', into)
-            importer.import(fake_package)
+            return if !importer # updates have been disabled by using the 'none' type
+
+            fake_package = FakePackage.new(name, into)
+            fake_package.importer = importer
+            fake_package
+
         rescue Autobuild::ConfigException => e
-            raise ConfigError, "cannot import autoproj configuration: #{e.message}", e.backtrace
+            raise ConfigError, "cannot import #{name}: #{e.message}", e.backtrace
+        end
+
+        def self.update_source(vcs, name, into)
+            fake_package = create_autobuild_package(vcs, name, into)
+            fake_package.import
+
+        rescue Autobuild::ConfigException => e
+            raise ConfigError, "cannot import #{name}: #{e.message}", e.backtrace
         end
 
         def update_yourself
-            Manifest.import_whole_installation(vcs, Autoproj.config_dir)
+            Manifest.update_source(vcs, "autoproj main configuration", Autoproj.config_dir)
         end
 
         def update_remote_sources
             # Iterate on the remote sources, without loading the source.yml
             # file (we're not ready for that yet)
             each_remote_source(false) do |source|
-                Manifest.update_remote_source(source)
+                Manifest.update_source(source.vcs, source.automatic_name, source.local_dir)
             end
         end
 
