@@ -660,7 +660,7 @@ report(debug) do
         packages_to_import = enabled_packages.dup.to_set
         while !packages_to_import.empty?
             import_now, packages_to_import = packages_to_import, Set.new
-            import_now.each do |pkg_name|
+            import_now.sort.each do |pkg_name|
                 # Already handled in this part of the layout
                 next if all_enabled_packages.include?(pkg_name)
 
