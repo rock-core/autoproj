@@ -1,6 +1,12 @@
 require 'autobuild'
 require 'set'
 
+class Autobuild::Package
+    def autoproj_name
+        srcdir.gsub /^#{Regexp.quote(Autoproj.root_dir)}\//, ''
+    end
+end
+
 module Autoproj
     class Reporter < Autobuild::Reporter
         def error(error)

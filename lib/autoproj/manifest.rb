@@ -429,6 +429,7 @@ module Autoproj
     class Manifest
         FakePackage = Struct.new :name, :srcdir, :importer
         class FakePackage
+            def autoproj_name; name end
             def import
                 importer.import(self)
             end

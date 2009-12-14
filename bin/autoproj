@@ -129,7 +129,9 @@ def do_status(packages)
             Autoproj::Manifest.create_autobuild_package(vcs, name, local_dir)
         end
 
-    packages = packages.sort.map { |pkg_name| Autobuild::Package[pkg_name] }
+    packages = packages.sort.map do |pkg_name|
+        Autobuild::Package[pkg_name]
+    end
     sources.concat(packages)
 
     sources.each do |pkg|
@@ -137,7 +139,7 @@ def do_status(packages)
 
         if !pkg.importer.respond_to?(:status)
             # This importer does not support status display
-            STDERR.puts color("  the importer of #{pkg.name} does not support status display (#{pkg.importer.class.name})", :bold, :red)
+            STDERR.puts color("  the importer of #{pkg.autoproj_name} does not support status display (#{pkg.importer.class.name})", :bold, :red)
             next
         end
 
@@ -153,9 +155,9 @@ def do_status(packages)
             when Autobuild::Importer::Status::UP_TO_DATE
                 if !status.uncommitted_code
                     if last_was_in_sync
-                        STDERR.print ", #{pkg.name}"
+                        STDERR.print ", #{pkg.autoproj_name}"
                     else
-                        STDERR.print pkg.name
+                        STDERR.print pkg.autoproj_name
                     end
                     last_was_in_sync = true
                     next
@@ -190,7 +192,7 @@ def do_status(packages)
         end
 
         last_was_in_sync = false
-        STDERR.print "#{pkg.name}:"
+        STDERR.print "#{pkg.autoproj_name}:"
 
         if lines.size == 1
             STDERR.puts lines.first
@@ -588,6 +590,22 @@ report(debug) do
     # First, we allow to user to specify packages based on disk paths, so
     # resolve those
     selected_packages = Autoproj.manifest.expand_package_selection(selected_packages)
+    seen = Set.new
+    Autoproj.manifest.each_package_set do |name, packages, enabled_packages|
+        packages -= seen
+
+        srcdir  = File.join(Autoproj.root_dir, name)
+        prefix  = File.join(Autoproj.build_dir, name)
+        logdir  = File.join(prefix, "log")
+        Autobuild.logdir = logdir
+        packages.each do |pkg_name|
+            pkg = Autobuild::Package[pkg_name]
+            pkg.srcdir = File.join(srcdir, pkg_name)
+            pkg.prefix = prefix
+            pkg.logdir = logdir
+        end
+        seen |= packages
+    end
 
     if only_do_status
         STDERR.puts
@@ -615,17 +633,6 @@ report(debug) do
     seen = Set.new
     Autoproj.manifest.each_package_set do |name, packages, enabled_packages|
         packages -= seen
-
-        srcdir  = File.join(Autoproj.root_dir, name)
-        prefix  = File.join(Autoproj.build_dir, name)
-        logdir  = File.join(prefix, "log")
-        Autobuild.logdir = logdir
-        packages.each do |pkg_name|
-            pkg = Autobuild::Package[pkg_name]
-            pkg.srcdir = File.join(srcdir, pkg_name)
-            pkg.prefix = prefix
-            pkg.logdir = logdir
-        end
 
         old_update_flag = Autobuild.do_update
         begin
