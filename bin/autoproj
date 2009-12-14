@@ -121,11 +121,18 @@ end
 
 def do_status(packages)
     console = Autoproj.console
-
+    
     last_was_in_sync = false
-    packages.sort.each do |pkg|
-        pkg = Autobuild::Package[pkg]
 
+    sources = Autoproj.manifest.each_configuration_source.
+        map do |vcs, name, local_dir|
+            Autoproj::Manifest.create_autobuild_package(vcs, name, local_dir)
+        end
+
+    packages = packages.sort.map { |pkg_name| Autobuild::Package[pkg_name] }
+    sources.concat(packages)
+
+    sources.each do |pkg|
         lines = []
 
         if !pkg.importer.respond_to?(:status)
@@ -618,6 +625,19 @@ report(debug) do
             pkg.logdir = logdir
         end
 
+        old_update_flag = Autobuild.do_update
+        begin
+            Autobuild.do_update = false
+            packages.each do |pkg_name|
+                pkg = Autobuild::Package[pkg_name]
+                if File.directory?(pkg.srcdir)
+                    Rake::Task["#{pkg_name}-import"].invoke
+                end
+            end
+        ensure
+            Autobuild.do_update = old_update_flag
+        end
+
         seen |= packages
     end
 
@@ -627,28 +647,28 @@ report(debug) do
     all_enabled_packages = Set.new
     all_sublayouts       = Set.new
     Autoproj.manifest.handle_enabled_packages(selected_packages) do |name, packages, enabled_packages, _|
-        packages -= all_enabled_packages
+        packages         -= all_enabled_packages
         enabled_packages -= all_enabled_packages
         all_sublayouts << name
 
-        packages_to_import = enabled_packages.dup
-        enabled_packages = Set.new
+        packages_to_import = enabled_packages.dup.to_set
         while !packages_to_import.empty?
             import_now, packages_to_import = packages_to_import, Set.new
             import_now.each do |pkg_name|
                 # Already handled in this part of the layout
-                next if enabled_packages.include?(pkg_name)
+                next if all_enabled_packages.include?(pkg_name)
 
                 # Not handled already. Import.
-                Rake::Task["#{pkg_name}-import"].invoke
+                Autobuild::Package[pkg_name].import
                 manifest.load_package_manifest(pkg_name)
                 all_enabled_packages << pkg_name
 
                 # Add its dependencies to the next import set
                 Autobuild::Package[pkg_name].dependencies.each do |dep_name|
-                    if !all_enabled_packages.include?(dep_name) &&
-                        !packages.include?(dep_name)
-                        raise ConfigError, "#{pkg_name}, at #{name} in the layout, depends on #{dep_name} but this package appears in the layout neither at #{name} nor before"
+                    if !Autobuild::Package[dep_name]
+                        raise ConfigError, "#{pkg_name} depends on #{dep_name}, but it does not seem to exist"
+                    elsif all_enabled_packages.include?(dep_name)
+                        next
                     end
                     packages_to_import << dep_name
                 end
