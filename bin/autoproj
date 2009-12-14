@@ -590,11 +590,13 @@ report(debug) do
     selected_packages = Autoproj.manifest.expand_package_selection(selected_packages)
 
     if only_do_status
-        Autoproj.manifest.handle_enabled_packages(selected_packages) do |name, packages, enabled_packages, handled_packages|
-            STDERR.puts
-            STDERR.puts color("autoproj: status of packages in #{name}", :bold)
-            do_status(enabled_packages)
+        STDERR.puts
+        packages = Set.new
+        STDERR.puts color("autoproj: displaying status", :bold)
+        Autoproj.manifest.handle_enabled_packages(selected_packages) do |name, packages, enabled_packages|
+            packages |= enabled_packages
         end
+        do_status(packages)
         exit(0)
     end
 
