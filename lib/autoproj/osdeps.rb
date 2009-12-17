@@ -196,7 +196,7 @@ module Autoproj
                 end
                 Autobuild.progress "installing/updating OS dependencies: #{osdeps.join(", ")}"
                 begin
-                    Autobuild::Subprocess.run 'autoproj', 'osdeps', 'bash', './osdeps.sh'
+                    Autobuild::Subprocess.run 'autoproj', 'osdeps', '/bin/bash', File.expand_path('osdeps.sh')
                 ensure
                     FileUtils.rm_f 'osdeps.sh'
                 end
