@@ -90,22 +90,22 @@ Additional options:
         exit
     end
     opts.on("--mail-from EMAIL", String, "From: field of the sent mails") do |from_email|
-        mail[:from] = from_email
+        mail_config[:from] = from_email
     end
     opts.on("--mail-to EMAILS", String, "comma-separated list of emails to which the reports should be sent") do |emails| 
-        mail[:to] ||= []
-        mail[:to] += emails.split(',')
+        mail_config[:to] ||= []
+        mail_config[:to] += emails.split(',')
     end
     opts.on("--mail-subject SUBJECT", String, "Subject: field of the sent mails") do |subject_email|
-        mail[:subject] = subject_email
+        mail_config[:subject] = subject_email
     end
     opts.on("--mail-smtp HOSTNAME", String, " address of the mail server written as hostname[:port]") do |smtp|
         raise "invalid SMTP specification #{smtp}" unless smtp =~ /^([^:]+)(?::(\d+))?$/
-            mail[:smtp] = $1
-        mail[:port] = Integer($2) if $2 && !$2.empty?
+            mail_config[:smtp] = $1
+        mail_config[:port] = Integer($2) if $2 && !$2.empty?
     end
     opts.on("--mail-only-errors", "send mail only on errors") do
-        mail[:only_errors] = true
+        mail_config[:only_errors] = true
     end
 end
 
@@ -401,7 +401,7 @@ begin
     Autobuild.doc_errors = false
     Autobuild.do_doc = false
     if mail_config[:to]
-        Autobuild::Reporting << MailReporter.new(mail_config)
+        Autobuild::Reporting << Autobuild::MailReporter.new(mail_config)
     end
 
     # First things first, see if we need to update ourselves
