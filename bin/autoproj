@@ -119,22 +119,10 @@ def color(*args)
     Autoproj.console.color(*args)
 end
 
-def do_status(packages)
-    console = Autoproj.console
-    
+def display_status(packages)
     last_was_in_sync = false
 
-    sources = Autoproj.manifest.each_configuration_source.
-        map do |vcs, name, local_dir|
-            Autoproj::Manifest.create_autobuild_package(vcs, name, local_dir)
-        end
-
-    packages = packages.sort.map do |pkg_name|
-        Autobuild::Package[pkg_name]
-    end
-    sources.concat(packages)
-
-    sources.each do |pkg|
+    packages.each do |pkg|
         lines = []
 
         if !pkg.importer.respond_to?(:status)
@@ -192,7 +180,11 @@ def do_status(packages)
         end
 
         last_was_in_sync = false
-        STDERR.print "#{pkg.autoproj_name}:"
+        if pkg.respond_to?(:text_name)
+            STDERR.print "#{pkg.text_name}:"
+        else
+            STDERR.print "#{pkg.autoproj_name}:"
+        end
 
         if lines.size == 1
             STDERR.puts lines.first
@@ -204,6 +196,28 @@ def do_status(packages)
     if last_was_in_sync
         STDERR.puts color(": local and remote are in sync", :green)
     end
+end
+def do_status(packages)
+    console = Autoproj.console
+    
+    sources = Autoproj.manifest.each_configuration_source.
+        map do |vcs, text_name, pkg_name, local_dir|
+            Autoproj::Manifest.create_autobuild_package(vcs, text_name, pkg_name, local_dir)
+        end
+
+    if !sources.empty?
+        STDERR.puts color("autoproj: displaying status of configuration", :bold)
+        display_status(sources)
+        STDERR.puts
+    end
+
+
+    STDERR.puts color("autoproj: displaying status of packages", :bold)
+    packages = packages.sort.map do |pkg_name|
+        Autobuild::Package[pkg_name]
+    end
+    display_status(packages)
+
 end
 
 def switch_config(*args)

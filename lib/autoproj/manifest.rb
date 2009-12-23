@@ -427,11 +427,25 @@ module Autoproj
     end
 
     class Manifest
-        FakePackage = Struct.new :name, :srcdir, :importer
+        FakePackage = Struct.new :text_name, :name, :srcdir, :importer
         class FakePackage
             def autoproj_name; name end
             def import
                 importer.import(self)
+            end
+
+            def progress(msg)
+                Autobuild.progress(msg % [text_name])
+            end
+
+            # Display a progress message, and later on update it with a progress
+            # value. %s in the string is replaced by the package name
+            def progress_with_value(msg)
+                Autobuild.progress_with_value(msg % [text_name])
+            end
+
+            def progress_value(value)
+                Autobuild.progress_value(value)
             end
         end
 
@@ -650,20 +664,20 @@ module Autoproj
             end
 
             if vcs
-                yield(vcs, "autoproj main configuration", Autoproj.config_dir)
+                yield(vcs, "autoproj main configuration", "autoproj_config", Autoproj.config_dir)
             end
 
             each_remote_source(false) do |source|
-                yield(source.vcs, source.automatic_name, source.local_dir)
+                yield(source.vcs, source.name || source.vcs.url, source.automatic_name, source.local_dir)
             end
             self
         end
 
-        def self.create_autobuild_package(vcs, name, into)
+        def self.create_autobuild_package(vcs, text_name, pkg_name, into)
             importer     = vcs.create_autobuild_importer
             return if !importer # updates have been disabled by using the 'none' type
 
-            fake_package = FakePackage.new(name, into)
+            fake_package = FakePackage.new(text_name, pkg_name, into)
             fake_package.importer = importer
             fake_package
 
@@ -671,8 +685,8 @@ module Autoproj
             raise ConfigError, "cannot import #{name}: #{e.message}", e.backtrace
         end
 
-        def self.update_source(vcs, name, into)
-            fake_package = create_autobuild_package(vcs, name, into)
+        def self.update_source(vcs, text_name, pkg_name, into)
+            fake_package = create_autobuild_package(vcs, text_name, pkg_name, into)
             fake_package.import
 
         rescue Autobuild::ConfigException => e
@@ -680,14 +694,14 @@ module Autoproj
         end
 
         def update_yourself
-            Manifest.update_source(vcs, "autoproj main configuration", Autoproj.config_dir)
+            Manifest.update_source(vcs, "autoproj main configuration", "autoproj_conf", Autoproj.config_dir)
         end
 
         def update_remote_sources
             # Iterate on the remote sources, without loading the source.yml
             # file (we're not ready for that yet)
             each_remote_source(false) do |source|
-                Manifest.update_source(source.vcs, source.automatic_name, source.local_dir)
+                Manifest.update_source(source.vcs, source.name || source.vcs.url, source.automatic_name, source.local_dir)
             end
         end
 
