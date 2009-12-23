@@ -624,12 +624,11 @@ report(debug) do
 
     if only_do_status
         STDERR.puts
-        packages = Set.new
-        STDERR.puts color("autoproj: displaying status", :bold)
-        Autoproj.manifest.handle_enabled_packages(selected_packages) do |name, packages, enabled_packages|
-            packages |= enabled_packages
+        all_packages = Set.new
+        Autoproj.manifest.handle_enabled_packages(selected_packages) do |name, _, layout_enabled|
+            all_packages |= layout_enabled
         end
-        do_status(packages)
+        do_status(all_packages)
         exit(0)
     end
 
