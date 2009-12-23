@@ -363,6 +363,9 @@ rescue Interrupt
     end
 end
 
+Autobuild.doc_errors = false
+Autobuild.do_doc = false
+
 # Find the autoproj root dir
 report(debug) do
     case mode
@@ -441,8 +444,6 @@ report(debug) do
     Autobuild.prefix  = Autoproj.build_dir
     Autobuild.srcdir  = root_dir
     Autobuild.logdir = File.join(Autobuild.prefix, 'log')
-    Autobuild.doc_errors = false
-    Autobuild.do_doc = false
     if mail_config[:to]
         Autobuild::Reporting << MailReporter.new(mail_config)
     end
