@@ -1,9 +1,13 @@
 # List of VCS information or subdirectories of autoproj/ in which to find
 # package set definitions.
 package_sets:
-# Example from the RubyInMotion orocos package set
+# Examples from the RubyInMotion package sets
+#   - type: git
+#     url: git://github.com/doudou/rubim.base.git
 #   - type: git
 #     url: git://github.com/doudou/rubim.orocos.git
+#   - type: git
+#     url: git://github.com/doudou/rubim.drivers.git
 
 # The layout section specifies what to build, and where to build it (as a
 # subdirectory of the root installation directory). In the example below, all
