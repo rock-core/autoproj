@@ -739,6 +739,8 @@ report(debug) do
         end
 
         Autobuild.apply(all_enabled_packages, "autoproj-build")
+    elsif !no_os_deps
+        manifest.install_os_dependencies(all_enabled_packages)
     end
 
     prefixes = all_enabled_packages.inject(Set.new) do |set, pkg_name|
