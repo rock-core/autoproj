@@ -472,16 +472,15 @@ report(debug) do
             set << source.vcs.type if !source.local?
         end
 
-    # If we need to install some packages to import our remote sources, do it
-    if !no_os_deps && !source_os_dependencies.empty?
-        STDERR.puts color("autoproj: installing prepackaged dependencies to access the source definitions", :bold)
-        osdeps = manifest.known_os_packages
-        osdeps.install(source_os_dependencies)
-    end
-
     # Update the remote sources if there are any
     if manifest.has_remote_sources?
         STDERR.puts color("autoproj: updating remote definitions of package sets", :bold)
+        # If we need to install some packages to import our remote sources, do it
+        if !no_os_deps
+            osdeps = manifest.known_os_packages
+            osdeps.install(source_os_dependencies)
+        end
+
         manifest.update_remote_sources
         STDERR.puts
     end
@@ -493,7 +492,7 @@ report(debug) do
     end
 
     # Load the required autobuild definitions
-    STDERR.puts color("autoproj: loading build files and configuring build", :bold)
+    STDERR.puts color("autoproj: loading ...", :bold)
     if !Autoproj.reconfigure?
         STDERR.puts color("run 'autoproj --reconfigure' to change configuration values", :bold)
     end
@@ -591,14 +590,6 @@ report(debug) do
     end
     selected_packages = selected_packages.to_set
 
-    # Install prepackaged dependencies needed to import and build the packages
-    if !no_os_deps
-        STDERR.puts
-        STDERR.puts color("autoproj: installing prepackaged dependencies for build system & version control", :bold)
-        osdeps = manifest.known_os_packages
-        osdeps.install(Autoproj.build_system_dependencies - source_os_dependencies)
-    end
-
     # Now starts a different stage of the whole build. Until now, we were
     # working on the whole package set. Starting from now, we need to build the
     # package sets based on the layout file
@@ -633,6 +624,14 @@ report(debug) do
         exit(0)
     end
 
+    STDERR.puts
+    STDERR.puts color("autoproj: importing and loading selected packages", :bold)
+
+    # Install prepackaged dependencies needed to import and build the packages
+    if !no_os_deps
+        osdeps = manifest.known_os_packages
+        osdeps.install(Autoproj.build_system_dependencies - source_os_dependencies)
+    end
 
     # First thing: do the import. We are handling the imports ourselves as it
     # allows us to complete the enabled_packages set with the package
@@ -662,8 +661,6 @@ report(debug) do
         seen |= packages
     end
 
-    STDERR.puts
-    STDERR.puts color("autoproj: importing and loading selected packages", :bold)
     all_packages         = Set.new
     all_enabled_packages = Set.new
     all_sublayouts       = Set.new
@@ -726,7 +723,7 @@ report(debug) do
         Autoproj.export_env_sh
         STDERR.puts color("autoproj: updated #{Autoproj.root_dir}/env.sh", :green)
     else
-        STDERR.puts color("WARN: #{missing_packages.join(", ")} are not yet imported, #{Autoproj.root_dir}/env.sh might not be up to date", :red)
+        STDERR.puts color("autoproj: #{missing_packages.join(", ")} are not yet imported, #{Autoproj.root_dir}/env.sh might not be up to date", :red)
     end
 
     if all_enabled_packages.empty?
@@ -737,6 +734,11 @@ report(debug) do
         else
             STDERR.puts color("autoproj: building and installing packages", :bold)
         end
+
+        if !no_os_deps
+            manifest.install_os_dependencies(all_enabled_packages)
+        end
+
         Autobuild.apply(all_enabled_packages, "autoproj-build")
     end
 
