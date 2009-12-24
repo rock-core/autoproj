@@ -13,12 +13,14 @@ module Autoproj
         end
         AUTOPROJ_OSDEPS = File.join(File.expand_path(File.dirname(__FILE__)), 'default.osdeps')
         def self.load_default
-            OSDependencies.load(AUTOPROJ_OSDEPS)
+            @default_osdeps ||= OSDependencies.load(AUTOPROJ_OSDEPS)
         end
 
         attr_reader :definitions
+        attr_reader :gem_fetcher
         def initialize(defs = Hash.new)
             @definitions = defs.to_hash
+            @gem_fetcher = Gem::SpecFetcher.fetcher
         end
 
         def merge(info)
@@ -203,21 +205,22 @@ module Autoproj
                 did_something ||= true
             end
 
-            # Don't install gems that are already there ...
-            gems.delete_if do |name|
-                version_requirements = Gem::Requirement.default
-                installed = Gem.source_index.find_name(name, version_requirements)
-                if !installed.empty? && Autobuild.do_update
-                    # Look if we can update the package ...
-                    dep = Gem::Dependency.new(name, version_requirements)
-                    remote   = Gem::SpecFetcher.fetcher
-                    available = remote.find_matching(dep)
-                    installed_version = installed.map(&:version).max
-                    available_version = available.map { |(name, v), source| v }.max
-                    needs_update = (available_version > installed_version)
-                    !needs_update
-                else
-                    !installed.empty?
+            if !gems.empty?
+                # Don't install gems that are already there ...
+                gems.delete_if do |name|
+                    version_requirements = Gem::Requirement.default
+                    installed = Gem.source_index.find_name(name, version_requirements)
+                    if !installed.empty? && Autobuild.do_update
+                        # Look if we can update the package ...
+                        dep = Gem::Dependency.new(name, version_requirements)
+                        available = @gem_fetcher.find_matching(dep)
+                        installed_version = installed.map(&:version).max
+                        available_version = available.map { |(name, v), source| v }.max
+                        needs_update = (available_version > installed_version)
+                        !needs_update
+                    else
+                        !installed.empty?
+                    end
                 end
             end
 
