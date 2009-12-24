@@ -517,7 +517,7 @@ report(debug) do
     if Autoproj.verbose
         # List defined packages, and in which autobuild files they are defined
         STDERR.puts "Available packages:"
-        Autoproj.manifest.packages.each_value do |package, source, file|
+        manifest.packages.each_value do |package, source, file|
             STDERR.puts "  #{package.name}: #{file} from #{source.name}"
         end
     end
@@ -546,12 +546,12 @@ report(debug) do
 
                 lines = []
                 source.each_package.
-                    map { |pkg| [pkg.name, Autoproj.manifest.package_manifests[pkg.name]] }.
+                    map { |pkg| [pkg.name, manifest.package_manifests[pkg.name]] }.
                     sort_by { |name, _| name }.
-                    each do |name, manifest|
-                        vcs_def = Autoproj.manifest.importer_definition_for(name)
-                        if manifest
-                            lines << [name, manifest.short_documentation]
+                    each do |name, source_manifest|
+                        vcs_def = manifest.importer_definition_for(name)
+                        if source_manifest
+                            lines << [name, source_manifest.short_documentation]
                             lines << ["", vcs_def.to_s]
                         else
                             lines << [name, vcs_def.to_s]
@@ -578,7 +578,7 @@ report(debug) do
     # Create the build target from the manifest if the user did not provide an
     # explicit one
     if selected_packages.empty?
-        selected_packages = Autoproj.manifest.default_packages
+        selected_packages = manifest.default_packages
     end
     if Autoproj.verbose
         STDERR.puts "will install #{selected_packages.to_a.join(", ")}"
@@ -596,9 +596,9 @@ report(debug) do
     #
     # First, we allow to user to specify packages based on disk paths, so
     # resolve those
-    selected_packages = Autoproj.manifest.expand_package_selection(selected_packages)
+    selected_packages = manifest.expand_package_selection(selected_packages)
     seen = Set.new
-    Autoproj.manifest.each_package_set do |name, packages, enabled_packages|
+    manifest.each_package_set do |name, packages, enabled_packages|
         packages -= seen
 
         srcdir  = File.join(Autoproj.root_dir, name)
@@ -617,7 +617,7 @@ report(debug) do
     if only_do_status
         STDERR.puts
         all_packages = Set.new
-        Autoproj.manifest.handle_enabled_packages(selected_packages) do |name, _, layout_enabled|
+        manifest.handle_enabled_packages(selected_packages) do |name, _, layout_enabled|
             all_packages |= layout_enabled
         end
         do_status(all_packages)
@@ -642,7 +642,7 @@ report(debug) do
     #    Otherwise, it is considered as an error
     #
     seen = Set.new
-    Autoproj.manifest.each_package_set do |name, packages, enabled_packages|
+    manifest.each_package_set do |name, packages, enabled_packages|
         packages -= seen
 
         old_update_flag = Autobuild.do_update
@@ -664,7 +664,7 @@ report(debug) do
     all_packages         = Set.new
     all_enabled_packages = Set.new
     all_sublayouts       = Set.new
-    Autoproj.manifest.handle_enabled_packages(selected_packages) do |name, packages, enabled_packages, _|
+    manifest.handle_enabled_packages(selected_packages) do |name, packages, enabled_packages, _|
         packages         -= all_enabled_packages
         enabled_packages -= all_enabled_packages
         all_sublayouts << name
