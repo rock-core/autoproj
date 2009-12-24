@@ -604,7 +604,6 @@ report(debug) do
         srcdir  = File.join(Autoproj.root_dir, name)
         prefix  = File.join(Autoproj.build_dir, name)
         logdir  = File.join(prefix, "log")
-        Autobuild.logdir = logdir
         packages.each do |pkg_name|
             pkg = Autobuild::Package[pkg_name]
             pkg.srcdir = File.join(srcdir, pkg_name)
