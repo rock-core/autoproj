@@ -706,7 +706,11 @@ report(debug) do
         Autobuild.do_update = old_update_flag
     end
 
-    missing_packages = all_packages.find_all { |pkg_name| !File.directory?(Autobuild::Package[pkg_name].srcdir) }
+    missing_packages = all_packages.
+        find_all do |pkg_name|
+            !File.directory?(Autobuild::Package[pkg_name].srcdir)
+        end
+
     if missing_packages.empty?
         # Backward compatibility: check if name/env.sh exists, and if it is
         # the case, simply replace it with a link to the root one. And issue
