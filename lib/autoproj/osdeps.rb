@@ -40,10 +40,10 @@ module Autoproj
                 # Need to do some heuristics unfortunately
                 @operating_system =
                     if File.exists?('/etc/debian_version')
-                        codename = File.read('/etc/debian_version').chomp
+                        codename = File.read('/etc/debian_version').strip
                         ['debian', [codename]]
                     elsif File.exists?('/etc/gentoo-release')
-                        release_string = File.read('/etc/gentoo-release').chomp
+                        release_string = File.read('/etc/gentoo-release').strip
                         release_string =~ /^.*([^\s]+)$/
                             version = $1
                         ['gentoo', [version]]
@@ -63,9 +63,9 @@ module Autoproj
             return unless $?.success?
 
             distributor = `lsb_release -i -s`
-            distributor = distributor.chomp.downcase
-            codename    = `lsb_release -c -s`.chomp.downcase
-            version     = `lsb_release -r -s`.chomp.downcase
+            distributor = distributor.strip.downcase
+            codename    = `lsb_release -c -s`.strip.downcase
+            version     = `lsb_release -r -s`.strip.downcase
 
             return [distributor, [codename, version]]
         end
