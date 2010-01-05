@@ -690,8 +690,8 @@ report(debug) do
                     packages_to_import << dep_name
                 end
             end
-            all_packages.merge(packages)
         end
+        all_packages.merge(packages)
     end
 
     old_update_flag = Autobuild.do_update
