@@ -580,9 +580,6 @@ report(debug) do
     if selected_packages.empty?
         selected_packages = manifest.default_packages
     end
-    if Autoproj.verbose
-        STDERR.puts "will install #{selected_packages.to_a.join(", ")}"
-    end
     if selected_packages.empty? # no packages, terminate
         STDERR.puts
         STDERR.puts color("autoproj: no packages defined", :red)
@@ -597,6 +594,12 @@ report(debug) do
     # First, we allow to user to specify packages based on disk paths, so
     # resolve those
     selected_packages = manifest.expand_package_selection(selected_packages)
+    if selected_packages.empty?
+        STDERR.puts color("autoproj: wrong packages selection on command line", :red)
+        exit 0
+    elsif Autoproj.verbose
+        STDERR.puts "will install #{selected_packages.to_a.join(", ")}"
+    end
     seen = Set.new
     manifest.each_package_set do |name, packages, enabled_packages|
         packages -= seen

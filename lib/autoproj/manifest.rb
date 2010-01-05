@@ -955,17 +955,11 @@ module Autoproj
                     pkg.name
                 end
 
-            selected_packages = selected_packages.map do |sel|
-                if sel[0] == ?/ # anchored selection
-                    /^#{sel}/
-                else
-                    Regexp.new(sel)
-                end
-            end
-
             # First, remove packages that are directly referenced by name or by
             # package set names
             selected_packages.delete_if do |sel|
+                sel = Regexp.new(Regexp.quote(sel))
+
                 packages = package_names.find_all { |pkg_name| pkg_name =~ sel }
                 expanded_packages.concat(packages)
 
@@ -988,7 +982,7 @@ module Autoproj
                         expanded_packages.concat(packages.to_a)
                     else
                         packages = packages.find_all do |pkg_name|
-                            (layout_name + pkg_name) =~ sel
+                            sel =~ Regexp.new(Regexp.quote(layout_name + pkg_name))
                         end
                         expanded_packages.concat(packages)
                         !packages.empty?
