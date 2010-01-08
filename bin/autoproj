@@ -228,13 +228,18 @@ def switch_config(*args)
 
     if vcs && (vcs.type == args[0] && vcs.url == args[1])
         # Don't need to do much: simply change the options and save the config
-        # file, the VCS handler will take care of switching the options
+        # file, the VCS handler will take care of the actual switching
     else
         # We will have to delete the current autoproj directory. Ask the user.
-        opt = Autoproj::BuildOption.new("delete current config", "boolean", Hash[:default => "false", :doc => "delete the current configuration ? (required to switch)"], nil)
+        opt = Autoproj::BuildOption.new("delete current config", "boolean",
+                    Hash[:default => "false",
+                        :doc => "delete the current configuration ? (required to switch)"], nil)
+
         return if !opt.ask(nil)
-        FileUtils.rm_rf File.join(Autoproj.config_dir)
-        do_switch_config(*args)
+
+        Dir.chdir(Autoproj.root_dir) do
+            do_switch_config(true, *args)
+        end
     end
 
     # And now save the options: note that we keep the current option set even
@@ -254,7 +259,7 @@ def switch_config(*args)
     Autoproj.save_config
 end
 
-def do_switch_config(*args)
+def do_switch_config(delete_current, *args)
     vcs_def = Hash.new
     vcs_def[:type] = args.shift
     vcs_def[:url]  = args.shift
@@ -268,7 +273,13 @@ def do_switch_config(*args)
     # Install the OS dependencies required for this VCS
     osdeps = Autoproj::OSDependencies.load_default
     osdeps.install([vcs.type])
-    Autoproj::Manifest.update_source(vcs, "autoproj main configuration", 'autoproj_config', File.join(Dir.pwd, "autoproj"))
+
+    # Now check out the actual configuration
+    config_dir = File.join(Dir.pwd, "autoproj")
+    if delete_current
+        FileUtils.rm_rf config_dir
+    end
+    Autoproj::Manifest.update_source(vcs, "autoproj main configuration", 'autoproj_config', config_dir)
 
     # Now write it in the config file
     File.open(File.join(Autoproj.config_dir, "config.yml"), "a") do |io|
@@ -318,7 +329,7 @@ def do_bootstrap(*args)
         end
 
     elsif args.size >= 2 # is a VCS definition for the manifest itself ...
-        do_switch_config(*args)
+        do_switch_config(false, *args)
     end
 
     # Finally, generate an env.sh script
