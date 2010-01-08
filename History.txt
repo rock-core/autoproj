@@ -1,4 +1,5 @@
 = Version 1.3.3
+ * Fix: some configuration options were not properly saved
  * Fix: env.sh was messed up by partial builds (builds where a directory and/or
    package name is specified)
  * Fix: accept subdirectories of packages as argument to builds
