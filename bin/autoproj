@@ -507,13 +507,14 @@ report(debug) do
         Autoproj.load_if_present(source, source.local_dir, "overrides.rb")
     end
 
-    # The user is asked for configuration values both during the manifest
-    # loading and the loading of autobuild files. Save it now.
-    Autoproj.save_config
-
     # Now, load the package's importer configurations (from the various
     # source.yml files)
     manifest.load_importers
+
+    # Configuration is finished, so all relevant configuration options should
+    # have been asked to the user. Save it.
+    Autoproj.save_config
+
     if Autoproj.verbose
         # List defined packages, and in which autobuild files they are defined
         STDERR.puts "Available packages:"
