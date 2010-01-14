@@ -1,0 +1,82 @@
+---
+title: Package import
+sort_info: 250
+---
+
+This page will detail the various options to import a source package.
+
+Git
+\---
+
+The general setup for git imports is:
+
+{coderay:: yaml}
+version_control:
+    package_name:
+        type: git
+        url: repository_url_or_path
+        branch: branch_name
+        tag: tag_name # it is branch OR tag
+{coderay}
+
+Autoproj will maintain an 'autobuild' remote on the checked out repository:
+i.e., it will make sure that the URL of this remote is always linked to the
+right URL from the config file, and will update the relevant branch on update
+(beware: the other branches won't get updated).
+
+Moreover, autoproj will make sure that updating your local repository always
+resolves as a fast-forward (i.e., it will never create a merge)
+
+Subversion
+----------
+
+The general setup for subversion imports is:
+
+{coderay:: yaml}
+version_control:
+    package_name:
+        type: svn
+        url: repository_url_or_path
+{coderay}
+
+Note that the repository *must* be accessible without any password, and the
+import will fail if a password was needed.
+{.warning}
+
+Tar archives
+------------
+
+{coderay:: yaml}
+version_control:
+    package_name:
+        type: archive
+        url: http://sourceforge.net/blablabla
+        filename: blabla.tar.gz
+        no_subdirectory: false # Optional. Set to true if there is not a leading directory in the archive
+        update_cached_file: false # Optional. Set to false to disable automatic updates
+{coderay}
+
+The importer expects that there is a leading subdirectory in the archive, under
+which all files. If that is not the case, i.e. if all files are in the root of
+the archive, do not forget to set the no\_subdirectory option.
+
+Autoproj tries to guess what is the name of the downloaded file by extracting it
+out of the URL. Sometimes, this does not work as the URL does not fit the
+expected scheme -- in these cases you will get a tar error on update. To
+override this autodetection behaviour, set the filename option to the actual
+downloaded file name.
+
+By default, autoproj will check if the downloaded file has been updated on the
+server, and will download it again if it is the case. If you are downloading
+release tarballs, this is unneeded as the archive should not be updated. In that
+case, set the update\_cached\_file option to false to save the time needed to
+check for the update (can be long on, for instance, sourceforge). The source
+will of course be updated if you change the URL (i.e. to download a new release
+of the same software).
+
+Patching the source once it is checked out/updated
+--------------------------------------------------
+
+TBD
+
+
