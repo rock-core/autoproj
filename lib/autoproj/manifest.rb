@@ -926,16 +926,21 @@ module Autoproj
         end
 
         def install_os_dependencies(packages)
-
             required_os_packages = Set.new
             package_os_deps = Hash.new { |h, k| h[k] = Array.new }
             packages.each do |pkg_name|
                 if manifest = package_manifests[pkg_name]
-                    pkg_osdeps = manifest.each_os_dependency.to_set
-                    pkg_osdeps.each do |osdep_name|
+                    manifest.each_os_dependency.each do |osdep_name|
                         package_os_deps[osdep_name] << pkg_name
+                        required_os_packages << osdep_name
                     end
-                    required_os_packages |= pkg_osdeps
+                end
+
+                if pkg = Autobuild::Package[pkg_name]
+                    pkg.os_packages.each do |osdep_name|
+                        package_os_deps[osdep_name] << pkg_name
+                        required_os_packages << osdep_name
+                    end
                 end
             end
 
