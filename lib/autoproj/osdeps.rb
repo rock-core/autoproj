@@ -159,6 +159,8 @@ module Autoproj
                     raise ConfigError, msg
                 end
 
+                pkg_def = pkg_def.dup
+
                 if pkg_def.respond_to?(:to_str)
                     case(pkg_def.to_str)
                     when "ignore" then
@@ -168,7 +170,15 @@ module Autoproj
                         raise ConfigError, "unknown OS-independent package management type #{pkg_def} for #{name}"
                     end
                 else
-                    osdeps << name
+                    pkg_def.delete_if do |distrib_name, defs|
+                        if distrib_name == "gem"
+                            gems.concat([*defs])
+                            true
+                        end
+                    end
+                    if !pkg_def.empty?
+                        osdeps << name
+                    end
                 end
             end
             return osdeps, gems
