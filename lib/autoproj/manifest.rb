@@ -145,6 +145,10 @@ module Autoproj
     end
 
     def self.single_expansion(data, definitions)
+        if !data.respond_to?(:to_str)
+            return data
+        end
+
         definitions.each do |name, expanded|
             data = data.gsub /\$#{Regexp.quote(name)}\b/, expanded
         end
