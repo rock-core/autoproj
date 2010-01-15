@@ -10,7 +10,8 @@ definition exists in one of the osdeps files.
 
 _Long explanation_: XXXX is listed as an operating system dependency by one of
 the packages that you requested to build. Two solutions: (i) the package should
-*not* depend on it, and you should modify the package's manifest.xml file. (ii)
+*not* depend on it, and you should modify the [package's
+manifest.xml](package_sets/manifest-xml.html) file. (ii)
 the package should depend on it and you should list the OS package in [the
 relevant osdeps file](osdeps.html)
 

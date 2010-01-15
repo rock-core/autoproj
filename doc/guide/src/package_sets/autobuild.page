@@ -74,7 +74,7 @@ pkg.depends_on_os_package "package_name"
 
 Both methods should be used only for dynamic dependencies, i.e. dependencies
 that are dependent on build options (see below). Static dependencies should be
-defined in the package's manifest.xml
+defined in [the package's manifest.xml](manifest-xml.html)
 {.warning}
 
 Defining and using options

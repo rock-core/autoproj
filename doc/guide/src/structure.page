@@ -4,7 +4,7 @@ sort_info: 50
 ---
 
 This page describes the structure of a autoproj installation, and describes how
-to manage one. See [the introduction](index.page) for the bootstrapping process.
+to manage one. See [the introduction](index.html) for the bootstrapping process.
 
 Structure
 ---------

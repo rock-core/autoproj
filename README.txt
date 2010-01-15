@@ -97,6 +97,6 @@ As a guideline, we recommend that inter-package dependencies are managed by
 using pkg-config.
 
 To describe the package, and more importantly to setup cross-package
-dependencies, an optional manifest file can be added. This manifest file is
-named manifest.xml. An example of such a file can be found [here](manifest.xml)
+dependencies, [an optional manifest file can be
+added](package_sets/manifest-xml.html).
 

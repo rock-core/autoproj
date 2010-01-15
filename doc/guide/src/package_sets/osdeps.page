@@ -12,7 +12,7 @@ Defining dependencies between source packages and OS packages
 These dependencies can be defined in two ways:
 
  * by adding a <tt>&lt;osdep name="depname" /&gt;</tt> tag in the package's
-   manifest.xml.
+   [manifest.xml](manifest-xml.html)
  * by calling <tt>pkg.depends_on_os_package("depname")</tt> [in the autobuild
    file](autobuild.html).
 

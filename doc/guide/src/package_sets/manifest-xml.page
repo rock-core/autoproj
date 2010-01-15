@@ -1,0 +1,29 @@
+---
+title: The manifest.xml file
+sort_info: 120
+---
+
+The manifest.xml is an optional (but *very recommended*) file that lies in the
+root of every source package. This file describes both what the package *is*
+(i.e. short description, contact information), and dependency information (what
+should be installed for that package to be built successfully).
+
+The general form of the file is:
+
+{coderay:: xml}
+<package>
+  <description brief="one line of text">
+    long description goes here, 
+    <em>XHTML is allowed</em>
+  </description>
+  <author>Alice/alice@somewhere.bar, Bob/bob@nowhere.foo</author>
+  <license>BSD</license>
+  <url>http://sites.google.com/site/rubyinmotion</url>
+  <logo>http://sites.google.com/site/rubyinmotion</logo>
+
+  <depend package="pkgname"/> <!-- add dependency on another autoproj-built package -->
+  <depend package="common"/>
+  <rosdep name="python" /> <!-- add dependency on a prepackaged operating system package -->
+</package>
+{coderay}
+
