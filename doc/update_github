@@ -15,25 +15,12 @@ tree=$(git write-tree --prefix=$DOC_DIR)
 # it
 msg="generated from $head_sha"
 head_sha=$(git show-ref -s -h HEAD)
-if git show-ref -q --verify refs/heads/$PAGES_BRANCH; then
-    parent=$(git show-ref -s refs/heads/$PAGES_BRANCH)
-
-    # Check that some things changes since last time
-    last_tree=$(git cat-file commit refs/heads/$PAGES_BRANCH | grep tree | awk '{print $2}')
-    if test "x$last_tree" = "x$tree"; then
-        echo "no changes to commit"
-    else
-        echo "updating $PAGES_BRANCH"
-        commit=$(echo $msg | git commit-tree $tree -p $parent)
-    fi
-else
-    echo "creating initial commit on the $PAGES_BRANCH branch"
-    commit=$(echo $msg | git commit-tree $tree)
-fi
+echo "resetting the $PAGES_BRANCH branch"
+commit=$(echo $msg | git commit-tree $tree)
 
 if test -n "$commit"; then
     # And finally update the tip of the branch
-    echo $commit > .git/refs/heads/$PAGES_BRANCH
+    git update-ref -m "updated documentation" refs/heads/$PAGES_BRANCH $commit
 fi
 
 git reset -q HEAD

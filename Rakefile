@@ -30,7 +30,7 @@ begin
             if !system('doc/update_github')
                 raise "cannot update the gh-pages branch for GitHub"
             end
-            if !system('git', 'push', 'origin', 'gh-pages')
+            if !system('git', 'push', 'origin', '+gh-pages')
                 raise "cannot push the documentation"
             end
         end
