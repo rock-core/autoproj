@@ -60,7 +60,7 @@
       <div id="sidebar">
 
         <h2 class="sidelink menuheader"><a id="sitemenu"></a>Main Menu</h2>
-        <div id="menu">{menu: {max_levels: 2, show_current_subtree_only: true, nested: true, used_nodes: files}}</div>
+        <div id="menu">{menu: {min_levels: 2, max_levels: 2, show_current_subtree_only: false, nested: true, used_nodes: files}}</div>
         <br>
         <a class="hide" href="#top" accesskey="1">Top of page</a>
 
