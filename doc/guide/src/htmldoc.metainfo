@@ -2,3 +2,7 @@
     title: Introduction
     sort_info: 0
 
+/package_sets:
+    title: Writing the package sets
+    sort_info: 100
+

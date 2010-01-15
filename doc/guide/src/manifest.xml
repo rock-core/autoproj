@@ -1,0 +1,14 @@
+<package>
+  <description brief="one line of text">
+    long description goes here, 
+    <em>XHTML is allowed</em>
+  </description>
+  <author>Alice/alice@somewhere.bar, Bob/bob@nowhere.foo</author>
+  <license>BSD</license>
+  <url>http://sites.google.com/site/rubyinmotion</url>
+  <logo>http://sites.google.com/site/rubyinmotion</logo>
+
+  <depend package="pkgname"/> <!-- add dependency on another autoproj-built package -->
+  <depend package="common"/>
+  <rosdep name="python" /> <!-- add dependency on a prepackaged operating system package -->
+</package>

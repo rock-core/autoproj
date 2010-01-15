@@ -1,5 +1,5 @@
 ---
-title: Creating a package set
+title: Overview
 sort_info: 100
 ---
 A package set is made of three things:
@@ -76,7 +76,7 @@ version_control:
   - my/package: none
 {coderay}
 
-The remaining of this page is a more in-depth description of this process.
+See [this page](importers.html) for details on the import mechanisms.
 
 Autobuild scripts
 -----------------

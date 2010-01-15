@@ -3,7 +3,70 @@ title: Package import
 sort_info: 250
 ---
 
-This page will detail the various options to import a source package.
+As [we already mentioned](index.html), the source.yml file contains information
+on where to import the source packages from. This information is included in the
+version\_control field of the source.yml, and is of the general form:
+
+{coderay:: yaml}
+version_control:
+    package_name:
+        vcs_def
+    package_name:
+        vcs_def:
+{coderay}
+
+Autoproj follows the following rules to find the importer definition for a given
+package:
+ 
+ - it looks *in order* in the package sets listed in the manifest file, and will
+   take the definition from the *first* package set that has a definition for
+   the package.
+ - in the source.yml file, it will match the package's name with the
+   package\_name fields. It will consider every matching block (i.e. every
+   package\_name that matches), overriding earlier options by later ones.
+
+As an example, let's consider the following manifest:
+
+{coderay:: ruby}
+package_sets:
+    - rubim.drivers
+    - rubim.orocos
+    - rubim.base
+{coderay}
+
+Now, let's assume that the rubim.orocos package set has a source.yml file with:
+
+{coderay:: ruby}
+version_control:
+    orocos/:
+        type: git
+        url: git://github.com/$PACKAGE.git
+    orocos/orocos.rb:
+        branch: roby
+{coderay}
+
+Finally, the rubim.drivers package set has:
+
+{coderay:: ruby}
+version_control:
+    orocos/logger:
+        type: git
+        url: git://github.com/$PACKAGE.git
+        branch: perf
+{coderay}
+
+Then, the following will happen:
+
+ * all packages that are prefixed with "orocos/" will match the general
+   definition of rubim.orocos.
+ * in addition, the 'branch' flag of orocos/orocos.rb will be overriden from
+   'master' (the default) to 'roby'
+ * in the case of orocos/logger, since there is a matching definition in
+   rubim.drivers, the definition in rubim.orocos *is not used at all*. Only the
+   definition found in rubim.drivers' source.yml file matters.
+
+The remaining of this page will detail the various options that exist to import
+a source package.
 
 Git
 \---

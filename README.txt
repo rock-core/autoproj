@@ -98,5 +98,5 @@ using pkg-config.
 
 To describe the package, and more importantly to setup cross-package
 dependencies, an optional manifest file can be added. This manifest file is
-named manifest.xml. Its format is described later in this user's guide.
+named manifest.xml. An example of such a file can be found [here](manifest.xml)
 

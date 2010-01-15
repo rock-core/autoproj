@@ -32,7 +32,7 @@ The above snippet being equivalent to calling <tt>cmake -DVAR=VALUE</tt>
 <b>Note to advanced users</b>
 <br />
 The "pkg" variable holds an object that represents the package. This
-object is an instance of the Autobuild::CMake. See [the autobuild
+object is an instance of the Autobuild::CMake class. See [the autobuild
 API](http://doudou.github.com/autobuild/Autobuild/CMake.html) for more
 details.
 {.note}
