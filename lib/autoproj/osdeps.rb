@@ -49,6 +49,10 @@ module Autoproj
                         release_string =~ /^.*([^\s]+)$/
                             version = $1
                         ['gentoo', [version]]
+                    elsif File.exists?('/etc/arch-release')
+                        codename = "Unknown"
+                        puts "Found Arch"
+                        ['arch', [codename]]
                     else
                         raise ConfigError, "Unknown operating system"
                     end
@@ -83,7 +87,8 @@ module Autoproj
         OS_PACKAGE_INSTALL = {
             'debian' => 'apt-get install -y %s',
             'ubuntu' => 'apt-get install -y %s',
-            'gentoo' => 'emerge --noreplace %s'
+            'gentoo' => 'emerge --noreplace %s',
+            'arch' => 'pacman -Sy --noconfirm %s'
         }
 
         def generate_os_script(dependencies)
