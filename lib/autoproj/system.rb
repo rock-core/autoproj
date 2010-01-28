@@ -1,6 +1,4 @@
 module Autoproj
-    BASE_DIR     = File.expand_path(File.join('..', '..'), File.dirname(__FILE__))
-
     class UserError < RuntimeError; end
 
     # Returns the root directory of the current autoproj installation.

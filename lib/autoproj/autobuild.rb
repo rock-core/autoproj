@@ -29,11 +29,7 @@ module Autoproj
         STDERR.puts Autoproj.console.color("  WARN: #{message}", :magenta)
     end
 
-    @definition_files = Hash.new
     @file_stack       = Array.new
-    class << self
-        attr_reader :definition_files
-    end
 
     def self.package_name_from_options(spec)
         if spec.kind_of?(Hash)
