@@ -126,12 +126,8 @@ def display_status(packages)
         lines = []
 
         if !pkg.importer.respond_to?(:status)
-            # This importer does not support status display
-            STDERR.puts color("  the importer of #{pkg.autoproj_name} does not support status display (#{pkg.importer.class.name})", :bold, :red)
-            next
-        end
-
-        if !File.directory?(pkg.srcdir)
+            lines << color("  the #{pkg.importer.class.name.gsub(/.*::/, '')} importer does not support status display", :bold, :red)
+        elsif !File.directory?(pkg.srcdir)
             lines << color("  is not imported yet", :magenta)
         else
             status = pkg.importer.status(pkg)
