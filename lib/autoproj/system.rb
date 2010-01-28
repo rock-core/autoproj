@@ -3,6 +3,10 @@ module Autoproj
 
     class UserError < RuntimeError; end
 
+    # Returns the root directory of the current autoproj installation.
+    #
+    # If the current directory is not in an autoproj installation,
+    # raises UserError.
     def self.root_dir
         dir = Dir.pwd
         while dir != "/" && !File.directory?(File.join(dir, "autoproj"))
@@ -14,36 +18,59 @@ module Autoproj
         dir
     end
 
+    # Returns the configuration directory for this autoproj installation.
+    #
+    # If the current directory is not in an autoproj installation,
+    # raises UserError.
     def self.config_dir
         File.join(root_dir, "autoproj")
     end
+
+    # Returns the build directory (prefix) for this autoproj installation.
+    #
+    # If the current directory is not in an autoproj installation, raises
+    # UserError.
     def self.build_dir
 	File.join(root_dir, "build")
     end
 
+    # Returns the path to the provided configuration file.
+    #
+    # If the current directory is not in an autoproj installation, raises
+    # UserError.
     def self.config_file(file)
         File.join(config_dir, file)
     end
 
+    # Run the provided command as user
     def self.run_as_user(*args)
         if !system(*args)
             raise "failed to run #{args.join(" ")}"
         end
     end
 
+    # Run the provided command as root, using sudo to gain root access
     def self.run_as_root(*args)
         if !system('sudo', *args)
             raise "failed to run #{args.join(" ")} as root"
         end
     end
 
+    # Return the directory in which remote package set definition should be
+    # checked out
     def self.remotes_dir
         File.join(root_dir, ".remotes")
     end
+
+    # Return the directory in which RubyGems package should be installed
     def self.gem_home
         File.join(root_dir, ".gems")
     end
 
+    # Initializes the environment variables to a "sane default"
+    #
+    # Use this in autoproj/init.rb to make sure that the environment will not
+    # get polluted during the build.
     def self.set_initial_env
         Autoproj.env_set 'RUBYOPT', "-rubygems"
         Autoproj.env_set 'GEM_HOME', Autoproj.gem_home
@@ -53,6 +80,7 @@ module Autoproj
         Autoproj.env_set 'LD_LIBRARY_PATH'
     end
 
+    # Create the env.sh script in +subdir+. In general, +subdir+ should be nil.
     def self.export_env_sh(subdir = nil)
         filename = if subdir
                        File.join(Autoproj.root_dir, subdir, "env.sh")
@@ -75,6 +103,12 @@ module Autoproj
         end
     end
 
+    # Load a definition file given at +path+. +source+ is the package set from
+    # which the file is taken.
+    #
+    # If any error is detected, the backtrace will be filtered so that it is
+    # easier to understand by the user. Moreover, if +source+ is non-nil, the
+    # package set name will be mentionned.
     def self.load(source, *path)
         path = File.join(*path)
         Kernel.load path
@@ -82,6 +116,7 @@ module Autoproj
         Autoproj.filter_load_exception(e, source, path)
     end
 
+    # Same as #load, but runs only if the file exists.
     def self.load_if_present(source, *path)
         path = File.join(*path)
         if File.file?(path)
@@ -89,6 +124,8 @@ module Autoproj
         end
     end
 
+    # Look into +dir+, searching for shared libraries. For each library, display
+    # a warning message if this library has undefined symbols.
     def self.validate_solib_dependencies(dir, exclude_paths = [])
         Find.find(File.expand_path(dir)) do |name|
             next unless name =~ /\.so$/

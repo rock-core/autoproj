@@ -17,13 +17,26 @@ end
 
 module Autoproj
     @build_system_dependencies = Set.new
+
+    # Declare OS packages that are required to import and build the packages
+    #
+    # It is used by autoproj itself to install the importers and/or the build
+    # systems for the packages.
     def self.add_build_system_dependency(*names)
         @build_system_dependencies |= names.to_set
     end
     class << self
+        # Returns the set of OS packages that are needed to build and/or import
+        # the packages
+        #
+        # See Autoproj.add_build_system_dependency
         attr_reader :build_system_dependencies
     end
 
+    # Expand build options in +value+.
+    #
+    # The method will expand in +value+ patterns of the form $NAME, replacing
+    # them with the corresponding build option.
     def self.expand_environment(value)
         # Perform constant expansion on the defined environment variables,
         # including the option set
@@ -44,14 +57,22 @@ module Autoproj
     end
 
     @env_inherit = Set.new
+    # Returns true if the given environment variable must not be reset by the
+    # env.sh script, but that new values should simply be prepended to it.
+    #
+    # See Autoproj.env_inherit
     def self.env_inherit?(name)
         @env_inherit.include?(name)
     end
+    # Declare that the given environment variable must not be reset by the
+    # env.sh script, but that new values should simply be prepended to it.
+    #
+    # See Autoproj.env_inherit?
     def self.env_inherit(*names)
         @env_inherit |= names
     end
 
-    # Set a new environment variable
+    # Resets the value of the given environment variable to the given
     def self.env_set(name, *value)
         Autobuild.env_clear(name)
         env_add(name, *value)

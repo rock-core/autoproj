@@ -2,12 +2,14 @@ require 'autobuild'
 require 'set'
 
 class Autobuild::Package
-    def autoproj_name
+    def autoproj_name # :nodoc:
         srcdir.gsub /^#{Regexp.quote(Autoproj.root_dir)}\//, ''
     end
 end
 
 module Autoproj
+    # Subclass of Autobuild::Reporter, used to display a message when the build
+    # finishes/fails.
     class Reporter < Autobuild::Reporter
         def error(error)
             error_lines = error.to_s.split("\n")
@@ -22,6 +24,7 @@ module Autoproj
         end
     end
 
+    # Displays a warning message
     def self.warn(message)
         STDERR.puts Autoproj.console.color("  WARN: #{message}", :magenta)
     end
@@ -78,6 +81,7 @@ module Autoproj
     end
 end
 
+# Sets up a documentation target on pkg that runs 'rake <target>'
 def ruby_doc(pkg, target = 'doc')
     pkg.doc_task do
         pkg.doc_disabled unless File.file?('Rakefile')
@@ -86,8 +90,8 @@ def ruby_doc(pkg, target = 'doc')
 
 end
 
-# Common setup for packages hosted on groupfiles/Autonomy
-def package_common(package_type, spec)
+# Common setup for packages
+def package_common(package_type, spec) # :nodoc:
     package_name = Autoproj.package_name_from_options(spec)
 
     begin
@@ -108,6 +112,16 @@ def package_common(package_type, spec)
     end
 end
 
+# Define a cmake package
+#
+# Example:
+#
+#   cmake_package 'package_name' do |pkg|
+#       pkg.define "CMAKE_BUILD_TYPE", "Release"
+#   end
+#
+# +pkg+ is an Autobuild::CMake instance. See the Autobuild API for more
+# information.
 def cmake_package(options, &block)
     package_common(:cmake, options) do |pkg|
         Autoproj.add_build_system_dependency 'cmake'
@@ -123,8 +137,15 @@ def cmake_package(options, &block)
     end
 end
 
-# Use this method to import and build CMake packages that are hosted on the
-# groupfiles server, on the autonomy project folder
+# Define an autotools package
+#
+# Example:
+#   autotools_package 'package_name' do |pkg|
+#       pkg.configureflags << "--enable-llvm"
+#   end
+#
+# +pkg+ is an Autobuild::Autotools instance. See the Autobuild API for more
+# information.
 def autotools_package(options, &block)
     package_common(:autotools, options) do |pkg|
         Autoproj.add_build_system_dependency 'autotools'
@@ -140,7 +161,8 @@ def autotools_package(options, &block)
     end
 end
 
-def ruby_common(pkg)
+# Common setup for Ruby packages
+def ruby_common(pkg) # :nodoc:
     def pkg.prepare_for_forced_build
         super
         extdir = File.join(srcdir, 'ext')
@@ -180,6 +202,17 @@ def env_add(name, value)
     Autoproj.env_add(name, value)
 end
 
+
+# Defines a Ruby package
+#
+# Example:
+#   
+#   ruby_package 'package_name' do |pkg|
+#       pkg.doc_target = 'doc'
+#   end
+#
+# +pkg+ is an Autobuild::Importer instance. See the Autobuild API for more
+# information.
 def ruby_package(options)
     package_common(:import, options) do |pkg|
         class << pkg
@@ -194,12 +227,25 @@ def ruby_package(options)
     end
 end
 
+# Defines an oroGen package. By default, autoproj will look for an orogen file
+# called package_basename.orogen if the package is called dir/package_basename
+#
+# Example:
+#   orogen_package 'package_name' do |pkg|
+#       pkg.orogen_file = "my.orogen"
+#       pkg.corba = false
+#   end
+#
+# +pkg+ is an Autobuild::Orogen instance. See the Autobuild API for more
+# information.
 def orogen_package(options, &block)
     package_common(:orogen, options) do |pkg|
         yield(pkg) if block_given?
     end
 end
 
+# Defines an import-only package, i.e. a package that is simply checked out but
+# not built in any way
 def source_package(options)
     package_common(options) do |pkg|
         pkg.srcdir   = pkg.name
@@ -207,11 +253,17 @@ def source_package(options)
     end
 end
 
+# Define a configuration option
+#
+# See Autoproj.configuration_option
 def configuration_option(*opts, &block)
     Autoproj.configuration_option(*opts, &block)
 end
 
-def user_config(*opts)
-    Autoproj.user_config(*opts)
+# Retrieves the configuration value for the given option
+#
+# See Autoproj.user_config
+def user_config(key)
+    Autoproj.user_config(key)
 end
 
