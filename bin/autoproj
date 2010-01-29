@@ -301,7 +301,10 @@ def do_bootstrap(*args)
         STDERR.puts "autoproj: reusing bootstrap from #{File.dirname(ENV['GEM_HOME'])}"
         FileUtils.cp_r ENV['GEM_HOME'], ".gems"
         ENV['GEM_HOME'] = File.join(Dir.pwd, ".gems")
-        exec $0, *ARGV
+
+        require 'rbconfig'
+        ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
+        exec ruby, $0, *ARGV
     end
 
     # If we are not getting the installation setup from a VCS, copy the template
@@ -460,7 +463,13 @@ report(debug) do
     osdeps = Autoproj::OSDependencies.load_default
     if osdeps.install(%w{autobuild autoproj})
         # We updated autobuild or autoproj themselves ... Restart !
-        exec($0, *ARGV)
+        require 'rbconfig'
+        ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
+	if mode == "bootstrap"
+	    exec(ruby, $0, 'list-sets')
+	else
+            exec(ruby, $0, *ARGV)
+	end
     end
 
     manifest_path = File.join(Autoproj.config_dir, 'manifest')
