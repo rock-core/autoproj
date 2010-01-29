@@ -57,7 +57,7 @@ DEFS = <<EODEFS
 OSDEPS_DEFAULTS
 EODEFS
 
-PACKAGES      = %w{ruby libxml2 libxslt build-essential lsb_release}
+PACKAGES      = %w{libxml2 libxslt build-essential lsb_release}
 USER_PACKAGES = %w{autoproj}
 
 packages = PACKAGES.dup
