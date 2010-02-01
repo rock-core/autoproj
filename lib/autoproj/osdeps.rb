@@ -246,7 +246,7 @@ module Autoproj
                     STDERR.puts "gem install #{gems.join(" ")}"
                 end
                 Autobuild.progress "installing/updating RubyGems dependencies: #{gems.join(", ")}"
-                Autobuild::Subprocess.run 'autoproj', 'osdeps', 'gem', 'install', *gems
+                Autobuild::Subprocess.run 'autoproj', 'osdeps', Autobuild.tool('gem'), 'install', *gems
                 did_something ||= true
             end
 
