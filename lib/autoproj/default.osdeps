@@ -1,15 +1,29 @@
 # The following definitions are needed to bootstrap autoproj
 none: ignore
 
-ruby:
+ruby18:
     debian,ubuntu:
         - ruby1.8-dev
         - ruby1.8
+        - rubygems1.8
+        - ri1.8
         - libopenssl-ruby1.8
     gentoo:
         - dev-lang/ruby:1.8
+
+ruby19:
+    debian,ubuntu:
+        - ruby1.9.1
+        - ruby1.9.1-dev
+        - rubygem1.9.1
+        - ri1.9.1
+        - libopenssl-ruby1.9.1
+    gentoo:
+        - dev-lang/ruby:1.9
     arch:
         - ruby
+
+rdoc: gem
 
 build-essential:
     debian,ubuntu: build-essential

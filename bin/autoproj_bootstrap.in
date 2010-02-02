@@ -39,6 +39,22 @@ module Autobuild
     def self.progress(str)
         STDERR.puts "  #{str}"
     end
+
+    class << self
+        attr_reader :programs
+    end
+    @programs = Hash.new
+    def self.tool(name)
+        # Let the ability to set programs[name] to nil to make sure we don't use
+        # that program. This is used later on in this file to make sure we
+        # aren't using the wrong rubygems binary
+        if programs.has_key?(name)
+            programs[name]
+        else
+            name
+        end
+    end
+
     module Subprocess
         def self.run(name, phase, *cmd)
             output = `#{cmd.join(" ")}`
@@ -57,7 +73,33 @@ DEFS = <<EODEFS
 OSDEPS_DEFAULTS
 EODEFS
 
-PACKAGES      = %w{libxml2 libxslt build-essential lsb_release}
+# First thing we do is install a proper ruby environment. We make sure that we
+# aren't installing any gems for now (as we need to choose the right gem
+# binary) by setting Autobuild.programs['gem'] to nil
+Autobuild.programs['gem'] = nil
+ruby_packages =
+    if RUBY_VERSION < "1.9.0" then "ruby18"
+    else "ruby19"
+    end
+
+begin
+    osdeps_management = Autoproj::OSDependencies.new(YAML.load(DEFS))
+    STDERR.puts "autoproj: installing a proper Ruby environment (this can take a long time)"
+    osdeps_management.install(ruby_packages)
+rescue Autoproj::ConfigError => e
+    STDERR.puts "failed: #{e.message}"
+    exit(1)
+end
+
+# Now try to find out the name of the gem binary
+require 'rbconfig'
+ruby_suffix = Config::CONFIG['RUBY_INSTALL_NAME'].gsub(/^ruby/, '')
+gem_bin = ["gem#{ruby_suffix}", "gem"].find do |candidate|
+    ENV['PATH'].split(':').any? { |path| File.file?(File.join(path, candidate)) }
+end
+Autobuild.programs['gem'] = gem_bin
+
+PACKAGES      = %w{rdoc libxml2 libxslt build-essential lsb_release}
 USER_PACKAGES = %w{autoproj}
 
 packages = PACKAGES.dup
