@@ -420,6 +420,7 @@ report(debug) do
         end
     when "doc"
         Autobuild.do_update = false
+        no_os_deps          = true
         Autobuild.do_doc    = true
         Autobuild.only_doc  = true
     else
