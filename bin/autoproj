@@ -81,6 +81,7 @@ Additional options:
         Autobuild.verbose = true
         Rake.application.options.trace = true
         debug = true
+        Autobuild.debug = true
     end
     opts.on('--nice NICE', Integer, 'nice the subprocesses to the given value') do |value|
         Autobuild.nice = value
