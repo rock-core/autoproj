@@ -629,6 +629,7 @@ report(debug) do
             pkg = Autobuild::Package[pkg_name]
             pkg.srcdir = File.join(srcdir, pkg_name)
             pkg.prefix = prefix
+            pkg.doc_target_dir = File.join(Autoproj.build_dir, 'doc', name, pkg_name)
             pkg.logdir = logdir
         end
         seen |= packages
