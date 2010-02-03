@@ -76,7 +76,7 @@ boost:
 {coderay}
 
 At the time of this writing, autoproj is able to install packages on
-Ubuntu/Debian and Gentoo support for other operating systems can be easily
+Ubuntu/Debian and Gentoo. Support for other operating systems can be easily
 added, so [contact me](http://github.com/doudou) if you want to do so.
 
 RubyGems packages

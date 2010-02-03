@@ -35,6 +35,13 @@ a:hover {
 text-decoration:underline;
 }
 
+img.full {
+margin-left: auto;
+margin-right: auto;
+margin-top: 2em;
+margin-bottom: 2em;
+}
+
 a img{
 border:0;
 }
@@ -253,6 +260,10 @@ padding:20px;
 background:#eee;
 color:#222;
 border:2px solid #ddd;
+margin-top: 3em;
+margin-bottom: 3em;
+margin-left: 2em;
+margin-right: 2em;
 }
 
 .warning{

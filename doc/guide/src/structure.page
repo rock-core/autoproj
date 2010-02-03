@@ -9,11 +9,32 @@ to manage one. See [the introduction](index.html) for the bootstrapping process.
 Structure
 ---------
 
-A autoproj installation is characterized by a autoproj/ directory in which all
-autoproj-related configuration is saved. The contained files are as follows:
+!overview.png!
+<img class="full" src="overview.png" />
 
- * autoproj/manifest: list of available package sets, customization options.
-   The first part is covered here, the second in the next page.
+The autoproj configuration and build process goes like this:
+
+ * a set of packages are declared in _package sets_. These package sets can
+   either be local (saved along with the rest of the autoproj configuration) or
+   remote (imported from a VCS). They declare how to get, build and install
+   a certain number of packages. On the image above, there are three of those
+   sets: rubim.base, rubim.orocos and rubim.drivers.
+ * packages that are relevant to the local installation are cherry-picked from
+   the package sets. One can either select packages one-by-one (the case for the
+   two packages of rubim.drivers above), or a package set can be imported as a
+   whole (rubim.orocos and rubim.base).
+ * autoproj will then import the selected packages, auto-select their
+   dependencies and import them as well, build and install all of this.
+ * the selected packages can be imported and built in subdirectories of the
+   installation tree. In the above example, all packages from rubim.orocos are
+   built in the tools/ subdirectory, one package of rubim.drivers in the
+   perception/ subdirectory and so on.
+
+In practice, the autoproj configuration is saved in an autoproj/ directory. It
+is split like this:
+
+ * autoproj/manifest: list of available package sets, package selection and
+   installation layout (where to put what).
  * .remotes/\*: package sets that are imported from a remote version
    control system
  * autoproj/\*/: local sets, i.e. sets that have not been imported from a remote
@@ -29,8 +50,10 @@ The build is done in two steps:
    installation
 
 Moreover, the <tt>build/log</tt> directory contains the output of all commands
-that have been run during the build. Finally, a <tt>env.sh</tt> script is
-generated to set up your shell for the use of the installed software.
+that have been run during the build.
+
+Finally, a <tt>env.sh</tt> script is generated to set up your shell for the use
+of the installed software.
 
 Listing and adding package sets
 -------------------------------
@@ -64,7 +87,9 @@ For the git importer, one of 'branch' or 'tag' options can be provided as well:
 {coderay}
 
 Imported package sets are saved in the <tt>.remotes</tt> directory of the
-autoproj installation.
+autoproj installation. The importers that are available for configuration are
+the same than the ones available for the packages themselves, so see [this
+page](package_sets/importers.html#all_importers) for the list of available importers.
 
 Management
 ----------
@@ -84,11 +109,17 @@ autoproj build --reconfigure
 Alternatively, you can edit the autoproj/config.yml file directly.
 
 If you are in a disconnected environment (i.e. no access to remote
-repositories), use the <tt>--no-update</tt> option to skip the update phase.
-autoproj will still have to checkout new packages, though:
+repositories), use the fast-build mode, to skip the package update and OS
+packages installation phases (autoproj will still check out new packages,
+though):
 
-autoproj build --no-update
+autoproj fast-build
 {.commandline}
+
+The package update can be disabled with --no-update and the OS dependencies
+installation with --no-osdeps. In practice, "autoproj fast-build" is equivalent
+to autoproj build --no-update --no-osdeps
+{.block}
 
 If, on the other hand, you only want to update the source code, do
 

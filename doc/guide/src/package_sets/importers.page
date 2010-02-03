@@ -68,8 +68,8 @@ Then, the following will happen:
 The remaining of this page will detail the various options that exist to import
 a source package.
 
-Git
-\---
+Git {#all_importers}
+\--- 
 
 The general setup for git imports is:
 

@@ -28,20 +28,22 @@ specification. More specifically, the package manifest files are common between
 ROS package management and autoproj (more details in the following of this
 document).
 
-Components of an Autoproj installation
+Overview of an autoproj installation
 -------------------------------------
-A autoproj installation is seeded by _package sets_. A package set is a local or remote
-directory in which there is:
 
- * a list of available packages, and information on how to build these packages.
-   This list, and the build information, are Ruby scripts that use the autobuild
-   API. [More ...](autobuild.html)
- * version control information: where to get the source code for each of the
-   packages defined in the set.
+The idea in an autoproj installation is that people share _definitions_ for a
+set of packages that can depend on each other. Then, anyone can cherry-pick in
+these definitions to build its own installation (in practice, one builds a
+complete configuration per-project).
 
-Then, an autoproj configuration is simply a list of package sets (i.e. a list of
-packages that are available to build), and a file that selects which packages
-should be built. This file is the <tt>manifest</tt>.
+Each package definition includes:
+
+ * how to get the package's source code
+ * how to build the package
+ * on what the package depends. This can be either another package built by
+   autoproj, or an operating system package.
+
+See [this page](structure.html) for more information.
 
 Bootstrapping
 -------------

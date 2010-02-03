@@ -105,7 +105,7 @@ Local overrides of version control information
 
 The <tt>autoproj/overrides.yml</tt> allows you to override version control information
 for specific packages. It has the same format than the source.yml file of
-package sets, so [check that page out](source_yml.html) for more information.
+package sets, so [check that page out](package_sets/importers.html) for more information.
 
 This file can in particular be used to avoid further updates to a given software
 package. Simply do:
