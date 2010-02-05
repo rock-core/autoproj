@@ -109,6 +109,10 @@ def package_common(package_type, spec) # :nodoc:
     end
 end
 
+def import_package(options, &block)
+    package_common(:import, options, &block)
+end
+
 # Define a cmake package
 #
 # Example:
