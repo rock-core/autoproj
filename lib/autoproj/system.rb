@@ -65,6 +65,16 @@ module Autoproj
         File.join(root_dir, ".gems")
     end
 
+    # Find the given program in PATH. It raises ArgumentError if the program
+    # can't be found
+    def self.find_in_path(name)
+        result = ENV['PATH'].split(':').find { |dir| File.file?(File.join(dir, name)) }
+        if !result
+            raise ArgumentError, "#{name} can not be found in PATH"
+        end
+        File.join(result, name)
+    end
+
     # Initializes the environment variables to a "sane default"
     #
     # Use this in autoproj/init.rb to make sure that the environment will not
