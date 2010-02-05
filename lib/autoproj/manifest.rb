@@ -396,7 +396,11 @@ module Autoproj
             end
 
             if !vcs_spec.empty?
-                expansions = Hash["PACKAGE" => package_name, "PACKAGE_BASENAME" => File.basename(package_name)]
+                expansions = Hash["PACKAGE" => package_name,
+                    "PACKAGE_BASENAME" => File.basename(package_name),
+                    "AUTOPROJ_ROOT" => Autoproj.root_dir,
+                    "AUTOPROJ_CONFIG" => Autoproj.config_dir,
+                    "AUTOPROJ_SOURCE_DIR" => local_dir]
 
                 vcs_spec = expand(vcs_spec, expansions)
                 vcs_spec = Autoproj.vcs_definition_to_hash(vcs_spec)
