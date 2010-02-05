@@ -17,10 +17,12 @@ module Autoproj
         end
 
         attr_reader :definitions
-        attr_reader :gem_fetcher
+        def gem_fetcher
+            @gem_fetcher ||= Gem::SpecFetcher.fetcher
+        end
+
         def initialize(defs = Hash.new)
             @definitions = defs.to_hash
-            @gem_fetcher = Gem::SpecFetcher.fetcher
         end
 
         def merge(info)
@@ -189,6 +191,19 @@ module Autoproj
             return osdeps, gems
         end
 
+        def guess_gem_program
+            if Autobuild.programs['gem']
+                return Autobuild.programs['gem']
+            end
+
+            ruby_bin = Config::CONFIG['RUBY_INSTALL_NAME']
+            if ruby_bin =~ /^ruby(.+)$/
+                Autobuild.programs['gem'] = "gem#{$1}"
+            else
+                Autobuild.programs['gem'] = "gem"
+            end
+        end
+
         # Requests the installation of the given set of packages
         def install(packages, package_osdeps = Hash.new)
             osdeps, gems = partition_packages(packages, package_osdeps)
@@ -228,7 +243,7 @@ module Autoproj
                     if !installed.empty? && Autobuild.do_update
                         # Look if we can update the package ...
                         dep = Gem::Dependency.new(name, version_requirements)
-                        available = @gem_fetcher.find_matching(dep)
+                        available = gem_fetcher.find_matching(dep)
                         installed_version = installed.map(&:version).max
                         available_version = available.map { |(name, v), source| v }.max
                         needs_update = (available_version > installed_version)
@@ -241,6 +256,8 @@ module Autoproj
 
             # Now install what is left
             if !gems.empty?
+                guess_gem_program
+
                 if Autoproj.verbose
                     STDERR.puts "Installing rubygems dependencies with"
                     STDERR.puts "gem install #{gems.join(" ")}"

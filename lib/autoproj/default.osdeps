@@ -15,7 +15,7 @@ ruby19:
     debian,ubuntu:
         - ruby1.9.1
         - ruby1.9.1-dev
-        - rubygem1.9.1
+        - rubygems1.9.1
         - ri1.9.1
         - libopenssl-ruby1.9.1
     gentoo:

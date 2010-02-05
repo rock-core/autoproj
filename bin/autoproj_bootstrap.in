@@ -19,11 +19,9 @@ end
 
 ENV['GEM_HOME'] = needed_gem_home
 ENV['PATH']     = "#{ENV['GEM_HOME']}/bin:#{ENV['PATH']}"
-ENV['RUBYOPT']  = "-rubygems"
 
 require 'yaml'
 require 'set'
-require 'rubygems'
 
 module Autoproj
     class ConfigError < RuntimeError; end
@@ -85,22 +83,18 @@ ruby_packages =
 begin
     osdeps_management = Autoproj::OSDependencies.new(YAML.load(DEFS))
     STDERR.puts "autoproj: installing a proper Ruby environment (this can take a long time)"
-    osdeps_management.install(ruby_packages)
+    osdeps_management.install([ruby_packages])
 rescue Autoproj::ConfigError => e
     STDERR.puts "failed: #{e.message}"
     exit(1)
 end
 
 # Now try to find out the name of the gem binary
-require 'rbconfig'
-ruby_suffix = Config::CONFIG['RUBY_INSTALL_NAME'].gsub(/^ruby/, '')
-gem_bin = ["gem#{ruby_suffix}", "gem"].find do |candidate|
-    ENV['PATH'].split(':').any? { |path| File.file?(File.join(path, candidate)) }
-end
-Autobuild.programs['gem'] = gem_bin
-
 PACKAGES      = %w{rdoc libxml2 libxslt build-essential lsb_release}
 USER_PACKAGES = %w{autoproj}
+
+ENV['RUBYOPT']  = "-rubygems"
+require 'rubygems'
 
 packages = PACKAGES.dup
 if ARGV.first != "dev"
