@@ -113,8 +113,8 @@ Tar archives
 version_control:
     package_name:
         type: archive
-        url: http://sourceforge.net/blablabla
-        filename: blabla.tar.gz
+        url: http://sourceforge.net/blablabla.tar.gz?option=value
+        filename: blabla.tar.gz # Optional: if the file name cannot be inferred from the URL
         no_subdirectory: false # Optional. Set to true if there is not a leading directory in the archive
         update_cached_file: false # Optional. Set to false to disable automatic updates
 {coderay}
@@ -140,6 +140,25 @@ of the same software).
 Patching the source once it is checked out/updated
 --------------------------------------------------
 
-TBD
+It is possible to apply patches after a given package (imported by any of the
+importer types) has been checked out/updated. To do so, simply add a
+<tt>patches:</tt> option in the importer configuration, that lists the patches
+to apply:
 
+{coderay:: yaml}
+version_control:
+    package_name:
+        type: archive
+        url: http://sourceforge.net/blablabla
+        patches:
+            - $AUTOPROJ_SOURCE_DIR/blablabla-01.patch
+            - $AUTOPROJ_SOURCE_DIR/blablabla-02.patch
+{coderay}
+
+Note that in the example above, the patch is saved in the package set's folder
+(the value of AUTOPROJ_SOURCE_DIR). This is a highly required practice.
+
+Note that if the patch list changes (i.e. the *names* change), autoproj will
+automatically unpatch and repatch as required. It is therefore highly required
+to change the patch name if the patch changes.
 

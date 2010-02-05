@@ -29,17 +29,71 @@ end
 
 The above snippet being equivalent to calling <tt>cmake -DVAR=VALUE</tt>
 
-<b>Note to advanced users</b>
-<br />
-The "pkg" variable holds an object that represents the package. This
-object is an instance of the Autobuild::CMake class. See [the autobuild
-API](http://doudou.github.com/autobuild/Autobuild/CMake.html) for more
-details.
-{.note}
+The "pkg" variable in the example above is an instance of
+[Autobuild::CMake](http://doudou.github.com/autobuild/Autobuild/CMake.html)
+{.block}
 
-Defining autotools packages
+Defining autotools packages {#autotools}
 ---------------------------
-TBD
+
+{coderay:: ruby}
+autotools_package "package_name"
+autotools_package "package_name" do |pkg|
+    pkg.configureflags << "--enable-feature" << "VAR=VALUE"
+    # additional configuration
+end
+{coderay}
+
+The 'pkg' variable in the example above is an instance of
+[Autobuild::Autotools](http://doudou.github.com/autobuild/Autobuild/Autotools.html)
+{.block}
+
+Defining Ruby packages
+----------------------
+
+{coderay:: ruby}
+ruby_package "package_name"
+ruby_package "package_name" do |pkg|
+    # additional configuration
+end
+{coderay}
+
+This package handles pure ruby libraries that do not need to be installed at
+all. Autoproj assumes that the directory layout of the package follows the following
+convention:
+
+ * programs are in bin/
+ * the library itself is in lib/
+ * if an extension needs to be built, a Rakefile has to be there with a "setup"
+   target to do the job.
+
+Defining oroGen packages
+------------------------
+
+{coderay:: ruby}
+orogen_package "package_name"
+orogen_package "package_name" do |pkg|
+    # customization code
+end
+{coderay}
+
+oroGen is a module generator for the Orocos component framework. See [the oroGen
+documentation](http://doudou.github.com/orogen) for more information.
+
+The 'pkg' variable in the example above is an instance of
+[Autobuild::Orogen](http://doudou.github.com/autobuild/Autobuild/Orogen.html)
+{.block}
+
+Custom package building
+-----------------------
+
+{coderay:: ruby}
+import_package "package_name" do |pkg|
+    pkg.post_install do
+        # add commands to build and install the package
+    end
+end
+{coderay}
 
 Declaring documentation targets
 -------------------------------
@@ -76,6 +130,18 @@ Both methods should be used only for dynamic dependencies, i.e. dependencies
 that are dependent on build options (see below). Static dependencies should be
 defined in [the package's manifest.xml](manifest-xml.html)
 {.warning}
+
+Finally, it is possible to give aliases to a package's name, by using the
+Autobuild::Package#provides method. If one does
+
+{coderay:: ruby}
+cmake_package "mypkg" do |pkg|
+    pkg.provides "pkgconfig/libmypkg"
+end
+{coderay}
+
+then a package that declares a dependency on "pkgconfig/libmypkg" will actually
+depend on "mypkg".
 
 Defining and using options
 --------------------------

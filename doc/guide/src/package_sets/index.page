@@ -35,6 +35,8 @@ For the first step, you need to add one of the following lines:
 cmake_package "my/package" # for CMake package
 autotools_package "my/package" # for autoconf/automake packages
 orogen_package "my/package" # for orogen packages
+import_package "my/package" # for custom packages
+ruby_package "my/package" # for ruby libraries (optionally with C/C++ extensions)
 {coderay}
 
 The package name will be used to refer to this particular package later on --
@@ -87,6 +89,9 @@ form, it looks like:
 {coderay:: ruby}
 cmake_package "orocos/rtt"
 autotools_package "drivers/imu"
+orogen_package "modules/imu"
+import_package "external/sisl"
+ruby_package "orocos/orocos.rb"
 {coderay}
 
 The above snippet defines two packages. The first one uses CMake as a build
