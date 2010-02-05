@@ -1,3 +1,5 @@
+require 'find'
+require 'fileutils'
 require 'autobuild'
 require 'set'
 
@@ -168,15 +170,26 @@ def ruby_common(pkg) # :nodoc:
         super
         extdir = File.join(srcdir, 'ext')
         if File.directory?(extdir)
-            FileUtils.rm_rf File.join(extdir, "build", "CMakeCache.txt")
-            FileUtils.rm_rf File.join(extdir, "Makefile")
+            Find.find(extdir) do |file|
+                next if file !~ /\<Makefile\>|\<CMakeCache.txt\>$/
+                FileUtils.rm_rf file
+            end
         end
     end
     def pkg.prepare_for_rebuild
         super
         extdir = File.join(srcdir, 'ext')
         if File.directory?(extdir)
-            FileUtils.rm_rf File.join(extdir, "build")
+            Find.find(extdir) do |file|
+                if file =~ /Makefile/
+                    Autobuild::Subprocess.run self, 'build', Autobuild.tool("make"), "-C", File.dirname(file), "clean"
+                end
+            end
+            Find.find(extdir) do |file|
+                if File.directory?(file) && file == "build"
+                    FileUtils.rm_rf file
+                end
+            end
         end
     end
 
