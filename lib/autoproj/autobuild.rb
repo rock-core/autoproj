@@ -80,6 +80,7 @@ end
 # Sets up a documentation target on pkg that runs 'rake <target>'
 def ruby_doc(pkg, target = 'doc')
     pkg.doc_task do
+        pkg.progress "generating documentation for %s"
         pkg.doc_disabled unless File.file?('Rakefile')
         Autobuild::Subprocess.run pkg.name, 'doc', 'rake', target
     end
