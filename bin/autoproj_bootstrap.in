@@ -75,15 +75,12 @@ EODEFS
 # aren't installing any gems for now (as we need to choose the right gem
 # binary) by setting Autobuild.programs['gem'] to nil
 Autobuild.programs['gem'] = nil
-ruby_packages =
-    if RUBY_VERSION < "1.9.0" then "ruby18"
-    else "ruby19"
-    end
+Autoproj::OSDependencies.autodetect_ruby
 
 begin
     osdeps_management = Autoproj::OSDependencies.new(YAML.load(DEFS))
     STDERR.puts "autoproj: installing a proper Ruby environment (this can take a long time)"
-    osdeps_management.install([ruby_packages])
+    osdeps_management.install(['ruby'])
 rescue Autoproj::ConfigError => e
     STDERR.puts "failed: #{e.message}"
     exit(1)

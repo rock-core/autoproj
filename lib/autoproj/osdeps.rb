@@ -11,6 +11,24 @@ module Autoproj
 
             OSDependencies.new(data)
         end
+
+        class << self
+            attr_reader :aliases
+        end
+        @aliases = Hash.new
+
+        def self.alias(old_name, new_name)
+            @aliases[new_name] = old_name
+        end
+
+        def self.autodetect_ruby
+            ruby_package =
+                if RUBY_VERSION < "1.9.0" then "ruby18"
+                else "ruby19"
+                end
+            self.alias(ruby_package, "ruby")
+        end
+
         AUTOPROJ_OSDEPS = File.join(File.expand_path(File.dirname(__FILE__)), 'default.osdeps')
         def self.load_default
             @default_osdeps ||= OSDependencies.load(AUTOPROJ_OSDEPS)
@@ -153,7 +171,10 @@ module Autoproj
         # call-seq:
         #   partition_packages(package_names) => os_packages, gem_packages
         def partition_packages(package_set, package_osdeps = Hash.new)
-            package_set = package_set.to_set
+            package_set = package_set.
+                map { |name| OSDependencies.aliases[name] || name }.
+                to_set
+
             osdeps, gems = [], []
             package_set.to_set.each do |name|
                 pkg_def = definitions[name]

@@ -377,6 +377,8 @@ end
 Autobuild.doc_errors = false
 Autobuild.do_doc = false
 
+Autoproj::OSDependencies.autodetect_ruby
+
 # Find the autoproj root dir
 report(debug) do
     case mode

@@ -2,6 +2,8 @@
  * ruby 1.9 compatible
  * fixes w.r.t. running autoproj under a Ruby interpreter that is not called
    'ruby' (as ruby1.9.1 on Debian)
+ * packages that os-depend on 'ruby' will now depend on either ruby18 or ruby19,
+   depending on the ruby version used.
  * add Arch-Linux support
  * fixes w.r.t. the 'doc' mode. In particular, the documentation installation
    now follows the layout.
