@@ -28,6 +28,7 @@ mail_config = Hash.new
 only_update_sources = false
 only_do_status      = false
 no_os_deps = false
+force_re_build_with_depends = false
 debug = false
 
 # Parse the configuration options
@@ -69,6 +70,9 @@ Additional options:
 
     opts.on("--no-osdeps", "do not install prepackaged dependencies") do
         no_os_deps = true
+    end
+    opts.on("--with-depends", "apply rebuild and force-build to both packages selected on the command line and their dependencies") do
+        force_re_build_with_depends = true
     end
 
     opts.on("--verbose", "verbose output") do
@@ -765,6 +769,20 @@ report(debug) do
 
         if !no_os_deps
             manifest.install_os_dependencies(all_enabled_packages)
+        end
+
+        if !selected_packages.empty? && !force_re_build_with_depends
+            if Autobuild.do_rebuild
+                selected_packages.each do |pkg_name|
+                    Autobuild::Package[pkg_name].prepare_for_rebuild
+                end
+                Autobuild.do_rebuild = false
+            elsif Autobuild.do_forced_build
+                selected_packages.each do |pkg_name|
+                    Autobuild::Package[pkg_name].prepare_for_forced_build
+                end
+                Autobuild.do_forced_build = false
+            end
         end
 
         Autobuild.apply(all_enabled_packages, "autoproj-build")
