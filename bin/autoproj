@@ -36,32 +36,42 @@ parser = OptionParser.new do |opts|
     opts.banner = <<-EOBANNER
 autoproj mode [options]
 where 'mode' is one of:
+
+-- Build
   build:  import, build and install all packages that need it. A package or package
     set name can be given, in which case only this package and its dependencies
     will be taken into account. Example:
 
     autoproj build drivers/hokuyo
       
-  force-build: triggers all build commands, i.e. don't be lazy like in "build"
   fast-build: builds without updating and without considering OS dependencies
-  rebuild: clean and then rebuild
+  force-build: triggers all build commands, i.e. don't be lazy like in "build".
+           If packages are selected on the command line, only those packages
+           will be affected unless the --with-depends option is used.
+  rebuild: clean and then rebuild. If packages are selected on the command line,
+           only those packages will be affected unless the --with-depends option
+           is used.
   doc:    generate and install documentation for packages that have some
-  update: only import/update packages, do not build them
+
+-- Status & Update
+  envsh: update the env.sh script
   status: displays the state of the packages w.r.t. their source VCS
+  list-sets:   list all available package sets
+  update: only import/update packages, do not build them
+  update-sets: update the package sets definitions, but not the packages themselves
+
+-- Autoproj Configuration
   bootstrap: starts a new autoproj installation. Usage:
     autoproj bootstrap [manifest_url|source_vcs source_url opt1=value1 opt2=value2 ...]
-  
-  list-sets:   list all available package sets
-  update-sets: update the package sets definitions
   switch-config: change where the configuration should be taken from. Syntax:
     autoproj switch-config source_vcs source_url opt1=value1 opt2=value2 ...
 
     For example:
     autoproj switch-config git git://github.com/doudou/rubim-all.git branch=all
 
-Additional options:
+-- Additional options:
     EOBANNER
-    opts.on("--reconfigure", "re-ask all configuration options (build mode only)") do
+    opts.on("--reconfigure", "re-ask all configuration options (build modes only)") do
         Autoproj.reconfigure = true
     end
     opts.on("--no-update", "do not update already checked-out packages (build mode only)") do
@@ -412,6 +422,10 @@ report(debug) do
         Autobuild.do_build  = false
     when "status"
         only_do_status      = true
+        Autobuild.do_update = false
+        no_os_deps = true
+    when "envsh"
+        Autobuild.do_build  = false
         Autobuild.do_update = false
         no_os_deps = true
     when "update-sets"
