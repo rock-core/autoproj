@@ -1,3 +1,9 @@
+= Version 1.4.1
+ * add the envsh build mode: only update env.sh
+ * rebuild <package> and force-build <package> only apply by default on the
+   selected packages, not on their dependencies
+ * fix rebuild for Ruby packages
+
 = Version 1.4.0
  * ruby 1.9 compatible
  * fixes w.r.t. running autoproj under a Ruby interpreter that is not called
