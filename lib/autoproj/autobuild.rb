@@ -181,13 +181,14 @@ def ruby_common(pkg) # :nodoc:
         extdir = File.join(srcdir, 'ext')
         if File.directory?(extdir)
             Find.find(extdir) do |file|
-                if file =~ /Makefile/
-                    Autobuild::Subprocess.run self, 'build', Autobuild.tool("make"), "-C", File.dirname(file), "clean"
+                if File.directory?(file) && File.basename(file) == "build"
+                    FileUtils.rm_rf file
+                    Find.prune
                 end
             end
             Find.find(extdir) do |file|
-                if File.directory?(file) && file == "build"
-                    FileUtils.rm_rf file
+                if File.basename(file) == "Makefile"
+                    Autobuild::Subprocess.run self, 'build', Autobuild.tool("make"), "-C", File.dirname(file), "clean"
                 end
             end
         end
