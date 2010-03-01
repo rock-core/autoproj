@@ -469,6 +469,7 @@ report(debug) do
             raise ConfigError, "RubyGems is already loaded with a different GEM_HOME, make sure you are loading the right env.sh script !"
         end
     end
+
     # Set up some important autobuild parameters
     Autoproj.env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB', 'LD_LIBRARY_PATH'
     Autoproj.env_set 'GEM_HOME', Autoproj.gem_home
@@ -479,6 +480,20 @@ report(debug) do
     Autobuild.logdir = File.join(Autobuild.prefix, 'log')
     if mail_config[:to]
         Autobuild::Reporting << Autobuild::MailReporter.new(mail_config)
+    end
+
+
+    ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
+    if ruby != 'ruby'
+        bindir = File.join(Autoproj.build_dir, 'bin')
+        FileUtils.mkdir_p bindir
+        File.open(File.join(bindir, 'ruby'), 'w') do |io|
+            io.puts "#! /bin/sh"
+            io.puts "exec #{ruby} \"$@\""
+        end
+        FileUtils.chmod 0755, File.join(bindir, 'ruby')
+
+        Autoproj.env_add 'PATH', bindir
     end
 
     # First things first, see if we need to update ourselves
