@@ -46,8 +46,9 @@ module Autoproj
     end
 
     def self.define(package_type, spec, &block)
-        package = Autobuild.send(package_type, spec, &block)
-        Autoproj.manifest.register_package package, *current_file
+        package = Autobuild.send(package_type, spec)
+        Autoproj.manifest.register_package package, block, *current_file
+        package
     end
 
     @loaded_autobuild_files = Set.new
@@ -90,7 +91,7 @@ def ruby_doc(pkg, target = 'doc')
 end
 
 # Common setup for packages
-def package_common(package_type, spec) # :nodoc:
+def package_common(package_type, spec, &block) # :nodoc:
     package_name = Autoproj.package_name_from_options(spec)
 
     begin
@@ -105,10 +106,9 @@ def package_common(package_type, spec) # :nodoc:
         return Autoproj.define(:dummy, spec)
     end
 
-    Autoproj.define(package_type, spec) do |pkg|
-        pkg.srcdir   = pkg.name
-        yield(pkg) if block_given?
-    end
+    pkg = Autoproj.define(package_type, spec, &block)
+    pkg.srcdir = pkg.name
+    pkg
 end
 
 def import_package(options, &block)

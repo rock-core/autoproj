@@ -571,8 +571,8 @@ report(debug) do
     if Autoproj.verbose
         # List defined packages, and in which autobuild files they are defined
         STDERR.puts "Available packages:"
-        manifest.packages.each_value do |package, source, file|
-            STDERR.puts "  #{package.name}: #{file} from #{source.name}"
+        manifest.packages.each_value do |pkg|
+            STDERR.puts "  #{pkg.autobuild.name}: #{pkg.file} from #{pkg.package_set.name}"
         end
     end
 
@@ -669,6 +669,14 @@ report(debug) do
             pkg.logdir = logdir
         end
         seen |= packages
+    end
+
+    # Now call the blocks that the user defined in the autobuild files. We do it
+    # now so that the various package directories are properly setup
+    manifest.packages.each_value do |pkg|
+        if pkg.user_block
+            pkg.user_block[pkg.autobuild]
+        end
     end
 
     if only_do_status

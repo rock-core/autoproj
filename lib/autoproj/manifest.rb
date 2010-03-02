@@ -420,9 +420,9 @@ module Autoproj
                 return enum_for(:each_package)
             end
 
-            Autoproj.manifest.packages.each do |pkg_name, (pkg, source, file)|
-                if source.name == name
-                    yield(pkg)
+            Autoproj.manifest.packages.each_value do |pkg|
+                if pkg.package_set.name == name
+                    yield(pkg.autobuild)
                 end
             end
         end
@@ -454,6 +454,8 @@ module Autoproj
             end
         end
     end
+
+    PackageDefinition = Struct.new :autobuild, :user_block, :package_set, :file
 
     class Manifest
         FakePackage = Struct.new :text_name, :name, :srcdir, :importer
@@ -665,15 +667,15 @@ module Autoproj
         end
 
         # Register a new package
-        def register_package(package, source, file)
-            @packages[package.name] = [package, source, file]
+        def register_package(package, block, source, file)
+            @packages[package.name] = PackageDefinition.new(package, block, source, file)
         end
 
         def definition_source(package_name)
-            @packages[package_name][1]
+            @packages[package_name].package_set
         end
         def definition_file(package_name)
-            @packages[package_name][2]
+            @packages[package_name].file
         end
 
         # Lists all defined packages and where they have been defined
@@ -681,7 +683,7 @@ module Autoproj
             if !block_given?
                 return enum_for(:each_package)
             end
-            packages.each_value { |package, _| yield(package) }
+            packages.each_value { |pkg| yield(pkg.autobuild) }
         end
 
         # The VCS object for the main configuration itself
@@ -736,7 +738,9 @@ module Autoproj
 
         def importer_definition_for(package_name, package_source = nil)
             if !package_source
-                _, package_source, _ = packages.values.find { |pkg, pkg_source, _| pkg.name == package_name }
+                package_source = packages.values.
+                    find { |pkg| pkg.autobuild.name == package_name }.
+                    package_set
             end
 
             each_source.each do |source|
@@ -767,14 +771,14 @@ module Autoproj
         #  * S0 can have a VCS line for P, which would override the one defined
         #    by S1
         def load_importers
-            packages.each_value do |package, package_source, package_source_file|
-                vcs = importer_definition_for(package.name, package_source)
+            packages.each_value do |pkg|
+                vcs = importer_definition_for(pkg.autobuild.name, pkg.package_set)
 
                 if vcs
                     Autoproj.add_build_system_dependency vcs.type
-                    package.importer = vcs.create_autobuild_importer
+                    pkg.autobuild.importer = vcs.create_autobuild_importer
                 else
-                    raise ConfigError, "source #{package_source.name} defines #{package.name}, but does not provide a version control definition for it"
+                    raise ConfigError, "source #{pkg.package_set.name} defines #{pkg.autobuild.name}, but does not provide a version control definition for it"
                 end
             end
         end
@@ -790,8 +794,9 @@ module Autoproj
                 if !source
                     raise ConfigError, "#{name} is neither a package nor a source"
                 end
-                packages.values.find_all { |pkg, pkg_src, _| pkg_src.name == source.name }.
-                    map { |pkg, _| pkg.name }
+                packages.values.
+                    map { |pkg| pkg.autobuild.name if pkg.package_set.name == source.name }.
+                    compact
             end
         end
 
@@ -904,8 +909,9 @@ module Autoproj
         # Right now, the absence of a manifest makes autoproj only issue a
         # warning. This will later be changed into an error.
         def load_package_manifest(pkg_name)
-            package, source, file = packages.values.
-                find { |package, source, file| package.name == pkg_name }
+            pkg = packages.values.
+                find { |pkg| pkg.autobuild.name == pkg_name }
+            package, source, file = pkg.autobuild, pkg.package_set, pkg.file
 
             if !pkg_name
                 raise ArgumentError, "package #{pkg_name} is not defined"
