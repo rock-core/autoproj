@@ -743,7 +743,7 @@ module Autoproj
                     package_set
             end
 
-            each_source.each do |source|
+            each_source.to_a.reverse.each do |source|
                 vcs = source.importer_definition_for(package_name)
                 if vcs
                     return vcs

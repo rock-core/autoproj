@@ -18,9 +18,8 @@ version_control:
 Autoproj follows the following rules to find the importer definition for a given
 package:
  
- - it looks *in order* in the package sets listed in the manifest file, and will
-   take the definition from the *first* package set that has a definition for
-   the package.
+ - it looks *in reverse order* in the package sets listed in the manifest file,
+   and will take the definition from the *first* package set that has one.
  - in the source.yml file, it will match the package's name with the
    package\_name fields. It will consider every matching block (i.e. every
    package\_name that matches), overriding earlier options by later ones.
@@ -29,19 +28,19 @@ As an example, let's consider the following manifest:
 
 {coderay:: ruby}
 package_sets:
-    - rubim.drivers
-    - rubim.orocos
     - rubim.base
+    - rubim.orocos
+    - rubim.drivers
 {coderay}
 
 Now, let's assume that the rubim.orocos package set has a source.yml file with:
 
 {coderay:: ruby}
 version_control:
-    orocos/:
+    - orocos/:
         type: git
         url: git://github.com/$PACKAGE.git
-    orocos/orocos.rb:
+    - orocos/orocos.rb:
         branch: roby
 {coderay}
 
@@ -49,7 +48,7 @@ Finally, the rubim.drivers package set has:
 
 {coderay:: ruby}
 version_control:
-    orocos/logger:
+    - orocos/logger:
         type: git
         url: git://github.com/$PACKAGE.git
         branch: perf
