@@ -1,3 +1,13 @@
+= Version 1.4.2
+ * change the order in which package sets are considered for version control
+   information in the manifest. The package set list needs now to be defined
+   from the most generic to the least generic
+ * define a shell script called 'ruby' in prefix/bin to call the right ruby
+   interpreter. This makes the "#! /usr/bin/env ruby" she-bang line working
+   on interpreters that are not called 'ruby'.
+ * the package directories (prefix, srcdir, builddir, ...) can be used by other
+   packages for their configuration now.
+
 = Version 1.4.1
  * add the envsh build mode: only update env.sh
  * rebuild <package> and force-build <package> only apply by default on the
