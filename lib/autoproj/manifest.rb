@@ -896,9 +896,8 @@ module Autoproj
                         layout_packages(layout, true)
                     else
                         # No layout, all packages are selected
-                        packages.values.map do |package, source, _|
-                            package.name
-                        end
+                        packages.values.
+                            map { |pkg| package.autobuild.name }
                     end
             names = names.delete_if { |pkg_name| excluded?(pkg_name) }
             names.to_set
