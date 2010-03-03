@@ -15,8 +15,6 @@
 # The available configuration options can be listed using the `webgen config`
 # command, for example: `webgen config sourcehandler` will list all options starting
 # with sourcehandler.
-default_processing_pipeline:
-    Page: tags,maruku,blocks
 
 default_meta_info:
     Webgen::SourceHandler::Page:
@@ -28,3 +26,4 @@ tag.breadcrumbtrail.omit_index_path: true
 
 tag.coderay.line_numbers: false
 tag.coderay.lang: ruby
+

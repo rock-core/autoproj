@@ -11,9 +11,9 @@ Defining dependencies between source packages and OS packages
 
 These dependencies can be defined in two ways:
 
- * by adding a <tt>&lt;osdep name="depname" /&gt;</tt> tag in the package's
+ * by adding a `<osdep name="depname" />`  tag in the package's
    [manifest.xml](manifest-xml.html)
- * by calling <tt>pkg.depends_on_os_package("depname")</tt> [in the autobuild
+ * by calling `pkg.depends_on_os_package("depname")` [in the autobuild
    file](autobuild.html).
 
 In both cases, depname is used as a key to find the OS package definition in the
@@ -24,46 +24,46 @@ OS packages
 
 The general format of the an OS package definition:
 
-{coderay:: yaml}
+~~~~~~~~~~~~~~~~~~
 name:
     distribution1,distribution2:
         version1,version2: [package_name1, package_name2]
-{coderay}
+~~~~~~~~~~~~~~~~~~
 
-Where 'name' is the name used to declare the dependency (see above),
-<tt>distribution*</tt> the name of the distribution and <tt>version*</tt> the
-distribution's version, and <tt>package_name*</tt> the name of the package in
+Where 'name' is the name used to declare the dependency (see above), `distribution`
+the name of the distribution and <tt>version</tt> the
+distribution's version, and <tt>package_name</tt> the name of the package in
 the underlying OS.
 
-Since the osdeps file is a YAML file, <tt>[package_name1, package_name2]</tt> can also be written
+Since the osdeps file is a YAML file, it could also be written
 
-{coderay:: yaml}
+~~~~~~~~~~~~~~~~~~
 name:
     distribution1,distribution2:
         version1,version2:
             - package_name1
             - package_name2
-{coderay}
+~~~~~~~~~~~~~~~~~~
 
 If only one package needs to be installed, one can use the shortcut
 
-{coderay:: yaml}
+~~~~~~~~~~~~~~~~~~
 name:
     distribution1,distribution2:
         version1,version2: package_name
-{coderay}
+~~~~~~~~~~~~~~~~~~
 
 Finally, if the package name is version-independent, the version can be omitted:
 
 
-{coderay:: yaml}
+~~~~~~~~~~~~~~~~~~
 name:
     distribution1,distribution2: package_name
-{coderay}
+~~~~~~~~~~~~~~~~~~
 
 Examples:
 
-{coderay:: yaml}
+~~~~~~~~~~~~~~~~~~
 ruby:
     debian,ubuntu:
         9.04,10.04,sid: libruby-dev
@@ -73,7 +73,7 @@ boost:
         - libboost-program1.38-dev
     ubuntu:
         9.04,10.04: libboost-dev
-{coderay}
+~~~~~~~~~~~~~~~~~~
 
 At the time of this writing, autoproj is able to install packages on
 Ubuntu/Debian and Gentoo. Support for other operating systems can be easily
@@ -87,37 +87,37 @@ to by replacing the OS distribution name by 'gem'.
 
 Example:
 
-{coderay:: yaml}
+~~~~~~~~~~~~~~~~~~
 hoe:
     gem:
         hoe
-{coderay}
+~~~~~~~~~~~~~~~~~~
 
 If the OS dep name and the RubyGems name are the same, one can use the shortcut
 
-{coderay:: yaml}
+~~~~~~~~~~~~~~~~~~
 hoe: gem
-{coderay}
+~~~~~~~~~~~~~~~~~~
 
 Note that it is possible to use a mixture of RubyGems and OS packages. For
 instance, the following snippet will both install the gnuplot package and the
 gnuplot RubyGems whenever an osdep on 'gnuplot' is declared.
 
-{coderay:: yaml}
+~~~~~~~~~~~~~~~~~~
 gnuplot:
     gem: gnuplot
     debian: gnuplot
-{coderay}
+~~~~~~~~~~~~~~~~~~
 
 Ignoring some dependencies
 --------------------------
 It is possible that, on some operating systems, a given package should simply be
 ignored. To do so, simply use the 'ignore' keyword. Example:
 
-{coderay:: yaml}
+~~~~~~~~~~~~~~~~~~
 gnuplot:
     gem: gnuplot
     debian: ignore
     ubuntu: gnuplot
-{coderay}
+~~~~~~~~~~~~~~~~~~
 

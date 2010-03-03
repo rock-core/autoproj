@@ -11,8 +11,7 @@ The <tt>layout</tt> section of <tt>autoproj/manifest</tt> offers two things:
  * build packages in specific subdirectories
 
 This section lists packages or package sets that ought to be built by autoproj.
-For instance, in the following example, only the <tt>orocos/rtt</tt> and
-<tt>orocos/ocl</tt>
+For instance, in the following example, only the <tt>orocos/rtt</tt> and <tt>orocos/ocl</tt>
 packages of the rubim.orocos source will be built. The other will be excluded
 from the build.
 
@@ -46,7 +45,7 @@ layout:
 Configuration files like <tt>autoproj/manifest</tt> are YAML file. As such, they
 aresensible to indentation. The snippet above should be read as: in the layout, there is first a "lib" part and second the packages whose names start with "orocos/" _(first level of indentation)_. In the "lib" part, the packages are "typelib", "utilmm"
  and "utilrb" _(second level of indentation)_. 
-{.warning}
+{: .warning}
 
 Alternatively, the example above could be written:
 {coderay:: yaml}
@@ -59,7 +58,7 @@ Finally, names of sublayouts can be used as arguments in the autoproj command
 line, instead of package names:
 
 autoproj build lib
-{.commandline}
+{: .commandline}
 
 Removing packages from the build
 --------------------------------
@@ -121,7 +120,7 @@ Building local packages
 
 You can list local packages that are not in an imported package set by placing
 the definitions in autoproj/, in a file ending with <tt>.autobuild</tt>. See [this
-page](source_yml.html) for information on how to write autobuild files.
+page](package_sets/autobuild.html) for information on how to write autobuild files.
 
 Setting up the path to specific commands (make, parallel builds)
 ----------------------------------------------------------------
@@ -178,18 +177,12 @@ layout:
 If the command line is
 
 autoproj build modules/logger
-{.cmdline}
+{: .cmdline}
 
-then only modules/logger and modules/base will be built -- assuming
-modules/logger depends on modules/base -- but typelib will be left alone
-_regardless of its state_. It may speed up the build process tremendously, but
-also may generate errors if other packages needed to be updated.
-
-Idem, if the command line is:
+then modules/logger and its dependencies will be built. Idem, if the command line is:
 
 autoproj build asguard
-{.cmdline}
+{: .cmdline}
 
-then all packages or asguard/ are built _but none of the dependencies that are
-defined in other places in the layout_.
+then all packages or asguard/ are built, including their dependencies
 

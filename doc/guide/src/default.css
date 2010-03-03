@@ -293,6 +293,10 @@ margin-left: 2.5em;
 pre {
 margin-left: 2.5em;
 }
+code {
+    font: monospace;
+}
+
 
 /* Original open source design by Andreas Viklund - http://andreasviklund.com
 Released through OSWD.org */

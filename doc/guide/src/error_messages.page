@@ -13,5 +13,5 @@ the packages that you requested to build. Two solutions: (i) the package should
 *not* depend on it, and you should modify the [package's
 manifest.xml](package_sets/manifest-xml.html) file. (ii)
 the package should depend on it and you should list the OS package in [the
-relevant osdeps file](osdeps.html)
+relevant osdeps file](package_sets/osdeps.html)
 
