@@ -631,6 +631,7 @@ report(debug) do
 
     # Create the build target from the manifest if the user did not provide an
     # explicit one
+    partial_build = !selected_packages.empty?
     if selected_packages.empty?
         selected_packages = manifest.default_packages
     end
@@ -772,12 +773,9 @@ report(debug) do
         Autobuild.do_update = old_update_flag
     end
 
-    missing_packages = all_packages.
-        find_all do |pkg_name|
-            !File.directory?(Autobuild::Package[pkg_name].srcdir)
-        end
-
-    if missing_packages.empty?
+    if partial_build
+        STDERR.puts color("autoproj: not updating #{Autoproj.root_dir}/env.sh since this is a partial build", :red)
+    else
         # Backward compatibility: check if name/env.sh exists, and if it is
         # the case, simply replace it with a link to the root one. And issue
         # a warning
@@ -791,8 +789,6 @@ report(debug) do
         end
         Autoproj.export_env_sh
         STDERR.puts color("autoproj: updated #{Autoproj.root_dir}/env.sh", :green)
-    else
-        STDERR.puts color("autoproj: #{missing_packages.join(", ")} are not yet imported, #{Autoproj.root_dir}/env.sh might not be up to date", :red)
     end
 
     if all_enabled_packages.empty?
