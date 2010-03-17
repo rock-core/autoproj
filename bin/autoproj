@@ -693,20 +693,14 @@ report(debug) do
     STDERR.puts
     STDERR.puts color("autoproj: importing and loading selected packages", :bold)
 
-    # Install prepackaged dependencies needed to import and build the packages
+    # Install prepackaged dependencies needed to import and build the packages.
+    # The required information is in the package sets configuration.
     if !no_os_deps
         osdeps = manifest.known_os_packages
         osdeps.install(Autoproj.build_system_dependencies - source_os_dependencies)
     end
 
-    # First thing: do the import. We are handling the imports ourselves as it
-    # allows us to complete the enabled_packages set with the package
-    # dependencies. The scheme is as follows:
-    #  * we import a package, prepare it and load its manifest
-    #  * we look at its dependencies. Dependencies are either already handled
-    #    (and nothing needs to be done) or are to-be-handled at this level.
-    #    Otherwise, it is considered as an error
-    #
+    # Prepare all packages that are already there.
     seen = Set.new
     manifest.each_package_set do |name, packages, enabled_packages|
         packages -= seen
@@ -727,6 +721,10 @@ report(debug) do
         seen |= packages
     end
 
+    # Now, we actually do the import. Unfortunately, at this stage, we need to
+    # import the package and its dependencies ourselves so that we are able to
+    # build the list of packages that have actually been selected on the command
+    # line.
     all_packages         = Set.new
     all_enabled_packages = Set.new
     all_sublayouts       = Set.new
@@ -739,22 +737,26 @@ report(debug) do
         while !packages_to_import.empty?
             import_now, packages_to_import = packages_to_import, Set.new
             import_now.sort.each do |pkg_name|
-                # Already handled in this part of the layout
                 next if all_enabled_packages.include?(pkg_name)
 
-                # Not handled already. Import.
-                Autobuild::Package[pkg_name].import
-                manifest.load_package_manifest(pkg_name)
-                all_enabled_packages << pkg_name
+                # Not handled already, import and prepare
+                autobuild_package = Autobuild::Package[pkg_name]
+                autobuild_package.import
+                Rake::Task["#{autobuild_package.name}-prepare"].invoke
+                manifest.load_package_manifest(autobuild_package.name)
+                all_enabled_packages << autobuild_package.name << pkg_name
 
                 # Add its dependencies to the next import set
-                Autobuild::Package[pkg_name].dependencies.each do |dep_name|
-                    if !Autobuild::Package[dep_name]
+                autobuild_package.dependencies.each do |dep_name|
+                    next if all_enabled_packages.include?(dep_name)
+
+                    dependency_package = Autobuild::Package[dep_name]
+                    if !dependency_package
                         raise ConfigError, "#{pkg_name} depends on #{dep_name}, but it does not seem to exist"
-                    elsif all_enabled_packages.include?(dep_name)
+                    elsif all_enabled_packages.include?(dependency_package.name)
                         next
                     end
-                    packages_to_import << dep_name
+                    packages_to_import << dependency_package.name
                 end
             end
         end
