@@ -249,6 +249,9 @@ module Autoproj
                         # Add its dependencies to the next import set
                         autobuild_package.dependencies.each do |dep_name|
                             next if all_enabled_packages.include?(dep_name)
+                            if Autoproj.manifest.excluded?(dep_name)
+                                raise ConfigError, "#{pkg_name} depends on #{dep_name}, which is explicitely excluded in the manifest"
+                            end
 
                             dependency_package = Autobuild::Package[dep_name]
                             if !dependency_package
