@@ -11,7 +11,7 @@ Defining dependencies between source packages and OS packages
 
 These dependencies can be defined in two ways:
 
- * by adding a `<osdep name="depname" />`  tag in the package's
+ * by adding a `<rosdep name="depname" />`  tag in the package's
    [manifest.xml](manifest-xml.html)
  * by calling `pkg.depends_on_os_package("depname")` [in the autobuild
    file](autobuild.html).
