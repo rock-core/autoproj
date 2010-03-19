@@ -346,8 +346,12 @@ module Autoproj
             urls['HOME'] = ENV['HOME']
 
             all_vcs     = source_definition['version_control']
-            if all_vcs && !all_vcs.kind_of?(Array)
-                raise ConfigError, "wrong format for the version_control field"
+            if all_vcs
+                if all_vcs.kind_of?(Hash)
+                    raise ConfigError, "wrong format for the version_control field, you forgot the '-' in front of the package names"
+                elsif !all_vcs.kind_of?(Array)
+                    raise ConfigError, "wrong format for the version_control field"
+                end
             end
 
             vcs_spec = Hash.new
