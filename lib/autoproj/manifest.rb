@@ -265,6 +265,10 @@ module Autoproj
         rescue InternalError
         end
 
+        def source_file
+            File.join(local_dir, 'source.yml')
+        end
+
         # Load the source.yml file that describes this source, and resolve the
         # $BLABLA values that are in there. Use #raw_description_file to avoid
         # resolving those values
@@ -412,7 +416,7 @@ module Autoproj
                 Autoproj.normalize_vcs_definition(vcs_spec)
             end
         rescue ConfigError => e
-            raise ConfigError, "#{e.message} in the source.yml file of #{name} (#{File.join(local_dir, "source.yml")})", e.backtrace
+            raise ConfigError, "#{e.message} in #{source_file}", e.backtrace
         end
 
         def each_package
@@ -439,8 +443,12 @@ module Autoproj
         def load_name
         end
 
+        def source_file
+            File.join(Autoproj.config_dir, "overrides.yml")
+        end
+
         def raw_description_file
-            path = File.join(Autoproj.config_dir, "overrides.yml")
+            path = source_file
             if File.file?(path)
                 begin
                     data = YAML.load(File.read(path)) || Hash.new
