@@ -225,6 +225,23 @@ module Autoproj
         end
 
         def self.import_packages(selected_packages)
+            # First, import all packages that are already there to make
+            # automatic dependency discovery possible
+            old_update_flag = Autobuild.do_update
+            begin
+                Autobuild.do_update = false
+                packages = Autobuild::Package.each.
+                    find_all { |pkg_name, pkg| File.directory?(pkg.srcdir) }.
+                    delete_if { |pkg_name, pkg| Autoproj.manifest.excluded?(pkg_name) || Autoproj.manifest.ignored?(pkg_name) }
+
+                packages.each do |_, pkg|
+                    pkg.import
+                end
+
+            ensure
+                Autobuild.do_update = old_update_flag
+            end
+
             all_packages         = Set.new
             all_enabled_packages = Set.new
             all_sublayouts       = Set.new
