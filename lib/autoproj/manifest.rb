@@ -645,36 +645,26 @@ module Autoproj
                 return @sources.each(&block)
             end
 
-            # Load the local source first ...
+            all_sources = []
+
+	    (data['package_sets'] || []).each do |spec|
+                all_sources << source_from_spec(spec, load_description)
+            end
+
+            # Now load the local source 
             local = LocalSource.new
             if load_description
                 local.load_description_file
             else
                 local.load_name
             end
-            if load_description
-                if !local.empty?
-                    @sources = [local]
-                else
-                    @sources = []
-                end
-            else
-                yield(local)
+            if !load_description || !local.empty?
+                all_sources << local
             end
 
-            return if !data['package_sets']
-
-	    data['package_sets'].each do |spec|
-                source = source_from_spec(spec, load_description)
-                if load_description
-                    @sources << source
-                else
-                    yield(source)
-                end
-            end
-
+            all_sources.each(&block)
             if load_description
-                @sources.each(&block)
+                @sources = all_sources
             end
         end
 
