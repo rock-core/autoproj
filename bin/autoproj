@@ -70,10 +70,8 @@ report(Autobuild.debug) do
 
     # Basic initialization
     Autoproj::CmdLine.initialize
-    if Autoproj::CmdLine.update?
-        Autoproj::CmdLine.update_myself
-        Autoproj::CmdLine.update_configuration
-    end
+    Autoproj::CmdLine.update_myself
+    Autoproj::CmdLine.update_configuration
     Autoproj::CmdLine.load_configuration
     manifest = Autoproj.manifest
 
@@ -82,20 +80,17 @@ report(Autobuild.debug) do
         Autoproj::CmdLine.display_sources(manifest)
     end
 
-    exit(0) if !Autoproj::CmdLine.build?
-
     selected_packages = Autoproj::CmdLine.resolve_user_selection(selected_packages)
     Autoproj::CmdLine.initial_package_setup
 
     if Autoproj::CmdLine.only_status?
         STDERR.puts
-        all_packages = Set.new
-        manifest.handle_enabled_packages(selected_packages) do |name, _, layout_enabled|
-            all_packages |= layout_enabled
-        end
-        Autoproj::CmdLine.status(all_packages)
+        all_enabled_packages, all_sublayouts = Autoproj::CmdLine.import_packages(selected_packages)
+        Autoproj::CmdLine.status(all_enabled_packages)
         exit(0)
     end
+
+    exit(0) if !Autoproj::CmdLine.build? && !Autoproj::CmdLine.doc? && !Autoproj::CmdLine.update_packages?
 
     STDERR.puts
     STDERR.puts color("autoproj: importing and loading selected packages", :bold)
@@ -112,6 +107,8 @@ report(Autobuild.debug) do
     # build the list of packages that have actually been selected on the command
     # line.
     all_enabled_packages, all_sublayouts = Autoproj::CmdLine.import_packages(selected_packages)
+
+    exit(0) if !Autoproj::CmdLine.build? && !Autoproj::CmdLine.doc?
 
     if Autoproj::CmdLine.partial_build?
         STDERR.puts color("autoproj: not updating #{Autoproj.root_dir}/env.sh since this is a partial build", :red)

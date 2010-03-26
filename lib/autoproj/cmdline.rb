@@ -338,7 +338,7 @@ module Autoproj
         def self.force_re_build_with_depends?; !!@force_re_build_with_depends end
         def self.partial_build?; !!@partial_build end
         def self.mail_config; @mail_config end
-        def self.update?; Autobuild.do_update end
+        def self.update_packages?; @mode == "update" || build? end
         def self.build?; @mode =~ /build/ end
         def self.doc?; @mode == "doc" end
 
@@ -482,7 +482,7 @@ where 'mode' is one of:
                 Autobuild.do_update = false
                 @update_os_dependencies = false
             when "update-sets"
-                @display_configuration = true
+                @display_configuration = false
                 @update_os_dependencies = false
             when "list-sets"
                 @display_configuration = true
