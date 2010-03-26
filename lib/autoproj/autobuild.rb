@@ -234,6 +234,11 @@ def ruby_package(options)
             attr_accessor :doc_target
         end
 
+        pkg.exclude << /\.so$/
+        pkg.exclude << /Makefile$/
+        pkg.exclude << /mkmf.log$/
+        pkg.exclude << /\.o$/
+
         ruby_common(pkg)
         yield(pkg) if block_given?
         unless pkg.has_doc?
