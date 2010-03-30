@@ -106,10 +106,14 @@ module Autoproj
             @type == 'local'
         end
 
-        def self.to_absolute_url(url, root_dir = Autoproj.root_dir)
-            url = Autoproj.single_expansion(self.url, 'HOME' => ENV['HOME'])
+        def self.to_absolute_url(url, root_dir = nil)
+            # NOTE: we MUST use nil as default argument of root_dir as we don't
+            # want to call Autoproj.root_dir unless completely necessary
+            # (to_absolute_url might be called on installations that are being
+            # bootstrapped, and as such don't have a root dir yet).
+            url = Autoproj.single_expansion(url, 'HOME' => ENV['HOME'])
             if url && url !~ /^(\w+:\/)?\/|^\w+\@|^(\w+\@)?[\w\.-]+:/
-                url = File.expand_path(url, Autoproj.root_dir)
+                url = File.expand_path(url, root_dir || Autoproj.root_dir)
             end
             url
         end
@@ -117,7 +121,7 @@ module Autoproj
         def create_autobuild_importer
             return if type == "none"
 
-            url = VCSDefinition.to_absolute_url(url)
+            url = VCSDefinition.to_absolute_url(self.url)
             Autobuild.send(type, url, options)
         end
 

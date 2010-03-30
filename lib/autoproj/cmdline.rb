@@ -331,7 +331,6 @@ module Autoproj
         end
 
         def self.manifest; Autoproj.manifest end
-        def self.bootstrap?; !!@bootstrap end
         def self.only_status?; !!@only_status end
         def self.update_os_dependencies?; !!@update_os_dependencies end
         def self.display_configuration?; !!@display_configuration end
@@ -343,7 +342,6 @@ module Autoproj
         def self.doc?; @mode == "doc" end
 
         def self.parse_arguments(args)
-            @bootstrap = false
             @only_status = false
             @display_configuration = false
             @update_os_dependencies = true
@@ -451,17 +449,29 @@ where 'mode' is one of:
             parser.parse!(args)
             @mail_config = mail_config
 
-            handle_mode(@mode = args.shift)
+            @mode = args.shift
+            handle_mode(@mode, args)
             selection = args.dup
             @partial_build = !selection.empty?
             selection
         end
 
-        def self.handle_mode(mode)
+        def self.handle_mode(mode, remaining_args)
             case mode
             when "bootstrap"
-                @bootstrap = true
+                bootstrap(*remaining_args)
+
                 @display_configuration = true
+                Autobuild.do_update = false
+                @update_os_dependencies = false
+
+            when "switch-config"
+                # We must switch to the root dir first, as it is required by the
+                # configuration switch code. This is acceptable as long as we
+                # quit just after the switch
+                Dir.chdir(Autoproj.root_dir)
+                switch_config(*remaining_args)
+                exit 0
 
             when "build"
             when "force-build"
@@ -488,12 +498,6 @@ where 'mode' is one of:
                 @display_configuration = true
                 Autobuild.do_update = false
                 @update_os_dependencies = false
-            when "switch-config"
-                if switch_config(*args)
-                    exit 0
-                else
-                    exit 1
-                end
             when "doc"
                 Autobuild.do_update = false
                 @update_os_dependencies = false
@@ -602,13 +606,24 @@ where 'mode' is one of:
             display_status(packages)
         end
 
-        def self.switch_config(type, url, *options)
+        def self.switch_config(*args)
             Autoproj.load_config
             if Autoproj.has_config_key?('manifest_source')
                 vcs = Autoproj.normalize_vcs_definition(Autoproj.user_config('manifest_source'))
             end
 
-            if vcs && (vcs.type == args[0] && vcs.url == args[1])
+            if args.first =~ /^(\w+)=/
+                # First argument is an option string, we are simply setting the
+                # options without changing the type/url
+                type, url = vcs.type, vcs.url
+            else
+                type, url = args.shift, args.shift
+            end
+            options = args
+
+            url = VCSDefinition.to_absolute_url(url)
+
+            if vcs && (vcs.type == type && vcs.url == url)
                 # Don't need to do much: simply change the options and save the config
                 # file, the VCS handler will take care of the actual switching
             else
@@ -629,8 +644,8 @@ where 'mode' is one of:
             # options will not be reused
             #
             # TODO: cleanup the options to only keep the relevant ones
-            vcs_def = Hash['type' => args.shift, 'url' => args.shift]
-            args.each do |opt|
+            vcs_def = Hash['type' => type, 'url' => url]
+            options.each do |opt|
                 opt_name, opt_val = opt.split '='
                 vcs_def[opt_name] = opt_val
             end
@@ -645,8 +660,8 @@ where 'mode' is one of:
             vcs_def = Hash.new
             vcs_def[:type] = type
             vcs_def[:url]  = VCSDefinition.to_absolute_url(url)
-            while !args.empty?
-                name, value = args.shift.split("=")
+            while !options.empty?
+                name, value = options.shift.split("=")
                 vcs_def[name] = value
             end
 
@@ -715,7 +730,7 @@ where 'mode' is one of:
 
             elsif args.size >= 2 # is a VCS definition for the manifest itself ...
                 type, url, *options = *args
-                url = VCSDefinition.to_absolute_url(url, File.dirname(__FILE__))
+                url = VCSDefinition.to_absolute_url(url, Dir.pwd)
                 do_switch_config(false, type, url, *options)
             end
 
