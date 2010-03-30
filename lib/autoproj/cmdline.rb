@@ -337,7 +337,7 @@ module Autoproj
         def self.force_re_build_with_depends?; !!@force_re_build_with_depends end
         def self.partial_build?; !!@partial_build end
         def self.mail_config; @mail_config end
-        def self.update_packages?; @mode == "update" || build? end
+        def self.update_packages?; @mode == "update" || @mode == "envsh" || build? end
         def self.build?; @mode =~ /build/ end
         def self.doc?; @mode == "doc" end
 
@@ -753,6 +753,18 @@ your consoles, or run the following in them:
   $ source #{Dir.pwd}/env.sh
 
 EOTEXT
+        end
+
+        def self.export_env_sh
+            if Autoproj::CmdLine.partial_build?
+                if !@envsh_warning
+                    @envsh_warning = true
+                    STDERR.puts color("autoproj: not updating #{Autoproj.root_dir}/env.sh since this is a partial build", :red)
+                end
+            else
+                Autoproj.export_env_sh
+                STDERR.puts color("autoproj: updated #{Autoproj.root_dir}/env.sh", :green)
+            end
         end
     end
 end
