@@ -21,6 +21,8 @@ doc/guide/src/images/gradient1.png
 doc/guide/src/images/gradient2.png
 doc/guide/src/index.page
 doc/guide/src/manifest.xml
+doc/guide/src/overview.png
+doc/guide/src/overview.svg
 doc/guide/src/package_sets/autobuild.page
 doc/guide/src/package_sets/importers.page
 doc/guide/src/package_sets/index.page
@@ -29,6 +31,7 @@ doc/guide/src/package_sets/osdeps.page
 doc/guide/src/structure.page
 lib/autoproj.rb
 lib/autoproj/autobuild.rb
+lib/autoproj/cmdline.rb
 lib/autoproj/default.osdeps
 lib/autoproj/manifest.rb
 lib/autoproj/options.rb
