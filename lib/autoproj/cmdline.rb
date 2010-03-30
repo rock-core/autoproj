@@ -602,7 +602,7 @@ where 'mode' is one of:
             display_status(packages)
         end
 
-        def self.switch_config(*args)
+        def self.switch_config(type, url, *options)
             Autoproj.load_config
             if Autoproj.has_config_key?('manifest_source')
                 vcs = Autoproj.normalize_vcs_definition(Autoproj.user_config('manifest_source'))
@@ -620,7 +620,7 @@ where 'mode' is one of:
                 return if !opt.ask(nil)
 
                 Dir.chdir(Autoproj.root_dir) do
-                    do_switch_config(true, *args)
+                    do_switch_config(true, type, url, *options)
                 end
             end
 
@@ -641,10 +641,10 @@ where 'mode' is one of:
             Autoproj.save_config
         end
 
-        def self.do_switch_config(delete_current, *args)
+        def self.do_switch_config(delete_current, type, url, *options)
             vcs_def = Hash.new
-            vcs_def[:type] = args.shift
-            vcs_def[:url]  = args.shift
+            vcs_def[:type] = type
+            vcs_def[:url]  = VCSDefinition.to_absolute_url(url)
             while !args.empty?
                 name, value = args.shift.split("=")
                 vcs_def[name] = value
@@ -714,7 +714,9 @@ where 'mode' is one of:
                 end
 
             elsif args.size >= 2 # is a VCS definition for the manifest itself ...
-                do_switch_config(false, *args)
+                type, url, *options = *args
+                url = VCSDefinition.to_absolute_url(url, File.dirname(__FILE__))
+                do_switch_config(false, type, url, *options)
             end
 
             # Finally, generate an env.sh script

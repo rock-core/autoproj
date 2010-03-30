@@ -106,13 +106,18 @@ module Autoproj
             @type == 'local'
         end
 
-        def create_autobuild_importer
-            return if type == "none"
-
+        def self.to_absolute_url(url, root_dir = Autoproj.root_dir)
             url = Autoproj.single_expansion(self.url, 'HOME' => ENV['HOME'])
             if url && url !~ /^(\w+:\/)?\/|^\w+\@|^(\w+\@)?[\w\.-]+:/
                 url = File.expand_path(url, Autoproj.root_dir)
             end
+            url
+        end
+
+        def create_autobuild_importer
+            return if type == "none"
+
+            url = VCSDefinition.to_absolute_url(url)
             Autobuild.send(type, url, options)
         end
 
