@@ -507,6 +507,10 @@ where 'mode' is one of:
                 Autobuild.do_update = true
                 @update_os_dependencies = true
                 Autobuild.do_build  = false
+            when "osdeps"
+                Autobuild.do_update = false
+                @update_os_dependencies = true
+                Autobuild.do_build  = false
             when "status"
                 @only_status = true
                 Autobuild.do_update = false

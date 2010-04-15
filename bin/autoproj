@@ -116,7 +116,7 @@ report(Autobuild.debug) do
     # line.
     all_enabled_packages, all_sublayouts = Autoproj::CmdLine.import_packages(selected_packages)
 
-    if Autoproj::CmdLine.build? || Autoproj::CmdLine.doc?
+    if Autoproj::CmdLine.build? || Autoproj::CmdLine.doc? || Autoproj::CmdLine.update_os_dependencies?
         if all_enabled_packages.empty?
             STDERR.puts color("autoproj: nothing to do", :bold)
         elsif Autoproj::CmdLine.build? || Autoproj::CmdLine.doc?
