@@ -89,6 +89,20 @@ module Autoproj
         def self.update_configuration
             manifest = Autoproj.manifest
 
+            # Once thing left to do: handle the Autoproj.auto_update
+            # configuration parameter
+            #
+            # Namely, we must check if Autobuild.do_update has been explicitely
+            # set to true or false. If that is the case, don't do anything.
+            # Otherwise, set it to the value of auto_update (set in the
+            # manifest)
+            if Autobuild.do_update.nil?
+                Autobuild.do_update = manifest.auto_update?
+            end
+            if Autoproj::CmdLine.update_os_dependencies.nil?
+                Autoproj::CmdLine.update_os_dependencies = manifest.auto_update?
+            end
+
             # Load the installation's manifest a first time, to check if we should
             # update it ... We assume that the OS dependencies for this VCS is already
             # installed (i.e. that the user did not remove it)
@@ -333,6 +347,9 @@ module Autoproj
         def self.manifest; Autoproj.manifest end
         def self.only_status?; !!@only_status end
         def self.update_os_dependencies?; !!@update_os_dependencies end
+        class << self
+            attr_accessor :update_os_dependencies
+        end
         def self.display_configuration?; !!@display_configuration end
         def self.force_re_build_with_depends?; !!@force_re_build_with_depends end
         def self.partial_build?; !!@partial_build end
@@ -340,17 +357,19 @@ module Autoproj
         def self.update_packages?; @mode == "update" || @mode == "envsh" || build? end
         def self.build?; @mode =~ /build/ end
         def self.doc?; @mode == "doc" end
-
         def self.parse_arguments(args)
             @only_status = false
             @display_configuration = false
-            @update_os_dependencies = true
+            @update_os_dependencies = nil
+            update_os_dependencies  = nil
             @force_re_build_with_depends = false
+            force_re_build_with_depends = nil
             @partial_build = false
             Autobuild.doc_errors = false
             Autobuild.do_doc = false
             Autobuild.only_doc = false
-            Autobuild.do_update = true
+            Autobuild.do_update = nil
+            do_update = nil
 
             mail_config = Hash.new
 
@@ -397,15 +416,15 @@ where 'mode' is one of:
                 opts.on("--reconfigure", "re-ask all configuration options (build modes only)") do
                     Autoproj.reconfigure = true
                 end
-                opts.on("--no-update", "do not update already checked-out packages (build mode only)") do
-                    Autobuild.do_update = false
+                opts.on("--[no-]update", "[do not] update already checked-out packages (build modes only)") do |value|
+                    do_update = value
                 end
 
-                opts.on("--no-osdeps", "do not install prepackaged dependencies") do
-                    @update_os_dependencies = false
+                opts.on("--[no-]osdeps", "[do not] install prepackaged dependencies (build and update modes only)") do |value|
+                    update_os_dependencies = value
                 end
                 opts.on("--with-depends", "apply rebuild and force-build to both packages selected on the command line and their dependencies") do
-                    @force_re_build_with_depends = true
+                    force_re_build_with_depends = true
                 end
 
                 opts.on("--verbose", "verbose output") do
@@ -453,6 +472,9 @@ where 'mode' is one of:
             handle_mode(@mode, args)
             selection = args.dup
             @partial_build = !selection.empty?
+            @update_os_dependencies = update_os_dependencies if !update_os_dependencies.nil?
+            @force_re_build_with_depends = force_re_build_with_depends if !force_re_build_with_depends.nil?
+            Autobuild.do_update = do_update if !do_update.nil?
             selection
         end
 
@@ -482,6 +504,8 @@ where 'mode' is one of:
                 Autobuild.do_update = false
                 @update_os_dependencies = false
             when "update"
+                Autobuild.do_update = true
+                @update_os_dependencies = true
                 Autobuild.do_build  = false
             when "status"
                 @only_status = true

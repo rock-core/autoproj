@@ -524,6 +524,10 @@ module Autoproj
 
         attr_reader :file
 
+        def auto_update?
+            !!data['auto_update']
+        end
+
 	def initialize(file, data)
             @file = file
 	    @data = data

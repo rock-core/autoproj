@@ -75,6 +75,16 @@ report(Autobuild.debug) do
     Autoproj::CmdLine.load_configuration
     manifest = Autoproj.manifest
 
+    # Once thing left to do: handle the Autoproj.auto_update configuration
+    # parameter
+    #
+    # Namely, we must check if Autobuild.do_update has been explicitely set to
+    # true or false. If that is the case, don't do anything. Otherwise, set it
+    # to the value of Autoproj.auto_update
+    if Autobuild.do_update.nil?
+        Autobuild.do_update = Autoproj.auto_update?
+    end
+
     # If in verbose mode, or if we only update sources, list the sources
     if Autoproj.verbose || Autoproj::CmdLine.display_configuration?
         Autoproj::CmdLine.display_sources(manifest)
