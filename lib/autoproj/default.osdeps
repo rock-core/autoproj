@@ -12,7 +12,17 @@ ruby18:
         - dev-lang/ruby:1.8
 
 ruby19:
-    debian,ubuntu:
+    debian:
+        squeeze,sid:
+            - ruby1.9.1
+            - ruby1.9.1-dev
+            - rubygems1.9.1
+        stable:
+            - ruby1.9.1
+            - ruby1.9.1-dev
+            - rubygems1.9.1
+
+    ubuntu:
         - ruby1.9.1
         - ruby1.9.1-dev
         - rubygems1.9.1
