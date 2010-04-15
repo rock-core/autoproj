@@ -144,7 +144,9 @@ module Autoproj
                     version_entry = data.find do |version_list, data|
                         version_list.to_s.split(',').
                             map(&:downcase).
-                            any? { |v| os_version.include?(v) }
+                            any? do |v|
+                                os_version.any? { |osv| Regexp.new(v) =~ osv }
+                            end
                     end
 
                     if !version_entry
