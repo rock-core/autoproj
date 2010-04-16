@@ -363,7 +363,7 @@ module Autoproj
         def self.parse_arguments(args)
             @only_status = false
             @display_configuration = false
-            @update_os_dependencies = nil
+            @update_os_dependencies = true
             update_os_dependencies  = nil
             @force_re_build_with_depends = false
             force_re_build_with_depends = nil
