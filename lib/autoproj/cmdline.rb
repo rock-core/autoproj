@@ -276,8 +276,8 @@ module Autoproj
                         # Not handled already, import and prepare
                         autobuild_package = Autobuild::Package[pkg_name]
                         Rake::Task["#{autobuild_package.name}-import"].invoke
-                        Rake::Task["#{autobuild_package.name}-prepare"].invoke
                         manifest.load_package_manifest(autobuild_package.name)
+                        Rake::Task["#{autobuild_package.name}-prepare"].invoke
                         all_enabled_packages << autobuild_package.name << pkg_name
 
                         # Add its dependencies to the next import set
