@@ -485,8 +485,10 @@ where 'mode' is one of:
             case mode
             when "bootstrap"
                 bootstrap(*remaining_args)
+                remaining_args.clear
 
                 @display_configuration = true
+                Autobuild.do_build = false
                 Autobuild.do_update = false
                 @update_os_dependencies = false
 
