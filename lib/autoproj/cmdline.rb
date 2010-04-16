@@ -712,10 +712,10 @@ where 'mode' is one of:
             # Now write it in the config file
             File.open(File.join(Autoproj.config_dir, "config.yml"), "a") do |io|
                 io.puts <<-EOTEXT
-        manifest_source:
-            type: #{vcs_def.delete(:type)}
-            url: #{vcs_def.delete(:url)}
-            #{vcs_def.map { |k, v| "#{k}: #{v}" }.join("\n    ")}
+manifest_source:
+    type: #{vcs_def.delete(:type)}
+    url: #{vcs_def.delete(:url)}
+    #{vcs_def.map { |k, v| "#{k}: #{v}" }.join("\n    ")}
                 EOTEXT
             end
         end
