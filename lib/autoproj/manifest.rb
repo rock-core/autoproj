@@ -966,7 +966,7 @@ module Autoproj
             manifest = PackageManifest.load(package, manifest_path)
             package_manifests[package.name] = manifest
 
-            manifest.each_package_dependency do |name|
+            manifest.each_dependency do |name|
                 if Autoproj.verbose
                     STDERR.puts "  #{package.name} depends on #{name}"
                 end
@@ -1000,18 +1000,14 @@ module Autoproj
             required_os_packages = Set.new
             package_os_deps = Hash.new { |h, k| h[k] = Array.new }
             packages.each do |pkg_name|
-                if manifest = package_manifests[pkg_name]
-                    manifest.each_os_dependency.each do |osdep_name|
-                        package_os_deps[osdep_name] << pkg_name
-                        required_os_packages << osdep_name
-                    end
+                pkg = Autobuild::Package[pkg_name]
+                if !pkg
+                    raise InternalError, "internal error: #{pkg_name} is not a package"
                 end
 
-                if pkg = Autobuild::Package[pkg_name]
-                    pkg.os_packages.each do |osdep_name|
-                        package_os_deps[osdep_name] << pkg_name
-                        required_os_packages << osdep_name
-                    end
+                pkg.os_packages.each do |osdep_name|
+                    package_os_deps[osdep_name] << pkg_name
+                    required_os_packages << osdep_name
                 end
             end
 
@@ -1095,6 +1091,15 @@ module Autoproj
         def initialize(package, doc)
             @package = package
             @xml = doc
+        end
+
+        def each_dependency(&block)
+            if block_given?
+                each_os_dependency(&block)
+                each_package_dependency(&block)
+            else
+                enum_for(:each_dependency, &block)
+            end
         end
 
         def each_os_dependency
