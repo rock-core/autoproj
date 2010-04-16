@@ -252,10 +252,14 @@ module Autoproj
             source_definition
         end
 
+        # Load and validate the name from the YAML hash
         def load_name
-            definition = raw_description_file
+            definition = @source_definition || raw_description_file
             @name = definition['name']
-            if @name == "local"
+
+            if @name !~ /^[\w\.-_]+$/
+                raise ConfigError, "source names can only contain alphanumeric characters, and .-_"
+            elsif @name == "local"
                 raise ConfigError, "source #{self} is named 'local', but this is a reserved name"
             end
 
@@ -271,6 +275,7 @@ module Autoproj
         # resolving those values
         def load_description_file
             @source_definition = raw_description_file
+            load_name
 
             # Compute the definition of constants
             begin
