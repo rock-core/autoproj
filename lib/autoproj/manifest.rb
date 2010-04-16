@@ -712,6 +712,13 @@ module Autoproj
             self
         end
 
+        # Creates an autobuild package whose job is to allow the import of a
+        # specific repository into a given directory.
+        #
+        # +vcs+ is the VCSDefinition file describing the repository, +text_name+
+        # the name used when displaying the import progress, +pkg_name+ the
+        # internal name used to represent the package and +into+ the directory
+        # in which the package should be checked out.
         def self.create_autobuild_package(vcs, text_name, pkg_name, into)
             importer     = vcs.create_autobuild_importer
             return if !importer # updates have been disabled by using the 'none' type
@@ -724,6 +731,9 @@ module Autoproj
             raise ConfigError, "cannot import #{name}: #{e.message}", e.backtrace
         end
 
+        # Imports or updates a source (remote or otherwise).
+        #
+        # See create_autobuild_package for informations about the arguments.
         def self.update_source(vcs, text_name, pkg_name, into)
             fake_package = create_autobuild_package(vcs, text_name, pkg_name, into)
             fake_package.import
@@ -732,10 +742,13 @@ module Autoproj
             raise ConfigError, "cannot import #{name}: #{e.message}", e.backtrace
         end
 
+        # Updates the main autoproj configuration
         def update_yourself
             Manifest.update_source(vcs, "autoproj main configuration", "autoproj_conf", Autoproj.config_dir)
         end
 
+        # Updates all the remote sources in ROOT_DIR/.remotes, as well as the
+        # symbolic links in ROOT_DIR/autoproj/remotes
         def update_remote_sources
             # Iterate on the remote sources, without loading the source.yml
             # file (we're not ready for that yet)
