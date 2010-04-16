@@ -300,6 +300,10 @@ module Autoproj
                 all_packages.merge(packages)
             end
 
+            if Autoproj.verbose
+                STDERR.puts "autoproj: finished importing packages"
+            end
+
             old_update_flag = Autobuild.do_update
             begin
                 Autobuild.do_update = false
@@ -314,6 +318,10 @@ module Autoproj
                 Rake::Task["autoproj-prepare"].invoke
             ensure
                 Autobuild.do_update = old_update_flag
+            end
+
+            if Autoproj.verbose
+                STDERR.puts "autoproj: finished preparing imported packages"
             end
 
             return all_enabled_packages, all_sublayouts
