@@ -3,18 +3,6 @@ require 'utilrb/kernel/options'
 require 'nokogiri'
 require 'set'
 
-module Autobuild
-    class Package
-        def os_packages
-            @os_packages || Array.new
-        end
-        def depends_on_os_package(name)
-            @os_packages ||= Array.new
-            @os_packages << name
-        end
-    end
-end
-
 module Autoproj
     @build_system_dependencies = Set.new
 
@@ -1047,9 +1035,12 @@ module Autoproj
         end
     end
 
-    # The singleton manifest object on which the current run works
     class << self
+        # The singleton manifest object on which the current run works
         attr_accessor :manifest
+
+        # The operating system package definitions
+        attr_accessor :osdeps
     end
 
     class PackageManifest

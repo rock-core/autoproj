@@ -84,6 +84,9 @@ module Autoproj
             # Configuration is finished, so all relevant configuration options should
             # have been asked to the user. Save it.
             Autoproj.save_config
+
+            # Loads OS package definitions once and for all
+            Autoproj.osdeps = manifest.known_os_packages
         end
 
         def self.update_configuration

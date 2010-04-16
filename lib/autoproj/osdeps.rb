@@ -170,8 +170,24 @@ module Autoproj
                 "\n" + shell_snippets
         end
 
+        # Returns true if there is an operating-system package with that name,
+        # and false otherwise
+        def has?(name)
+            partition_packages([name].to_set)
+            true
+        rescue ConfigError
+            false
+        end
+
         # call-seq:
         #   partition_packages(package_names) => os_packages, gem_packages
+        #
+        # Resolves the package names listed in +package_set+, and returns a set
+        # of packages that have to be installed using the platform's native
+        # package manager, and the set of packages that have to be installed
+        # using Ruby's package manager, RubyGems.
+        #
+        # Raises ConfigError if no package can be found
         def partition_packages(package_set, package_osdeps = Hash.new)
             package_set = package_set.
                 map { |name| OSDependencies.aliases[name] || name }.

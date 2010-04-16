@@ -3,9 +3,29 @@ require 'fileutils'
 require 'autobuild'
 require 'set'
 
-class Autobuild::Package
-    def autoproj_name # :nodoc:
-        srcdir.gsub /^#{Regexp.quote(Autoproj.root_dir)}\//, ''
+module Autobuild
+    class Package
+        def autoproj_name # :nodoc:
+            srcdir.gsub /^#{Regexp.quote(Autoproj.root_dir)}\//, ''
+        end
+
+        alias __depends_on__ depends_on
+        def depends_on(name)
+            if Autoproj.osdeps.has?(name)
+                @os_packages ||= Set.new
+                @os_packages << name
+            else
+                __depends_on__(name)
+            end
+        end
+
+        def depends_on_os_package(name)
+            depends_on(name)
+        end
+
+        def os_packages
+            @os_packages ||= Set.new
+        end
     end
 end
 
