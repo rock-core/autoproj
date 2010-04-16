@@ -752,8 +752,28 @@ module Autoproj
         def update_remote_sources
             # Iterate on the remote sources, without loading the source.yml
             # file (we're not ready for that yet)
+            sources = []
             each_remote_source(false) do |source|
                 Manifest.update_source(source.vcs, source.name || source.vcs.url, source.automatic_name, source.local_dir)
+                sources << source
+            end
+
+            # Check for directories in ROOT_DIR/.remotes that do not map to a
+            # source repository, and remove them
+            Dir.glob(File.join(Autoproj.remotes_dir, '*')).each do |dir|
+                dir = File.expand_path(dir)
+                if File.directory?(dir) && !sources.any? { |s| s.local_dir == dir }
+                    FileUtils.rm_rf dir
+                end
+            end
+
+            remotes_symlinks_dir = File.join(Autoproj.config_dir, 'remotes')
+            FileUtils.rm_rf remotes_symlinks_dir
+            FileUtils.mkdir remotes_symlinks_dir
+            # Create symbolic links from .remotes/weird_url to
+            # autoproj/remotes/name
+            each_remote_source(false) do |source|
+                FileUtils.ln_sf source.local_dir, File.join(remotes_symlinks_dir, source.name)
             end
         end
 
