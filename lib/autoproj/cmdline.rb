@@ -357,6 +357,7 @@ module Autoproj
 
         def self.manifest; Autoproj.manifest end
         def self.only_status?; !!@only_status end
+        def self.only_config?; !!@only_config end
         def self.update_os_dependencies?; !!@update_os_dependencies end
         class << self
             attr_accessor :update_os_dependencies
@@ -375,6 +376,7 @@ module Autoproj
             update_os_dependencies  = nil
             @force_re_build_with_depends = false
             force_re_build_with_depends = nil
+            @only_config = false
             @partial_build = false
             Autobuild.doc_errors = false
             Autobuild.do_doc = false
@@ -533,9 +535,12 @@ where 'mode' is one of:
                 Autobuild.do_update = false
                 @update_os_dependencies = false
             when "update-sets"
-                @display_configuration = false
+                @only_config = true
+                Autobuild.do_update = true
                 @update_os_dependencies = false
+                Autobuild.do_build = false
             when "list-sets"
+                @only_config = true
                 @display_configuration = true
                 Autobuild.do_update = false
                 @update_os_dependencies = false

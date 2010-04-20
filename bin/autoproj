@@ -90,6 +90,10 @@ report(Autobuild.debug) do
         Autoproj::CmdLine.display_sources(manifest)
     end
 
+    if Autoproj::CmdLine.only_config?
+        exit(0)
+    end
+
     selected_packages = Autoproj::CmdLine.resolve_user_selection(selected_packages)
     Autoproj::CmdLine.initial_package_setup
 
