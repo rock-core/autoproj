@@ -257,8 +257,8 @@ module Autoproj
             definition = @source_definition || raw_description_file
             @name = definition['name']
 
-            if @name !~ /^[\w\.-_]+$/
-                raise ConfigError, "source names can only contain alphanumeric characters, and .-_"
+            if @name !~ /^[\w_\.-]+$/
+                raise ConfigError, "invalid source name '#{@name}': source names can only contain alphanumeric characters, and .-_"
             elsif @name == "local"
                 raise ConfigError, "source #{self} is named 'local', but this is a reserved name"
             end
