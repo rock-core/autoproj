@@ -141,6 +141,7 @@ report(Autobuild.debug) do
         end
     end
 
-    Autoproj::CmdLine.export_env_sh
+    Autoproj.export_env_sh
+    STDERR.puts color("autoproj: updated #{Autoproj.root_dir}/env.sh", :green)
 end
 

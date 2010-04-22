@@ -804,18 +804,6 @@ your consoles, or run the following in them:
 
 EOTEXT
         end
-
-        def self.export_env_sh
-            if Autoproj::CmdLine.partial_build?
-                if !@envsh_warning
-                    @envsh_warning = true
-                    STDERR.puts color("autoproj: not updating #{Autoproj.root_dir}/env.sh since this is a partial build", :red)
-                end
-            else
-                Autoproj.export_env_sh
-                STDERR.puts color("autoproj: updated #{Autoproj.root_dir}/env.sh", :green)
-            end
-        end
     end
 end
 
