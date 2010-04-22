@@ -1,3 +1,12 @@
+= Version 1.5.0
+ * autoproj build does not update by default anymore. This was a behaviour
+   change that was requested by quite a few users.
+ * OS dependencies and normal dependencies are unified. An OS dependency will
+   have priority, if one is available on the OS. Otherwise, an autoproj package
+   will be searched for.
+ * fixed a few issues regarding env.sh generation and dynamic package dependency
+   handling.
+
 = Version 1.4.4
  * really fix the bug mentioned in 1.4.3
 
