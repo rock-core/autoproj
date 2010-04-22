@@ -4,6 +4,7 @@ module Autoproj
 end
 
 require "enumerator"
+require 'autoproj/version'
 require 'autoproj/manifest'
 require 'autoproj/osdeps'
 require 'autoproj/system'
