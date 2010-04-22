@@ -119,12 +119,8 @@ Inter-package dependencies can be defined with
 pkg.depends_on "package_name"
 {coderay}
 
-In the same way, if the source package depends on an OS package (see
-[Prepackaged dependencies](osdeps.html) for details), you can use
-
-{coderay:: ruby}
-pkg.depends_on_os_package "package_name"
-{coderay}
+Where package name is either the name of another autoproj-built package, or the
+name of a package that is to be [provided by the operating system](osdeps.html).
 
 Both methods should be used only for dynamic dependencies, i.e. dependencies
 that are dependent on build options (see below). Static dependencies should be

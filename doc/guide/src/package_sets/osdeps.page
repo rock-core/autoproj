@@ -3,21 +3,26 @@ title: Operating System dependencies
 sort_info: 300
 ---
 
-Each package set can have one or multiple .osdeps files. These files declare
-how to install prepackaged dependencies, based on the underlying operating system.
+Autoproj offers the possibility to use OS-packaged software instead of building
+it, to leverage the underlying platform's software. This page details how it's
+done.
 
 Defining dependencies between source packages and OS packages
 -------------------------------------------------------------
 
-These dependencies can be defined in two ways:
+If a source package depends on an OS package, this dependency should be declared
+in the same way than between  source packages:
 
- * by adding a `<rosdep name="depname" />`  tag in the package's
-   [manifest.xml](manifest-xml.html)
- * by calling `pkg.depends_on_os_package("depname")` [in the autobuild
-   file](autobuild.html).
+ * either by adding the <depend package="os_dep_name" /> tag in the
+   manifest.xml, or
+ * by calling #depends_on("os_dep_name") in the autobuild file.
 
-In both cases, depname is used as a key to find the OS package definition in the
-osdeps files (see below). It does not have to be the actual package name.
+The os_dep_name above being the name of the package as declared in the OS
+dependencies files defined below.
+
+During the build, autoproj looks first for OS dependencies. If no dependency is
+available for that particular platform, it will then look for a source package
+definition and build it. If none of the two exist, an error is returned.
 
 OS packages
 -----------

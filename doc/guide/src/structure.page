@@ -94,49 +94,40 @@ page](package_sets/importers.html#all_importers) for the list of available impor
 Management
 ----------
 
-To update and build a autoproj installation, simply do:
+To build the packages, simply do:
 
 autoproj build
-{.commandline}
+{: .commandline}
 
-It will ask the value of newly defined configuration options, import (or update)
-code hosted remotely, and build it. autoproj will *not* ask you again about the
-configuration questions you already answered, so if you want to change them, do:
+It will ask the value of newly defined configuration options, import code hosted
+remotely that is not yet present, install OS packages (e.g. Ubuntu packages on
+an Ubunut installation) and build everything.
+
+autoproj will *not* ask you again about the configuration questions you already
+answered, so if you want to change them, do:
 
 autoproj build --reconfigure
-{.commandline}
+{: .commandline}
 
 Alternatively, you can edit the autoproj/config.yml file directly.
 
-If you are in a disconnected environment (i.e. no access to remote
-repositories), use the fast-build mode, to skip the package update and OS
-packages installation phases (autoproj will still check out new packages,
-though):
-
-autoproj fast-build
-{.commandline}
-
-The package update can be disabled with --no-update and the OS dependencies
-installation with --no-osdeps. In practice, "autoproj fast-build" is equivalent
-to autoproj build --no-update --no-osdeps
-{.block}
-
-If, on the other hand, you only want to update the source code, do
+By default, autoproj does not automatically update the package sources. To do
+that, you have to explicitely call
 
 autoproj update
-{.commandline}
+{: .commandline}
 
 Finally, if you want to make sure that your build is fresh, then do
 
 autoproj rebuild
-{.commandline}
+{: .commandline}
 
 A less intrusive version of it only forces all tools to reconsider building. It
 is mainly useful for CMake when the build environment changed -- cmake caches a
 lot of values. To trigger this, do
 
 autoproj force-build
-{.commandline}
+{: .commandline}
 
 To add a new set, one edits the <tt>autoproj/manifest</tt> file and adds it
 there. Then, simply starting the build will update everything and rebuild what
@@ -145,12 +136,17 @@ is needed.
 Documentation is generated only when asked explicitely:
 
 autoproj doc
-{.commandline}
+{: .commandline}
 
 All these commands (i.e. build, doc, and update) accept a package name as
 argument, thus triggering build only for this package and its dependencies. For
 instance:
 
 autoproj build orocos/rtt
-{.commandline}
+{: .commandline}
 
+Exception: to avoid long builds, the rebuild and force-build commands apply only
+to the packages given on the command line. E.g., autoproj rebuild orocos/rtt
+will only rebuild the orocos/rtt packages. If you want to rebuild both the
+packages and its dependencies, use the --with-depends options.
+{: .warning}

@@ -7,6 +7,7 @@ Changing the installation's layout
 ----------------------------------
 
 The <tt>layout</tt> section of <tt>autoproj/manifest</tt> offers two things:
+
  * select which packages/package sets to build and
  * build packages in specific subdirectories
 
@@ -137,8 +138,8 @@ Autobuild.parallel_build_level = 10 # build with -j10
 More complex customization
 --------------------------
 
-More complex customization can be achieved by accessing the Autoproj and
-Autobuild API directly in the <tt>autoproj/init.rb</tt> and
+More complex customization can be achieved by accessing the [Autoproj API](api/index.html) and
+the [Autobuild API](http://doudou.github.com/autobuild/index.html) directly in the <tt>autoproj/init.rb</tt> and
 <tt>autoproj/overrides.rb</tt>
 files. The former is loaded before all source files and the latter is loaded
 after all source files.
@@ -177,12 +178,12 @@ layout:
 If the command line is
 
 autoproj build modules/logger
-{: .cmdline}
+{: .commandline}
 
 then modules/logger and its dependencies will be built. Idem, if the command line is:
 
 autoproj build asguard
-{: .cmdline}
+{: .commandline}
 
 then all packages or asguard/ are built, including their dependencies
 
