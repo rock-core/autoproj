@@ -233,7 +233,7 @@ module Autoproj
 
             selected_packages = manifest.expand_package_selection(selected_packages)
             if selected_packages.empty?
-                STDERR.puts color("autoproj: wrong packages selection on command line", :red)
+                STDERR.puts color("autoproj: wrong package selection on command line", :red)
                 exit 1
             elsif Autoproj.verbose
                 STDERR.puts "will install #{selected_packages.to_a.join(", ")}"
