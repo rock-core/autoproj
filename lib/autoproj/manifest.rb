@@ -917,21 +917,6 @@ module Autoproj
             yield
         end
 
-        def handle_enabled_packages(selected_packages)
-            handled_packages = Set.new
-            each_package_set(selected_packages) do |name, packages, enabled_packages|
-                packages         -= handled_packages
-                enabled_packages -= handled_packages
-
-                in_sublayout(name, packages) do
-                    if !packages.empty?
-                        yield(name, packages, enabled_packages)
-                    end
-                end
-                handled_packages |= packages
-            end
-        end
-
         def default_packages
             names = if layout = data['layout']
                         layout_packages(layout, true)
@@ -1057,11 +1042,12 @@ module Autoproj
                     if layout_name[0..-1] =~ Regexp.new("#{sel}\/?$")
                         expanded_packages.concat(packages.to_a)
                     else
-                        packages = packages.find_all do |pkg_name|
-                            sel =~ Regexp.new(Regexp.quote(layout_name + pkg_name))
+                        match = Regexp.new("^#{Regexp.quote(sel)}")
+                        Autobuild::Package.each(true) do |name, pkg|
+                            if pkg.srcdir =~ match
+                                expanded_packages << name
+                            end
                         end
-                        expanded_packages.concat(packages)
-                        !packages.empty?
                     end
                 end
             end

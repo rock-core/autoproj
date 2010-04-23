@@ -222,7 +222,7 @@ module Autoproj
             manifest = Autoproj.manifest
 
             if selected_packages.empty?
-                selected_packages = manifest.default_packages
+                return manifest.default_packages
             end
             if selected_packages.empty? # no packages, terminate
                 STDERR.puts
@@ -242,6 +242,7 @@ module Autoproj
         end
 
         def self.import_packages(selected_packages)
+            selected_packages = selected_packages.dup
             # First, import all packages that are already there to make
             # automatic dependency discovery possible
             old_update_flag = Autobuild.do_update
@@ -262,66 +263,67 @@ module Autoproj
             all_packages         = Set.new
             all_enabled_packages = Set.new
             all_sublayouts       = Set.new
-            manifest.handle_enabled_packages(selected_packages) do |name, packages, enabled_packages, _|
+            manifest.each_package_set do |name, packages, _|
                 packages         -= all_enabled_packages
-                enabled_packages -= all_enabled_packages
                 all_sublayouts << name
 
-                packages_to_import = enabled_packages.dup.to_set
-                while !packages_to_import.empty?
-                    import_now, packages_to_import = packages_to_import, Set.new
-                    import_now.sort.each do |pkg_name|
-                        next if all_enabled_packages.include?(pkg_name)
-
-                        # Not handled already, import and prepare
+                package_queue = packages.dup.to_set
+                while !package_queue.empty?
+                    current_packages, package_queue = package_queue, Set.new
+                    current_packages.sort.each do |pkg_name|
                         autobuild_package = Autobuild::Package[pkg_name]
-                        Rake::Task["#{autobuild_package.name}-import"].invoke
-                        manifest.load_package_manifest(autobuild_package.name)
-                        Rake::Task["#{autobuild_package.name}-prepare"].invoke
-                        all_enabled_packages << autobuild_package.name << pkg_name
 
-                        # Add its dependencies to the next import set
+                        if selected_packages.include?(pkg_name) && !all_enabled_packages.include?(pkg_name)
+                            Rake::Task["#{autobuild_package.name}-import"].reenable
+                            Rake::Task["#{autobuild_package.name}-prepare"].reenable
+                        elsif all_packages.include?(pkg_name)
+                            next
+                        end
+
+                        # Import and prepare if it is selected
+                        if selected_packages.include?(pkg_name)
+
+                            Rake::Task["#{autobuild_package.name}-import"].invoke
+                            manifest.load_package_manifest(autobuild_package.name)
+                            Rake::Task["#{autobuild_package.name}-prepare"].invoke
+                            all_enabled_packages << autobuild_package.name << pkg_name
+
+                            # Verify that its dependencies are there, and add
+                            # them to the selected_packages set so that they get
+                            # imported as well
+                            autobuild_package.dependencies.each do |dep_name|
+                                if Autoproj.manifest.excluded?(dep_name)
+                                    raise ConfigError, "#{pkg_name} depends on #{dep_name}, which is explicitely excluded in the manifest"
+                                end
+                                if !Autobuild::Package[dep_name]
+                                    raise ConfigError, "#{pkg_name} depends on #{dep_name}, but it does not seem to exist"
+                                end
+                                selected_packages << dep_name
+                            end
+                        else
+                            update_flag = Autobuild.do_update
+                            begin
+                                Autobuild.do_update = false
+                                Rake::Task["#{autobuild_package.name}-import"].invoke
+                                manifest.load_package_manifest(autobuild_package.name)
+                                Rake::Task["#{autobuild_package.name}-prepare"].invoke
+                            ensure Autobuild.do_update = update_flag
+                            end
+                        end
+                        all_packages << pkg_name
+
                         autobuild_package.dependencies.each do |dep_name|
-                            next if all_enabled_packages.include?(dep_name)
-                            if Autoproj.manifest.excluded?(dep_name)
-                                raise ConfigError, "#{pkg_name} depends on #{dep_name}, which is explicitely excluded in the manifest"
-                            end
-
                             dependency_package = Autobuild::Package[dep_name]
-                            if !dependency_package
-                                raise ConfigError, "#{pkg_name} depends on #{dep_name}, but it does not seem to exist"
-                            elsif all_enabled_packages.include?(dependency_package.name)
-                                next
+                            if dependency_package && !Autoproj.manifest.excluded?(dep_name)
+                                package_queue << dependency_package.name
                             end
-                            packages_to_import << dependency_package.name
                         end
                     end
                 end
-                all_packages.merge(packages)
             end
 
             if Autoproj.verbose
                 STDERR.puts "autoproj: finished importing packages"
-            end
-
-            old_update_flag = Autobuild.do_update
-            begin
-                Autobuild.do_update = false
-                leftover_packages = all_packages.
-                    find_all { |pkg_name| File.directory?(Autobuild::Package[pkg_name].srcdir) }
-                    
-                task "autoproj-import" => leftover_packages.
-                    map { |pkg_name| "#{pkg_name}-import" }
-                Rake::Task["autoproj-import"].invoke
-                task "autoproj-prepare" => leftover_packages.
-                    map { |pkg_name| "#{pkg_name}-prepare" }
-                Rake::Task["autoproj-prepare"].invoke
-            ensure
-                Autobuild.do_update = old_update_flag
-            end
-
-            if Autoproj.verbose
-                STDERR.puts "autoproj: finished preparing imported packages"
             end
 
             return all_enabled_packages, all_sublayouts
