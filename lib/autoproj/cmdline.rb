@@ -274,15 +274,16 @@ module Autoproj
                         autobuild_package = Autobuild::Package[pkg_name]
 
                         if selected_packages.include?(pkg_name) && !all_enabled_packages.include?(pkg_name)
-                            Rake::Task["#{autobuild_package.name}-import"].reenable
-                            Rake::Task["#{autobuild_package.name}-prepare"].reenable
+                            if !autobuild_package.updated?
+                                Rake::Task["#{autobuild_package.name}-import"].reenable
+                                Rake::Task["#{autobuild_package.name}-prepare"].reenable
+                            end
                         elsif all_packages.include?(pkg_name)
                             next
                         end
 
                         # Import and prepare if it is selected
                         if selected_packages.include?(pkg_name)
-
                             Rake::Task["#{autobuild_package.name}-import"].invoke
                             manifest.load_package_manifest(autobuild_package.name)
                             Rake::Task["#{autobuild_package.name}-prepare"].invoke

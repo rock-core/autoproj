@@ -472,7 +472,7 @@ module Autoproj
     PackageDefinition = Struct.new :autobuild, :user_block, :package_set, :file
 
     class Manifest
-        FakePackage = Struct.new :text_name, :name, :srcdir, :importer
+        FakePackage = Struct.new :text_name, :name, :srcdir, :importer, :updated
         class FakePackage
             def autoproj_name; name end
             def import
