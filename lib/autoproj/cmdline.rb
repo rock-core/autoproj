@@ -242,7 +242,15 @@ module Autoproj
         end
 
         def self.import_packages(selected_packages)
-            selected_packages = selected_packages.dup
+            selected_packages = selected_packages.dup.
+                map do |pkg_name|
+                    pkg = Autobuild::Package[pkg_name]
+                    if !pkg
+                        raise ConfigError, "selected package #{pkg_name} does not exist"
+                    end
+                    pkg.name
+                end
+
             # First, import all packages that are already there to make
             # automatic dependency discovery possible
             old_update_flag = Autobuild.do_update
@@ -272,11 +280,12 @@ module Autoproj
                     current_packages, package_queue = package_queue, Set.new
                     current_packages.sort.each do |pkg_name|
                         autobuild_package = Autobuild::Package[pkg_name]
+                        pkg_name = autobuild_package.name
 
                         if selected_packages.include?(pkg_name) && !all_enabled_packages.include?(pkg_name)
                             if !autobuild_package.updated?
-                                Rake::Task["#{autobuild_package.name}-import"].reenable
-                                Rake::Task["#{autobuild_package.name}-prepare"].reenable
+                                Rake::Task["#{pkg_name}-import"].reenable
+                                Rake::Task["#{pkg_name}-prepare"].reenable
                             end
                         elsif all_packages.include?(pkg_name)
                             next
@@ -284,10 +293,10 @@ module Autoproj
 
                         # Import and prepare if it is selected
                         if selected_packages.include?(pkg_name)
-                            Rake::Task["#{autobuild_package.name}-import"].invoke
-                            manifest.load_package_manifest(autobuild_package.name)
-                            Rake::Task["#{autobuild_package.name}-prepare"].invoke
-                            all_enabled_packages << autobuild_package.name << pkg_name
+                            Rake::Task["#{pkg_name}-import"].invoke
+                            manifest.load_package_manifest(pkg_name)
+                            Rake::Task["#{pkg_name}-prepare"].invoke
+                            all_enabled_packages << pkg_name
 
                             # Verify that its dependencies are there, and add
                             # them to the selected_packages set so that they get
@@ -296,18 +305,19 @@ module Autoproj
                                 if Autoproj.manifest.excluded?(dep_name)
                                     raise ConfigError, "#{pkg_name} depends on #{dep_name}, which is explicitely excluded in the manifest"
                                 end
-                                if !Autobuild::Package[dep_name]
+                                dep_pkg = Autobuild::Package[dep_name]
+                                if !dep_pkg
                                     raise ConfigError, "#{pkg_name} depends on #{dep_name}, but it does not seem to exist"
                                 end
-                                selected_packages << dep_name
+                                selected_packages << dep_pkg.name
                             end
                         else
                             update_flag = Autobuild.do_update
                             begin
                                 Autobuild.do_update = false
-                                Rake::Task["#{autobuild_package.name}-import"].invoke
-                                manifest.load_package_manifest(autobuild_package.name)
-                                Rake::Task["#{autobuild_package.name}-prepare"].invoke
+                                Rake::Task["#{pkg_name}-import"].invoke
+                                manifest.load_package_manifest(pkg_name)
+                                Rake::Task["#{pkg_name}-prepare"].invoke
                             ensure Autobuild.do_update = update_flag
                             end
                         end
@@ -315,8 +325,10 @@ module Autoproj
 
                         autobuild_package.dependencies.each do |dep_name|
                             dependency_package = Autobuild::Package[dep_name]
-                            if dependency_package && !Autoproj.manifest.excluded?(dep_name)
-                                package_queue << dependency_package.name
+                            if dependency_package
+                                if !Autoproj.manifest.excluded?(dep_name) && !Autoproj.manifest.excluded?(dependency_package.name)
+                                    package_queue << dependency_package.name
+                                end
                             end
                         end
                     end
