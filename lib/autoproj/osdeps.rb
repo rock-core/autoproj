@@ -2,12 +2,12 @@ require 'tempfile'
 module Autoproj
     class OSDependencies
         def self.load(file)
-            data =
-                begin
-                    YAML.load(File.read(file))
-                rescue ArgumentError => e
-                    raise ConfigError, "error in #{file}: #{e.message}"
-                end
+            begin
+                data = YAML.load(File.read(file))
+                verify_definitions(data)
+            rescue ArgumentError => e
+                raise ConfigError, "error in #{file}: #{e.message}"
+            end
 
             OSDependencies.new(data)
         end
@@ -45,6 +45,23 @@ module Autoproj
 
         def merge(info)
             @definitions = definitions.merge(info.definitions)
+        end
+
+        def self.verify_definitions(hash = nil)
+            hash ||= definitions
+            hash.each do |key, value|
+                if !key.kind_of?(String)
+                    raise ArgumentError, "invalid osdeps definition: found an #{key.class}. Don't forget to put quotes around numbers"
+                end
+                next if !value
+                if value.kind_of?(Array) || value.kind_of?(Hash)
+                    verify_definitions(value)
+                else
+                    if !value.kind_of?(String)
+                        raise ArgumentError, "invalid osdeps definition: found an #{value.class}. Don't forget to put quotes around numbers"
+                    end
+                end
+            end
         end
 
         def operating_system
