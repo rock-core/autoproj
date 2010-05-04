@@ -102,6 +102,14 @@ report(Autobuild.debug) do
         all_enabled_packages, all_sublayouts = Autoproj::CmdLine.import_packages(selected_packages)
         Autoproj::CmdLine.status(all_enabled_packages)
         exit(0)
+    elsif Autoproj::CmdLine.check?
+        all_enabled_packages, _ = Autoproj::CmdLine.import_packages(selected_packages)
+        Autoproj::CmdLine.check(all_enabled_packages)
+        exit(0)
+    elsif Autoproj::CmdLine.manifest_update?
+        all_enabled_packages, _ = Autoproj::CmdLine.import_packages(selected_packages)
+        Autoproj::CmdLine.manifest_update(all_enabled_packages)
+        exit(0)
     end
 
     STDERR.puts

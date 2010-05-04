@@ -372,6 +372,8 @@ module Autoproj
 
         def self.manifest; Autoproj.manifest end
         def self.only_status?; !!@only_status end
+        def self.check?; !!@check end
+        def self.manifest_update?; !!@manifest_update end
         def self.only_config?; !!@only_config end
         def self.update_os_dependencies?; !!@update_os_dependencies end
         class << self
@@ -386,6 +388,8 @@ module Autoproj
         def self.doc?; @mode == "doc" end
         def self.parse_arguments(args)
             @only_status = false
+            @check = false
+            @manifest_update = false
             @display_configuration = false
             @update_os_dependencies = true
             update_os_dependencies  = nil
@@ -541,6 +545,16 @@ where 'mode' is one of:
                 Autobuild.do_update = true
                 @update_os_dependencies = true
                 Autobuild.do_build  = false
+            when "check"
+                Autobuild.do_update = false
+                @update_os_dependencies = false
+                Autobuild.do_build = false
+                @check = true
+            when "manifest-update"
+                Autobuild.do_update = false
+                @update_os_dependencies = false
+                Autobuild.do_build = false
+                @manifest_update = true
             when "osdeps"
                 Autobuild.do_update = false
                 @update_os_dependencies = true
@@ -819,6 +833,91 @@ your consoles, or run the following in them:
 
 EOTEXT
         end
+
+        def self.missing_dependencies(pkg)
+            manifest = Autoproj.manifest.package_manifests[pkg.name]
+            all_deps = pkg.dependencies.map do |dep_name|
+                dep_pkg = Autobuild::Package[dep_name]
+                if dep_pkg then dep_pkg.name
+                else dep_name
+                end
+            end
+
+            if manifest
+                declared_deps = manifest.each_dependency.to_a
+                missing = all_deps - declared_deps
+            else
+                missing = all_deps
+            end
+
+            missing.to_set.to_a.sort
+        end
+
+        def self.check(packages)
+            packages.sort.each do |pkg_name|
+                result = []
+
+                pkg = Autobuild::Package[pkg_name]
+                manifest = Autoproj.manifest.package_manifests[pkg.name]
+
+                # Check if the manifest contains rosdep tags
+                # if manifest && !manifest.each_os_dependency.to_a.empty?
+                #     result << "uses rosdep tags, convert them to normal <depend .../> tags"
+                # end
+
+                missing = missing_dependencies(pkg)
+                if !missing.empty?
+                    result << "missing dependency tags for: #{missing.join(", ")}"
+                end
+
+                if !result.empty?
+                    STDERR.puts pkg.name
+                    STDERR.puts "  #{result.join("\n  ")}"
+                end
+            end
+        end
+
+        def self.manifest_update(packages)
+            packages.sort.each do |pkg_name|
+                pkg = Autobuild::Package[pkg_name]
+                manifest = Autoproj.manifest.package_manifests[pkg.name]
+
+                xml = 
+                    if !manifest
+                        Nokogiri::XML::Document.parse("<package></package>") do |c|
+                            c.noblanks
+                        end
+                    else
+                        manifest.xml.dup
+                    end
+
+                # Add missing dependencies
+                missing = missing_dependencies(pkg)
+                if !missing.empty?
+                    package_node = xml.xpath('/package').to_a.first
+                    missing.each do |pkg_name|
+                        node = Nokogiri::XML::Node.new("depend", xml)
+                        node['package'] = pkg_name
+                        package_node.add_child(node)
+                    end
+                    modified = true
+                end
+
+                # Save the manifest back
+                if modified
+                    path = File.join(pkg.srcdir, 'manifest.xml')
+                    File.open(path, 'w') do |io|
+                        io.write xml.to_xml
+                    end
+                    if !manifest
+                        STDERR.puts "created #{path}"
+                    else
+                        STDERR.puts "modified #{path}"
+                    end
+                end
+            end
+        end
+
     end
 end
 

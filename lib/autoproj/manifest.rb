@@ -1065,7 +1065,9 @@ module Autoproj
 
     class PackageManifest
         def self.load(package, file)
-            doc = Nokogiri::XML(File.read(file))
+            doc = Nokogiri::XML(File.read(file)) do |c|
+                c.noblanks
+            end
             PackageManifest.new(package, doc)
         end
 
