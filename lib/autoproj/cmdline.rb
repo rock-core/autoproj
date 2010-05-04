@@ -281,15 +281,7 @@ module Autoproj
                     current_packages.sort.each do |pkg_name|
                         autobuild_package = Autobuild::Package[pkg_name]
                         pkg_name = autobuild_package.name
-
-                        if selected_packages.include?(pkg_name) && !all_enabled_packages.include?(pkg_name)
-                            if !autobuild_package.updated?
-                                Rake::Task["#{pkg_name}-import"].reenable
-                                Rake::Task["#{pkg_name}-prepare"].reenable
-                            end
-                        elsif all_packages.include?(pkg_name)
-                            next
-                        end
+                        next if all_packages.include?(pkg_name)
 
                         # Import and prepare if it is selected
                         if selected_packages.include?(pkg_name)
@@ -312,17 +304,18 @@ module Autoproj
                                 selected_packages << dep_pkg.name
                             end
                         else
-                            update_flag = Autobuild.do_update
-                            begin
-                                Autobuild.do_update = false
-                                Rake::Task["#{pkg_name}-import"].invoke
-                                manifest.load_package_manifest(pkg_name)
-                                Rake::Task["#{pkg_name}-prepare"].invoke
-                            ensure Autobuild.do_update = update_flag
-                            end
+                            manifest.load_package_manifest(pkg_name)
                         end
                         all_packages << pkg_name
 
+                        # We traverse non-selected packages as well. The reason
+                        # is that the manifest may list a "leaf" package A, while
+                        # the command line only lists a package B that is not in
+                        # the manifest (but reachable from the manifest's leaf
+                        # package).
+                        #
+                        # We therefore want to traverse the dependencies of A
+                        # to finally find B and handle it.
                         autobuild_package.dependencies.each do |dep_name|
                             dependency_package = Autobuild::Package[dep_name]
                             if dependency_package
