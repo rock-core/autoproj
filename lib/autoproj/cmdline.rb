@@ -505,7 +505,15 @@ where 'mode' is one of:
             @mail_config = mail_config
 
             @mode = args.shift
-            handle_mode(@mode, args)
+            unknown_mode = catch(:unknown) do
+                handle_mode(@mode, args)
+            end
+            if unknown_mode
+                STDERR.puts "unknown mode #{@mode}"
+                STDERR.puts "run autoproj --help for more documentation"
+                exit(1)
+            end
+
             selection = args.dup
             @partial_build = !selection.empty?
             @update_os_dependencies = update_os_dependencies if !update_os_dependencies.nil?
@@ -583,9 +591,9 @@ where 'mode' is one of:
                 Autobuild.do_doc    = true
                 Autobuild.only_doc  = true
             else
-                puts parser
-                exit(1)
+                throw :unknown, true
             end
+            nil
         end
 
         def self.display_status(packages)
