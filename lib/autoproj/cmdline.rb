@@ -419,6 +419,7 @@ where 'mode' is one of:
     autoproj build drivers/hokuyo
 
   fast-build: builds without updating and without considering OS dependencies
+  full-build: updates packages and OS dependencies, and then builds 
   force-build: triggers all build commands, i.e. don't be lazy like in "build".
            If packages are selected on the command line, only those packages
            will be affected unless the --with-depends option is used.
@@ -549,6 +550,9 @@ where 'mode' is one of:
             when "fast-build"
                 Autobuild.do_update = false
                 @update_os_dependencies = false
+            when "full-build"
+                Autobuild.do_update = true
+                @update_os_dependencies = true
             when "update"
                 Autobuild.do_update = true
                 @update_os_dependencies = true
