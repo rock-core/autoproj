@@ -193,23 +193,41 @@ module Autoproj
 
         # True if this source has already been checked out on the local autoproj
         # installation
-        def present?; File.directory?(local_dir) end
+        def present?; File.directory?(raw_local_dir) end
         # True if this source is local, i.e. is not under a version control
         def local?; vcs.local? end
         # True if this source defines nothing
         def empty?
             !source_definition['version_control'] &&
                 !each_package.find { true } &&
-                !File.exists?(File.join(local_dir, "overrides.rb")) &&
-                !File.exists?(File.join(local_dir, "init.rb"))
+                !File.exists?(File.join(raw_local_dir, "overrides.rb")) &&
+                !File.exists?(File.join(raw_local_dir, "init.rb"))
+        end
+
+        def raw_local_dir
+            if local?
+                return vcs.url 
+            else
+                File.join(Autoproj.remotes_dir, automatic_name)
+            end
+        end
+
+        def user_local_dir
+            if local?
+                return vcs.url 
+            else
+                File.join(Autoproj.config_dir, 'remotes', name)
+            end
         end
 
         # The directory in which data for this source will be checked out
         def local_dir
-            if local?
-                vcs.url
+            ugly_dir   = raw_local_dir
+            pretty_dir = user_local_dir
+            if File.symlink?(pretty_dir) && File.readlink(pretty_dir) == ugly_dir
+                pretty_dir
             else
-                File.join(Autoproj.remotes_dir, automatic_name)
+                ugly_dir
             end
         end
 
@@ -234,7 +252,7 @@ module Autoproj
                 raise InternalError, "source #{vcs} has not been fetched yet, cannot load description for it"
             end
 
-            source_file = File.join(local_dir, "source.yml")
+            source_file = File.join(raw_local_dir, "source.yml")
             if !File.exists?(source_file)
                 raise ConfigError, "source #{vcs.type}:#{vcs.url} should have a source.yml file, but does not"
             end
@@ -754,7 +772,7 @@ module Autoproj
             # file (we're not ready for that yet)
             sources = []
             each_remote_source(false) do |source|
-                Manifest.update_source(source.vcs, source.name || source.vcs.url, source.automatic_name, source.local_dir)
+                Manifest.update_source(source.vcs, source.name || source.vcs.url, source.automatic_name, source.raw_local_dir)
                 sources << source
             end
 
@@ -762,7 +780,7 @@ module Autoproj
             # source repository, and remove them
             Dir.glob(File.join(Autoproj.remotes_dir, '*')).each do |dir|
                 dir = File.expand_path(dir)
-                if File.directory?(dir) && !sources.any? { |s| s.local_dir == dir }
+                if File.directory?(dir) && !sources.any? { |s| s.raw_local_dir == dir }
                     FileUtils.rm_rf dir
                 end
             end
@@ -773,7 +791,7 @@ module Autoproj
             # Create symbolic links from .remotes/weird_url to
             # autoproj/remotes/name
             each_remote_source(false) do |source|
-                FileUtils.ln_sf source.local_dir, File.join(remotes_symlinks_dir, source.name)
+                FileUtils.ln_sf source.raw_local_dir, File.join(remotes_symlinks_dir, source.name)
             end
         end
 

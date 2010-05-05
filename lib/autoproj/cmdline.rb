@@ -125,7 +125,7 @@ module Autoproj
                 STDERR.puts color("autoproj: updating remote definitions of package sets", :bold)
                 # If we need to install some packages to import our remote sources, do it
                 if update_os_dependencies?
-                    osdeps = manifest.known_os_packages
+                    osdeps = OSDependencies.load_default
                     osdeps.install(source_os_dependencies)
                 end
 
