@@ -99,15 +99,15 @@ report(Autobuild.debug) do
 
     if Autoproj::CmdLine.only_status?
         STDERR.puts
-        all_enabled_packages, all_sublayouts = Autoproj::CmdLine.import_packages(selected_packages)
+        all_enabled_packages = Autoproj::CmdLine.import_packages(selected_packages)
         Autoproj::CmdLine.status(all_enabled_packages)
         exit(0)
     elsif Autoproj::CmdLine.check?
-        all_enabled_packages, _ = Autoproj::CmdLine.import_packages(selected_packages)
+        all_enabled_packages = Autoproj::CmdLine.import_packages(selected_packages)
         Autoproj::CmdLine.check(all_enabled_packages)
         exit(0)
     elsif Autoproj::CmdLine.manifest_update?
-        all_enabled_packages, _ = Autoproj::CmdLine.import_packages(selected_packages)
+        all_enabled_packages = Autoproj::CmdLine.import_packages(selected_packages)
         Autoproj::CmdLine.manifest_update(all_enabled_packages)
         exit(0)
     end
@@ -126,7 +126,7 @@ report(Autobuild.debug) do
     # import the package and its dependencies ourselves so that we are able to
     # build the list of packages that have actually been selected on the command
     # line.
-    all_enabled_packages, all_sublayouts = Autoproj::CmdLine.import_packages(selected_packages)
+    all_enabled_packages = Autoproj::CmdLine.import_packages(selected_packages)
 
     if Autoproj::CmdLine.build? || Autoproj::CmdLine.doc? || Autoproj::CmdLine.update_os_dependencies?
         if all_enabled_packages.empty?

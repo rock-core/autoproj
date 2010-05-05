@@ -248,8 +248,8 @@ module Autoproj
                     if !pkg
                         raise ConfigError, "selected package #{pkg_name} does not exist"
                     end
-                    pkg.name
-                end
+                    pkg
+                end.to_set
 
             # First, import all packages that are already there to make
             # automatic dependency discovery possible
@@ -268,62 +268,40 @@ module Autoproj
                 Autobuild.do_update = old_update_flag
             end
 
-            all_packages         = Set.new
             all_enabled_packages = Set.new
-            all_sublayouts       = Set.new
-            manifest.each_package_set do |name, packages, _|
-                packages         -= all_enabled_packages
-                all_sublayouts << name
 
-                package_queue = packages.dup.to_set
-                while !package_queue.empty?
-                    current_packages, package_queue = package_queue, Set.new
-                    current_packages.sort.each do |pkg_name|
-                        autobuild_package = Autobuild::Package[pkg_name]
-                        pkg_name = autobuild_package.name
-                        next if all_packages.include?(pkg_name)
+            package_queue = selected_packages.dup
+            while !package_queue.empty?
+                current_packages, package_queue = package_queue, Set.new
+                current_packages = current_packages.sort_by(&:name)
 
-                        # Import and prepare if it is selected
-                        if selected_packages.include?(pkg_name)
-                            Rake::Task["#{pkg_name}-import"].invoke
-                            manifest.load_package_manifest(pkg_name)
-                            Rake::Task["#{pkg_name}-prepare"].invoke
-                            all_enabled_packages << pkg_name
+                current_packages.
+                    delete_if { |pkg| all_enabled_packages.include?(pkg.name) }
+                all_enabled_packages |= current_packages
 
-                            # Verify that its dependencies are there, and add
-                            # them to the selected_packages set so that they get
-                            # imported as well
-                            autobuild_package.dependencies.each do |dep_name|
-                                if Autoproj.manifest.excluded?(dep_name)
-                                    raise ConfigError, "#{pkg_name} depends on #{dep_name}, which is explicitely excluded in the manifest"
-                                end
-                                dep_pkg = Autobuild::Package[dep_name]
-                                if !dep_pkg
-                                    raise ConfigError, "#{pkg_name} depends on #{dep_name}, but it does not seem to exist"
-                                end
-                                selected_packages << dep_pkg.name
-                            end
-                        else
-                            manifest.load_package_manifest(pkg_name)
+                # We import first so that all packages can export the
+                # additional targets they provide.
+                current_packages.each do |pkg|
+                    Rake::Task["#{pkg.name}-import"].invoke
+                    manifest.load_package_manifest(pkg.name)
+                end
+
+                current_packages.each do |pkg|
+                    Rake::Task["#{pkg.name}-prepare"].invoke
+
+                    # Verify that its dependencies are there, and add
+                    # them to the selected_packages set so that they get
+                    # imported as well
+                    pkg.dependencies.each do |dep_name|
+                        if Autoproj.manifest.excluded?(dep_name)
+                            raise ConfigError, "#{pkg.name} depends on #{dep_name}, which is explicitely excluded in the manifest"
                         end
-                        all_packages << pkg_name
-
-                        # We traverse non-selected packages as well. The reason
-                        # is that the manifest may list a "leaf" package A, while
-                        # the command line only lists a package B that is not in
-                        # the manifest (but reachable from the manifest's leaf
-                        # package).
-                        #
-                        # We therefore want to traverse the dependencies of A
-                        # to finally find B and handle it.
-                        autobuild_package.dependencies.each do |dep_name|
-                            dependency_package = Autobuild::Package[dep_name]
-                            if dependency_package
-                                if !Autoproj.manifest.excluded?(dep_name) && !Autoproj.manifest.excluded?(dependency_package.name)
-                                    package_queue << dependency_package.name
-                                end
-                            end
+                        dep_pkg = Autobuild::Package[dep_name]
+                        if !dep_pkg
+                            raise ConfigError, "#{pkg.name} depends on #{dep_name}, but it does not seem to exist"
                         end
+
+                        package_queue << dep_pkg
                     end
                 end
             end
@@ -332,7 +310,7 @@ module Autoproj
                 STDERR.puts "autoproj: finished importing packages"
             end
 
-            return all_enabled_packages, all_sublayouts
+            return all_enabled_packages.map(&:name)
         end
 
         def self.build_packages(selected_packages, all_enabled_packages)
