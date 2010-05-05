@@ -952,9 +952,6 @@ module Autoproj
             package_manifests[package.name] = manifest
 
             manifest.each_dependency do |name|
-                if Autoproj.verbose
-                    STDERR.puts "  #{package.name} depends on #{name}"
-                end
                 begin
                     package.depends_on name
                 rescue Autobuild::ConfigException => e
