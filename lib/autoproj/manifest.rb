@@ -831,7 +831,8 @@ module Autoproj
         #    by S1
         def load_importers
             packages.each_value do |pkg|
-                vcs = importer_definition_for(pkg.autobuild.name, pkg.package_set)
+                vcs = importer_definition_for(pkg.autobuild.name, pkg.package_set) ||
+                    importer_definition_for("default", pkg.package_set)
 
                 if vcs
                     Autoproj.add_build_system_dependency vcs.type
