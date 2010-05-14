@@ -282,6 +282,12 @@ module Autoproj
                 # We import first so that all packages can export the
                 # additional targets they provide.
                 current_packages.each do |pkg|
+                    # If the package has no importer, the source directory must
+                    # be there
+                    if !File.directory?(pkg.srcdir)
+                        raise ConfigError, "#{pkg.name} has no VCS, but is not checked out in #{pkg.srcdir}"
+                    end
+
                     Rake::Task["#{pkg.name}-import"].invoke
                     manifest.load_package_manifest(pkg.name)
                 end
