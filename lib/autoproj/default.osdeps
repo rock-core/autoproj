@@ -56,7 +56,7 @@ autoproj: gem
 # The following definitions are for the VCS and build systems
 git:
     debian,ubuntu: git-core
-    gentoo: dev-util/git
+    gentoo: dev-vcs/git
     arch: git
 svn:
     debian,ubuntu: subversion
