@@ -54,14 +54,14 @@ The canonical way is the following:
    done with
 
    sudo apt-get install wget ruby
-   {.cmdline}
+   {: .cmdline}
 
  * then, [download this script](autoproj_bootstrap) *in the directory where
    you want to create an autoproj installation*, and run it. This can be done with
 
    wget http://doudou.github.com/autoproj/autoproj\_bootstrap <br />
    ruby autoproj\_bootstrap
-   {.cmdline}
+   {: .cmdline}
 
  * follow the instructions printed by the script<tt>manifest</tt>.
 
@@ -71,20 +71,20 @@ present), you can bootstrap this configuration directly:
 
    wget http://doudou.github.com/autoproj/autoproj\_bootstrap <br />
    ruby autoproj\_bootstrap VCS 
-   {.cmdline}
+   {: .cmdline}
 
 For instance, to build all packages made available by the RubyInMotion project,
 do
 
    wget http://doudou.github.com/autoproj/autoproj\_bootstrap <br />
    ruby autoproj\_bootstrap git git://github.com/doudou/rubim.all.git
-   {.cmdline}
+   {: .cmdline}
 
 Additional options can be given for the version control system. For instance,
 
    wget http://doudou.github.com/autoproj/autoproj\_bootstrap <br />
    ruby autoproj\_bootstrap git git://github.com/doudou/rubim.all.git branch=stable
-   {.cmdline}
+   {: .cmdline}
 
 Software packages in Autoproj
 -----------------------------

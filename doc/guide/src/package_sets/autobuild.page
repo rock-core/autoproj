@@ -31,7 +31,7 @@ The above snippet being equivalent to calling <tt>cmake -DVAR=VALUE</tt>
 
 The "pkg" variable in the example above is an instance of
 [Autobuild::CMake](http://doudou.github.com/autobuild/Autobuild/CMake.html)
-{.block}
+{: .block}
 
 Defining autotools packages {#autotools}
 ---------------------------
@@ -46,7 +46,7 @@ end
 
 The 'pkg' variable in the example above is an instance of
 [Autobuild::Autotools](http://doudou.github.com/autobuild/Autobuild/Autotools.html)
-{.block}
+{: .block}
 
 Defining Ruby packages
 ----------------------
@@ -82,7 +82,7 @@ documentation](http://doudou.github.com/orogen) for more information.
 
 The 'pkg' variable in the example above is an instance of
 [Autobuild::Orogen](http://doudou.github.com/autobuild/Autobuild/Orogen.html)
-{.block}
+{: .block}
 
 Custom package building
 -----------------------
@@ -125,7 +125,7 @@ name of a package that is to be [provided by the operating system](osdeps.html).
 Both methods should be used only for dynamic dependencies, i.e. dependencies
 that are dependent on build options (see below). Static dependencies should be
 defined in [the package's manifest.xml](manifest-xml.html)
-{.warning}
+{: .warning}
 
 Finally, it is possible to give aliases to a package's name, by using the
 Autobuild::Package#provides method. If one does
@@ -169,5 +169,5 @@ Do not try to have too many options, that is in general bad policy as
 non-advanced users won't be able to know what to answer. Advanced users will
 always have the option to override your autobuild definitions to tweak the
 builds to their needs.
-{.warning}
+{: .warning}
 

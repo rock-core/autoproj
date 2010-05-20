@@ -103,7 +103,7 @@ version_control:
 
 Note that the repository *must* be accessible without any password, and the
 import will fail if a password was needed.
-{.warning}
+{: .warning}
 
 Tar archives
 ------------
