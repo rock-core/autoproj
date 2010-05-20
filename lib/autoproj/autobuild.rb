@@ -100,16 +100,6 @@ module Autoproj
     end
 end
 
-# Sets up a documentation target on pkg that runs 'rake <target>'
-def ruby_doc(pkg, target = 'doc')
-    pkg.doc_task do
-        pkg.progress "generating documentation for %s"
-        pkg.doc_disabled unless File.file?('Rakefile')
-        Autobuild::Subprocess.run pkg.name, 'doc', 'rake', target
-    end
-
-end
-
 # Common setup for packages
 def package_common(package_type, spec, &block) # :nodoc:
     package_name = Autoproj.package_name_from_options(spec)
@@ -184,9 +174,10 @@ def autotools_package(options, &block)
     end
 end
 
-# Common setup for Ruby packages
-def ruby_common(pkg) # :nodoc:
-    def pkg.prepare_for_forced_build
+# This module is used to extend importer packages to handle ruby packages
+# properly
+module Autoproj::RubyPackage
+    def prepare_for_forced_build # :nodoc:
         super
         extdir = File.join(srcdir, 'ext')
         if File.directory?(extdir)
@@ -196,7 +187,8 @@ def ruby_common(pkg) # :nodoc:
             end
         end
     end
-    def pkg.prepare_for_rebuild
+
+    def prepare_for_rebuild # :nodoc:
         super
         extdir = File.join(srcdir, 'ext')
         if File.directory?(extdir)
@@ -214,20 +206,17 @@ def ruby_common(pkg) # :nodoc:
         end
     end
 
-    def pkg.prepare
+    def prepare # :nodoc:
         super
         Autobuild.update_environment srcdir
     end
 
-    pkg.post_install do
-        Autobuild.progress "setting up Ruby package #{pkg.name}"
-        Autobuild.update_environment pkg.srcdir
-        if File.file?('Rakefile')
-            if File.directory?('ext')
-                Autobuild::Subprocess.run pkg.name, 'post-install', 'rake', 'setup'
-            end
-        end
-    end
+    # The Rake task that is used to set up the package. Defaults to "default".
+    # Set to nil to disable documentation generation
+    attr_accessor :rake_setup_task
+    # The Rake task that is used to generate documentation. Defaults to "doc".
+    # Set to nil to disable documentation generation
+    attr_accessor :rake_doc_task
 end
 
 def env_set(name, value)
@@ -250,19 +239,38 @@ end
 # information.
 def ruby_package(options)
     package_common(:import, options) do |pkg|
-        class << pkg
-            attr_accessor :doc_target
-        end
-
         pkg.exclude << /\.so$/
         pkg.exclude << /Makefile$/
         pkg.exclude << /mkmf.log$/
         pkg.exclude << /\.o$/
 
-        ruby_common(pkg)
+        pkg.extend Autoproj::RubyPackage
+        pkg.rake_setup_task = "default"
+        pkg.rake_doc_task   = "redocs"
+
+        # Set up code
+        pkg.post_install do
+            Autobuild.progress "setting up Ruby package #{pkg.name}"
+            Autobuild.update_environment pkg.srcdir
+            # Add lib/ unconditionally, as we know that it is a ruby package.
+            # Autobuild will add it only if there is a .rb file in the directory
+            Autobuild.env_add_path 'RUBYLIB', File.join(pkg.srcdir, 'lib')
+            if pkg.rake_setup_task && File.file?(File.join(pkg.srcdir, 'Rakefile'))
+                Autobuild::Subprocess.run pkg.name, 'post-install',
+                    'rake', pkg.rake_setup_task
+            end
+        end
+
         yield(pkg) if block_given?
-        unless pkg.has_doc?
-            ruby_doc(pkg, pkg.doc_target || 'redocs')
+
+        # Documentation code. Ignore if the user provided its own documentation
+        # task, or disabled the documentation generation altogether by setting
+        # rake_doc_task to nil
+        if !pkg.has_doc? && pkg.rake_doc_task
+            pkg.doc_task do
+                pkg.progress "generating documentation for %s"
+                Autobuild::Subprocess.run pkg.name, 'doc', 'rake', pkg.rake_doc_task
+            end
         end
     end
 end

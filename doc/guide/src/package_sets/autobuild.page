@@ -64,8 +64,36 @@ convention:
 
  * programs are in bin/
  * the library itself is in lib/
- * if an extension needs to be built, a Rakefile has to be there with a "setup"
-   target to do the job.
+
+If a Rakefile is present in the root of the source package, its <tt>default</tt>
+task will be called during the build, and its <tt>redocs</tt> task will be used
+for documentation generation. The <tt>rake_setup_task</tt> and
+<tt>rake_doc_task</tt> package properties can be used to override this default
+setting:
+
+{coderay::ruby}
+ruby_package "package_name" do |pkg|
+    pkg.rake_setup_task = "setup"
+    pkg.rake_doc_task = "doc:all"
+end
+{coderay}
+
+Additionally, they can be set to <tt>nil</tt> to disable either setup or documentation
+generation. For instance, the following code disables documentation generation
+and uses the +setup+ task at build time:
+
+{coderay::ruby}
+ruby_package "package_name" do |pkg|
+    pkg.rake_setup_task = "setup"
+    pkg.rake_doc_task = nil
+end
+{coderay}
+
+The 'pkg' variable in the example above is an instance of
+[Autobuild::ImporterPackage](http://doudou.github.com/autobuild/Autobuild/ImporterPackage.html),
+with additional methods coming from [the RubyPackage
+module](http://doudou.github.com/autoproj/api/Autoproj/RubyPackage.html)
+{: .block}
 
 Defining oroGen packages
 ------------------------
