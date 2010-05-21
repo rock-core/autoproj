@@ -261,7 +261,7 @@ def ruby_package(options)
             # Autobuild will add it only if there is a .rb file in the directory
             Autobuild.env_add_path 'RUBYLIB', File.join(pkg.srcdir, 'lib')
             if pkg.rake_setup_task && File.file?(File.join(pkg.srcdir, 'Rakefile'))
-                Autobuild::Subprocess.run pkg.name, 'post-install',
+                Autobuild::Subprocess.run pkg, 'post-install',
                     'rake', pkg.rake_setup_task
             end
         end
@@ -274,7 +274,7 @@ def ruby_package(options)
         if !pkg.has_doc? && pkg.rake_doc_task
             pkg.doc_task do
                 pkg.progress "generating documentation for %s"
-                Autobuild::Subprocess.run pkg.name, 'doc', 'rake', pkg.rake_doc_task
+                Autobuild::Subprocess.run pkg, 'doc', 'rake', pkg.rake_doc_task
             end
         end
     end
