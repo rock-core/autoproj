@@ -43,48 +43,8 @@ Each package definition includes:
  * on what the package depends. This can be either another package built by
    autoproj, or an operating system package.
 
-See [this page](structure.html) for more information.
+See [this page](writing_manifest.html) for more information.
 
-Bootstrapping
--------------
-"Bootstrapping" means getting autoproj itself before it can work its magic ...
-The canonical way is the following:
-
- * install Ruby by yourself. On Debian or Ubuntu, this is done with
-   done with
-
-   sudo apt-get install wget ruby
-   {: .cmdline}
-
- * then, [download this script](autoproj_bootstrap) *in the directory where
-   you want to create an autoproj installation*, and run it. This can be done with
-
-   wget http://doudou.github.com/autoproj/autoproj\_bootstrap <br />
-   ruby autoproj\_bootstrap
-   {: .cmdline}
-
- * follow the instructions printed by the script<tt>manifest</tt>.
-
-Additionally, if you are given a reference to a source code repository in which
-an autoproj configuration is stored (i.e. a directory in which a manifest is
-present), you can bootstrap this configuration directly:
-
-   wget http://doudou.github.com/autoproj/autoproj\_bootstrap <br />
-   ruby autoproj\_bootstrap VCS 
-   {: .cmdline}
-
-For instance, to build all packages made available by the RubyInMotion project,
-do
-
-   wget http://doudou.github.com/autoproj/autoproj\_bootstrap <br />
-   ruby autoproj\_bootstrap git git://github.com/doudou/rubim.all.git
-   {: .cmdline}
-
-Additional options can be given for the version control system. For instance,
-
-   wget http://doudou.github.com/autoproj/autoproj\_bootstrap <br />
-   ruby autoproj\_bootstrap git git://github.com/doudou/rubim.all.git branch=stable
-   {: .cmdline}
 
 Software packages in Autoproj
 -----------------------------

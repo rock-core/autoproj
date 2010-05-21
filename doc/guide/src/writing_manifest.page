@@ -1,5 +1,5 @@
 ---
-title: Managing autoproj installations
+title: The manifest file.
 sort_info: 50
 ---
 
@@ -9,8 +9,8 @@ to manage one. See [the introduction](index.html) for the bootstrapping process.
 Structure
 ---------
 
-!overview.png!
-<img class="full" src="overview.png" />
+![Structure overview](overview.png)!
+{: .full}
 
 The autoproj configuration and build process goes like this:
 
@@ -35,11 +35,11 @@ is split like this:
 
  * autoproj/manifest: list of available package sets, package selection and
    installation layout (where to put what).
- * .remotes/\*: package sets that are imported from a remote version
-   control system
  * autoproj/\*/: local sets, i.e. sets that have not been imported from a remote
    version control system.
- * autoproj\/init.rb, autoproj\/overrides.rb and autoproj\/overrides.yml:
+ * autoproj/remotes/\*/: package sets that are imported from a remote version
+   control system
+ * autoproj/init.rb, autoproj/overrides.rb and autoproj/overrides.yml:
    installation customization
 
 The build is done in two steps:
@@ -91,62 +91,56 @@ autoproj installation. The importers that are available for configuration are
 the same than the ones available for the packages themselves, so see [this
 page](package_sets/importers.html#all_importers) for the list of available importers.
 
-Management
-----------
+Listing the available packages.
+-----------------------------
+Once you have updated your manifest file to list all the package sets that you
+want to use, you can list all the packages that are now available with
 
-To build the packages, simply do:
-
-autoproj build
+autoproj list-sets
 {: .commandline}
 
-It will ask the value of newly defined configuration options, import code hosted
-remotely that is not yet present, install OS packages (e.g. Ubuntu packages on
-an Ubunut installation) and build everything.
+Its output looks like this:
 
-autoproj will *not* ask you again about the configuration questions you already
-answered, so if you want to change them, do:
+<pre>
+rubim.orocos
+  local source in /home/doudou/dfki/imoby1.9/autoproj/orocos
+  packages:
+  | orocos/base      | git:/home/doudou/dfki/dfki-share/projects/all/Intelligent_Mobility/development/software/git/tools/orocos/base.git                           |
+  | orocos/logger    | git:/home/doudou/dfki/dfki-share/projects/all/Intelligent_Mobility/development/software/git/tools/orocos/logger.git branch=fast_log         |
+  | orocos/ocl       | git:/home/doudou/dfki/dfki-share/projects/all/Intelligent_Mobility/development/software/git/tools/orocos/ocl.git branch=rubim               |
+</pre>
 
-autoproj build --reconfigure
-{: .commandline}
+The first line is the **package set name**. It is defined in the package set's
+source.yml file and *does not have to be identical to the set's directory
+name*. In the example above, the package set is saved in autoproj/orocos but is
+called dfki.orocos.
 
-Alternatively, you can edit the autoproj/config.yml file directly.
+The second line tells you where this set comes from. It is local if it comes
+along with the main autoproj configuration (manifest and so on). It is remote
+if it is imported from a version control system.
 
-By default, autoproj does not automatically update the package sources. To do
-that, you have to explicitely call
+Finally comes the list of packages that are defined in this set, along with the
+importer setup (URL and options, as for instance branches for orocos/logger
+above).
 
-autoproj update
-{: .commandline}
+Picking the packages to build
+-----------------------------
+If you do not wish to build all the packages that are available (you rarely
+wish that), you have to list the desired packages in your manifest file.
 
-Finally, if you want to make sure that your build is fresh, then do
+To do so, you will have to create a <tt>layout</tt> section and list the
+desired packages:
 
-autoproj rebuild
-{: .commandline}
+{coderay:: yaml}
+layout:
+    - rubim.base
+    - orocos/rtt
+    - orocos/logger
+{coderay}
 
-A less intrusive version of it only forces all tools to reconsider building. It
-is mainly useful for CMake when the build environment changed -- cmake caches a
-lot of values. To trigger this, do
+This layout can either list packages one by one, but complete package sets can
+also be selected (the rubim.base above)
 
-autoproj force-build
-{: .commandline}
+More advanced mechanisms are available to customize this list. These mechanisms
+are [detailed here](customization.html)
 
-To add a new set, one edits the <tt>autoproj/manifest</tt> file and adds it
-there. Then, simply starting the build will update everything and rebuild what
-is needed.
-
-Documentation is generated only when asked explicitely:
-
-autoproj doc
-{: .commandline}
-
-All these commands (i.e. build, doc, and update) accept a package name as
-argument, thus triggering build only for this package and its dependencies. For
-instance:
-
-autoproj build orocos/rtt
-{: .commandline}
-
-Exception: to avoid long builds, the rebuild and force-build commands apply only
-to the packages given on the command line. E.g., autoproj rebuild orocos/rtt
-will only rebuild the orocos/rtt packages. If you want to rebuild both the
-packages and its dependencies, use the --with-depends options.
-{: .warning}
