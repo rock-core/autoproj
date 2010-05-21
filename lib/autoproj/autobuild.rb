@@ -206,9 +206,14 @@ module Autoproj::RubyPackage
         end
     end
 
-    def prepare # :nodoc:
+    def import
         super
+
         Autobuild.update_environment srcdir
+        libdir = File.join(srcdir, 'lib')
+        if File.directory?(libdir)
+            Autobuild.env_add_path 'RUBYLIB', libdir
+        end
     end
 
     # The Rake task that is used to set up the package. Defaults to "default".
