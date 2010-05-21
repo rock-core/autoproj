@@ -1,11 +1,17 @@
 = Version 1.5.0
+ * the "clean up this  mess" release. Autoproj's main logic is now properly
+   split into separate methods instead of being all in a monolitic bin/autoproj
  * autoproj build does not update by default anymore. This was a behaviour
    change that was requested by quite a few users.
  * OS dependencies and normal dependencies are unified. An OS dependency will
    have priority, if one is available on the OS. Otherwise, an autoproj package
    will be searched for.
- * fixed a few issues regarding env.sh generation and dynamic package dependency
-   handling.
+ * remote package sets have become first-class citizens. The package sets are
+   still checked out in .remotes/WEIRD_NAME, but they are then symlinked to
+   autoproj/remotes/package_set_name for manipulation and inspection.
+ * a lot of fixes related to partial builds and partial package selections
+ * fixed wrong generation of env.sh files in some cases (mostly related to
+   partial builds)
 
 = Version 1.4.4
  * really fix the bug mentioned in 1.4.3
