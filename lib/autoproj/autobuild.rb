@@ -259,7 +259,11 @@ def ruby_package(options)
             Autobuild.update_environment pkg.srcdir
             # Add lib/ unconditionally, as we know that it is a ruby package.
             # Autobuild will add it only if there is a .rb file in the directory
-            Autobuild.env_add_path 'RUBYLIB', File.join(pkg.srcdir, 'lib')
+            libdir = File.join(pkg.srcdir, 'lib')
+            if File.directory?(libdir)
+                Autobuild.env_add_path 'RUBYLIB', libdir
+            end
+
             if pkg.rake_setup_task && File.file?(File.join(pkg.srcdir, 'Rakefile'))
                 Autobuild::Subprocess.run pkg, 'post-install',
                     'rake', pkg.rake_setup_task
