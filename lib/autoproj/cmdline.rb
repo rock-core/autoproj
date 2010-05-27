@@ -39,9 +39,26 @@ module Autoproj
 
             manifest_path = File.join(Autoproj.config_dir, 'manifest')
             Autoproj.manifest = Manifest.load(manifest_path)
+
+            # Once thing left to do: handle the Autoproj.auto_update
+            # configuration parameter. This has to be done here as the rest of
+            # the configuration update/loading procedure rely on it.
+            #
+            # Namely, we must check if Autobuild.do_update has been explicitely
+            # set to true or false. If that is the case, don't do anything.
+            # Otherwise, set it to the value of auto_update (set in the
+            # manifest)
+            if Autobuild.do_update.nil?
+                Autobuild.do_update = manifest.auto_update?
+            end
+            if Autoproj::CmdLine.update_os_dependencies.nil?
+                Autoproj::CmdLine.update_os_dependencies = manifest.auto_update?
+            end
         end
 
         def self.update_myself
+            return if !Autoproj::CmdLine.update_os_dependencies?
+
             # First things first, see if we need to update ourselves
             osdeps = Autoproj::OSDependencies.load_default
             if osdeps.install(%w{autobuild autoproj})
@@ -91,20 +108,6 @@ module Autoproj
 
         def self.update_configuration
             manifest = Autoproj.manifest
-
-            # Once thing left to do: handle the Autoproj.auto_update
-            # configuration parameter
-            #
-            # Namely, we must check if Autobuild.do_update has been explicitely
-            # set to true or false. If that is the case, don't do anything.
-            # Otherwise, set it to the value of auto_update (set in the
-            # manifest)
-            if Autobuild.do_update.nil?
-                Autobuild.do_update = manifest.auto_update?
-            end
-            if Autoproj::CmdLine.update_os_dependencies.nil?
-                Autoproj::CmdLine.update_os_dependencies = manifest.auto_update?
-            end
 
             # Load the installation's manifest a first time, to check if we should
             # update it ... We assume that the OS dependencies for this VCS is already
