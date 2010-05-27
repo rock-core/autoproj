@@ -1,3 +1,6 @@
+= Version 1.5.1
+ * --no-osdeps disables updating autobuild and autoproj, as it should
+ 
 = Version 1.5.0
  * the "clean up this  mess" release. Autoproj's main logic is now properly
    split into separate methods instead of being all in a monolitic bin/autoproj
