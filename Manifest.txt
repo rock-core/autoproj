@@ -28,7 +28,8 @@ doc/guide/src/package_sets/importers.page
 doc/guide/src/package_sets/index.page
 doc/guide/src/package_sets/manifest-xml.page
 doc/guide/src/package_sets/osdeps.page
-doc/guide/src/structure.page
+doc/guide/src/quick_start.page
+doc/guide/src/writing_manifest.page
 lib/autoproj.rb
 lib/autoproj/autobuild.rb
 lib/autoproj/cmdline.rb
