@@ -1,5 +1,6 @@
 = Version 1.5.1
  * --no-osdeps disables updating autobuild and autoproj, as it should
+ * fixed checking out modules that are not yet checked out
  
 = Version 1.5.0
  * the "clean up this  mess" release. Autoproj's main logic is now properly
