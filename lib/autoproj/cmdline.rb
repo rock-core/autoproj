@@ -287,7 +287,7 @@ module Autoproj
                 current_packages.each do |pkg|
                     # If the package has no importer, the source directory must
                     # be there
-                    if !File.directory?(pkg.srcdir)
+                    if !pkg.importer && !File.directory?(pkg.srcdir)
                         raise ConfigError, "#{pkg.name} has no VCS, but is not checked out in #{pkg.srcdir}"
                     end
 
