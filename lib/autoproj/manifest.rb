@@ -1067,6 +1067,10 @@ module Autoproj
                     end
                 end
             end
+
+            # Finally, remove packages that are explicitely excluded and/or
+            # ignored
+            expanded_packages.delete_if { |pkg_name| excluded?(pkg_name) || ignored?(pkg_name) }
             expanded_packages.to_set
         end
     end
