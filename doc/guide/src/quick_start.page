@@ -44,6 +44,24 @@ Additional options can be given for the version control system. For instance,
    ruby autoproj\_bootstrap git git://github.com/doudou/rubim.all.git branch=stable
    {: .cmdline}
 
+Switching configuration after bootstrapping
+-------------------------------------------
+Let's assume that you want to switch what configuration autoproj is tracking,
+but without having to redo a complete bootstrap -- i.e. avoiding to rebuild
+stuff that is common between the configurations.
+
+autoproj provides the switch-config command for that. This command takes the
+same arguments than the bootstrap script, that is:
+
+autoproj switch-config [vcs-type] [vcs-url] [vcs-options]
+{: .cmdline}
+
+As a shortcut, one can omit vcs-type and vcs-url if they don't change.
+This is especially useful when switching between branches:
+
+autoproj switch-config branch=experimental
+{: .cmdline}
+
 Management
 ----------
 
