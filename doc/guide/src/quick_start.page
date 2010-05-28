@@ -53,10 +53,10 @@ stuff that is common between the configurations.
 autoproj provides the switch-config command for that. This command takes the
 same arguments than the bootstrap script, that is:
 
-autoproj switch-config [vcs-type] [vcs-url] [vcs-options]
+autoproj switch-config \[vcs_type] \[vcs_url] \[vcs_options]
 {: .cmdline}
 
-As a shortcut, one can omit vcs-type and vcs-url if they don't change.
+As a shortcut, one can omit vcs_type and vcs_url if they don't change.
 This is especially useful when switching between branches:
 
 autoproj switch-config branch=experimental
