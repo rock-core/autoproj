@@ -1,3 +1,6 @@
+= Version 1.5.2
+ * fix ignored_packages and exclude_packages
+
 = Version 1.5.1
  * --no-osdeps disables updating autobuild and autoproj, as it should
  * fixed checking out modules that are not yet checked out
