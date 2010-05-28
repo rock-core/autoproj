@@ -555,8 +555,8 @@ module Autoproj
         #
         # This is useful if the packages are already installed on this system.
         def ignored?(package_name)
-            if data['ignored_packages']
-                data['ignored_packages'].any? { |l| Regexp.new(l) =~ package_name }
+            if data['ignore_packages']
+                data['ignore_packages'].any? { |l| Regexp.new(l) =~ package_name }
             else
                 false
             end
@@ -567,8 +567,8 @@ module Autoproj
         # This is useful to avoid building packages that are of no use for the
         # user.
         def excluded?(package_name)
-            if data['excluded_packages']
-                data['excluded_packages'].any? { |l| Regexp.new(l) =~ package_name }
+            if data['exclude_packages']
+                data['exclude_packages'].any? { |l| Regexp.new(l) =~ package_name }
             else
                 false
             end
@@ -944,7 +944,7 @@ module Autoproj
                         packages.values.
                             map { |pkg| pkg.autobuild.name }
                     end
-            names = names.delete_if { |pkg_name| excluded?(pkg_name) }
+            names.delete_if { |pkg_name| excluded?(pkg_name) || ignored?(pkg_name) }
             names.to_set
         end
 
