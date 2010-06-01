@@ -933,21 +933,6 @@ module Autoproj
 
         # Returns the set of packages that should be built if the user does not
         # specify any on the command line
-        def in_sublayout(name, packages)
-            srcdir  = File.join(Autoproj.root_dir, name)
-            prefix  = File.join(Autoproj.build_dir, name)
-            logdir  = File.join(prefix, "log")
-            Autobuild.logdir = logdir
-            packages.each do |pkg_name|
-                pkg = Autobuild::Package[pkg_name]
-                pkg.srcdir = File.join(srcdir, pkg_name)
-                pkg.prefix = prefix
-                pkg.logdir = logdir
-            end
-
-            yield
-        end
-
         def default_packages
             names = if layout = data['layout']
                         layout_packages(layout, true)
@@ -957,6 +942,7 @@ module Autoproj
                             map { |pkg| pkg.autobuild.name }.
                             find_all { |pkg_name| !Autoproj.osdeps || !Autoproj.osdeps.has?(pkg_name) }
                     end
+
             names.delete_if { |pkg_name| excluded?(pkg_name) || ignored?(pkg_name) }
             names.to_set
         end
