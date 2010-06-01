@@ -280,7 +280,7 @@ module Autoproj
 
                 current_packages.
                     delete_if { |pkg| all_enabled_packages.include?(pkg.name) }
-                all_enabled_packages |= current_packages
+                all_enabled_packages |= current_packages.map(&:name).to_set
 
                 # We import first so that all packages can export the
                 # additional targets they provide.
@@ -319,7 +319,7 @@ module Autoproj
                 STDERR.puts "autoproj: finished importing packages"
             end
 
-            return all_enabled_packages.map(&:name)
+            return all_enabled_packages
         end
 
         def self.build_packages(selected_packages, all_enabled_packages)
