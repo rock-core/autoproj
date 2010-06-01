@@ -3,6 +3,7 @@
    implicitely selected in the layout (i.e. because of a package set name).
  * allow to force using the autobuild-built package instead of the OSdeps
    provided one by explicitely listing the package name in the layout.
+ * fix multiple loading of manifests (harmless, but annoying)
 
 = Version 1.5.2
  * fix ignored_packages and exclude_packages
