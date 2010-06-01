@@ -198,7 +198,7 @@ module Autoproj
         def local?; vcs.local? end
         # True if this source defines nothing
         def empty?
-            !source_definition['version_control'] &&
+            !source_definition['version_control'] && !source_definition['overrides']
                 !each_package.find { true } &&
                 !File.exists?(File.join(raw_local_dir, "overrides.rb")) &&
                 !File.exists?(File.join(raw_local_dir, "init.rb"))
@@ -361,16 +361,16 @@ module Autoproj
         # available. Otherwise returns nil.
         #
         # The returned value is a VCSDefinition object.
-        def importer_definition_for(package_name)
+        def version_control_field(package_name, section_name, validate = true)
             urls = source_definition['urls'] || Hash.new
             urls['HOME'] = ENV['HOME']
 
-            all_vcs     = source_definition['version_control']
+            all_vcs     = source_definition[section_name]
             if all_vcs
                 if all_vcs.kind_of?(Hash)
-                    raise ConfigError, "wrong format for the version_control field, you forgot the '-' in front of the package names"
+                    raise ConfigError, "wrong format for the #{section_name} section, you forgot the '-' in front of the package names"
                 elsif !all_vcs.kind_of?(Array)
-                    raise ConfigError, "wrong format for the version_control field"
+                    raise ConfigError, "wrong format for the #{section_name} section"
                 end
             end
 
@@ -435,12 +435,23 @@ module Autoproj
                 vcs_spec.dup.each do |name, value|
                     vcs_spec[name] = expand(value, expansions)
                 end
-                vcs_spec
 
-                Autoproj.normalize_vcs_definition(vcs_spec)
+                # If required, verify that the configuration is a valid VCS
+                # configuration
+                if validate
+                    Autoproj.normalize_vcs_definition(vcs_spec)
+                end
+                vcs_spec
             end
         rescue ConfigError => e
             raise ConfigError, "#{e.message} in #{source_file}", e.backtrace
+        end
+
+        def importer_definition_for(package_name)
+            vcs_spec = version_control_field(package_name, 'version_control_field')
+            if vcs_spec
+                Autoproj.normalize_vcs_definition(vcs_spec)
+            end
         end
 
         def each_package
@@ -811,15 +822,26 @@ module Autoproj
                     package_set
             end
 
-            each_source.to_a.reverse.each do |source|
-                vcs = source.importer_definition_for(package_name)
-                if vcs
-                    return vcs
-                elsif package_source.name == source.name
-                    return
+            sources = each_source.to_a
+
+            # Remove sources listed before the package source
+            while !sources.empty? && sources[0].name != package_source.name
+                sources.shift
+            end
+            package_source = sources.shift
+
+            # Get the version control information from the package source. There
+            # must be one
+            vcs_spec = package_source.version_control_field(package_name, 'version_control')
+            return if !vcs_spec
+
+            sources.each do |src|
+                overrides_spec = src.version_control_field(package_name, 'overrides', false)
+                if overrides_spec
+                    vcs_spec.merge!(overrides_spec)
                 end
             end
-            nil
+            Autoproj.normalize_vcs_definition(vcs_spec)
         end
 
         # Sets up the package importers based on the information listed in
