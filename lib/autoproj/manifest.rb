@@ -931,6 +931,8 @@ module Autoproj
             end
         end
 
+        # Returns the set of packages that should be built if the user does not
+        # specify any on the command line
         def in_sublayout(name, packages)
             srcdir  = File.join(Autoproj.root_dir, name)
             prefix  = File.join(Autoproj.build_dir, name)
