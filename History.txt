@@ -1,3 +1,9 @@
+= Version 1.5.3
+ * use osdeps-provided packages instead of autobuild-built ones even if they are
+   implicitely selected in the layout (i.e. because of a package set name).
+ * allow to force using the autobuild-built package instead of the OSdeps
+   provided one by explicitely listing the package name in the layout.
+
 = Version 1.5.2
  * fix ignored_packages and exclude_packages
 
