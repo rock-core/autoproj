@@ -4,6 +4,11 @@
  * allow to force using the autobuild-built package instead of the OSdeps
    provided one by explicitely listing the package name in the layout.
  * fix multiple loading of manifests (harmless, but annoying)
+ * added an 'overrides' section in source.yml, and made the version_control
+   field local to the given package set. This is because there is too much
+   possibility for name clashes when people start sharing package sets, and it
+   allows to simply change some of the VCS parameters (most often, the branch)
+   without having to redefine the complete configuration.
 
 = Version 1.5.2
  * fix ignored_packages and exclude_packages
