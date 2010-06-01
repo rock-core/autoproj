@@ -324,3 +324,36 @@ def user_config(key)
     Autoproj.user_config(key)
 end
 
+class Autobuild::Git
+    def snapshot(package, target_dir)
+        Dir.chdir(package.srcdir) do
+            head_commit   = `git rev-parse #{branch}`.chomp
+            {
+                'type' => 'git',
+                'url' => repository,
+                'commit' => head_commit,
+                'patches' => patches
+            }
+        end
+    end
+end
+
+class Autobuild::ArchiveImporter
+    def snapshot(package, target_dir)
+        archive_dir = File.join(target_dir, 'archives')
+        FileUtils.mkdir_p archive_dir
+        FileUtils.cp @cachefile, archive_dir
+
+        {
+            'type' => 'archive',
+            'url' =>  File.join('$AUTOPROJ_SOURCE_DIR', File.basename(@cachefile)),
+            'mode' => @mode,
+            'update_cached_file' => false,
+            'patches' => patches,
+            'no_subdirectory' => @options[:no_subdirectory],
+            'archive_dir' => archive_dir
+
+        }
+    end
+end
+

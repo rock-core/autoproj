@@ -111,6 +111,10 @@ report(Autobuild.debug) do
         all_enabled_packages = Autoproj::CmdLine.import_packages(selected_packages)
         Autoproj::CmdLine.manifest_update(all_enabled_packages)
         exit(0)
+    elsif Autoproj::CmdLine.snapshot?
+        all_enabled_packages = Autoproj::CmdLine.import_packages(selected_packages)
+        Autoproj::CmdLine.snapshot(Autoproj::CmdLine.snapshot_dir, all_enabled_packages)
+        exit(0)
     end
 
     STDERR.puts

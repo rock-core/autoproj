@@ -358,6 +358,7 @@ module Autoproj
         def self.update_os_dependencies?; !!@update_os_dependencies end
         class << self
             attr_accessor :update_os_dependencies
+            attr_accessor :snapshot_dir
         end
         def self.display_configuration?; !!@display_configuration end
         def self.force_re_build_with_depends?; !!@force_re_build_with_depends end
@@ -366,6 +367,7 @@ module Autoproj
         def self.update_packages?; @mode == "update" || @mode == "envsh" || build? end
         def self.build?; @mode =~ /build/ end
         def self.doc?; @mode == "doc" end
+        def self.snapshot?; @mode == "snapshot" end
         def self.parse_arguments(args)
             @only_status = false
             @check = false
@@ -529,6 +531,11 @@ where 'mode' is one of:
                 Autobuild.do_rebuild = true
             when "fast-build"
                 Autobuild.do_update = false
+                @update_os_dependencies = false
+            when "snapshot"
+                @snapshot_dir = remaining_args.shift
+                Autobuild.do_update = false
+                Autobuild.do_build = false
                 @update_os_dependencies = false
             when "full-build"
                 Autobuild.do_update = true
@@ -910,6 +917,49 @@ EOTEXT
             end
         end
 
+        def self.snapshot(target_dir, packages)
+            # First, copy the configuration directory to create target_dir
+            if File.exists?(target_dir)
+                raise ArgumentError, "#{target_dir} already exists"
+            end
+            FileUtils.cp_r Autoproj.config_dir, target_dir
+
+            # Now, create snapshot information for each of the packages
+            version_control = []
+            packages.each do |package_name|
+                package  = Autobuild::Package[package_name]
+                importer = package.importer
+                if !importer
+                    STDERR.puts "cannot snapshot #{package_name} as it has no importer"
+                    next
+                elsif !importer.respond_to?(:snapshot)
+                    STDERR.puts "cannot snapshot #{package_name} as the #{importer.class} importer does not support it"
+                    next
+                end
+
+                vcs_info = importer.snapshot(package, target_dir)
+                if vcs_info
+                    version_control << Hash[package_name, vcs_info]
+                end
+            end
+
+            overrides_path = File.join(target_dir, 'overrides.yml')
+            overrides =
+                if File.exists?(overrides_path)
+                    YAML.load(File.read(overrides_path))
+                else Hash.new
+                end
+
+            if overrides['version_control']
+                overrides['version_control'].concat(version_control)
+            else
+                overrides['version_control'] = version_control
+            end
+
+            File.open(overrides_path, 'w') do |io|
+                io.write YAML.dump(overrides)
+            end
+        end
     end
 end
 
