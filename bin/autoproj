@@ -95,6 +95,7 @@ report(Autobuild.debug) do
     end
 
     selected_packages = Autoproj::CmdLine.resolve_user_selection(selected_packages)
+    Autoproj.manifest.explicit_selection = selected_packages
     Autoproj::CmdLine.initial_package_setup
 
     if Autoproj::CmdLine.only_status?

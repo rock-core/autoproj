@@ -11,7 +11,7 @@ module Autobuild
 
         alias __depends_on__ depends_on
         def depends_on(name)
-            if Autoproj.osdeps.has?(name)
+            if Autoproj.osdeps.has?(name) && !Autoproj.manifest.explicitly_selected_package?(name)
                 @os_packages ||= Set.new
                 @os_packages << name
             else

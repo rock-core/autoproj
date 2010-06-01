@@ -512,6 +512,15 @@ module Autoproj
             end
         end
 
+        # The set of packages that are selected by the user, either through the
+        # manifest file or through the command line, as a set of package names
+        attr_accessor :explicit_selection
+
+        # Returns true if +pkg_name+ has been explicitely selected
+        def explicitly_selected_package?(pkg_name)
+            explicit_selection && explicit_selection.include?(pkg_name)
+        end
+
 	def self.load(file)
             begin
                 data = YAML.load(File.read(file))
@@ -855,8 +864,9 @@ module Autoproj
                     raise ConfigError, "#{name} is neither a package nor a source"
                 end
                 packages.values.
-                    map { |pkg| pkg.autobuild.name if pkg.package_set.name == source.name }.
-                    compact
+                    find_all { |pkg| pkg.package_set.name == source.name }.
+                    map { |pkg| pkg.autobuild.name }.
+                    find_all { |pkg_name| !Autoproj.osdeps || !Autoproj.osdeps.has?(pkg_name) }
             end
         end
 
@@ -942,7 +952,8 @@ module Autoproj
                     else
                         # No layout, all packages are selected
                         packages.values.
-                            map { |pkg| pkg.autobuild.name }
+                            map { |pkg| pkg.autobuild.name }.
+                            find_all { |pkg_name| !Autoproj.osdeps || !Autoproj.osdeps.has?(pkg_name) }
                     end
             names.delete_if { |pkg_name| excluded?(pkg_name) || ignored?(pkg_name) }
             names.to_set
