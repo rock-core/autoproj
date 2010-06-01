@@ -357,6 +357,11 @@ module Autoproj
             data
         end
 
+        # Returns the default importer for this package set
+        def default_importer
+            importer_definition_for('default')
+        end
+
         # Returns an importer definition for the given package, if one is
         # available. Otherwise returns nil.
         #
@@ -480,6 +485,12 @@ module Autoproj
 
         def source_file
             File.join(Autoproj.config_dir, "overrides.yml")
+        end
+
+        # Returns the default importer for this package set
+        def default_importer
+            importer_definition_for('default') ||
+                Autoproj.normalize_vcs_definition(:type => 'none')
         end
 
         def raw_description_file
@@ -686,6 +697,13 @@ module Autoproj
             end
 
             if @sources
+                if load_description
+                    @sources.each do |src|
+                        if !src.source_definition
+                            src.load_description_file
+                        end
+                    end
+                end
                 return @sources.each(&block)
             end
 
@@ -707,9 +725,7 @@ module Autoproj
             end
 
             all_sources.each(&block)
-            if load_description
-                @sources = all_sources
-            end
+            @sources = all_sources
         end
 
         # Register a new package
@@ -863,7 +879,7 @@ module Autoproj
         def load_importers
             packages.each_value do |pkg|
                 vcs = importer_definition_for(pkg.autobuild.name, pkg.package_set) ||
-                    importer_definition_for("default", pkg.package_set)
+                    pkg.package_set.default_importer
 
                 if vcs
                     Autoproj.add_build_system_dependency vcs.type
