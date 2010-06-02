@@ -128,14 +128,18 @@ module Autoproj
             'arch' => 'pacman -Sy --noconfirm %s'
         }
 
-        def generate_os_script(dependencies)
+        # Resolves the given OS dependencies into the actual packages that need
+        # to be installed on this particular OS.
+        #
+        # Raises ConfigError if some packages can't be found
+        def resolve_os_dependencies(dependencies)
             os_name, os_version = operating_system
             if !OS_PACKAGE_INSTALL.has_key?(os_name)
                 raise ConfigError, "I don't know how to install packages on #{os_name}"
             end
 
-            shell_snippets = ""
             os_packages    = []
+            shell_snippets = []
             dependencies.each do |name|
                 dep_def = definitions[name]
                 if !dep_def
@@ -154,6 +158,7 @@ module Autoproj
                 end
 
                 data = os_entry.last
+
                 # This package does not need to be installed on this operating system (example: build tools on Gentoo)
                 next if !data || data == "ignore"
 
@@ -177,20 +182,29 @@ module Autoproj
                 elsif data.to_str =~ /\w+/
                     os_packages << data.to_str
                 else
-                    shell_snippets << "\n" << data << "\n"
+                    shell_snippets << data.to_str
                 end
             end
+
+            return os_packages, shell_snippets
+        end
+
+
+        def generate_os_script(dependencies)
+            os_name, os_version = operating_system
+            os_packages, shell_snippets = resolve_os_dependencies(dependencies)
 
             "#! /bin/bash\n" +
             GAIN_ROOT_ACCESS + "\n" +
                 (OS_PACKAGE_INSTALL[os_name] % [os_packages.join(" ")]) +
-                "\n" + shell_snippets
+                "\n" + shell_snippets.join("\n")
         end
 
         # Returns true if there is an operating-system package with that name,
         # and false otherwise
         def has?(name)
-            partition_packages([name].to_set)
+            osdeps, gemdeps = partition_packages([name].to_set)
+            resolve_os_dependencies(osdeps)
             true
         rescue ConfigError
             false
