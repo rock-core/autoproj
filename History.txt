@@ -11,6 +11,7 @@
    without having to redefine the complete configuration.
  * packages defined in the local source do not need to have an entry in
    overrides.yml anymore. Only proper package sets do.
+ * fix env.sh update in cases of build failures
 
 = Version 1.5.2
  * fix ignored_packages and exclude_packages
