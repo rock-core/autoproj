@@ -10,6 +10,8 @@ ruby18:
         - libopenssl-ruby1.8
     gentoo:
         - dev-lang/ruby:1.8
+    gem:
+        - rake
 
 ruby19:
     debian:
@@ -32,6 +34,8 @@ ruby19:
         - dev-lang/ruby:1.9
     arch:
         - ruby
+    gem:
+        - rake
 
 rdoc: gem
 
