@@ -328,12 +328,7 @@ class Autobuild::Git
     def snapshot(package, target_dir)
         Dir.chdir(package.srcdir) do
             head_commit   = `git rev-parse #{branch}`.chomp
-            {
-                'type' => 'git',
-                'url' => repository,
-                'commit' => head_commit,
-                'patches' => patches
-            }
+            { 'commit' => head_commit }
         end
     end
 end
@@ -344,16 +339,7 @@ class Autobuild::ArchiveImporter
         FileUtils.mkdir_p archive_dir
         FileUtils.cp @cachefile, archive_dir
 
-        {
-            'type' => 'archive',
-            'url' =>  File.join('$AUTOPROJ_SOURCE_DIR', File.basename(@cachefile)),
-            'mode' => @mode,
-            'update_cached_file' => false,
-            'patches' => patches,
-            'no_subdirectory' => @options[:no_subdirectory],
-            'archive_dir' => archive_dir
-
-        }
+        { 'url' =>  File.join('$AUTOPROJ_SOURCE_DIR', File.basename(@cachefile)) }
     end
 end
 

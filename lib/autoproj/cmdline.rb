@@ -950,10 +950,10 @@ EOTEXT
                 else Hash.new
                 end
 
-            if overrides['version_control']
-                overrides['version_control'].concat(version_control)
+            if overrides['overrides']
+                overrides['overrides'].concat(version_control)
             else
-                overrides['version_control'] = version_control
+                overrides['overrides'] = version_control
             end
 
             File.open(overrides_path, 'w') do |io|
