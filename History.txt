@@ -12,6 +12,10 @@
  * packages defined in the local source do not need to have an entry in
    overrides.yml anymore. Only proper package sets do.
  * fix env.sh update in cases of build failures
+ * fix osdeps/autobuild package unification in some cases. In particular,
+   autoproj will fall-back to self-built packages if an OS package is not
+   provided on *this particular OS/version pair*, even though it exists for
+   other OSes or other versions of the same OS.
 
 = Version 1.5.2
  * fix ignored_packages and exclude_packages
