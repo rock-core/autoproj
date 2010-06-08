@@ -969,6 +969,13 @@ module Autoproj
             end
         end
 
+        # Returns the set of package names that are available for installation.
+        # It is the set of packages listed in the layout minus the exluded and
+        # ignred ones
+        def all_package_names
+            default_packages
+        end
+
         # Returns the set of packages that should be built if the user does not
         # specify any on the command line
         def default_packages
@@ -1061,25 +1068,25 @@ module Autoproj
         def expand_package_selection(selected_packages)
             base_dir = Autoproj.root_dir
 
-            expanded_packages = []
-
-            # Get all the package names
-            package_names = Autobuild::Package.each(true).
-                map do |name, pkg|
-                    pkg.name
-                end
+            # The expanded selection
+            expanded_packages = Set.new
+            # All the packages that are available on this installation
+            all_package_names = self.all_package_names
 
             # First, remove packages that are directly referenced by name or by
             # package set names
             selected_packages.delete_if do |sel|
                 sel = Regexp.new(Regexp.quote(sel))
 
-                packages = package_names.find_all { |pkg_name| pkg_name =~ sel }
-                expanded_packages.concat(packages)
+                packages = all_package_names.
+                    find_all { |pkg_name| pkg_name =~ sel }.
+                    to_set
+                expanded_packages |= packages
 
                 sources = each_source.find_all { |source| source.name =~ sel }
                 sources.each do |source|
-                    expanded_packages.concat(resolve_package_set(source.name))
+                    packages = resolve_package_set(source.name).to_set
+                    expanded_packages |= (packages & all_package_names)
                 end
 
                 !packages.empty? && !sources.empty?
@@ -1093,12 +1100,13 @@ module Autoproj
             each_package_set(nil) do |layout_name, packages, _|
                 selected_packages.delete_if do |sel|
                     if layout_name[0..-1] =~ Regexp.new("#{sel}\/?$")
-                        expanded_packages.concat(packages.to_a)
+                        expanded_packages |= packages.to_set
                     else
                         match = Regexp.new("^#{Regexp.quote(sel)}")
-                        Autobuild::Package.each(true) do |name, pkg|
+                        all_package_names.each do |pkg_name|
+                            pkg = Autobuild::Package[pkg_name]
                             if pkg.srcdir =~ match
-                                expanded_packages << name
+                                expanded_packages << pkg_name
                             end
                         end
                     end

@@ -99,7 +99,6 @@ report(Autobuild.debug) do
     Autoproj::CmdLine.initial_package_setup
 
     if Autoproj::CmdLine.only_status?
-        STDERR.puts
         all_enabled_packages = Autoproj::CmdLine.import_packages(selected_packages)
         Autoproj::CmdLine.status(all_enabled_packages)
         exit(0)

@@ -221,6 +221,8 @@ module Autoproj
             end
         end
 
+        # Returns the set of packages that are actually selected based on what
+        # the user gave on the command line
         def self.resolve_user_selection(selected_packages)
             manifest = Autoproj.manifest
 
