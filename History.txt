@@ -18,6 +18,8 @@
    other OSes or other versions of the same OS.
  * in case the layout selects some packages, partial build commands should not
    forcefully select packages that are not part of the layout at all.
+ * add the ability to override the default.osdeps file by setting
+   AUTOPROJ_DEFAULT_OSDEPS environment variable
 
 = Version 1.5.2
  * fix ignored_packages and exclude_packages
