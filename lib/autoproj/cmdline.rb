@@ -187,10 +187,10 @@ module Autoproj
                     source_yml = source.raw_description_file
                     STDERR.puts "  #{source_yml['name']}"
                     if source.local?
-                        STDERR.puts "    local source in #{source.local_dir}"
+                        puts "    local source in #{source.local_dir}"
                     else
-                        STDERR.puts "    from:  #{source.vcs}"
-                        STDERR.puts "    local: #{source.local_dir}"
+                        puts "    from:  #{source.vcs}"
+                        puts "    local: #{source.local_dir}"
                     end
 
                     lines = []
@@ -212,10 +212,10 @@ module Autoproj
                         w_col1 = col1.size if !w_col1 || col1.size > w_col1
                         w_col2 = col2.size if !w_col2 || col2.size > w_col2
                     end
-                    STDERR.puts "    packages:"
+                    puts "    packages:"
                     format = "    | %-#{w_col1}s | %-#{w_col2}s |"
                     lines.each do |col1, col2|
-                        STDERR.puts(format % [col1, col2])
+                        puts(format % [col1, col2])
                     end
                 end
             end
