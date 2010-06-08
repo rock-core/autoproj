@@ -16,6 +16,8 @@
    autoproj will fall-back to self-built packages if an OS package is not
    provided on *this particular OS/version pair*, even though it exists for
    other OSes or other versions of the same OS.
+ * in case the layout selects some packages, partial build commands should not
+   forcefully select packages that are not part of the layout at all.
 
 = Version 1.5.2
  * fix ignored_packages and exclude_packages
