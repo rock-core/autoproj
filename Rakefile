@@ -39,6 +39,19 @@ begin
         task 'bootstrap' do
             osdeps_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'osdeps.rb'))
             osdeps_defaults = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'default.osdeps'))
+            # Filter rubygems dependencies from the OSdeps default. They will be
+            # installed at first build
+            osdeps = YAML.load(osdeps_defaults)
+            osdeps.delete_if do |name, content|
+                if content.respond_to?(:delete)
+                    content.delete('gem')
+                    content.empty?
+                else
+                    content == 'gem'
+                end
+            end
+            osdeps_defaults = YAML.dump(osdeps)
+
             bootstrap_code = File.read(File.join(Dir.pwd, 'bin', 'autoproj_bootstrap.in')).
                 gsub('OSDEPS_CODE', osdeps_code).
                 gsub('OSDEPS_DEFAULTS', osdeps_defaults)
