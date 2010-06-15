@@ -11,11 +11,22 @@ module Autobuild
 
         alias __depends_on__ depends_on
         def depends_on(name)
-            if Autoproj.osdeps.has?(name) && !Autoproj.manifest.explicitly_selected_package?(name)
+            explicit_selection = Autoproj.manifest.explicitly_selected_package?(name)
+            if Autoproj.osdeps.has?(name) && !explicit_selection
                 @os_packages ||= Set.new
                 @os_packages << name
             else
-                __depends_on__(name)
+                begin
+                    __depends_on__(name)
+                rescue Exception => e
+                    if explicit_selection
+                        raise e
+                    else
+                        # Re-call osdeps to get a proper error message
+                        osdeps, gems = Autoproj.osdeps.partition_packages([name].to_set)
+                        Autoproj.osdeps.resolve_os_dependencies(osdeps)
+                    end
+                end
             end
         end
 

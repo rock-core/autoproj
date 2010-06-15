@@ -1018,7 +1018,9 @@ module Autoproj
                 begin
                     package.depends_on name
                 rescue Autobuild::ConfigException => e
-                    raise ConfigError, "manifest of #{package.name} from #{source.name} lists '#{name}' as dependency, but this package does not exist (manifest file: #{manifest_path})"
+                    raise ConfigError, "manifest #{manifest_path} of #{package.name} from #{source.name} lists '#{name}' as dependency, which is listed in the layout but has no autobuild definition"
+                rescue ConfigError => e
+                    raise ConfigError, "manifest #{manifest_path} of #{package.name} from #{source.name} lists '#{name}' as dependency, but it is neither a normal package nor an osdeps package. osdeps reports: #{e.message}"
                 end
             end
         end
