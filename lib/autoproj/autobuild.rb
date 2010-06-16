@@ -312,6 +312,25 @@ def orogen_package(options, &block)
     end
 end
 
+# Declare that the packages declared in the block should not be built in the
+# given operating system. OS descriptions are space-separated strings containing
+# OS name and version.
+#
+# An error will occur if the user tries to build it on one of those
+# architectures
+def not_on(*architectures)
+    # Simply get the current list of packages, yield the block, and exclude all
+    # packages that have been added
+    current_packages = Autobuild::Package.each(true).map(&:last).map(&:name).to_set
+    yield
+    new_packages = Autobuild::Package.each(true).map(&:last).map(&:name).to_set -
+        current_packages
+
+    new_packages.each do |pkg_name|
+        Autoproj.manifest.add_exclusion(pkg_name, "#{pkg_name} is disabled on this operating system")
+    end
+end
+
 # Defines an import-only package, i.e. a package that is simply checked out but
 # not built in any way
 def source_package(options)

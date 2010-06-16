@@ -615,6 +615,7 @@ module Autoproj
 	    @data = data
             @packages = Hash.new
             @package_manifests = Hash.new
+            @automatic_exclusions = Hash.new
 
             if Autoproj.has_config_key?('manifest_source')
                 @vcs = Autoproj.normalize_vcs_definition(Autoproj.user_config('manifest_source'))
@@ -632,14 +633,47 @@ module Autoproj
                 false
             end
         end
+
+        # The set of package names that are listed in the excluded_packages
+        # section of the manifest
+        def manifest_exclusions
+            data['exclude_packages'] || Set.new
+        end
+
+        # A package_name => reason map of the exclusions added with #add_exclusion.
+        # Exclusions listed in the manifest file are returned by #manifest_exclusions
+        attr_reader :automatic_exclusions
+
+        # Exclude +package_name+ from the build. +reason+ is a string describing
+        # why the package is to be excluded.
+        def add_exclusion(package_name, reason)
+            automatic_exclusions[package_name] = reason
+        end
+
+        # If +package_name+ is excluded from the build, returns a string that
+        # tells why. Otherwise, returns nil
+        #
+        # Packages can either be excluded because their name is listed in the
+        # excluded_packages section of the manifest, or because they are
+        # disabled on this particular operating system.
+        def exclusion_reason(package_name)
+            if manifest_exclusions.any? { |l| Regexp.new(l) =~ package_name }
+                "#{package_name} is listed in the excluded_packages section of the manifest"
+            else
+                automatic_exclusions[package_name]
+            end
+        end
+
         # True if the given package should not be built and its dependencies
         # should be considered as met.
         #
         # This is useful to avoid building packages that are of no use for the
         # user.
         def excluded?(package_name)
-            if data['exclude_packages']
-                data['exclude_packages'].any? { |l| Regexp.new(l) =~ package_name }
+            if manifest_exclusions.any? { |l| Regexp.new(l) =~ package_name }
+                true
+            elsif automatic_exclusions.any? { |pkg_name, | pkg_name == package_name }
+                true
             else
                 false
             end

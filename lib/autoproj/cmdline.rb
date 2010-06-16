@@ -304,8 +304,8 @@ module Autoproj
                     # them to the selected_packages set so that they get
                     # imported as well
                     pkg.dependencies.each do |dep_name|
-                        if Autoproj.manifest.excluded?(dep_name)
-                            raise ConfigError, "#{pkg.name} depends on #{dep_name}, which is explicitely excluded in the manifest"
+                        if reason = Autoproj.manifest.exclusion_reason(dep_name)
+                            raise ConfigError, "#{pkg.name} depends on #{dep_name}, which is excluded from the build: #{reason}"
                         end
                         dep_pkg = Autobuild::Package[dep_name]
                         if !dep_pkg
