@@ -73,6 +73,16 @@ module Autoproj
             end
         end
 
+        # Autodetects the operating system name and version
+        #
+        # +osname+ is the operating system name, all in lowercase (e.g. ubuntu,
+        # arch, gentoo, debian)
+        #
+        # +versions+ is a set of names that describe the OS version. It includes
+        # both the version number (as a string) and/or the codename if there is
+        # one.
+        #
+        # Examples: ['debian', ['sid', 'unstable']] or ['ubuntu', ['lucid lynx', '10.04']]
         def operating_system
             if @operating_system
                 return @operating_system
