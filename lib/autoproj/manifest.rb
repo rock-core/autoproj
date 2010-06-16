@@ -204,6 +204,13 @@ module Autoproj
                 !File.exists?(File.join(raw_local_dir, "init.rb"))
         end
 
+        # Remote sources can be accessed through a hidden directory in
+        # $AUTOPROJ_ROOT/.remotes, or through a symbolic link in
+        # autoproj/remotes/
+        #
+        # This returns the former. See #user_local_dir for the latter.
+        #
+        # For local sources, is simply returns the path to the source directory.
         def raw_local_dir
             if local?
                 return vcs.url 
@@ -212,6 +219,13 @@ module Autoproj
             end
         end
 
+        # Remote sources can be accessed through a hidden directory in
+        # $AUTOPROJ_ROOT/.remotes, or through a symbolic link in
+        # autoproj/remotes/
+        #
+        # This returns the latter. See #raw_local_dir for the former.
+        #
+        # For local sources, is simply returns the path to the source directory.
         def user_local_dir
             if local?
                 return vcs.url 
@@ -247,6 +261,10 @@ module Autoproj
             end
         end
 
+        # Loads the source.yml file, validates it and returns it as a hash
+        #
+        # Raises InternalError if the source has not been checked out yet (it
+        # should have), and ConfigError if the source.yml file is not valid.
         def raw_description_file
             if !present?
                 raise InternalError, "source #{vcs} has not been fetched yet, cannot load description for it"
@@ -284,6 +302,7 @@ module Autoproj
         rescue InternalError
         end
 
+        # Path to the source.yml file
         def source_file
             File.join(local_dir, 'source.yml')
         end
@@ -357,7 +376,8 @@ module Autoproj
             data
         end
 
-        # Returns the default importer for this package set
+        # Returns the default importer definition for this package set, as a
+        # VCSDefinition instance
         def default_importer
             importer_definition_for('default')
         end
@@ -452,6 +472,10 @@ module Autoproj
             raise ConfigError, "#{e.message} in #{source_file}", e.backtrace
         end
 
+        # Returns the VCS definition for +package_name+ as defined in this
+        # source, or nil if the source does not have any.
+        #
+        # The definition is an instance of VCSDefinition
         def importer_definition_for(package_name)
             vcs_spec = version_control_field(package_name, 'version_control_field')
             if vcs_spec
@@ -459,6 +483,8 @@ module Autoproj
             end
         end
 
+        # Enumerates the Autobuild::Package instances that are defined in this
+        # source
         def each_package
             if !block_given?
                 return enum_for(:each_package)
@@ -472,6 +498,7 @@ module Autoproj
         end
     end
 
+    # Specialization of the Source class for the overrides listed in autoproj/
     class LocalSource < Source
         def initialize
             super(Autoproj.normalize_vcs_definition(:type => 'local', :url => Autoproj.config_dir))
@@ -511,8 +538,16 @@ module Autoproj
 
     PackageDefinition = Struct.new :autobuild, :user_block, :package_set, :file
 
+    # The Manifest class represents the information included in the main
+    # manifest file, and allows to manipulate it
     class Manifest
         FakePackage = Struct.new :text_name, :name, :srcdir, :importer, :updated
+
+        # Data structure used to use autobuild importers without a package, to
+        # import configuration data.
+        #
+        # It has to match the interface of Autobuild::Package that is relevant
+        # for importers
         class FakePackage
             def autoproj_name; name end
             def import
@@ -543,6 +578,8 @@ module Autoproj
             explicit_selection && explicit_selection.include?(pkg_name)
         end
 
+        # Loads the manifest file located at +file+ and returns the Manifest
+        # instance that represents it
 	def self.load(file)
             begin
                 data = YAML.load(File.read(file))
@@ -564,8 +601,11 @@ module Autoproj
         # A mapping from package names into PackageManifest objects
         attr_reader :package_manifests
 
+        # The path to the manifest file that has been loaded
         attr_reader :file
 
+        # True if autoproj should run an update automatically when the user
+        # uses" build"
         def auto_update?
             !!data['auto_update']
         end
@@ -631,6 +671,7 @@ module Autoproj
             end
 	end
 
+        # Yields each osdeps definition files that are present in our sources
         def each_osdeps_file
             if !block_given?
                 return enum_for(:each_source_file)
@@ -643,6 +684,7 @@ module Autoproj
             end
         end
 
+        # True if some of the sources are remote sources
         def has_remote_sources?
             each_remote_source(false).any? { true }
         end
