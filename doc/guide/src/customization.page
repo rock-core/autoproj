@@ -61,7 +61,7 @@ line, instead of package names:
 autoproj build lib
 {: .commandline}
 
-Removing packages from the build
+Removing packages from the build (<tt>exclude_packages</tt>) {#exclude_packages}
 --------------------------------
 Instead of having to list all packages that you do want to build, it is possible
 to list the packages that you don't want to build. Simply list them in the
@@ -76,7 +76,10 @@ exclude_packages:
   - pocosim-log
 {coderay}
 
-Using packages that are already installed
+If another package, that should be built, depends on an excluded package, [an
+error is generated](error_messages.html#exclusions)
+
+Using packages that are already installed (<tt>ignore_packages</tt>) 
 -----------------------------------------
 
 If some packages are already installed elsewhere, and you want to use that
@@ -95,10 +98,10 @@ ignore_packages:
   - orocos/rtt
 {coderay}
 
-This differs from the <tt>exclude_packages</tt> mechanism: packages listed in
-<tt>ignore_packages</tt> are assumed to be present even though autoproj does not manage
-them, while packages in <tt>exclude_packages</tt> are assumed to be absent and therefore
-issue an error if another package in the installation depend on them.
+Unlike with <tt>exclude_packages</tt>, no error is generated for ignored
+packages that are depended-upon by other packages in the build. This is because
+ignore_packages is meant to list packages that are already installed outside of
+autoproj, while exclude_packages lists what you do **not** want to have at all.
 
 Local overrides of version control information
 ----------------------------------------------

@@ -112,6 +112,44 @@ The 'pkg' variable in the example above is an instance of
 [Autobuild::Orogen](http://doudou.github.com/autobuild/Autobuild/Orogen.html)
 {: .block}
 
+OS-specific bits (<tt>not_on</tt> and <tt>only_on</tt>) {#not_on_and_only_on}
+----------------
+It is possible to have some parts of the autobuild file be OS-specific. Two
+calls are made available for that.
+
+First, if you know that some packages should not be built on some operating
+systems, you should enclose their declaration in a 'not_on' statement. For
+instance:
+
+{coderay:: ruby}
+not_on 'debian' do
+  cmake_package 'excluded_package'
+end
+{coderay}
+
+It is additionally possible to select specific versions
+
+{coderay:: ruby}
+not_on 'debian', ['ubuntu', '10.04'] do
+  cmake_package 'excluded_package'
+end
+{coderay}
+
+If, on the other hand, you want some bits to be available only **on** a specific
+OS, use the only_on statement:
+
+{coderay:: ruby}
+only_on ['ubuntu', '10.04'] do
+  cmake_package 'only_ubuntu'
+end
+{coderay}
+
+If the user tries to build a package that is excluded on his architecture, he
+will get the following error message:
+
+modules/dynamixel depends on drivers/dynamixel, which is excluded from the build: drivers/dynamixel is disabled on this operating system
+{: .cmdline}
+
 Custom package building
 -----------------------
 
