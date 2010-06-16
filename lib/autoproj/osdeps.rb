@@ -211,7 +211,7 @@ module Autoproj
 
 
         def generate_os_script(dependencies)
-            os_name, os_version = operating_system
+            os_name, os_version = OSDependencies.operating_system
             os_packages, shell_snippets = resolve_os_dependencies(dependencies)
 
             "#! /bin/bash\n" +
