@@ -109,9 +109,7 @@ module Autoproj
                             version = $1
                         ['gentoo', [version]]
                     elsif File.exists?('/etc/arch-release')
-                        codename = "Unknown"
-                        puts "Found Arch"
-                        ['arch', [codename]]
+                        ['arch', []]
                     else
                         raise ConfigError, "Unknown operating system"
                     end
