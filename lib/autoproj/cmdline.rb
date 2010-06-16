@@ -440,6 +440,15 @@ where 'mode' is one of:
                 opts.on("--[no-]update", "[do not] update already checked-out packages (build modes only)") do |value|
                     do_update = value
                 end
+                opts.on("--os", "displays the operating system as detected by autoproj") do
+                    os = OSDependencies.operating_system
+                    puts "name: #{os[0]}"
+                    puts "version:"
+                    os[1].each do |version_name|
+                        puts "  #{version_name}"
+                    end
+                    exit 0
+                end
 
                 opts.on("--[no-]osdeps", "[do not] install prepackaged dependencies (build and update modes only)") do |value|
                     update_os_dependencies = value
