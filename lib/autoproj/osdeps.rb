@@ -98,8 +98,11 @@ module Autoproj
                 # Need to do some heuristics unfortunately
                 @operating_system =
                     if File.exists?('/etc/debian_version')
-                        codename = File.read('/etc/debian_version').strip
-                        ['debian', [codename]]
+                        codename = [File.read('/etc/debian_version').strip]
+                        if codename.first =~ /sid/
+                            codename << "unstable" << "sid"
+                        end
+                        ['debian', codename]
                     elsif File.exists?('/etc/gentoo-release')
                         release_string = File.read('/etc/gentoo-release').strip
                         release_string =~ /^.*([^\s]+)$/

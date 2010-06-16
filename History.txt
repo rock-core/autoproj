@@ -1,3 +1,7 @@
+= Version 1.5.5
+ * Debian unstable is now recognized by 'sid' and/or 'unstable'. It previously
+   had to be called 'squeeze/sid' (for the current unstable)
+
 = Version 1.5.4
  * better error message when a dependency does not exist
 
