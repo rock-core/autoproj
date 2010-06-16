@@ -83,7 +83,7 @@ module Autoproj
         # one.
         #
         # Examples: ['debian', ['sid', 'unstable']] or ['ubuntu', ['lucid lynx', '10.04']]
-        def operating_system
+        def self.operating_system
             if @operating_system
                 return @operating_system
             elsif data = os_from_lsb
@@ -121,7 +121,7 @@ module Autoproj
                  @operating_system[1].map(&:downcase)]
         end
 
-        def os_from_lsb
+        def self.os_from_lsb
             has_lsb_release = `which lsb_release`
             return unless $?.success?
 
@@ -153,7 +153,7 @@ module Autoproj
         #
         # Raises ConfigError if some packages can't be found
         def resolve_os_dependencies(dependencies)
-            os_name, os_version = operating_system
+            os_name, os_version = OSDependencies.operating_system
             if !OS_PACKAGE_INSTALL.has_key?(os_name)
                 raise ConfigError, "I don't know how to install packages on #{os_name}"
             end

@@ -319,6 +319,21 @@ end
 # An error will occur if the user tries to build it on one of those
 # architectures
 def not_on(*architectures)
+    architectures = architectures.map do |name|
+        if name.respond_to?(:to_str)
+            [name]
+        else name
+        end
+    end
+
+    os = OSDependencies.operating_system
+    matching_archs = architectures.find_all { |arch| arch[0] == os[0] }
+    if matching_archs.empty?
+        return yield
+    elsif matching_archs.all? { |arch| arch[1] && !os[1].include?(arch[1].downcase) }
+        return yield
+    end
+
     # Simply get the current list of packages, yield the block, and exclude all
     # packages that have been added
     current_packages = Autobuild::Package.each(true).map(&:last).map(&:name).to_set

@@ -1,4 +1,27 @@
 = Version 1.5.5
+ * allow to exclude some packages on some architectures
+
+   Autobuild files can now contain 
+     not_on 'os_name1', 'os_name2' do
+       ...
+     end
+   statements that will exclude any package defined in
+   the do ... end block if the OS is listed in the OS
+   names
+
+   os_name is either a plain string, in which case it has to be the main
+   operating system name (e.g. 'unbuntu', 'debian', ...) or a [name, version]
+   array.
+
+   For instance:
+
+     not_on 'ubuntu', ['debian', 'squeeze'] do
+       cmake_package 'not_on_ubuntu_and_debian_testing'
+     end
+
+   If the user tries to build one of the disabled packages, he will get a proper
+   error message.
+
  * Debian unstable is now recognized by 'sid' and/or 'unstable'. It previously
    had to be called 'squeeze/sid' (for the current unstable)
 
