@@ -477,7 +477,7 @@ module Autoproj
         #
         # The definition is an instance of VCSDefinition
         def importer_definition_for(package_name)
-            vcs_spec = version_control_field(package_name, 'version_control_field')
+            vcs_spec = version_control_field(package_name, 'version_control')
             if vcs_spec
                 Autoproj.normalize_vcs_definition(vcs_spec)
             end
