@@ -922,8 +922,9 @@ module Autoproj
             FileUtils.rm_rf remotes_symlinks_dir
             FileUtils.mkdir remotes_symlinks_dir
             # Create symbolic links from .remotes/weird_url to
-            # autoproj/remotes/name
+            # autoproj/remotes/name. Explicitely load the source name first
             each_remote_source(false) do |source|
+                source.load_name
                 FileUtils.ln_sf source.raw_local_dir, File.join(remotes_symlinks_dir, source.name)
             end
         end
