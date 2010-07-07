@@ -37,6 +37,12 @@ module Autoproj
                 Autoproj.env_add 'PATH', bindir
             end
 
+            # We load the local init.rb first so that the manifest loading
+            # process can use options defined there for the autoproj version
+            # control information (for instance)
+            local_source = LocalSource.new
+            Autoproj.load_if_present(local_source, local_source.local_dir, "init.rb")
+
             manifest_path = File.join(Autoproj.config_dir, 'manifest')
             Autoproj.manifest = Manifest.load(manifest_path)
 

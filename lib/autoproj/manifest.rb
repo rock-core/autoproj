@@ -166,11 +166,57 @@ module Autoproj
         if !data.respond_to?(:to_str)
             return data
         end
+        definitions = { 'HOME' => ENV['HOME'] }.merge(definitions)
 
-        definitions.each do |name, expanded|
-            data = data.gsub /\$#{Regexp.quote(name)}\b/, expanded
+        data = data.gsub /\$(\w+)/ do |constant_name|
+            constant_name = constant_name[1..-1]
+            if !(value = definitions[constant_name])
+                if !(value = Autoproj.user_config(constant_name))
+                    if !block_given? || !(value = yield(constant_name))
+                        raise ArgumentError, "cannot find a definition for $#{constant_name}"
+                    end
+                end
+            end
+            value
         end
         data
+    end
+
+    def self.expand(value, definitions = Hash.new)
+        if value.respond_to?(:to_hash)
+            value.dup.each do |name, definition|
+                value[name] = expand(definition, definitions)
+            end
+            value
+        else
+            value = single_expansion(value, definitions)
+            if contains_expansion?(value)
+                raise ConfigError, "some expansions are not defined in #{value.inspect}"
+            end
+            value
+        end
+    end
+
+    # True if the given string contains expansions
+    def self.contains_expansion?(string); string =~ /\$/ end
+
+    def self.resolve_one_constant(name, value, result, definitions)
+        result[name] = single_expansion(value, result) do |missing_name|
+            result[missing_name] = resolve_one_constant(missing_name, definitions.delete(missing_name), definitions)
+        end
+    end
+
+    def self.resolve_constant_definitions(constants)
+        constants = constants.dup
+        constants['HOME'] = ENV['HOME']
+        
+        result = Hash.new
+        while !constants.empty?
+            name  = constants.keys.first
+            value = constants.delete(name)
+            resolve_one_constant(name, value, result, constants)
+        end
+        result
     end
 
     # A source is a version control repository which contains general source
@@ -314,43 +360,21 @@ module Autoproj
             @source_definition = raw_description_file
             load_name
 
+            
             # Compute the definition of constants
             begin
                 constants = source_definition['constants'] || Hash.new
-                constants['HOME'] = ENV['HOME']
-
-                redo_expansion = true
-                @constants_definitions = constants 
-                while redo_expansion
-                    redo_expansion = false
-                    constants.dup.each do |name, url|
-                        # Extract all expansions in the url
-                        if url =~ /\$(\w+)/
-                            expansion_name = $1
-
-                            if constants[expansion_name]
-                                constants[name] = single_expansion(url)
-                            else
-                                begin constants[name] = single_expansion(url,
-                                                 expansion_name => Autoproj.user_config(expansion_name))
-                                rescue ConfigError => e
-                                    raise ConfigError, "constant '#{expansion_name}', used in the definition of '#{name}' is defined nowhere"
-                                end
-                            end
-                            redo_expansion = true
-                        end
-                    end
-                end
+                @constants_definitions = Autoproj.resolve_constant_definitions(constants)
 
             rescue ConfigError => e
                 raise ConfigError, "#{File.join(local_dir, "source.yml")}: #{e.message}", e.backtrace
             end
         end
 
-        # True if the given string contains expansions
-        def contains_expansion?(string); string =~ /\$/ end
-
         def single_expansion(data, additional_expansions = Hash.new)
+            if !source_definition
+                load_description_file
+            end
             Autoproj.single_expansion(data, additional_expansions.merge(constants_definitions))
         end
 
@@ -361,19 +385,7 @@ module Autoproj
             if !source_definition
                 load_description_file
             end
-
-            if data.respond_to?(:to_hash)
-                data.dup.each do |name, value|
-                    data[name] = expand(value, additional_expansions)
-                end
-            else
-                data = single_expansion(data, additional_expansions)
-                if contains_expansion?(data)
-                    raise ConfigError, "some expansions are not defined in #{data.inspect}"
-                end
-            end
-
-            data
+            Autoproj.expand(data, additional_expansions.merge(constants_definitions))
         end
 
         # Returns the default importer definition for this package set, as a
@@ -610,15 +622,23 @@ module Autoproj
             !!data['auto_update']
         end
 
+        attr_reader :constant_definitions
+
 	def initialize(file, data)
             @file = file
 	    @data = data
             @packages = Hash.new
             @package_manifests = Hash.new
             @automatic_exclusions = Hash.new
+            @constants_definitions = Hash.new
 
             if Autoproj.has_config_key?('manifest_source')
                 @vcs = Autoproj.normalize_vcs_definition(Autoproj.user_config('manifest_source'))
+            end
+            if data['constants']
+                @constant_definitions = Autoproj.resolve_constant_definitions(data['constants'])
+            else
+                @constant_definitions = Hash.new
             end
 	end
 
@@ -741,6 +761,7 @@ module Autoproj
             # either vcs_type:url or just url. In the latter case, we expect
             # 'url' to be a path to a local directory
             vcs_def = begin
+                          spec = Autoproj.expand(spec, constant_definitions)
                           Autoproj.normalize_vcs_definition(spec)
                       rescue ConfigError => e
                           raise ConfigError, "in #{file}: #{e.message}"
