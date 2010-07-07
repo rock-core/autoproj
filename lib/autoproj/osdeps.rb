@@ -326,6 +326,7 @@ module Autoproj
             end
 
             if !gems.empty?
+                Autobuild.progress "looking for RubyGems updates"
                 # Don't install gems that are already there ...
                 gems.delete_if do |name|
                     version_requirements = Gem::Requirement.default
