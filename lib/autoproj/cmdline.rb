@@ -610,6 +610,12 @@ where 'mode' is one of:
             packages.each do |pkg|
                 lines = []
 
+                pkg_name =
+                    if pkg.respond_to?(:text_name)
+                        pkg.text_name
+                    else pkg.autoproj_name
+                    end
+
                 if !pkg.importer.respond_to?(:status)
                     lines << color("  the #{pkg.importer.class.name.gsub(/.*::/, '')} importer does not support status display", :bold, :red)
                 elsif !File.directory?(pkg.srcdir)
@@ -624,9 +630,9 @@ where 'mode' is one of:
                     when Autobuild::Importer::Status::UP_TO_DATE
                         if !status.uncommitted_code
                             if last_was_in_sync
-                                STDERR.print ", #{pkg.autoproj_name}"
+                                STDERR.print ", #{pkg_name}"
                             else
-                                STDERR.print pkg.autoproj_name
+                                STDERR.print pkg_name
                             end
                             last_was_in_sync = true
                             next
@@ -661,11 +667,7 @@ where 'mode' is one of:
                 end
 
                 last_was_in_sync = false
-                if pkg.respond_to?(:text_name)
-                    STDERR.print "#{pkg.text_name}:"
-                else
-                    STDERR.print "#{pkg.autoproj_name}:"
-                end
+                STDERR.print "#{pkg_name}:"
 
                 if lines.size == 1
                     STDERR.puts lines.first
