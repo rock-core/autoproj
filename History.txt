@@ -1,3 +1,14 @@
+= Version 1.5.7
+ * allow using options and constants in the manifest as well
+   This is so that we can use variables in the VCS definition for package sets.
+ * display a status message before we access the RubyGems server. Ruby may block
+   there in some cases, and it therefore gives a clue at what is actually
+   failing.
+ * fix autoproj status with remote sources: display the source name instead of
+   the URL
+ * fix symlink in autoproj/remotes after a checkout. The URL was used instead of
+   the source name. Further updates were fixing it.
+
 = Version 1.5.6
  * quickfix stupid bug in 1.5.5
 
