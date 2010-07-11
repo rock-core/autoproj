@@ -36,7 +36,7 @@ module Autoproj
             validate(answer)
 
         rescue InputError => e
-            STDERR.puts Autoproj.console.color("invalid value: #{e.message}", :red)
+            Autoproj.progress("invalid value: #{e.message}", :red)
             retry
         end
 
@@ -90,7 +90,7 @@ module Autoproj
             value = configure(key)
         else
             if !seen
-                STDERR.puts "  #{@declared_options[key].doc}: #{value}"
+                Autoproj.progress "  #{@declared_options[key].doc}: #{value}"
                 @user_config[key] = [value, true]
             end
             value

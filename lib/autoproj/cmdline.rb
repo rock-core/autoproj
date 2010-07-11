@@ -1,4 +1,25 @@
+require 'highline'
+require 'utilrb/module/attr_predicate'
 module Autoproj
+    class << self
+        attr_accessor :verbose
+        attr_reader :console
+        attr_predicate :silent?, true
+    end
+    @silent  = false
+    @verbose = false
+    @console = HighLine.new
+
+    def self.progress(*args)
+        if !silent?
+            if args.empty?
+                puts
+            else
+                STDERR.puts console.color(*args)
+            end
+        end
+    end
+
     module CmdLine
         def self.initialize
             Autobuild::Reporting << Autoproj::Reporter.new
@@ -85,9 +106,9 @@ module Autoproj
             end
 
             # Load the required autobuild definitions
-            STDERR.puts color("autoproj: loading ...", :bold)
             if !Autoproj.reconfigure?
-                STDERR.puts color("run 'autoproj --reconfigure' to change configuration values", :bold)
+                Autoproj.progress("autoproj: loading ...", :bold)
+                    Autoproj.progress("run 'autoproj --reconfigure' to change configuration values", :bold)
             end
             manifest.each_autobuild_file do |source, name|
                 Autoproj.import_autobuild_file source, name
@@ -131,7 +152,7 @@ module Autoproj
 
             # Update the remote sources if there are any
             if manifest.has_remote_sources?
-                STDERR.puts color("autoproj: updating remote definitions of package sets", :bold)
+                Autoproj.progress("autoproj: updating remote definitions of package sets", :bold)
                 # If we need to install some packages to import our remote sources, do it
                 if update_os_dependencies?
                     osdeps = OSDependencies.load_default
@@ -139,7 +160,7 @@ module Autoproj
                 end
 
                 manifest.update_remote_sources
-                STDERR.puts
+                Autoproj.progress
             end
         end
 
@@ -186,17 +207,17 @@ module Autoproj
             sources = manifest.each_source(false).to_a
 
             if sources.empty?
-                STDERR.puts color("autoproj: no package sets defined in autoproj/manifest", :bold, :red)
+                Autoproj.progress("autoproj: no package sets defined in autoproj/manifest", :bold, :red)
             else
-                STDERR.puts color("autoproj: available package sets", :bold)
+                Autoproj.progress("autoproj: available package sets", :bold)
                 manifest.each_source(false) do |source|
                     source_yml = source.raw_description_file
-                    STDERR.puts "  #{source_yml['name']}"
+                    Autoproj.progress "  #{source_yml['name']}"
                     if source.local?
-                        puts "    local source in #{source.local_dir}"
+                        Autoproj.progress "    local source in #{source.local_dir}"
                     else
-                        puts "    from:  #{source.vcs}"
-                        puts "    local: #{source.local_dir}"
+                        Autoproj.progress "    from:  #{source.vcs}"
+                        Autoproj.progress "    local: #{source.local_dir}"
                     end
 
                     lines = []
@@ -236,18 +257,18 @@ module Autoproj
                 return manifest.default_packages
             end
             if selected_packages.empty? # no packages, terminate
-                STDERR.puts
-                STDERR.puts color("autoproj: no packages defined", :red)
+                Autoproj.progress
+                Autoproj.progress("autoproj: no packages defined", :red)
                 exit 0
             end
             selected_packages = selected_packages.to_set
 
             selected_packages = manifest.expand_package_selection(selected_packages)
             if selected_packages.empty?
-                STDERR.puts color("autoproj: wrong package selection on command line", :red)
+                Autoproj.progress("autoproj: wrong package selection on command line", :red)
                 exit 1
             elsif Autoproj.verbose
-                STDERR.puts "will install #{selected_packages.to_a.join(", ")}"
+                Autoproj.progress "will install #{selected_packages.to_a.join(", ")}"
             end
             selected_packages
         end
@@ -324,7 +345,7 @@ module Autoproj
             end
 
             if Autoproj.verbose
-                STDERR.puts "autoproj: finished importing packages"
+                Autoproj.progress "autoproj: finished importing packages"
             end
 
             return all_enabled_packages
@@ -332,9 +353,9 @@ module Autoproj
 
         def self.build_packages(selected_packages, all_enabled_packages)
             if Autoproj::CmdLine.doc?
-                STDERR.puts color("autoproj: building and installing documentation", :bold)
+                Autoproj.progress("autoproj: building and installing documentation", :bold)
             else
-                STDERR.puts color("autoproj: building and installing packages", :bold)
+                Autoproj.progress("autoproj: building and installing packages", :bold)
             end
 
             if Autoproj::CmdLine.update_os_dependencies?
@@ -663,21 +684,21 @@ where 'mode' is one of:
                 end
 
                 if last_was_in_sync
-                    STDERR.puts color(": local and remote are in sync", :green)
+                    Autoproj.progress(": local and remote are in sync", :green)
                 end
 
                 last_was_in_sync = false
                 STDERR.print "#{pkg_name}:"
 
                 if lines.size == 1
-                    STDERR.puts lines.first
+                    Autoproj.progress lines.first
                 else
-                    STDERR.puts
-                    STDERR.puts lines.join("\n")
+                    Autoproj.progress
+                    Autoproj.progress lines.join("\n")
                 end
             end
             if last_was_in_sync
-                STDERR.puts color(": local and remote are in sync", :green)
+                Autoproj.progress(": local and remote are in sync", :green)
             end
         end
 
@@ -690,13 +711,13 @@ where 'mode' is one of:
                 end
 
             if !sources.empty?
-                STDERR.puts color("autoproj: displaying status of configuration", :bold)
+                Autoproj.progress("autoproj: displaying status of configuration", :bold)
                 display_status(sources)
                 STDERR.puts
             end
 
 
-            STDERR.puts color("autoproj: displaying status of packages", :bold)
+            Autoproj.progress("autoproj: displaying status of packages", :bold)
             packages = packages.sort.map do |pkg_name|
                 Autobuild::Package[pkg_name]
             end
@@ -796,7 +817,7 @@ manifest_source:
             # assume that we are bootstrapping from another installation directory and
             # start by copying the .gems directory
             if ENV['GEM_HOME'] && ENV['GEM_HOME'] =~ /\.gems\/?$/ && ENV['GEM_HOME'] != File.join(Dir.pwd, ".gems")
-                STDERR.puts "autoproj: reusing bootstrap from #{File.dirname(ENV['GEM_HOME'])}"
+                Autoproj.progress "autoproj: reusing bootstrap from #{File.dirname(ENV['GEM_HOME'])}"
                 FileUtils.cp_r ENV['GEM_HOME'], ".gems"
                 ENV['GEM_HOME'] = File.join(Dir.pwd, ".gems")
 
@@ -814,7 +835,7 @@ manifest_source:
 
             if args.size == 1 # the user asks us to download a manifest
                 manifest_url = args.first
-                STDERR.puts color("autoproj: downloading manifest file #{manifest_url}", :bold)
+                Autoproj.progress("autoproj: downloading manifest file #{manifest_url}", :bold)
                 manifest_data =
                     begin open(manifest_url) { |file| file.read }
                     rescue
@@ -840,7 +861,7 @@ manifest_source:
                 EOSHELL
             end
 
-            STDERR.puts <<EOTEXT
+            Autoproj.progress <<EOTEXT
 
 add the following line at the bottom of your .bashrc:
   source #{Dir.pwd}/env.sh
@@ -889,8 +910,8 @@ EOTEXT
                 end
 
                 if !result.empty?
-                    STDERR.puts pkg.name
-                    STDERR.puts "  #{result.join("\n  ")}"
+                    Autoproj.progress pkg.name
+                    Autoproj.progress "  #{result.join("\n  ")}"
                 end
             end
         end
@@ -928,9 +949,9 @@ EOTEXT
                         io.write xml.to_xml
                     end
                     if !manifest
-                        STDERR.puts "created #{path}"
+                        Autoproj.progress "created #{path}"
                     else
-                        STDERR.puts "modified #{path}"
+                        Autoproj.progress "modified #{path}"
                     end
                 end
             end
@@ -949,10 +970,10 @@ EOTEXT
                 package  = Autobuild::Package[package_name]
                 importer = package.importer
                 if !importer
-                    STDERR.puts "cannot snapshot #{package_name} as it has no importer"
+                    Autoproj.progress "cannot snapshot #{package_name} as it has no importer"
                     next
                 elsif !importer.respond_to?(:snapshot)
-                    STDERR.puts "cannot snapshot #{package_name} as the #{importer.class} importer does not support it"
+                    Autoproj.progress "cannot snapshot #{package_name} as the #{importer.class} importer does not support it"
                     next
                 end
 

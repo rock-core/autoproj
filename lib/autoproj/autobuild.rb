@@ -46,20 +46,22 @@ module Autoproj
     class Reporter < Autobuild::Reporter
         def error(error)
             error_lines = error.to_s.split("\n")
-            STDERR.puts color("Build failed: #{error_lines.shift}", :bold, :red)
-            STDERR.puts error_lines.join("\n")
+            Autoproj.progress("Build failed: #{error_lines.shift}", :bold, :red)
+            error_lines.each do |line|
+                Autoproj.progress line
+            end
         end
         def success
-            STDERR.puts color("Build finished successfully at #{Time.now}", :bold, :green)
+            Autoproj.progress("Build finished successfully at #{Time.now}", :bold, :green)
             if Autobuild.post_success_message
-                puts Autobuild.post_success_message
+                Autoproj.progress Autobuild.post_success_message
             end
         end
     end
 
     # Displays a warning message
     def self.warn(message)
-        STDERR.puts Autoproj.console.color("  WARN: #{message}", :magenta)
+        Autoproj.progress("  WARN: #{message}", :magenta)
     end
 
     @file_stack       = Array.new

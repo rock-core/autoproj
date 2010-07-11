@@ -36,7 +36,7 @@ module Autoproj
             else
                 file = ENV['AUTOPROJ_DEFAULT_OSDEPS'] || AUTOPROJ_OSDEPS
                 if !File.file?(file)
-                    STDERR.puts "WARN: #{file} (from AUTOPROJ_DEFAULT_OSDEPS) is not a file, falling back to #{AUTOPROJ_OSDEPS}"
+                    Autoproj.progress "WARN: #{file} (from AUTOPROJ_DEFAULT_OSDEPS) is not a file, falling back to #{AUTOPROJ_OSDEPS}"
                     file = AUTOPROJ_OSDEPS
                 end
                 @default_osdeps = OSDependencies.load(file)
@@ -309,8 +309,8 @@ module Autoproj
             if !osdeps.empty?
                 shell_script = generate_os_script(osdeps)
                 if Autoproj.verbose
-                    STDERR.puts "Installing non-ruby OS dependencies with"
-                    STDERR.puts shell_script
+                    Autoproj.progress "Installing non-ruby OS dependencies with"
+                    Autoproj.progress shell_script
                 end
 
                 File.open('osdeps.sh', 'w') do |file|
@@ -350,8 +350,8 @@ module Autoproj
                 guess_gem_program
 
                 if Autoproj.verbose
-                    STDERR.puts "Installing rubygems dependencies with"
-                    STDERR.puts "gem install #{gems.join(" ")}"
+                    Autoproj.progress "Installing rubygems dependencies with"
+                    Autoproj.progress "gem install #{gems.join(" ")}"
                 end
                 Autobuild.progress "installing/updating RubyGems dependencies: #{gems.join(", ")}"
                 Autobuild::Subprocess.run 'autoproj', 'osdeps', Autobuild.tool('gem'), 'install', *gems

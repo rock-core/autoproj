@@ -10,20 +10,9 @@ require 'autoproj/autobuild'
 require 'open-uri'
 require 'autoproj/cmdline'
 
-require 'highline'
 include Autoproj
 
 InputError = Autoproj::InputError
-module Autoproj
-    @verbose = false
-    @console = HighLine.new
-
-    class << self
-        attr_accessor :verbose
-        attr_reader :console
-    end
-end
-
 selected_packages = Autoproj::CmdLine.parse_arguments(ARGV.dup)
 
 def color(*args)

@@ -1,9 +1,6 @@
-module Autoproj
-    class ConfigError < RuntimeError; end
-    class InternalError < RuntimeError; end
-end
-
 require "enumerator"
+require 'autobuild'
+require 'autoproj/base'
 require 'autoproj/version'
 require 'autoproj/manifest'
 require 'autoproj/osdeps'
