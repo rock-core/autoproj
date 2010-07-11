@@ -24,7 +24,8 @@ module Autoproj
 
         def ask(current_value)
             default_value = if current_value then current_value.to_s
-                            else options[:default].to_str
+                            elsif options[:default] then options[:default].to_str
+                            else ''
                             end
 
             STDERR.print "  #{doc} [#{default_value}] "
