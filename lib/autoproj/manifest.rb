@@ -202,7 +202,7 @@ module Autoproj
 
     def self.resolve_one_constant(name, value, result, definitions)
         result[name] = single_expansion(value, result) do |missing_name|
-            result[missing_name] = resolve_one_constant(missing_name, definitions.delete(missing_name), definitions)
+            result[missing_name] = resolve_one_constant(missing_name, definitions.delete(missing_name), result, definitions)
         end
     end
 
