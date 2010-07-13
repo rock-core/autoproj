@@ -28,6 +28,11 @@ def report(debug)
 rescue ConfigError => e
     STDERR.puts
     STDERR.puts color(e.message, :red, :bold)
+    root_dir = /^#{Regexp.quote(Autoproj.root_dir)}/
+    e.backtrace.find_all { |path| path =~ root_dir }.
+        each do |path|
+            STDERR.puts color("  in #{path}", :red, :bold)
+        end
     if debug then raise
     else exit 1
     end

@@ -874,7 +874,7 @@ module Autoproj
             importer     = vcs.create_autobuild_importer
             return if !importer # updates have been disabled by using the 'none' type
 
-            fake_package = FakePackage.new(text_name, pkg_name, into)
+            fake_package = FakePackage.new(text_name, text_name, into)
             fake_package.importer = importer
             fake_package
 
