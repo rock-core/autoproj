@@ -2,14 +2,15 @@ require 'tempfile'
 module Autoproj
     class OSDependencies
         def self.load(file)
+            file = File.expand_path(file)
             begin
-                data = YAML.load(File.read(file))
+                data = YAML.load(File.read(file)) || Hash.new
                 verify_definitions(data)
             rescue ArgumentError => e
                 raise ConfigError, "error in #{file}: #{e.message}"
             end
 
-            OSDependencies.new(data)
+            OSDependencies.new(data, file)
         end
 
         class << self
@@ -39,17 +40,50 @@ module Autoproj
             OSDependencies.load(file)
         end
 
+        # The information contained in the OSdeps files, as a hash
         attr_reader :definitions
+        # The information as to from which osdeps file the current package
+        # information in +definitions+ originates. It is a mapping from the
+        # package name to the osdeps file' full path
+        attr_reader :sources
+
+        # The Gem::SpecFetcher object that should be used to query RubyGems, and
+        # install RubyGems packages
         def gem_fetcher
             @gem_fetcher ||= Gem::SpecFetcher.fetcher
         end
 
-        def initialize(defs = Hash.new)
+        def initialize(defs = Hash.new, file = nil)
             @definitions = defs.to_hash
+            @sources     = Hash.new
+            if file
+                defs.each_key do |package_name|
+                    sources[package_name] = file
+                end
+            end
         end
 
+        # Returns the full path to the osdeps file from which the package
+        # definition for +package_name+ has been taken
+        def source_of(package_name)
+            sources[package_name]
+        end
+
+        # Merges the osdeps information of +info+ into +self+. If packages are
+        # defined in both OSDependencies objects, the information in +info+
+        # takes precedence
         def merge(info)
-            @definitions = definitions.merge(info.definitions)
+            root_dir = nil
+            @definitions = definitions.merge(info.definitions) do |h, v1, v2|
+                if v1 != v2
+                    root_dir ||= "#{Autoproj.root_dir}/"
+                    old = source_of(h).gsub(root_dir, '')
+                    new = info.source_of(h).gsub(root_dir, '')
+                    Autoproj.warn("osdeps definition for #{h}, previously defined in #{old} overriden by #{new}")
+                end
+                v2
+            end
+            @sources = sources.merge(info.sources)
         end
 
         # Perform some sanity checks on the given osdeps definitions
