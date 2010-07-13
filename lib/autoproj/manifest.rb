@@ -874,7 +874,7 @@ module Autoproj
             importer     = vcs.create_autobuild_importer
             return if !importer # updates have been disabled by using the 'none' type
 
-            fake_package = FakePackage.new(text_name, text_name, into)
+            fake_package = FakePackage.new(text_name, pkg_name, into)
             fake_package.importer = importer
             fake_package
 
@@ -905,7 +905,10 @@ module Autoproj
             # file (we're not ready for that yet)
             sources = []
             each_remote_source(false) do |source|
-                Manifest.update_source(source.vcs, source.name || source.vcs.url, source.automatic_name, source.raw_local_dir)
+                name = if source.present? then source.name
+                       else source.vcs.url
+                       end
+                Manifest.update_source(source.vcs, name, source.automatic_name, source.raw_local_dir)
                 sources << source
             end
 
