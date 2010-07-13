@@ -401,7 +401,7 @@ module Autoproj
         def self.display_configuration?; !!@display_configuration end
         def self.force_re_build_with_depends?; !!@force_re_build_with_depends end
         def self.partial_build?; !!@partial_build end
-        def self.mail_config; @mail_config end
+        def self.mail_config; @mail_config || Hash.new end
         def self.update_packages?; @mode == "update" || @mode == "envsh" || build? end
         def self.build?; @mode =~ /build/ end
         def self.doc?; @mode == "doc" end
