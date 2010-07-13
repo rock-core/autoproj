@@ -922,13 +922,35 @@ module Autoproj
             end
 
             remotes_symlinks_dir = File.join(Autoproj.config_dir, 'remotes')
-            FileUtils.rm_rf remotes_symlinks_dir
-            FileUtils.mkdir remotes_symlinks_dir
+            FileUtils.mkdir_p remotes_symlinks_dir
+            known_remotes = []
+
             # Create symbolic links from .remotes/weird_url to
             # autoproj/remotes/name. Explicitely load the source name first
             each_remote_source(false) do |source|
                 source.load_name
-                FileUtils.ln_sf source.raw_local_dir, File.join(remotes_symlinks_dir, source.name)
+                symlink_dest = File.join(remotes_symlinks_dir, source.name)
+
+                # Check if the current symlink is valid, and recreate it if it
+                # is not
+                if File.symlink?(symlink_dest)
+                    dest = File.readlink(symlink_dest)
+                    if dest != source.raw_local_dir
+                        FileUtils.rm_f symlink_dest
+                    end
+                else
+                    FileUtils.rm_f symlink_dest
+                    FileUtils.ln_sf source.raw_local_dir, symlink_dest
+                end
+
+                known_remotes << symlink_dest
+            end
+
+            # Now remove obsolete symlinks
+            Dir.glob(File.join(remotes_symlinks_dir, '*')).each do |file|
+                if File.symlink?(file) && !known_remotes.include?(file)
+                    FileUtils.rm_f file
+                end
             end
         end
 
