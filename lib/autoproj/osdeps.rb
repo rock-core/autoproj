@@ -52,8 +52,8 @@ module Autoproj
             @definitions = definitions.merge(info.definitions)
         end
 
-        def self.verify_definitions(hash = nil)
-            hash ||= definitions
+        # Perform some sanity checks on the given osdeps definitions
+        def self.verify_definitions(hash)
             hash.each do |key, value|
                 if !key.kind_of?(String)
                     raise ArgumentError, "invalid osdeps definition: found an #{key.class}. Don't forget to put quotes around numbers"
