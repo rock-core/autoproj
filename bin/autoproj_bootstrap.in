@@ -28,6 +28,14 @@ module Autoproj
     class << self
         attr_reader :verbose
     end
+
+    # Fake option management for the OSdeps class
+    def self.has_config_key?(*args)
+        false
+    end
+    def self.change_option(*args)
+        false
+    end
 end
 
 module Autobuild
