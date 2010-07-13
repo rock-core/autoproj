@@ -1115,6 +1115,16 @@ module Autoproj
             names.to_set
         end
 
+        # Returns the package directory for the given package name
+        def whereis(package_name)
+            each_package_set do |layout_name, packages, _|
+                if packages.include?(package_name)
+                    return layout_name
+                end
+            end
+            raise ArgumentError, "cannot find #{package_name} in the current layout"
+        end
+
         # Loads the package's manifest.xml file for the current package
         #
         # Right now, the absence of a manifest makes autoproj only issue a

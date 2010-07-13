@@ -1,3 +1,11 @@
+= Version 1.5.8
+ * small cosmetic fixes
+ * warn if an osdeps file overrides information present in other osdeps files
+ * performance improvement at initialization: we now cache the result of OS
+   autodetection in config.yml. That removes a few seconds due to calling
+   lsb_release
+ * better error reporting in some cases related to OS dependencies
+
 = Version 1.5.7
  * allow using options and constants in the manifest as well
    This is so that we can use variables in the VCS definition for package sets.
