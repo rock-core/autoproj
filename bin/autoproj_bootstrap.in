@@ -87,7 +87,7 @@ rescue Autoproj::ConfigError => e
 end
 
 # Now try to find out the name of the gem binary
-PACKAGES      = %w{rdoc libxml2 libxslt build-essential lsb_release}
+PACKAGES      = %w{rdoc libxml2 libxslt zlib build-essential lsb_release}
 USER_PACKAGES = %w{autoproj}
 
 ENV['RUBYOPT']  = "-rubygems"

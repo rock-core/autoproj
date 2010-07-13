@@ -54,6 +54,10 @@ libxslt:
     gentoo: dev-libs/libxslt
     arch: libxslt
 
+zlib:
+    debian,ubuntu: zlib1g-dev
+
+
 autobuild: gem
 autoproj: gem
 
