@@ -59,11 +59,6 @@ module Autoproj
         end
     end
 
-    # Displays a warning message
-    def self.warn(message)
-        Autoproj.progress("  WARN: #{message}", :magenta)
-    end
-
     @file_stack       = Array.new
 
     def self.package_name_from_options(spec)

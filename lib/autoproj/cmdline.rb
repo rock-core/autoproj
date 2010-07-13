@@ -20,6 +20,11 @@ module Autoproj
         end
     end
 
+    # Displays a warning message
+    def self.warn(message)
+        Autoproj.progress("  WARN: #{message}", :magenta)
+    end
+
     module CmdLine
         def self.initialize
             Autobuild::Reporting << Autoproj::Reporter.new
