@@ -23,7 +23,7 @@ module Autobuild
                         raise e
                     else
                         # Re-call osdeps to get a proper error message
-                        osdeps, gems = Autoproj.osdeps.partition_packages([name].to_set)
+                        osdeps, gems = Autoproj.osdeps.partition_packages([name].to_set, name => [self.name])
                         Autoproj.osdeps.resolve_os_dependencies(osdeps)
                     end
                 end
