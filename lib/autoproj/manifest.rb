@@ -1130,17 +1130,6 @@ module Autoproj
             selected_packages.each(&:load_package_manifest)
         end
 
-        # Returns an OSDependencies instance that defined the known OS packages,
-        # as well as how to install them
-        def known_os_packages
-            osdeps = OSDependencies.load_default
-
-            each_osdeps_file do |source, file|
-                osdeps.merge(OSDependencies.load(file))
-            end
-            osdeps
-        end
-
         def install_os_dependencies(packages)
             required_os_packages = Set.new
             package_os_deps = Hash.new { |h, k| h[k] = Array.new }
@@ -1156,7 +1145,7 @@ module Autoproj
                 end
             end
 
-            known_os_packages.install(required_os_packages, package_os_deps)
+            Autoproj.osdeps.install(required_os_packages, package_os_deps)
         end
 
         # Package selection can be done in three ways:
@@ -1226,6 +1215,13 @@ module Autoproj
 
         # The operating system package definitions
         attr_accessor :osdeps
+    end
+
+    def self.load_osdeps_from_package_sets
+        manifest.each_osdeps_file do |source, file|
+            osdeps.merge(OSDependencies.load(file))
+        end
+        osdeps
     end
 
     class PackageManifest

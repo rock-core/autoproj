@@ -31,16 +31,12 @@ module Autoproj
 
         AUTOPROJ_OSDEPS = File.join(File.expand_path(File.dirname(__FILE__)), 'default.osdeps')
         def self.load_default
-            if @default_osdeps
-                @default_osdeps
-            else
-                file = ENV['AUTOPROJ_DEFAULT_OSDEPS'] || AUTOPROJ_OSDEPS
-                if !File.file?(file)
-                    Autoproj.progress "WARN: #{file} (from AUTOPROJ_DEFAULT_OSDEPS) is not a file, falling back to #{AUTOPROJ_OSDEPS}"
-                    file = AUTOPROJ_OSDEPS
-                end
-                @default_osdeps = OSDependencies.load(file)
+            file = ENV['AUTOPROJ_DEFAULT_OSDEPS'] || AUTOPROJ_OSDEPS
+            if !File.file?(file)
+                Autoproj.progress "WARN: #{file} (from AUTOPROJ_DEFAULT_OSDEPS) is not a file, falling back to #{AUTOPROJ_OSDEPS}"
+                file = AUTOPROJ_OSDEPS
             end
+            OSDependencies.load(file)
         end
 
         attr_reader :definitions

@@ -81,14 +81,17 @@ module Autoproj
             if Autoproj::CmdLine.update_os_dependencies.nil?
                 Autoproj::CmdLine.update_os_dependencies = manifest.auto_update?
             end
+
+            # Initialize the Autoproj.osdeps object by loading the default. The
+            # rest is loaded later
+            Autoproj.osdeps = Autoproj::OSDependencies.load_default
         end
 
         def self.update_myself
             return if !Autoproj::CmdLine.update_os_dependencies?
 
             # First things first, see if we need to update ourselves
-            osdeps = Autoproj::OSDependencies.load_default
-            if osdeps.install(%w{autobuild autoproj})
+            if Autoproj.osdeps.install(%w{autobuild autoproj})
                 # We updated autobuild or autoproj themselves ... Restart !
                 require 'rbconfig'
                 ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
@@ -130,7 +133,7 @@ module Autoproj
             Autoproj.save_config
 
             # Loads OS package definitions once and for all
-            Autoproj.osdeps = manifest.known_os_packages
+            Autoproj.load_osdeps_from_package_sets
         end
 
         def self.update_configuration
@@ -155,8 +158,7 @@ module Autoproj
                 Autoproj.progress("autoproj: updating remote definitions of package sets", :bold)
                 # If we need to install some packages to import our remote sources, do it
                 if update_os_dependencies?
-                    osdeps = OSDependencies.load_default
-                    osdeps.install(source_os_dependencies)
+                    Autoproj.osdeps.install(source_os_dependencies)
                 end
 
                 manifest.update_remote_sources

@@ -116,8 +116,7 @@ report(Autobuild.debug) do
     # Install prepackaged dependencies needed to import and build the packages.
     # The required information is in the package sets configuration.
     if Autoproj::CmdLine.update_os_dependencies?
-        osdeps = manifest.known_os_packages
-        osdeps.install(Autoproj.build_system_dependencies)
+        Autoproj.osdeps.install(Autoproj.build_system_dependencies)
     end
 
     begin
