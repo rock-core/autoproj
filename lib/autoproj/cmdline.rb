@@ -104,7 +104,7 @@ module Autoproj
             end
         end
 
-        def self.load_configuration
+        def self.load_configuration(silent = false)
             manifest = Autoproj.manifest
 
             # Load init.rb files. each_source must not load the source.yml file, as
@@ -114,9 +114,11 @@ module Autoproj
             end
 
             # Load the required autobuild definitions
-            if !Autoproj.reconfigure?
+            if !silent
                 Autoproj.progress("autoproj: loading ...", :bold)
+                if !Autoproj.reconfigure?
                     Autoproj.progress("run 'autoproj --reconfigure' to change configuration values", :bold)
+                end
             end
             manifest.each_autobuild_file do |source, name|
                 Autoproj.import_autobuild_file source, name
