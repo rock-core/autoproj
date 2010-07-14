@@ -108,6 +108,12 @@ module Autoproj
     end
 end
 
+def ignore(*paths)
+    paths.each do |p|
+        Autobuild.ignore(p)
+    end
+end
+
 # Common setup for packages
 def package_common(package_type, spec, &block) # :nodoc:
     package_name = Autoproj.package_name_from_options(spec)
