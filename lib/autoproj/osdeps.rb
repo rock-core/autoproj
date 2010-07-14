@@ -176,8 +176,8 @@ module Autoproj
         EOSCRIPT
 
         OS_PACKAGE_INSTALL = {
-            'debian' => 'apt-get install -y %s',
-            'ubuntu' => 'apt-get install -y %s',
+            'debian' => 'export DEBIAN_FRONTEND=noninteractive; apt-get install -y %s',
+            'ubuntu' => 'export DEBIAN_FRONTEND=noninteractive; apt-get install -y %s',
             'gentoo' => 'emerge --noreplace %s',
             'arch' => 'pacman -Sy --noconfirm %s'
         }
