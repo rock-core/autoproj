@@ -33,6 +33,7 @@ doc/guide/src/toc.page
 doc/guide/src/writing_manifest.page
 lib/autoproj.rb
 lib/autoproj/autobuild.rb
+lib/autoproj/base.rb
 lib/autoproj/cmdline.rb
 lib/autoproj/default.osdeps
 lib/autoproj/manifest.rb
