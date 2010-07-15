@@ -127,6 +127,36 @@ overrides:
     branch: experimental
 {coderay}
 
+Tuning what files autoproj looks at to determine if a package should be updated
+-------------------------------------------------------------------------------
+When a package A depends on a package B, autoproj checks if some of the files in
+B's directory are newer than the latest build of A. If it is the case, it will
+trigger the build of B and then the one of A.
+
+Autoproj has a default list of files that it should ignore. Unfortunately, it
+may be that you are generating some files in the source directory that autoproj
+interprets as new files and trigger builds.
+
+If you have the impression that autoproj does too many rebuilds, run the build
+once with the <tt>--list-newest-files</tt> option. For instance,
+
+autoproj --list-newest-files fast-build
+{: .cmdline}
+
+If you find some files that should be ignored, add them either to the package
+sets (i.e. autoproj/remotes/blablab/init.rb) or in autoproj/init.rb with
+
+{coderay:: ruby}
+ignore /a_regular_expression/
+{coderay}
+
+where /a_regular_expression/ is a regular expression matching your files. For
+instance, to eliminate all files that have an extension in ".swp", one would do
+
+{coderay:: ruby}
+ignore /\.swp$/
+{coderay}
+
 Building local packages
 -----------------------
 

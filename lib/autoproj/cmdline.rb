@@ -356,6 +356,26 @@ module Autoproj
             if Autoproj.verbose
                 Autoproj.progress "autoproj: finished importing packages"
             end
+            if Autoproj::CmdLine.list_newest?
+                fields = []
+                Rake::Task.tasks.each do |task|
+                    if task.kind_of?(Autobuild::SourceTreeTask)
+                        task.timestamp
+                        fields << ["#{task.name}:", task.newest_file, task.newest_time.to_s]
+                    end
+                end
+
+                field_sizes = fields.inject([0, 0, 0]) do |sizes, line|
+                    3.times do |i|
+                        sizes[i] = [sizes[i], line[i].length].max
+                    end
+                    sizes
+                end
+                format = "  %-#{field_sizes[0]}s %-#{field_sizes[1]}s at %-#{field_sizes[2]}s"
+                fields.each do |line|
+                    Autoproj.progress(format % line)
+                end
+            end
 
             return all_enabled_packages
         end
@@ -397,6 +417,7 @@ module Autoproj
         class << self
             attr_accessor :update_os_dependencies
             attr_accessor :snapshot_dir
+            attr_writer :list_newest
         end
         def self.display_configuration?; !!@display_configuration end
         def self.force_re_build_with_depends?; !!@force_re_build_with_depends end
@@ -406,6 +427,7 @@ module Autoproj
         def self.build?; @mode =~ /build/ end
         def self.doc?; @mode == "doc" end
         def self.snapshot?; @mode == "snapshot" end
+        def self.list_newest?; @list_newest end
         def self.parse_arguments(args)
             @only_status = false
             @check = false
@@ -491,6 +513,9 @@ where 'mode' is one of:
                 end
                 opts.on("--with-depends", "apply rebuild and force-build to both packages selected on the command line and their dependencies") do
                     force_re_build_with_depends = true
+                end
+                opts.on("--list-newest", "for each source directory, list what is the newest file used by autoproj for dependency tracking") do
+                    Autoproj::CmdLine.list_newest = true
                 end
 
                 opts.on("--verbose", "verbose output") do
