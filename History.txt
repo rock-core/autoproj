@@ -1,4 +1,6 @@
 = Version 1.5.8
+ * add a way to add some ignore regexp to the dependency tracking. Updated user
+   guide about that.
  * small cosmetic fixes
  * warn if an osdeps file overrides information present in other osdeps files
  * performance improvement at initialization: we now cache the result of OS
