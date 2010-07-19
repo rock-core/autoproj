@@ -282,6 +282,27 @@ module Autoproj
             selected_packages
         end
 
+        def self.verify_package_availability(pkg_name)
+            if reason = Autoproj.manifest.exclusion_reason(pkg_name)
+                raise ConfigError, "#{pkg_name} is excluded from the build: #{reason}"
+            end
+            pkg = Autobuild::Package[pkg_name]
+            if !pkg
+                raise ConfigError, "#{pkg_name} does not seem to exist"
+            end
+
+            # Verify that its dependencies are there, and add
+            # them to the selected_packages set so that they get
+            # imported as well
+            pkg.dependencies.each do |dep_name|
+                begin
+                    verify_package_availability(dep_name)
+                rescue ConfigError => e
+                    raise e, "#{pkg_name} depends on #{dep_name}, but #{e.message}"
+                end
+            end
+        end
+
         def self.import_packages(selected_packages)
             selected_packages = selected_packages.dup.
                 map do |pkg_name|
@@ -309,6 +330,7 @@ module Autoproj
                 Autobuild.do_update = old_update_flag
             end
 
+            known_available_packages = Set.new
             all_enabled_packages = Set.new
 
             package_queue = selected_packages.dup
@@ -319,6 +341,12 @@ module Autoproj
                 current_packages.
                     delete_if { |pkg| all_enabled_packages.include?(pkg.name) }
                 all_enabled_packages |= current_packages.map(&:name).to_set
+
+                # Recursively check that no package in the selection depend on
+                # excluded packages
+                current_packages.each do |pkg|
+                    verify_package_availability(pkg.name)
+                end
 
                 # We import first so that all packages can export the
                 # additional targets they provide.
@@ -334,21 +362,14 @@ module Autoproj
                 end
 
                 current_packages.each do |pkg|
+                    verify_package_availability(pkg.name)
                     Rake::Task["#{pkg.name}-prepare"].invoke
 
                     # Verify that its dependencies are there, and add
                     # them to the selected_packages set so that they get
                     # imported as well
                     pkg.dependencies.each do |dep_name|
-                        if reason = Autoproj.manifest.exclusion_reason(dep_name)
-                            raise ConfigError, "#{pkg.name} depends on #{dep_name}, which is excluded from the build: #{reason}"
-                        end
-                        dep_pkg = Autobuild::Package[dep_name]
-                        if !dep_pkg
-                            raise ConfigError, "#{pkg.name} depends on #{dep_name}, but it does not seem to exist"
-                        end
-
-                        package_queue << dep_pkg
+                        package_queue << Autobuild::Package[dep_name]
                     end
                 end
             end
