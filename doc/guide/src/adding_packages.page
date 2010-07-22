@@ -1,0 +1,40 @@
+---
+title: Adding packages (for the impatient)
+sort_info: 50
+---
+
+To register a package in autoproj, you need to basically do two things
+
+ * declare it in an autobuild file
+ * add VCS information for it (i.e. "where to get it")
+
+A first step
+------------
+
+A quick thing that can be done to register a new package in your autoproj
+installation is to add it to the local package set.
+
+ * [register it](package_sets/autobuild.html) in
+   <tt>autoproj/local.autobuild</tt>
+ * [give version control information](package_sets/importers.html) for it in
+   <tt>autoproj/overrides.yml</tt>
+
+Alternatively to the last point, you can register it under the "type: none"
+importer in autoproj/overrides.yml to make autoproj not care about updating that
+package.
+
+Sharing package definitions with the rest of the world
+------------------------------------------------------
+
+To do that, you will either have to move the package definition to a separate
+package set (usually one of those that are in autoproj/remotes/), or to create
+your own package set]
+
+For the first solution, you will have to move the package definition from
+autoproj/local.autobuild to an autobuild file in the package set directory (name
+does not matter as long as it ends with .autobuild). Moreover, you will have to
+move the importer definition from autoproj/overrides.yml to the package set's
+source.yml file.
+
+For the second solution, [read on](package_sets/index.html)
+

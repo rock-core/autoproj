@@ -25,7 +25,9 @@ Adding a package
 
 Adding a package to a package set involves changing two files:
 
- * the package set's autobuild file that declares what type of package it is and
+ * one of the package set's autobuild file that declares what packages there
+   are. Any file ending with .autobuild is loaded as an autobuild file by
+   autoproj.
  * the package set's source.yml file that declares where to get it (version
    control information)
 
