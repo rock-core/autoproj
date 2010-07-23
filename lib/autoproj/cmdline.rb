@@ -934,7 +934,8 @@ manifest_source:
             # Check if we are being called from another GEM_HOME. If it is the case,
             # assume that we are bootstrapping from another installation directory and
             # start by copying the .gems directory
-            if ENV['GEM_HOME'] && ENV['GEM_HOME'] =~ /\.gems\/?$/ && ENV['GEM_HOME'] != File.join(Dir.pwd, ".gems")
+            needed_gem_home = Autoproj.gem_home
+            if ENV['GEM_HOME'] && ENV['GEM_HOME'] =~ /\.gems\/?$/ && ENV['GEM_HOME'] != needed_gem_home
                 Autoproj.progress "autoproj: reusing bootstrap from #{File.dirname(ENV['GEM_HOME'])}"
                 FileUtils.cp_r ENV['GEM_HOME'], ".gems"
                 ENV['GEM_HOME'] = File.join(Dir.pwd, ".gems")
@@ -974,7 +975,7 @@ manifest_source:
             File.open('env.sh', 'w') do |io|
                 io.write <<-EOSHELL
         export RUBYOPT=-rubygems
-        export GEM_HOME=#{Dir.pwd}/.gems
+        export GEM_HOME=#{Autoproj.gem_home}
         export PATH=$GEM_HOME/bin:$PATH
                 EOSHELL
             end

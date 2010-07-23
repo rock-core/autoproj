@@ -79,7 +79,7 @@ module Autoproj
 
     # Return the directory in which RubyGems package should be installed
     def self.gem_home
-        File.join(root_dir, ".gems")
+        ENV['AUTOPROJ_GEM_HOME'] || File.join(root_dir, ".gems")
     end
 
     # Find the given program in PATH. It raises ArgumentError if the program

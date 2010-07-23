@@ -5,7 +5,7 @@ if RUBY_VERSION < "1.8.7"
     exit 1
 end
 
-needed_gem_home = "#{Dir.pwd}/.gems"
+needed_gem_home = ENV['AUTOPROJ_GEM_HOME'] || "#{Dir.pwd}/.gems"
 if $LOADED_FEATURES.find { |str| str =~ /bygems/ }
     if ENV['GEM_HOME'] != needed_gem_home
         require 'rbconfig'
@@ -199,7 +199,7 @@ end
 File.open('env.sh', 'w') do |io|
     io.write <<-EOSHELL
 export RUBYOPT=-rubygems
-export GEM_HOME=#{Dir.pwd}/.gems
+export GEM_HOME=#{needed_gem_home}
 export PATH=$GEM_HOME/bin:$PATH
     EOSHELL
 end
