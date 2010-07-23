@@ -27,14 +27,25 @@ module Autoproj
     class ConfigError < RuntimeError; end
     class << self
         attr_reader :verbose
+        attr_reader :config
     end
+    @config = Hash.new
 
     # Fake option management for the OSdeps class
-    def self.has_config_key?(*args)
-        false
+    def self.has_config_key?(key)
+        config.has_key?(key)
     end
-    def self.change_option(*args)
-        false
+
+    def self.user_config(key)
+        config[key]
+    end
+
+    def self.change_option(name, value, ignored = true)
+        config[name] = value
+    end
+
+    def self.color(string, *args)
+        string
     end
 end
 
@@ -79,6 +90,63 @@ DEFS = <<EODEFS
 OSDEPS_DEFAULTS
 EODEFS
 
+operating_system = Autoproj::OSDependencies.operating_system
+if !operating_system
+    puts <<-EOT
+
+autoproj is usually able to handle the installation of operating system packages
+himself. However, it does not know about your operating system, and will
+therefore have to let you install the packages yourself.
+
+It can still install the RubyGems packages that are required by the built
+packages.
+
+If you answer 'no' to the following question, autoproj will assume that all the
+required dependencies are already installed. If you answer 'yes', it will make
+sure that the RubyGems are installed himself, but it will assume that you took
+care of the other packages. Finally, if you answer 'ask', it will ask you each
+time there is something to install
+    EOT
+
+    print "Should autoproj install RubyGems packages automatically (yes, no or ask) ? [yes] "
+    STDOUT.flush
+else
+    # Before doing *anything*, we have to ask the user if he wants us to install
+    # the osdeps ...
+    puts <<-EOT
+
+autoproj is able to handle the installation of operating system packages
+himself. This will require you to give him root access
+
+If you answer 'no' to the following question, autoproj will assume that all the
+required dependencies are already installed. If you answer 'yes', it will make
+sure that they are installed himself and if you answer 'ask', it will ask you
+each time there is something to install
+
+    EOT
+    print "Should autoproj install OS packages automatically (yes, no or ask) ? [yes] "
+    STDOUT.flush
+end
+
+automatic_osdeps = nil
+while automatic_osdeps.nil?
+    answer = STDIN.readline.chomp
+    if answer == ''
+        automatic_osdeps = true
+    elsif answer == "no"
+        automatic_osdeps = false
+    elsif answer == 'ask'
+        automatic_osdeps = :ask
+    elsif answer == 'yes'
+        automatic_osdeps = true
+    else
+        print "invalid answer. Please answer with 'yes', 'no' or 'ask' "
+        STDOUT.flush
+    end
+end
+Autoproj.config['automatic_osdeps'] =
+    automatic_osdeps
+
 # First thing we do is install a proper ruby environment. We make sure that we
 # aren't installing any gems for now (as we need to choose the right gem
 # binary) by setting Autobuild.programs['gem'] to nil
@@ -116,7 +184,13 @@ rescue Autoproj::ConfigError => e
 end
 
 if ARGV.first != "dev"
-    Autobuild::Subprocess.run('bootstrap', 'post', 'autoproj', 'bootstrap', *ARGV)
+    ENV['AUTOPROJ_AUTOMATIC_OSDEPS'] = automatic_osdeps.to_s
+        def self.run_with_output(name, phase, *cmd)
+        end
+    if !system('autoproj', 'bootstrap', *ARGV)
+        STDERR.puts "ERROR: failed to run autoproj bootstrap #{ARGV.join(", ")}"
+        exit 1
+    end
 end
 
 File.open('env.sh', 'w') do |io|

@@ -3,6 +3,29 @@ require 'fileutils'
 require 'autobuild'
 require 'set'
 
+def explicit_osdeps_selection(name)
+    if !Autoproj.declared_option?("osdeps_#{name}")
+	if Autoproj.has_config_key?("osdeps_#{name}")
+	    doc_string = "install #{name} from source ?"
+	else
+	    # Declare the option
+	    doc_string =<<-EOT
+The #{name} package is listed as a dependency of #{self.name}. It is listed as an operating
+system package for other operating systems than yours, and is also listed as a source package.
+Since you requested manual updates, I have to ask you:
+
+Do you want me to build #{name} from source ? If you say 'no', you will have to install it yourself.
+	    EOT
+	end
+
+	Autoproj.configuration_option(
+	    "osdeps_#{name}", "boolean",
+	    :default => "yes",
+	    :doc => doc_string)
+    end
+    !Autoproj.user_config("osdeps_#{name}")
+end
+
 module Autobuild
     class Package
         def autoproj_name # :nodoc:
@@ -11,23 +34,40 @@ module Autobuild
 
         alias __depends_on__ depends_on
         def depends_on(name)
-            explicit_selection = Autoproj.manifest.explicitly_selected_package?(name)
-            if Autoproj.osdeps.has?(name) && !explicit_selection
-                @os_packages ||= Set.new
-                @os_packages << name
-            else
-                begin
-                    __depends_on__(name)
-                rescue Exception => e
-                    if explicit_selection
-                        raise e
-                    else
-                        # Re-call osdeps to get a proper error message
-                        osdeps, gems = Autoproj.osdeps.partition_packages([name].to_set, name => [self.name])
-                        Autoproj.osdeps.resolve_os_dependencies(osdeps)
+            explicit_selection  = Autoproj.manifest.explicitly_selected_package?(name)
+	    osdeps_availability = Autoproj.osdeps.availability_of(name)
+            available_as_source = Autobuild::Package[name]
+
+	    # Prefer OS packages to source packages
+            if !explicit_selection 
+                if osdeps_availability == Autoproj::OSDependencies::AVAILABLE
+                    @os_packages ||= Set.new
+                    @os_packages << name
+                    return
+                end
+
+                if osdeps_availability == Autoproj::OSDependencies::UNKNOWN_OS
+                    # If we can't handle that OS, but other OSes have a
+                    # definition for it, we assume that it can be installed as
+                    # an external package. However, if it is also available as a
+                    # source package, prompt the user
+                    if !available_as_source || explicit_osdeps_selection(name)
+                        @os_packages ||= Set.new
+                        @os_packages << name
+                        return
                     end
                 end
+
+                if !available_as_source
+                    # Call osdeps to get a proper error message
+                    osdeps, gems = Autoproj.osdeps.partition_packages([name].to_set, name => [self.name])
+                    Autoproj.osdeps.resolve_os_dependencies(osdeps)
+                    # Should never reach further than that
+                end
             end
+
+
+            __depends_on__(name) # to get the error message
         end
 
         def depends_on_os_package(name)
@@ -83,12 +123,18 @@ module Autoproj
     def self.filter_load_exception(error, source, path)
         raise error if Autoproj.verbose
         rx_path = Regexp.quote(path)
-        error_line = error.backtrace.find { |l| l =~ /#{rx_path}/ }
-        line_number = Integer(/#{rx_path}:(\d+)/.match(error_line)[1])
-        if source.local?
-            raise ConfigError, "#{path}:#{line_number}: #{error.message}", error.backtrace
+        if error_line = error.backtrace.find { |l| l =~ /#{rx_path}/ }
+            if line_number = Integer(/#{rx_path}:(\d+)/.match(error_line)[1])
+                line_number = "#{line_number}:"
+            end
+
+            if source.local?
+                raise ConfigError, "#{path}:#{line_number} #{error.message}", error.backtrace
+            else
+                raise ConfigError, "#{File.basename(path)}(source=#{source.name}):#{line_number} #{error.message}", error.backtrace
+            end
         else
-            raise ConfigError, "#{File.basename(path)}(source=#{source.name}):#{line_number}: #{error.message}", error.backtrace
+            raise error
         end
     end
 
@@ -98,6 +144,8 @@ module Autoproj
         @file_stack.push([source, File.basename(path)])
         begin
             Kernel.load path
+        rescue ConfigError => e
+            raise
         rescue Exception => e
             filter_load_exception(e, source, path)
         end

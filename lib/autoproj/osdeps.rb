@@ -15,6 +15,7 @@ module Autoproj
 
         class << self
             attr_reader :aliases
+            attr_accessor :force_osdeps
         end
         @aliases = Hash.new
 
@@ -142,9 +143,11 @@ module Autoproj
                         ['gentoo', [version]]
                     elsif File.exists?('/etc/arch-release')
                         ['arch', []]
-                    else
-                        raise ConfigError, "Unknown operating system"
                     end
+            end
+
+            if !@operating_system
+                return
             end
 
             # Normalize the names to lowercase
@@ -182,62 +185,118 @@ module Autoproj
             'arch' => 'pacman -Sy --noconfirm %s'
         }
 
+        NO_PACKAGE       = 0
+        WRONG_OS         = 1
+        WRONG_OS_VERSION = 2
+        IGNORE           = 3
+        PACKAGES         = 4
+        SHELL_SNIPPET    = 5
+        UNKNOWN_OS       = 7
+        AVAILABLE        = 10
+
+        # Check for the definition of +name+ for this operating system
+        #
+        # It can return
+        #
+        # NO_PACKAGE::
+        #   there are no package definition for +name
+        # UNKNOWN_OS::
+        #   this is not an OS autoproj knows how to deal with
+        # WRONG_OS::
+        #   there are a package definition, but not for this OS
+        # WRONG_OS_VERSION::
+        #   there is a package definition for this OS, but not for this
+        #   particular version of the OS
+        # IGNORE::
+        #   there is a package definition that told us to ignore the package
+        # [PACKAGES, definition]::
+        #   +definition+ is an array of package names that this OS's package
+        #   manager can understand
+        # [SHELL_SNIPPET, definition]::
+        #   +definition+ is a string which is a shell snippet that will install
+        #   the package
+        def resolve_package(name)
+            os_name, os_version = OSDependencies.operating_system
+
+            dep_def = definitions[name]
+            if !dep_def
+                return NO_PACKAGE
+            end
+
+            if !os_name
+                return UNKNOWN_OS
+            end
+
+            # Find a matching entry for the OS name
+            os_entry = dep_def.find do |name_list, data|
+                name_list.split(',').
+                    map(&:downcase).
+                    any? { |n| n == os_name }
+            end
+
+            if !os_entry
+                return WRONG_OS
+            end
+
+            data = os_entry.last
+
+            # This package does not need to be installed on this operating system (example: build tools on Gentoo)
+            if !data || data == "ignore"
+                return IGNORE
+            end
+
+            if data.kind_of?(Hash)
+                version_entry = data.find do |version_list, data|
+                    version_list.to_s.split(',').
+                        map(&:downcase).
+                        any? do |v|
+                        os_version.any? { |osv| Regexp.new(v) =~ osv }
+                        end
+                end
+
+                if !version_entry
+                    return WRONG_OS_VERSION
+                end
+                data = version_entry.last
+            end
+
+            if data.respond_to?(:to_ary)
+                return [PACKAGES, data]
+            elsif data.to_str =~ /\w+/
+                return [PACKAGES, [data.to_str]]
+            else
+                return [SHELL_SNIPPET, data.to_str]
+            end
+        end
+
         # Resolves the given OS dependencies into the actual packages that need
         # to be installed on this particular OS.
         #
         # Raises ConfigError if some packages can't be found
         def resolve_os_dependencies(dependencies)
             os_name, os_version = OSDependencies.operating_system
-            if !OS_PACKAGE_INSTALL.has_key?(os_name)
-                raise ConfigError, "I don't know how to install packages on #{os_name}"
-            end
 
             os_packages    = []
             shell_snippets = []
             dependencies.each do |name|
-                dep_def = definitions[name]
-                if !dep_def
-                    raise ConfigError, "I don't know how to install '#{name}'"
+                result = resolve_package(name)
+                if result == NO_PACKAGE
+                    raise ConfigError, "there is no osdeps definition for #{name}"
+                elsif result == WRONG_OS
+                    raise ConfigError, "there is an osdeps definition for #{name}, but not for this operating system"
+                elsif result == WRONG_OS_VERSION
+                    raise ConfigError, "there is an osdeps definition for #{name}, but no for this particular operating system version"
+                elsif result == IGNORE
+                    next
+                elsif result[0] == PACKAGES
+                    os_packages.concat(result[1])
+                elsif result[0] == SHELL_SNIPPET
+                    shell_snippets << result[1]
                 end
+            end
 
-                # Find a matching entry for the OS name
-                os_entry = dep_def.find do |name_list, data|
-                    name_list.split(',').
-                        map(&:downcase).
-                        any? { |n| n == os_name }
-                end
-
-                if !os_entry
-                    raise ConfigError, "I don't know how to install '#{name}' on #{os_name}"
-                end
-
-                data = os_entry.last
-
-                # This package does not need to be installed on this operating system (example: build tools on Gentoo)
-                next if !data || data == "ignore"
-
-                if data.kind_of?(Hash)
-                    version_entry = data.find do |version_list, data|
-                        version_list.to_s.split(',').
-                            map(&:downcase).
-                            any? do |v|
-                                os_version.any? { |osv| Regexp.new(v) =~ osv }
-                            end
-                    end
-
-                    if !version_entry
-                        raise ConfigError, "I don't know how to install '#{name}' on this specific version of #{os_name} (#{os_version.join(", ")})"
-                    end
-                    data = version_entry.last
-                end
-
-                if data.respond_to?(:to_ary)
-                    os_packages.concat data.to_ary
-                elsif data.to_str =~ /\w+/
-                    os_packages << data.to_str
-                else
-                    shell_snippets << data.to_str
-                end
+            if !OS_PACKAGE_INSTALL.has_key?(os_name)
+                raise ConfigError, "I don't know how to install packages on #{os_name}"
             end
 
             return os_packages, shell_snippets
@@ -254,14 +313,27 @@ module Autoproj
                 "\n" + shell_snippets.join("\n")
         end
 
-        # Returns true if there is an operating-system package with that name,
-        # and false otherwise
+        # Returns true if +name+ is an acceptable OS package for this OS and
+        # version
         def has?(name)
+            availability_of(name) == AVAILABLE
+        end
+
+        # If +name+ is an osdeps that is available for this operating system,
+        # returns AVAILABLE. Otherwise, returns the same error code than
+        # resolve_package.
+        def availability_of(name)
             osdeps, gemdeps = partition_packages([name].to_set)
-            resolve_os_dependencies(osdeps)
-            true
-        rescue ConfigError
-            false
+            if !osdeps.empty?
+                status = resolve_package(name)
+                if status.respond_to?(:to_ary) || status == IGNORE
+                    AVAILABLE
+                else
+                    status
+                end
+            else
+                AVAILABLE
+            end
         end
 
         # call-seq:
@@ -282,12 +354,10 @@ module Autoproj
             package_set.to_set.each do |name|
                 pkg_def = definitions[name]
                 if !pkg_def
-                    msg = "I know nothing about a prepackaged software called '#{name}'"
-                    if pkg_names = package_osdeps[name]
-                        msg += ", it is listed as dependency of the following package(s): #{pkg_names.join(", ")}"
-                    end
-
-                    raise ConfigError, msg
+                    # Error cases are taken care of later, because that is were
+                    # the automatic/manual osdeps logic lies
+                    osdeps << name
+                    next
                 end
 
                 pkg_def = pkg_def.dup
@@ -298,6 +368,9 @@ module Autoproj
                     when "gem" then
                         gems << name
                     else
+                        # This is *not* handled later, as is the absence of a
+                        # package definition. The reason is that it is a bad
+                        # configuration file, and should be fixed by the user
                         raise ConfigError, "unknown OS-independent package management type #{pkg_def} for #{name}"
                     end
                 else
@@ -328,19 +401,115 @@ module Autoproj
             end
         end
 
+        def filter_uptodate_gems(gems)
+            Autobuild.progress "looking for RubyGems updates"
+
+            # Don't install gems that are already there ...
+            gems = gems.dup
+            gems.delete_if do |name|
+                version_requirements = Gem::Requirement.default
+                installed = Gem.source_index.find_name(name, version_requirements)
+                if !installed.empty? && Autobuild.do_update
+                    # Look if we can update the package ...
+                    dep = Gem::Dependency.new(name, version_requirements)
+                    available = gem_fetcher.find_matching(dep)
+                    installed_version = installed.map(&:version).max
+                    available_version = available.map { |(name, v), source| v }.max
+                    needs_update = (available_version > installed_version)
+                    !needs_update
+                else
+                    !installed.empty?
+                end
+            end
+            gems
+        end
+
+        AUTOMATIC = true
+        MANUAL    = false
+        ASK       = :ask
+
+        def automatic_osdeps_mode
+            if mode = ENV['AUTOPROJ_AUTOMATIC_OSDEPS']
+                mode =
+                    if mode == 'true' then AUTOMATIC
+                    elsif mode == 'false' then MANUAL
+                    else ASK
+                    end
+                Autoproj.change_option('automatic_osdeps', mode, true)
+                mode
+            else
+                Autoproj.user_config('automatic_osdeps')
+            end
+        end
+
         # Requests the installation of the given set of packages
         def install(packages, package_osdeps = Hash.new)
+            os_def = OSDependencies.operating_system
             osdeps, gems = partition_packages(packages, package_osdeps)
+            gems = filter_uptodate_gems(gems)
+            if osdeps.empty? && gems.empty?
+                return
+            end
+
+            if automatic_osdeps_mode == AUTOMATIC && !os_def && !osdeps.empty?
+                puts
+                puts Autoproj.color("==============================", :bold)
+                puts Autoproj.color("The packages that will be built require some other software to be installed", :bold)
+                puts "  " + osdeps.join("\n  ")
+                puts Autoproj.color("==============================", :bold)
+                puts
+            end
+
+            if !OSDependencies.force_osdeps && automatic_osdeps_mode != AUTOMATIC
+                puts
+                puts Autoproj.color("==============================", :bold)
+                puts Autoproj.color("The packages that will be built require some other software to be installed", :bold)
+                puts
+                if !osdeps.empty?
+                    puts "From the operating system:"
+                    puts "  " + osdeps.join("\n  ")
+                    puts
+                end
+                if !gems.empty?
+                    puts "From RubyGems:"
+                    puts "  " + gems.join("\n  ")
+                    puts
+                end
+
+                if automatic_osdeps_mode == MANUAL
+                    puts "Since you requested autoproj to not handle the osdeps automatically, you have to"
+                    puts "do it yourself. Alternatively, you can run 'autoproj osdeps' and/or change to"
+                    puts "automatic osdeps handling by running an autoproj operation with the --reconfigure"
+                    puts "option (e.g. autoproj build --reconfigure)"
+                    puts Autoproj.color("==============================", :bold)
+                    puts
+                else
+                    print "Should I install these packages ? [yes] "
+                    STDOUT.flush
+                    do_osdeps = nil
+                    while do_osdeps.nil?
+                        answer = STDIN.readline.chomp
+                        if answer == ''
+                            do_osdeps = true
+                        elsif answer == "no"
+                            do_osdeps = false
+                        elsif answer == 'yes'
+                            do_osdeps = true
+                        else
+                            print "invalid answer. Please answer with 'yes' or 'no' "
+                            STDOUT.flush
+                        end
+                    end
+                end
+
+                if !do_osdeps
+                    return
+                end
+            end
 
             did_something = false
 
-            # Ideally, we would feed the OS dependencies to rosdep.
-            # Unfortunately, this is C++ code and I don't want to install the
-            # whole ROS stack just for rosdep ...
-            #
-            # So, for now, reimplement rosdep by ourselves. Given how things
-            # are done, this is actually not so hard.
-            if !osdeps.empty?
+            if os_def && !osdeps.empty?
                 shell_script = generate_os_script(osdeps)
                 if Autoproj.verbose
                     Autoproj.progress "Installing non-ruby OS dependencies with"
@@ -360,23 +529,7 @@ module Autoproj
             end
 
             if !gems.empty?
-                Autobuild.progress "looking for RubyGems updates"
-                # Don't install gems that are already there ...
-                gems.delete_if do |name|
-                    version_requirements = Gem::Requirement.default
-                    installed = Gem.source_index.find_name(name, version_requirements)
-                    if !installed.empty? && Autobuild.do_update
-                        # Look if we can update the package ...
-                        dep = Gem::Dependency.new(name, version_requirements)
-                        available = gem_fetcher.find_matching(dep)
-                        installed_version = installed.map(&:version).max
-                        available_version = available.map { |(name, v), source| v }.max
-                        needs_update = (available_version > installed_version)
-                        !needs_update
-                    else
-                        !installed.empty?
-                    end
-                end
+                gems = filter_uptodate_gems(gems)
             end
 
             # Now install what is left

@@ -108,6 +108,10 @@ module Autoproj
         @declared_options[name] = BuildOption.new(name, type, options, validator)
     end
 
+    def self.declared_option?(name)
+	@declared_options.has_key?(name)
+    end
+
     def self.configure(option_name)
         if opt = @declared_options[option_name]
             if current_value = @user_config[option_name]

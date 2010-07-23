@@ -20,12 +20,51 @@ module Autoproj
         end
     end
 
+    def self.color(*args)
+        console.color(*args)
+    end
+
     # Displays a warning message
     def self.warn(message)
         Autoproj.progress("  WARN: #{message}", :magenta)
     end
 
     module CmdLine
+	def self.handle_automatic_osdeps
+	    if Autoproj.has_config_key?("automatic_osdeps")
+		doc_string = "Should autoproj handle the OS package installation automatically ?"
+	    else
+		# Ask the user for the automatic_osdeps option
+		doc_string =<<-EOT
+#{color("Should autoproj handle the OS package installation automatically (yes, no or ask) ?", :bold)}
+    If you say "no", the list of OS dependencies that need to be installed will be listed,
+    and autoproj will assume that you have installed them yourself. If you say "ask", you will
+    be prompted each time a package needs to be installed.
+
+    This value can be changed anytime by calling an autoproj operation with the --reconfigure
+    option (e.g. autoproj update --reconfigure). Moreover, the "autoproj osdeps" call will
+    always allow you to install OS dependencies manually through autoproj.
+		EOT
+		doc_string = doc_string.strip
+	    end
+
+	    Autoproj.configuration_option 'automatic_osdeps', 'string',
+		:default => 'yes',
+		:doc => doc_string do |value|
+                    begin
+                        Autoproj::BuildOption.validate_boolean(value, Hash.new)
+                    rescue Autoproj::InputError
+                        if value.to_s == "ask"
+                            :ask
+                        else
+                            raise Autoproj::InputError, "invalid value. Please answer 'yes', 'no' or 'ask' -- without the quotes"
+                        end
+                    end
+                end
+
+	    Autoproj.user_config('automatic_osdeps')
+	end
+
         def self.initialize
             Autobuild::Reporting << Autoproj::Reporter.new
             if mail_config[:to]
@@ -53,6 +92,8 @@ module Autoproj
             Autobuild.prefix  = Autoproj.build_dir
             Autobuild.srcdir  = Autoproj.root_dir
             Autobuild.logdir = File.join(Autobuild.prefix, 'log')
+
+	    handle_automatic_osdeps
 
             ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
             if ruby != 'ruby'
@@ -655,6 +696,7 @@ where 'mode' is one of:
                 Autobuild.do_update = false
                 @update_os_dependencies = true
                 Autobuild.do_build  = false
+                Autoproj::OSDependencies.force_osdeps = true
             when "status"
                 @only_status = true
                 Autobuild.do_update = false
