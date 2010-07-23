@@ -92,7 +92,11 @@ module Autoproj
             value = configure(key)
         else
             if !seen
-                Autoproj.progress "  #{@declared_options[key].doc}: #{value}"
+                doc = @declared_options[key].doc
+                if doc[-1, 1] != "?"
+                    doc = "#{doc}:"
+                end
+                Autoproj.progress "  #{doc} #{value}"
                 @user_config[key] = [value, true]
             end
             value
