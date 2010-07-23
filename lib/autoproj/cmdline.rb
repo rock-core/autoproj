@@ -31,6 +31,18 @@ module Autoproj
 
     module CmdLine
 	def self.handle_automatic_osdeps
+            if !Autoproj.has_config_key?('automatic_osdeps') && ENV['AUTOPROJ_AUTOMATIC_OSDEPS']
+                mode = ENV['AUTOPROJ_AUTOMATIC_OSDEPS']
+                mode =
+                    if mode == 'true'     then Autoproj::OSDependencies::AUTOMATIC
+                    elsif mode == 'false' then Autoproj::OSDependencies::MANUAL
+                    elsif mode == 'wait'  then Autoproj::OSDependencies::WAIT
+                    else Autoproj::OSDependencies::ASK
+                    end
+
+                Autoproj.change_option('automatic_osdeps', mode, true)
+            end
+
 	    if Autoproj.has_config_key?("automatic_osdeps")
 		doc_string = "Should autoproj handle the OS package installation automatically (yes, no, wait or ask) ?"
 	    else
@@ -46,6 +58,7 @@ module Autoproj
     This value can be changed anytime by calling an autoproj operation with the --reconfigure
     option (e.g. autoproj update --reconfigure). Moreover, the "autoproj osdeps" call will
     always allow you to install OS dependencies through autoproj.
+
 		EOT
 		doc_string = doc_string.strip
 	    end
