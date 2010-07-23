@@ -24,12 +24,29 @@ module Autoproj
         File.join(root_dir, "autoproj")
     end
 
+    class << self
+        # The directory in which packages will be installed.
+        #
+        # If it is a relative path, it is relative to the root dir of the
+        # installation.
+        #
+        # The default is "install"
+        attr_reader :prefix
+
+        # Change the value of 'prefix'
+        def prefix=(new_path)
+            @prefix = new_path
+            Autoproj.change_option('prefix', new_path, true)
+        end
+    end
+    @prefix = "install"
+
     # Returns the build directory (prefix) for this autoproj installation.
     #
     # If the current directory is not in an autoproj installation, raises
     # UserError.
     def self.build_dir
-	File.join(root_dir, "build")
+        File.expand_path(Autoproj.prefix, root_dir)
     end
 
     # Returns the path to the provided configuration file.

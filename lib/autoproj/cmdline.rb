@@ -34,6 +34,10 @@ module Autoproj
 
             Autoproj.load_config
 
+            if Autoproj.has_user_key?('prefix')
+                Autoproj.prefix = Autoproj.user_config('prefix')
+            end
+
             # If we are under rubygems, check that the GEM_HOME is right ...
             if $LOADED_FEATURES.any? { |l| l =~ /rubygems/ }
                 if ENV['GEM_HOME'] != Autoproj.gem_home
