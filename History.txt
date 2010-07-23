@@ -1,3 +1,8 @@
+= Version 1.6.0
+ * version that will be used in the Orocos project
+ * the osdeps management is now fully configurable. What is means is that you
+   can ask autoproj to *not* install osdeps packages at all
+
 = Version 1.5.8
  * add a way to add some ignore regexp to the dependency tracking. Updated user
    guide about that.
