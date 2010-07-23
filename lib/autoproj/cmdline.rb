@@ -32,18 +32,20 @@ module Autoproj
     module CmdLine
 	def self.handle_automatic_osdeps
 	    if Autoproj.has_config_key?("automatic_osdeps")
-		doc_string = "Should autoproj handle the OS package installation automatically ?"
+		doc_string = "Should autoproj handle the OS package installation automatically (yes, no, wait or ask) ?"
 	    else
 		# Ask the user for the automatic_osdeps option
 		doc_string =<<-EOT
-#{color("Should autoproj handle the OS package installation automatically (yes, no or ask) ?", :bold)}
+#{color("Should autoproj handle the OS package installation automatically (yes, no, wait or ask) ?", :bold)}
     If you say "no", the list of OS dependencies that need to be installed will be listed,
-    and autoproj will assume that you have installed them yourself. If you say "ask", you will
-    be prompted each time a package needs to be installed.
+    and autoproj will go on, assuming that you have installed them yourself. If you say
+    "ask", you will be prompted each time a package needs to be installed. Finally, if you
+    say "wait", autoproj will simply wait for you to press ENTER to continue after it prompted
+    you for the dependencies.
 
     This value can be changed anytime by calling an autoproj operation with the --reconfigure
     option (e.g. autoproj update --reconfigure). Moreover, the "autoproj osdeps" call will
-    always allow you to install OS dependencies manually through autoproj.
+    always allow you to install OS dependencies through autoproj.
 		EOT
 		doc_string = doc_string.strip
 	    end
@@ -56,8 +58,10 @@ module Autoproj
                     rescue Autoproj::InputError
                         if value.to_s == "ask"
                             :ask
+                        elsif value.to_s == "wait"
+                            :wait
                         else
-                            raise Autoproj::InputError, "invalid value. Please answer 'yes', 'no' or 'ask' -- without the quotes"
+                            raise Autoproj::InputError, "invalid value. Please answer 'yes', 'no', 'wait' or 'ask' -- without the quotes"
                         end
                     end
                 end
@@ -73,7 +77,7 @@ module Autoproj
 
             Autoproj.load_config
 
-            if Autoproj.has_user_key?('prefix')
+            if Autoproj.has_config_key?('prefix')
                 Autoproj.prefix = Autoproj.user_config('prefix')
             end
 

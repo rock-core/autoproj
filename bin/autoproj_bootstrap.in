@@ -101,14 +101,17 @@ therefore have to let you install the packages yourself.
 It can still install the RubyGems packages that are required by the built
 packages.
 
-If you answer 'no' to the following question, autoproj will assume that all the
-required dependencies are already installed. If you answer 'yes', it will make
-sure that the RubyGems are installed himself, but it will assume that you took
-care of the other packages. Finally, if you answer 'ask', it will ask you each
-time there is something to install
+If you answer 'no' to the following question, autoproj will always go on,
+assuming that all the required dependencies are already installed. If you answer
+'yes', it will make sure that the RubyGems are installed himself, but it will
+assume that you took care of the other packages. If you answer 'wait', it will
+not install anything but will wait for you to press ENTER. Finally, if you
+answer 'ask', it will ask you each time what it should do when there is
+something to install
+
     EOT
 
-    print "Should autoproj install RubyGems packages automatically (yes, no or ask) ? [yes] "
+    print "How should autoproj install RubyGems packages automatically (yes, no, wait or ask) ? [yes] "
     STDOUT.flush
 else
     # Before doing *anything*, we have to ask the user if he wants us to install
@@ -118,13 +121,15 @@ else
 autoproj is able to handle the installation of operating system packages
 himself. This will require you to give him root access
 
-If you answer 'no' to the following question, autoproj will assume that all the
-required dependencies are already installed. If you answer 'yes', it will make
-sure that they are installed himself and if you answer 'ask', it will ask you
-each time there is something to install
+If you answer 'no' to the following question, autoproj will go on, assuming that
+all the required dependencies are already installed. If you answer 'yes', it
+will make sure that they are installed himself. If you answer 'wait', it will
+not install anything but wait for you to press ENTER before it continues.
+Finally, if you answer 'ask', it will ask you what it should do each time there
+is something to install.
 
     EOT
-    print "Should autoproj install OS packages automatically (yes, no or ask) ? [yes] "
+    print "Should autoproj install OS packages automatically (yes, no, wait or ask) ? [yes] "
     STDOUT.flush
 end
 

@@ -426,6 +426,7 @@ module Autoproj
 
         AUTOMATIC = true
         MANUAL    = false
+        WAIT      = :wait
         ASK       = :ask
 
         def automatic_osdeps_mode
@@ -433,6 +434,7 @@ module Autoproj
                 mode =
                     if mode == 'true' then AUTOMATIC
                     elsif mode == 'false' then MANUAL
+                    elsif mode == 'wait' then WAIT
                     else ASK
                     end
                 Autoproj.change_option('automatic_osdeps', mode, true)
@@ -476,14 +478,7 @@ module Autoproj
                     puts
                 end
 
-                if automatic_osdeps_mode == MANUAL
-                    puts "Since you requested autoproj to not handle the osdeps automatically, you have to"
-                    puts "do it yourself. Alternatively, you can run 'autoproj osdeps' and/or change to"
-                    puts "automatic osdeps handling by running an autoproj operation with the --reconfigure"
-                    puts "option (e.g. autoproj build --reconfigure)"
-                    puts Autoproj.color("==============================", :bold)
-                    puts
-                else
+                if automatic_osdeps_mode == ASK
                     print "Should I install these packages ? [yes] "
                     STDOUT.flush
                     do_osdeps = nil
@@ -499,6 +494,19 @@ module Autoproj
                             print "invalid answer. Please answer with 'yes' or 'no' "
                             STDOUT.flush
                         end
+                    end
+                else
+                    puts "Since you requested autoproj to not handle the osdeps automatically, you have to"
+                    puts "do it yourself. Alternatively, you can run 'autoproj osdeps' and/or change to"
+                    puts "automatic osdeps handling by running an autoproj operation with the --reconfigure"
+                    puts "option (e.g. autoproj build --reconfigure)"
+                    puts Autoproj.color("==============================", :bold)
+                    puts
+
+                    if automatic_osdeps_mode == WAIT
+                        print "Press ENTER to continue "
+                        STDOUT.flush
+                        STDIN.readline
                     end
                 end
 
