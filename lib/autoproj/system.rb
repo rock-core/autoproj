@@ -114,8 +114,10 @@ module Autoproj
                    end
 
         File.open(filename, "w") do |io|
+            variables = []
             Autobuild.environment.each do |name, value|
-                shell_line = "export #{name}=#{value.join(":")}"
+                variables << name
+                shell_line = "#{name}=#{value.join(":")}"
                 if Autoproj.env_inherit?(name)
                     if value.empty?
                         next
@@ -124,6 +126,9 @@ module Autoproj
                     end
                 end
                 io.puts shell_line
+            end
+            variables.each do |var|
+                io.puts "export #{var}"
             end
         end
     end
