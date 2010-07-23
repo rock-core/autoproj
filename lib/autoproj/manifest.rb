@@ -1152,9 +1152,9 @@ module Autoproj
                 begin
                     package.depends_on name
                 rescue Autobuild::ConfigException => e
-                    raise ConfigError, "manifest #{manifest_path} of #{package.name} from #{source.name} lists '#{name}' as dependency, which is listed in the layout but has no autobuild definition"
+                    raise ConfigError, "manifest #{manifest_path} of #{package.name} from #{source.name} lists '#{name}' as dependency, which is listed in the layout but has no autobuild definition", e.backtrace
                 rescue ConfigError => e
-                    raise ConfigError, "manifest #{manifest_path} of #{package.name} from #{source.name} lists '#{name}' as dependency, but it is neither a normal package nor an osdeps package. osdeps reports: #{e.message}"
+                    raise ConfigError, "manifest #{manifest_path} of #{package.name} from #{source.name} lists '#{name}' as dependency, but it is neither a normal package nor an osdeps package. osdeps reports: #{e.message}", e.backtrace
                 end
             end
         end
