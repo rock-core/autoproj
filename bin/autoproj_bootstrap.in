@@ -175,10 +175,7 @@ USER_PACKAGES = %w{autoproj}
 ENV['RUBYOPT']  = "-rubygems"
 require 'rubygems'
 
-packages = PACKAGES.dup
-if ARGV.first != "dev"
-    packages += USER_PACKAGES
-end
+packages = PACKAGES + USER_PACKAGES
 
 begin
     osdeps_management = Autoproj::OSDependencies.new(YAML.load(DEFS))
@@ -189,14 +186,14 @@ rescue Autoproj::ConfigError => e
     exit(1)
 end
 
-if ARGV.first != "dev"
-    ENV['AUTOPROJ_AUTOMATIC_OSDEPS'] = automatic_osdeps.to_s
-        def self.run_with_output(name, phase, *cmd)
-        end
-    if !system('autoproj', 'bootstrap', *ARGV)
-        STDERR.puts "ERROR: failed to run autoproj bootstrap #{ARGV.join(", ")}"
-        exit 1
-    end
+if ARGV.first == "dev"
+    Autoproj::OSDependencies.gem_with_prerelease = true
+end
+
+ENV['AUTOPROJ_AUTOMATIC_OSDEPS'] = automatic_osdeps.to_s
+if !system('autoproj', 'bootstrap', *ARGV)
+    STDERR.puts "ERROR: failed to run autoproj bootstrap #{ARGV.join(", ")}"
+    exit 1
 end
 
 File.open('env.sh', 'w') do |io|

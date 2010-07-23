@@ -16,6 +16,7 @@ module Autoproj
         class << self
             attr_reader :aliases
             attr_accessor :force_osdeps
+            attr_accessor :gem_with_prerelease
         end
         @aliases = Hash.new
 
@@ -543,13 +544,19 @@ module Autoproj
             # Now install what is left
             if !gems.empty?
                 guess_gem_program
-
                 if Autoproj.verbose
                     Autoproj.progress "Installing rubygems dependencies with"
                     Autoproj.progress "gem install #{gems.join(" ")}"
                 end
+
+                cmdline = [Autobuild.tool('gem'), 'install']
+                if Autobuild::OSDependencies.gem_with_prerelease
+                    cmdline << "--prerelease"
+                end
+                cmdline.concat(gems)
+
                 Autobuild.progress "installing/updating RubyGems dependencies: #{gems.join(", ")}"
-                Autobuild::Subprocess.run 'autoproj', 'osdeps', Autobuild.tool('gem'), 'install', *gems
+                Autobuild::Subprocess.run 'autoproj', 'osdeps', *cmdline
                 did_something ||= true
             end
 
