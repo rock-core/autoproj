@@ -24,51 +24,54 @@ begin
                 ['webgen', '>= 0.5.9'] <<
                 ['rdoc', '>= 2.4.0']
         end
-
-        Rake.clear_tasks(/dist:publish_docs/)
-        task 'publish_docs' => 'doc' do
-            if !system('doc/update_github')
-                raise "cannot update the gh-pages branch for GitHub"
-            end
-            if !system('git', 'push', 'origin', '+gh-pages')
-                raise "cannot push the documentation"
-            end
-        end
-
-        desc "generate the bootstrap script"
-        task 'bootstrap' do
-            osdeps_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'osdeps.rb'))
-            osdeps_defaults = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'default.osdeps'))
-            # Filter rubygems dependencies from the OSdeps default. They will be
-            # installed at first build
-            osdeps = YAML.load(osdeps_defaults)
-            osdeps.delete_if do |name, content|
-                if content.respond_to?(:delete)
-                    content.delete('gem')
-                    content.empty?
-                else
-                    content == 'gem'
-                end
-            end
-            osdeps_defaults = YAML.dump(osdeps)
-
-            bootstrap_code = File.read(File.join(Dir.pwd, 'bin', 'autoproj_bootstrap.in')).
-                gsub('OSDEPS_CODE', osdeps_code).
-                gsub('OSDEPS_DEFAULTS', osdeps_defaults)
-            File.open(File.join(Dir.pwd, 'doc', 'guide', 'src', 'autoproj_bootstrap'), 'w') do |io|
-                io.write bootstrap_code
-            end
-        end
     end
 
     # Define our own documentation handling. Rake.clear_tasks is defined by Hoe
     Rake.clear_tasks(/dist:(re|clobber_|)docs/)
+    Rake.clear_tasks(/dist:publish_docs/)
 
 rescue LoadError
     STDERR.puts "cannot load the Hoe gem. Distribution is disabled"
 rescue Exception => e
     STDERR.puts "cannot load the Hoe gem, or Hoe fails. Distribution is disabled"
     STDERR.puts "error message is: #{e.message}"
+end
+
+namespace 'dist' do
+    task 'publish_docs' => 'doc' do
+        if !system('doc/update_github')
+            raise "cannot update the gh-pages branch for GitHub"
+        end
+        if !system('git', 'push', 'origin', '+gh-pages')
+            raise "cannot push the documentation"
+        end
+    end
+
+    desc "generate the bootstrap script"
+    task 'bootstrap' do
+        require 'yaml'
+        osdeps_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'osdeps.rb'))
+        osdeps_defaults = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'default.osdeps'))
+        # Filter rubygems dependencies from the OSdeps default. They will be
+        # installed at first build
+        osdeps = YAML.load(osdeps_defaults)
+        osdeps.delete_if do |name, content|
+            if content.respond_to?(:delete)
+                content.delete('gem')
+                content.empty?
+            else
+                content == 'gem'
+            end
+        end
+        osdeps_defaults = YAML.dump(osdeps)
+
+        bootstrap_code = File.read(File.join(Dir.pwd, 'bin', 'autoproj_bootstrap.in')).
+            gsub('OSDEPS_CODE', osdeps_code).
+            gsub('OSDEPS_DEFAULTS', osdeps_defaults)
+        File.open(File.join(Dir.pwd, 'doc', 'guide', 'src', 'autoproj_bootstrap'), 'w') do |io|
+            io.write bootstrap_code
+        end
+    end
 end
 
 do_doc = begin
