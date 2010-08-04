@@ -480,8 +480,22 @@ module Autoproj
                 end
 
                 if automatic_osdeps_mode == ASK
-                    print "Should I install these packages ? [yes] "
+                    if !os_def
+                        if gems.empty?
+                            # Nothing we can do, but the users required "ASK".
+                            # So, at least, let him press enter
+                            print "There are external packages, but I can't install them on this OS. Press ENTER to continue"
+                            STDOUT.flush
+                            STDIN.readline
+                            do_osdeps = false
+                        else
+                            print "Should I install the RubyGems packages ? [yes] "
+                        end
+                    else
+                        print "Should I install these packages ? [yes] "
+                    end
                     STDOUT.flush
+
                     do_osdeps = nil
                     while do_osdeps.nil?
                         answer = STDIN.readline.chomp
