@@ -48,7 +48,7 @@ module Autoproj
 	    else
 		# Ask the user for the automatic_osdeps option
 		doc_string =<<-EOT
-#{color("Should autoproj handle the OS package installation automatically (yes, no, wait or ask) ?", :bold)}
+#{Autoproj.color("Should autoproj handle the OS package installation automatically (yes, no, wait or ask) ?", :bold)}
     If you say "no", the list of OS dependencies that need to be installed will be listed,
     and autoproj will go on, assuming that you have installed them yourself. If you say
     "ask", you will be prompted each time a package needs to be installed. Finally, if you
@@ -756,13 +756,13 @@ where 'mode' is one of:
                     end
 
                 if !pkg.importer.respond_to?(:status)
-                    lines << color("  the #{pkg.importer.class.name.gsub(/.*::/, '')} importer does not support status display", :bold, :red)
+                    lines << Autoproj.color("  the #{pkg.importer.class.name.gsub(/.*::/, '')} importer does not support status display", :bold, :red)
                 elsif !File.directory?(pkg.srcdir)
-                    lines << color("  is not imported yet", :magenta)
+                    lines << Autoproj.color("  is not imported yet", :magenta)
                 else
                     status = pkg.importer.status(pkg)
                     if status.uncommitted_code
-                        lines << color("  contains uncommitted modifications", :red)
+                        lines << Autoproj.color("  contains uncommitted modifications", :red)
                     end
 
                     case status.status
@@ -776,27 +776,27 @@ where 'mode' is one of:
                             last_was_in_sync = true
                             next
                         else
-                            lines << color("  local and remote are in sync", :green)
+                            lines << Autoproj.color("  local and remote are in sync", :green)
                         end
                     when Autobuild::Importer::Status::ADVANCED
-                        lines << color("  local contains #{status.local_commits.size} commit that remote does not have:", :magenta)
+                        lines << Autoproj.color("  local contains #{status.local_commits.size} commit that remote does not have:", :magenta)
                         status.local_commits.each do |line|
-                            lines << color("    #{line}", :magenta)
+                            lines << Autoproj.color("    #{line}", :magenta)
                         end
                     when Autobuild::Importer::Status::SIMPLE_UPDATE
-                        lines << color("  remote contains #{status.remote_commits.size} commit that local does not have:", :magenta)
+                        lines << Autoproj.color("  remote contains #{status.remote_commits.size} commit that local does not have:", :magenta)
                         status.remote_commits.each do |line|
-                            lines << color("    #{line}", :magenta)
+                            lines << Autoproj.color("    #{line}", :magenta)
                         end
                     when Autobuild::Importer::Status::NEEDS_MERGE
-                        lines << color("  local and remote have diverged with respectively #{status.local_commits.size} and #{status.remote_commits.size} commits each", :magenta)
+                        lines << Autoproj.color("  local and remote have diverged with respectively #{status.local_commits.size} and #{status.remote_commits.size} commits each", :magenta)
                         lines << "  -- local commits --"
                         status.local_commits.each do |line|
-                            lines << color("   #{line}", :magenta)
+                            lines << Autoproj.color("   #{line}", :magenta)
                         end
                         lines << "  -- remote commits --"
                         status.remote_commits.each do |line|
-                            lines << color("   #{line}", :magenta)
+                            lines << Autoproj.color("   #{line}", :magenta)
                         end
                     end
                 end
