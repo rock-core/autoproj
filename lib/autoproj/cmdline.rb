@@ -921,7 +921,15 @@ where 'mode' is one of:
             # Now check out the actual configuration
             config_dir = File.join(Dir.pwd, "autoproj")
             if delete_current
-                FileUtils.rm_rf config_dir
+                # Find a backup name for it
+                backup_base_name = backup_name = "#{config_dir}.bak"
+                index = 0
+                while File.directory?(backup_name)
+                    backup_name = "#{backup_base_name}-#{index}.bak"
+                    index += 1
+                end
+                    
+                FileUtils.mv config_dir, backup_name
             end
             Autoproj::Manifest.update_source(vcs, "autoproj main configuration", 'autoproj_config', config_dir)
 
@@ -933,6 +941,16 @@ manifest_source:
     url: #{vcs_def.delete(:url)}
     #{vcs_def.map { |k, v| "#{k}: #{v}" }.join("\n    ")}
                 EOTEXT
+            end
+        rescue Exception
+            if backup_name
+                FileUtils.rm_rf config_dir if config_dir
+                FileUtils.mv backup_name, config_dir
+            end
+            raise
+        ensure
+            if backup_name
+                FileUtils.rm_rf backup_name
             end
         end
 
