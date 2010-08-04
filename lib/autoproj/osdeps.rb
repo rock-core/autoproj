@@ -564,7 +564,7 @@ module Autoproj
                 end
 
                 cmdline = [Autobuild.tool('gem'), 'install']
-                if Autobuild::OSDependencies.gem_with_prerelease
+                if Autoproj::OSDependencies.gem_with_prerelease
                     cmdline << "--prerelease"
                 end
                 cmdline.concat(gems)
