@@ -915,6 +915,7 @@ where 'mode' is one of:
             vcs = Autoproj.normalize_vcs_definition(vcs_def)
 
             # Install the OS dependencies required for this VCS
+            handle_automatic_osdeps
             osdeps = Autoproj::OSDependencies.load_default
             osdeps.install([vcs.type])
 
