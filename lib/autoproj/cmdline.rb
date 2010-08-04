@@ -197,8 +197,9 @@ module Autoproj
             # source.yml files)
             manifest.load_importers
 
-            # Configuration is finished, so all relevant configuration options should
-            # have been asked to the user. Save it.
+            # We finished loading the configuration files. Not all configuration
+            # is done (since we need to process the package setup blocks), but
+            # save the current state of the configuration anyway.
             Autoproj.save_config
 
             # Loads OS package definitions once and for all
@@ -268,6 +269,10 @@ module Autoproj
                     pkg.user_block[pkg.autobuild]
                 end
             end
+
+            # We now have processed the process setup blocks. All configuration
+            # should be done and we can save the configuration data.
+            Autoproj.save_config
         end
 
 
