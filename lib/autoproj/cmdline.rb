@@ -563,7 +563,7 @@ where 'mode' is one of:
   status: displays the state of the packages w.r.t. their source VCS
   list-sets:   list all available package sets
   update: only import/update packages, do not build them
-  update-sets: update the package sets definitions, but not the packages themselves
+  update-config: only update the configuration
 
 -- Autoproj Configuration
   bootstrap: starts a new autoproj installation. Usage:
@@ -727,7 +727,13 @@ where 'mode' is one of:
                 Autobuild.do_build  = false
                 Autobuild.do_update = false
                 @update_os_dependencies = false
-            when "update-sets"
+            when "update-config"
+                @only_config = true
+                Autobuild.do_update = true
+                @update_os_dependencies = false
+                Autobuild.do_build = false
+            when "update-sets" # provided for backward compatibility
+                Autoproj.warn("update-sets is deprecated. Use update-config instead")
                 @only_config = true
                 Autobuild.do_update = true
                 @update_os_dependencies = false
