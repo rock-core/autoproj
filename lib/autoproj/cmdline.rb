@@ -159,6 +159,9 @@ module Autoproj
             # First things first, see if we need to update ourselves
             if Autoproj.osdeps.install(%w{autobuild autoproj})
                 # We updated autobuild or autoproj themselves ... Restart !
+                #
+                # ...But first save the configuration (!)
+                Autoproj.save_config
                 require 'rbconfig'
                 ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
                 exec(ruby, $0, *ARGV)
@@ -968,6 +971,8 @@ manifest_source:
                 Autoproj.progress "autoproj: reusing bootstrap from #{File.dirname(ENV['GEM_HOME'])}"
                 FileUtils.cp_r ENV['GEM_HOME'], ".gems"
                 ENV['GEM_HOME'] = File.join(Dir.pwd, ".gems")
+
+                Autoproj.save_config
 
                 require 'rbconfig'
                 ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
