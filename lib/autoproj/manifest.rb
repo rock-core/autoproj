@@ -937,8 +937,8 @@ module Autoproj
                     dest = File.readlink(symlink_dest)
                     if dest != source.raw_local_dir
                         FileUtils.rm_f symlink_dest
+                        FileUtils.ln_sf source.raw_local_dir, symlink_dest
                     end
-                    FileUtils.ln_sf source.raw_local_dir, symlink_dest
                 else
                     FileUtils.rm_f symlink_dest
                     FileUtils.ln_sf source.raw_local_dir, symlink_dest
