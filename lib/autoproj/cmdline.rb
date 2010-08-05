@@ -43,29 +43,28 @@ module Autoproj
                 Autoproj.change_option('automatic_osdeps', mode, true)
             end
 
-	    if Autoproj.has_config_key?("automatic_osdeps")
-		doc_string = "Should autoproj handle the OS package installation automatically (yes, no, wait or ask) ?"
-	    else
-		# Ask the user for the automatic_osdeps option
-		doc_string =<<-EOT
+            short_doc = "Should autoproj handle the OS package installation automatically (yes, no, wait or ask) ?"
+            long_doc =<<-EOT
 #{Autoproj.color("Should autoproj handle the OS package installation automatically (yes, no, wait or ask) ?", :bold)}
-    If you say "no", the list of OS dependencies that need to be installed will be listed,
-    and autoproj will go on, assuming that you have installed them yourself. If you say
-    "ask", you will be prompted each time a package needs to be installed. Finally, if you
-    say "wait", autoproj will simply wait for you to press ENTER to continue after it prompted
-    you for the dependencies.
-
-    This value can be changed anytime by calling an autoproj operation with the --reconfigure
-    option (e.g. autoproj update --reconfigure). Moreover, the "autoproj osdeps" call will
-    always allow you to install OS dependencies through autoproj.
-
-		EOT
-		doc_string = doc_string.strip
-	    end
+    If you say "no", the list of OS dependencies that need to be installed
+    will be listed, and autoproj will go on, assuming that you have
+    installed them yourself.
+    If you say "ask", you will be prompted each time a package needs to be
+    installed.
+    Finally, if you say "wait", autoproj will simply wait for you to press
+    ENTER to continue after it prompted you for the dependencies.
+        
+    This value can be changed anytime by calling an autoproj operation
+    with the --reconfigure option (e.g. autoproj update --reconfigure).
+    Moreover, the "autoproj osdeps" call will always allow you to install
+    OS dependencies through autoproj.
+            EOT
+            long_doc = long_doc.strip
 
 	    Autoproj.configuration_option 'automatic_osdeps', 'string',
 		:default => 'yes',
-		:doc => doc_string do |value|
+		:doc => long_doc,
+                :short_doc => short_doc do |value|
                     begin
                         Autoproj::BuildOption.validate_boolean(value, Hash.new)
                     rescue Autoproj::InputError

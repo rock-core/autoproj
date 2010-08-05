@@ -18,18 +18,22 @@ module Autoproj
             end
         end
 
+        def short_doc
+            options[:short_doc] || options[:doc] || "#{name} (no documentation for this option)"
+        end
+
         def doc
             options[:doc] || "#{name} (no documentation for this option)"
         end
 
-        def ask(current_value)
+        def ask(current_value, doc = nil)
             default_value =
 		if current_value then current_value.to_s
 		elsif options[:default] then options[:default].to_str
 		else ''
 		end
 
-            STDOUT.print "  #{doc} [#{default_value}] "
+            STDOUT.print "  #{doc || self.doc} [#{default_value}] "
             STDOUT.flush
             answer = STDIN.readline.chomp
             if answer == ''
@@ -92,7 +96,7 @@ module Autoproj
             value = configure(key)
         else
             if !seen
-                doc = @declared_options[key].doc
+                doc = @declared_options[key].short_doc
                 if doc[-1, 1] != "?"
                     doc = "#{doc}:"
                 end
