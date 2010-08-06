@@ -19,11 +19,25 @@ module Autoproj
         end
 
         def short_doc
-            options[:short_doc] || options[:doc] || "#{name} (no documentation for this option)"
+            if short_doc = options[:short_doc]
+                short_doc
+            elsif doc = options[:doc]
+                if doc.respond_to?(:to_ary) then doc.first
+                else doc
+                end
+            else "#{name} (no documentation for this option)"
+            end
         end
 
         def doc
-            options[:doc] || "#{name} (no documentation for this option)"
+            doc = (options[:doc] || "#{name} (no documentation for this option)")
+            if doc.respond_to?(:to_ary) # multi-line
+                first_line = Autoproj.color(doc[0, 1], :bold)
+                remaining = doc[1..-1].join("\n").split("\n").join("\n    ")
+                first_line + "\n    " + remaining
+            else
+                doc
+            end
         end
 
         def ask(current_value, doc = nil)

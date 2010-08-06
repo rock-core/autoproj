@@ -45,26 +45,23 @@ module Autoproj
 
             short_doc = "Should autoproj handle the OS package installation automatically (yes, no, wait or ask) ?"
             long_doc =<<-EOT
-#{Autoproj.color("Should autoproj handle the OS package installation automatically (yes, no, wait or ask) ?", :bold)}
-    If you say "no", the list of OS dependencies that need to be installed
-    will be listed, and autoproj will go on, assuming that you have
-    installed them yourself.
-    If you say "ask", you will be prompted each time a package needs to be
-    installed.
-    Finally, if you say "wait", autoproj will simply wait for you to press
-    ENTER to continue after it prompted you for the dependencies.
-        
-    This value can be changed anytime by calling an autoproj operation
-    with the --reconfigure option (e.g. autoproj update --reconfigure).
-    Moreover, the "autoproj osdeps" call will always allow you to install
-    OS dependencies through autoproj.
+* if you say "yes", the OS dependencies will be handled by autoproj.
+* if you say "no", the list of OS dependencies that need to be installed will be
+  listed, and autoproj will go on, assuming that you have installed them yourself.
+* if you say "ask", you will be prompted each time a package needs to be installed.
+* if you say "wait", autoproj will simply wait for you to press ENTER to continue
+  after it prompted you for the dependencies.
+    
+This value can be changed anytime by calling an autoproj operation
+with the --reconfigure option (e.g. autoproj update --reconfigure).
+Moreover, the "autoproj osdeps" call will always allow you to install
+OS dependencies through autoproj.
             EOT
             long_doc = long_doc.strip
 
 	    Autoproj.configuration_option 'automatic_osdeps', 'string',
 		:default => 'yes',
-		:doc => long_doc,
-                :short_doc => short_doc do |value|
+		:doc => [short_doc, long_doc] do |value|
                     begin
                         Autoproj::BuildOption.validate_boolean(value, Hash.new)
                     rescue Autoproj::InputError
