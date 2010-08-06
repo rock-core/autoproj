@@ -560,7 +560,7 @@ where 'mode' is one of:
 -- Status & Update
   envsh: update the env.sh script
   status: displays the state of the packages w.r.t. their source VCS
-  list-sets:   list all available package sets
+  list:   list all available packages
   update: only import/update packages, do not build them
   update-config: only update the configuration
 
@@ -737,7 +737,7 @@ where 'mode' is one of:
                 Autobuild.do_update = true
                 @update_os_dependencies = false
                 Autobuild.do_build = false
-            when "list-sets"
+            when "list", "list-sets"
                 @only_config = true
                 @display_configuration = true
                 Autobuild.do_update = false
