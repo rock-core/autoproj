@@ -109,6 +109,10 @@ module Autoproj
         end
     end
 
+    # Returns the information about the file that is currently being loaded
+    #
+    # The return value is [source, path], where +source+ is the Source instance
+    # and +path+ is the path of the file w.r.t. the autoproj root directory
     def self.current_file
         @file_stack.last
     end
@@ -141,7 +145,7 @@ module Autoproj
     def self.import_autobuild_file(source, path)
         return if @loaded_autobuild_files.include?(path)
 
-        @file_stack.push([source, File.basename(path)])
+        @file_stack.push([source, File.expand_path(path).gsub(/^#{Regexp.quote(Autoproj.root_dir)}\//, '')])
         begin
             Kernel.load path
         rescue ConfigError => e
@@ -166,11 +170,11 @@ end
 def package_common(package_type, spec, &block) # :nodoc:
     package_name = Autoproj.package_name_from_options(spec)
 
-    begin
-        Rake::Task[package_name]
-        Autoproj.warn "#{package_name} from #{Autoproj.current_file[0]} is overriden by the definition in #{Autoproj.definition_source(package_name)}"
+    if Autobuild::Package[package_name]
+        current_file = Autoproj.current_file[1]
+        old_file     = Autoproj.manifest.definition_file(package_name)
+        Autoproj.warn "#{package_name} from #{current_file} is overriden by the definition in #{old_file}"
         return
-    rescue
     end
 
     # Check if this package is ignored
