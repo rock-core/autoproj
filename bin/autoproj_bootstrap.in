@@ -174,27 +174,35 @@ rescue Autoproj::ConfigError => e
 end
 
 # Now try to find out the name of the gem binary
-PACKAGES      = %w{rdoc libxml2 libxslt zlib build-essential lsb_release}
-USER_PACKAGES = %w{autoproj}
+PACKAGES      = %w{rdoc autobuild libxml2 libxslt zlib build-essential lsb_release}
 
 ENV['RUBYOPT']  = "-rubygems"
 require 'rubygems'
 
-packages = PACKAGES + USER_PACKAGES
-
+osdeps_management = Autoproj::OSDependencies.new(YAML.load(DEFS))
+STDERR.puts "autoproj: installing autoproj and its dependencies (this can take a long time)"
+# First install the dependencies of autoproj, as we don't want them to be
+# affected by the prerelease flag
 begin
-    osdeps_management = Autoproj::OSDependencies.new(YAML.load(DEFS))
-    STDERR.puts "autoproj: installing autoproj and its dependencies (this can take a long time)"
-    osdeps_management.install(packages)
+    osdeps_management.install(PACKAGES)
 rescue Autoproj::ConfigError => e
     STDERR.puts "failed: #{e.message}"
     exit(1)
 end
 
+# If the user specifies "dev" on the command line, install the prerelease
+# version of autoproj
 if ARGV.first == "dev"
     Autoproj::OSDependencies.gem_with_prerelease = true
+    ARGV.shift
 end
+begin
+    osdeps_management.install('autoproj')
+rescue Autoproj::ConfigError => e
+    STDERR.puts "failed: #{e.message}"
+    exit(1)
 end
+Autoproj::OSDependencies.gem_with_prerelease = false
 
 File.open('env.sh', 'w') do |io|
     io.write <<-EOSHELL
