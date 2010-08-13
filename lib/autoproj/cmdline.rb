@@ -683,6 +683,7 @@ where 'mode' is one of:
                 Autobuild.do_build = false
                 Autobuild.do_update = false
                 @update_os_dependencies = false
+                @only_config = true
 
             when "switch-config"
                 # We must switch to the root dir first, as it is required by the
