@@ -960,11 +960,14 @@ manifest_source:
             end
             Autobuild.logdir = File.join('build', 'log')
 
-            # Check if we are being called from another GEM_HOME. If it is the case,
-            # assume that we are bootstrapping from another installation directory and
-            # start by copying the .gems directory
-            needed_gem_home = Autoproj.gem_home
-            if ENV['GEM_HOME'] && ENV['GEM_HOME'] =~ /\.gems\/?$/ && ENV['GEM_HOME'] != needed_gem_home
+            # Check if GEM_HOME is set. If it is the case, assume that we are
+            # bootstrapping from another installation directory and start by
+            # copying the .gems directory
+            #
+            # We don't use Autoproj.gem_home there as we might not be in an
+            # autoproj directory at all
+            if ENV['GEM_HOME'] && Autoproj.in_autoproj_installation?(ENV['GEM_HOME']) &&
+                ENV['GEM_HOME'] != ENV['AUTOPROJ_GEM_HOME']
                 Autoproj.progress "autoproj: reusing bootstrap from #{File.dirname(ENV['GEM_HOME'])}"
                 FileUtils.cp_r ENV['GEM_HOME'], ".gems"
                 ENV['GEM_HOME'] = File.join(Dir.pwd, ".gems")

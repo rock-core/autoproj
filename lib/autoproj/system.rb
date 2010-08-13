@@ -1,12 +1,19 @@
 module Autoproj
     class UserError < RuntimeError; end
 
+    # Returns true if +path+ is part of an autoproj installation
+    def self.in_autoproj_installation?(path)
+        root_dir(File.expand_path(path))
+        true
+    rescue UserError
+        false
+    end
+
     # Returns the root directory of the current autoproj installation.
     #
     # If the current directory is not in an autoproj installation,
     # raises UserError.
-    def self.root_dir
-        dir = Dir.pwd
+    def self.root_dir(dir = Dir.pwd)
         while dir != "/" && !File.directory?(File.join(dir, "autoproj"))
             dir = File.dirname(dir)
         end
