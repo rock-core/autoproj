@@ -496,6 +496,7 @@ OS dependencies through autoproj.
         end
 
         def self.manifest; Autoproj.manifest end
+        def self.bootstrap?; !!@bootstrap end
         def self.only_status?; !!@only_status end
         def self.check?; !!@check end
         def self.manifest_update?; !!@manifest_update end
@@ -676,6 +677,7 @@ where 'mode' is one of:
 
             case mode
             when "bootstrap"
+                @bootstrap = true
                 bootstrap(*remaining_args)
                 remaining_args.clear
 
@@ -1012,22 +1014,11 @@ manifest_source:
             # Finally, generate an env.sh script
             File.open('env.sh', 'w') do |io|
                 io.write <<-EOSHELL
-        export RUBYOPT=-rubygems
-        export GEM_HOME=#{Autoproj.gem_home}
-        export PATH=$GEM_HOME/bin:$PATH
+export RUBYOPT=-rubygems
+export GEM_HOME=#{Autoproj.gem_home}
+export PATH=$GEM_HOME/bin:$PATH
                 EOSHELL
             end
-
-            Autoproj.progress <<EOTEXT
-
-add the following line at the bottom of your .bashrc:
-  source #{Dir.pwd}/env.sh
-
-WARNING: autoproj will not work until your restart all
-your consoles, or run the following in them:
-  $ source #{Dir.pwd}/env.sh
-
-EOTEXT
         end
 
         def self.missing_dependencies(pkg)
