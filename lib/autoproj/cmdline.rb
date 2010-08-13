@@ -666,6 +666,15 @@ where 'mode' is one of:
 
         def self.handle_mode(mode, remaining_args)
             case mode
+            when "update-sets"
+                Autoproj.warn("update-sets is deprecated. Use update-config instead")
+                mode = "update-config"
+            when "list-sets"
+                Autoproj.warn("list-sets is deprecated. Use list-config instead")
+                mode = "list-config"
+            end
+
+            case mode
             when "bootstrap"
                 bootstrap(*remaining_args)
                 remaining_args.clear
@@ -731,13 +740,7 @@ where 'mode' is one of:
                 Autobuild.do_update = true
                 @update_os_dependencies = false
                 Autobuild.do_build = false
-            when "update-sets" # provided for backward compatibility
-                Autoproj.warn("update-sets is deprecated. Use update-config instead")
-                @only_config = true
-                Autobuild.do_update = true
-                @update_os_dependencies = false
-                Autobuild.do_build = false
-            when "list", "list-sets"
+            when "list-config"
                 @only_config = true
                 @display_configuration = true
                 Autobuild.do_update = false
