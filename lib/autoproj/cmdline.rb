@@ -185,13 +185,6 @@ OS dependencies through autoproj.
                 Autoproj.import_autobuild_file source, name
             end
 
-            # Load the package's override files. each_source must not load the
-            # source.yml file, as init.rb may define configuration options that are used
-            # there
-            manifest.each_source(false).to_a.reverse.each do |source|
-                Autoproj.load_if_present(source, source.local_dir, "overrides.rb")
-            end
-
             # Now, load the package's importer configurations (from the various
             # source.yml files)
             manifest.load_importers
@@ -267,6 +260,13 @@ OS dependencies through autoproj.
                 if pkg.user_block
                     pkg.user_block[pkg.autobuild]
                 end
+            end
+
+            # Load the package's override files. each_source must not load the
+            # source.yml file, as init.rb may define configuration options that are used
+            # there
+            manifest.each_source(false).to_a.reverse.each do |source|
+                Autoproj.load_if_present(source, source.local_dir, "overrides.rb")
             end
 
             # We now have processed the process setup blocks. All configuration
