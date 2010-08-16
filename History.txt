@@ -1,7 +1,12 @@
 = Version 1.6.0
- * version that will be used in the Orocos project
- * the osdeps management is now fully configurable. What is means is that you
-   can ask autoproj to *not* install osdeps packages at all
+ * starting this version, autoproj becomes the official build system for the
+   Orocos Toolchain project
+ * the osdeps management is now configurable: one can request autoproj to not
+   install osdeps, to ask each time and/or to simply wait when osdeps should
+   be installed
+ * autoproj stops bailing out on OSes that it does not know. It simply does
+   not offer to install OS dependencies on these operating systems
+ * quite a few small bugfixes
 
 = Version 1.5.8
  * add a way to add some ignore regexp to the dependency tracking. Updated user
