@@ -1093,11 +1093,15 @@ module Autoproj
             end
         end
 
-        # Returns the set of package names that are available for installation.
-        # It is the set of packages listed in the layout minus the exluded and
-        # ignred ones
-        def all_package_names
+        # Returns the set of package names that are explicitely listed in the
+        # layout, minus the excluded and ignored ones
+        def all_layout_packages
             default_packages
+        end
+
+        # Returns all defined package names, minus the excluded and ignored ones
+        def all_package_names
+            Autobuild::Package.each.map { |name, _| name }.to_set
         end
 
         # Returns the set of packages that should be built if the user does not
@@ -1196,14 +1200,14 @@ module Autoproj
             # The expanded selection
             expanded_packages = Set.new
             # All the packages that are available on this installation
-            all_package_names = self.all_package_names
+            all_layout_packages = self.all_layout_packages
 
             # First, remove packages that are directly referenced by name or by
             # package set names
             selected_packages.delete_if do |sel|
                 sel = Regexp.new(Regexp.quote(sel))
 
-                packages = all_package_names.
+                packages = all_layout_packages.
                     find_all { |pkg_name| pkg_name =~ sel }.
                     to_set
                 expanded_packages |= packages
@@ -1211,7 +1215,7 @@ module Autoproj
                 sources = each_source.find_all { |source| source.name =~ sel }
                 sources.each do |source|
                     packages = resolve_package_set(source.name).to_set
-                    expanded_packages |= (packages & all_package_names)
+                    expanded_packages |= (packages & all_layout_packages)
                 end
 
                 !packages.empty? && !sources.empty?
@@ -1221,22 +1225,30 @@ module Autoproj
                 return expanded_packages
             end
 
-            # Now, expand sublayout and directory names 
+            # Now, search for layout names
             each_package_set(nil) do |layout_name, packages, _|
                 selected_packages.delete_if do |sel|
                     if layout_name[0..-1] =~ Regexp.new("#{sel}\/?$")
                         expanded_packages |= packages.to_set
-                    else
-                        match = Regexp.new("^#{Regexp.quote(sel)}")
-                        all_package_names.each do |pkg_name|
-                            pkg = Autobuild::Package[pkg_name]
-                            if pkg.srcdir =~ match
-                                expanded_packages << pkg_name
-                            end
-                        end
                     end
                 end
             end
+
+            # Finally, check for package source directories
+            all_packages = self.all_package_names
+            selected_packages.delete_if do |sel|
+                match = Regexp.new("^#{Regexp.quote(sel)}")
+                all_packages.each do |pkg_name|
+                    pkg = Autobuild::Package[pkg_name]
+                    if pkg.srcdir =~ match
+                        expanded_packages << pkg_name
+                    end
+                end
+            end
+
+            # Some packages might be there even though they are not listed in
+            # the layout (either un-defined or depended-upon by other packages).
+            # Check for those by looking for root_dir/package_name
 
             # Finally, remove packages that are explicitely excluded and/or
             # ignored
