@@ -189,10 +189,10 @@ module Autoproj
         EOSCRIPT
 
         OS_PACKAGE_INSTALL = {
-            'debian' => 'export DEBIAN_FRONTEND=noninteractive; apt-get install -y %s',
-            'ubuntu' => 'export DEBIAN_FRONTEND=noninteractive; apt-get install -y %s',
-            'gentoo' => 'emerge --noreplace %s',
-            'arch' => 'pacman -Sy --noconfirm %s'
+            'debian' => "export DEBIAN_FRONTEND=noninteractive; apt-get install -y '%s'",
+            'ubuntu' => "export DEBIAN_FRONTEND=noninteractive; apt-get install -y '%s'",
+            'gentoo' => "emerge --noreplace '%s'",
+            'arch' => "pacman -Sy --noconfirm '%s'"
         }
 
         NO_PACKAGE       = 0
@@ -319,7 +319,7 @@ module Autoproj
 
             "#! /bin/bash\n" +
             GAIN_ROOT_ACCESS + "\n" +
-                (OS_PACKAGE_INSTALL[os_name] % [os_packages.join(" ")]) +
+                (OS_PACKAGE_INSTALL[os_name] % [os_packages.join("' '")]) +
                 "\n" + shell_snippets.join("\n")
         end
 
