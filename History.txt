@@ -1,3 +1,7 @@
+= Version 1.6.1
+ * fix a limitation of giving directories on the command line. Before, only
+   packages that were explicitely listed in the layout would be selected. Now,
+   all packages are looked for -- even
 = Version 1.6.0
  * starting this version, autoproj becomes the official build system for the
    Orocos Toolchain project

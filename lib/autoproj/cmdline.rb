@@ -972,13 +972,16 @@ manifest_source:
             #
             # We don't use Autoproj.gem_home there as we might not be in an
             # autoproj directory at all
+            gem_home = ENV['AUTOPROJ_GEM_HOME'] || File.join(Dir.pwd, ".gems")
             if ENV['GEM_HOME'] && Autoproj.in_autoproj_installation?(ENV['GEM_HOME']) &&
-                ENV['GEM_HOME'] != ENV['AUTOPROJ_GEM_HOME']
-                Autoproj.progress "autoproj: reusing bootstrap from #{File.dirname(ENV['GEM_HOME'])}"
-                FileUtils.cp_r ENV['GEM_HOME'], ".gems"
-                ENV['GEM_HOME'] = File.join(Dir.pwd, ".gems")
+                ENV['GEM_HOME'] != gem_home
+                if !File.exists?(gem_home)
+                    Autoproj.progress "autoproj: reusing bootstrap from #{File.dirname(ENV['GEM_HOME'])}"
+                    FileUtils.cp_r ENV['GEM_HOME'], gem_home
+                end
+                ENV['GEM_HOME'] = gem_home
 
-                Autoproj.save_config
+                Autoproj.progress "restarting bootstrapping from #{Dir.pwd}"
 
                 require 'rbconfig'
                 ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
