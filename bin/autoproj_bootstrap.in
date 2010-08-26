@@ -191,20 +191,6 @@ rescue Autoproj::ConfigError => e
     exit(1)
 end
 
-# If the user specifies "dev" on the command line, install the prerelease
-# version of autoproj
-if ARGV.first == "dev"
-    Autoproj::OSDependencies.gem_with_prerelease = true
-    ARGV.shift
-end
-begin
-    osdeps_management.install('autoproj')
-rescue Autoproj::ConfigError => e
-    STDERR.puts "failed: #{e.message}"
-    exit(1)
-end
-Autoproj::OSDependencies.gem_with_prerelease = false
-
 File.open('env.sh', 'w') do |io|
     io.write <<-EOSHELL
 export RUBYOPT=-rubygems
@@ -213,9 +199,26 @@ export PATH=$GEM_HOME/bin:$PATH
     EOSHELL
 end
 
-ENV['AUTOPROJ_AUTOMATIC_OSDEPS'] = automatic_osdeps.to_s
-if !system('autoproj', 'bootstrap', *ARGV)
-    STDERR.puts "ERROR: failed to run autoproj bootstrap #{ARGV.join(", ")}"
-    exit 1
+# If the user specifies "dev" on the command line, install the prerelease
+# version of autoproj. If it is "localdev", expect him to install autoproj and
+# run autoproj bootstrap manually.
+if ARGV.first != "localdev"
+    if ARGV.first == "dev"
+        Autoproj::OSDependencies.gem_with_prerelease = true
+        ARGV.shift
+    end
+    begin
+        osdeps_management.install(['autoproj'])
+    rescue Autoproj::ConfigError => e
+        STDERR.puts "failed: #{e.message}"
+        exit(1)
+    end
+    Autoproj::OSDependencies.gem_with_prerelease = false
+
+    ENV['AUTOPROJ_AUTOMATIC_OSDEPS'] = automatic_osdeps.to_s
+    if !system('autoproj', 'bootstrap', *ARGV)
+        STDERR.puts "ERROR: failed to run autoproj bootstrap #{ARGV.join(", ")}"
+        exit 1
+    end
 end
 
