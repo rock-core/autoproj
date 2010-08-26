@@ -143,12 +143,14 @@ else
             automatic_osdeps = true
         elsif answer == "no"
             automatic_osdeps = false
+        elsif answer == 'wait'
+            automatic_osdeps = :wait
         elsif answer == 'ask'
             automatic_osdeps = :ask
         elsif answer == 'yes'
             automatic_osdeps = true
         else
-            print "invalid answer. Please answer with 'yes', 'no' or 'ask' "
+            print "invalid answer. Please answer with 'yes', 'no', 'wait' or 'ask' "
             STDOUT.flush
         end
     end
