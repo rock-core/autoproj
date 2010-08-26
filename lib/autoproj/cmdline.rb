@@ -588,10 +588,14 @@ where 'mode' is one of:
                 end
                 opts.on("--os", "displays the operating system as detected by autoproj") do
                     os = OSDependencies.operating_system
-                    puts "name: #{os[0]}"
-                    puts "version:"
-                    os[1].each do |version_name|
-                        puts "  #{version_name}"
+                    if !os
+                        puts "no information about that OS"
+                    else
+                        puts "name: #{os[0]}"
+                        puts "version:"
+                        os[1].each do |version_name|
+                            puts "  #{version_name}"
+                        end
                     end
                     exit 0
                 end
