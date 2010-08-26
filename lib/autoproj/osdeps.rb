@@ -105,6 +105,15 @@ module Autoproj
             end
         end
 
+        # Returns true if it is possible to install packages for the operating
+        # system on which we are installed
+        def self.supported_operating_system?
+            osdef = operating_system
+            return false if !osdef
+
+            OS_PACKAGE_INSTALL.has_key?(osdef[0])
+        end
+
         # Autodetects the operating system name and version
         #
         # +osname+ is the operating system name, all in lowercase (e.g. ubuntu,
@@ -447,14 +456,14 @@ module Autoproj
 
         # Requests the installation of the given set of packages
         def install(packages, package_osdeps = Hash.new)
-            os_def = OSDependencies.operating_system
+            handled_os = OSDependencies.supported_operating_system?
             osdeps, gems = partition_packages(packages, package_osdeps)
             gems = filter_uptodate_gems(gems)
             if osdeps.empty? && gems.empty?
                 return
             end
 
-            if automatic_osdeps_mode == AUTOMATIC && !os_def && !osdeps.empty?
+            if automatic_osdeps_mode == AUTOMATIC && !handled_os && !osdeps.empty?
                 puts
                 puts Autoproj.color("==============================", :bold)
                 puts Autoproj.color("The packages that will be built require some other software to be installed", :bold)
@@ -480,7 +489,7 @@ module Autoproj
                 end
 
                 if automatic_osdeps_mode == ASK
-                    if !os_def
+                    if !handled_os
                         if gems.empty?
                             # Nothing we can do, but the users required "ASK".
                             # So, at least, let him press enter
@@ -532,7 +541,7 @@ module Autoproj
 
             did_something = false
 
-            if os_def && !osdeps.empty?
+            if handled_os && !osdeps.empty?
                 shell_script = generate_os_script(osdeps)
                 if Autoproj.verbose
                     Autoproj.progress "Installing non-ruby OS dependencies with"

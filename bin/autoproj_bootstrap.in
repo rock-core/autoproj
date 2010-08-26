@@ -93,12 +93,11 @@ EODEFS
 if ENV['AUTOPROJ_AUTOMATIC_OSDEPS']
     automatic_osdeps = ENV['AUTOPROJ_AUTOMATIC_OSDEPS']
 else
-    operating_system = Autoproj::OSDependencies.operating_system
-    if !operating_system
+    if !Autoproj::OSDependencies.supported_operating_system?
         puts <<-EOT
 
     autoproj is usually able to handle the installation of operating system packages
-    himself. However, it does not know about your operating system, and will
+    himself. However, it does not handle your operating system (yet), and will
     therefore have to let you install the packages yourself.
 
     It can still install the RubyGems packages that are required by the built
