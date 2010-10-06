@@ -721,7 +721,7 @@ module Autoproj
             end
 
             if source_name && !done_something
-                raise ConfigError, "source '#{source_name}' does not exist"
+                raise ConfigError, "in #{file}: source '#{source_name}' does not exist"
             end
 	end
 
@@ -1023,7 +1023,7 @@ module Autoproj
             else
                 source = each_source.find { |source| source.name == name }
                 if !source
-                    raise ConfigError, "#{name} is neither a package nor a source"
+                    raise ConfigError, "in #{file}: #{name} is neither a package nor a source"
                 end
                 packages.values.
                     find_all { |pkg| pkg.package_set.name == source.name }.
@@ -1156,7 +1156,7 @@ module Autoproj
                 begin
                     package.depends_on name
                 rescue Autobuild::ConfigException => e
-                    raise ConfigError, "manifest #{manifest_path} of #{package.name} from #{source.name} lists '#{name}' as dependency, which is listed in the layout but has no autobuild definition", e.backtrace
+                    raise ConfigError, "manifest #{manifest_path} of #{package.name} from #{source.name} lists '#{name}' as dependency, which is listed in the layout of #{file} but has no autobuild definition", e.backtrace
                 rescue ConfigError => e
                     raise ConfigError, "manifest #{manifest_path} of #{package.name} from #{source.name} lists '#{name}' as dependency, but it is neither a normal package nor an osdeps package. osdeps reports: #{e.message}", e.backtrace
                 end
