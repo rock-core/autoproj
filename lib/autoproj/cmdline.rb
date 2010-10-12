@@ -389,7 +389,9 @@ OS dependencies through autoproj.
                     delete_if { |pkg_name, pkg| Autoproj.manifest.excluded?(pkg_name) || Autoproj.manifest.ignored?(pkg_name) }
 
                 packages.each do |_, pkg|
-                    pkg.import
+                    pkg.isolate_errors do
+                        pkg.import
+                    end
                 end
 
             ensure
@@ -587,6 +589,9 @@ where 'mode' is one of:
                 end
                 opts.on("--[no-]update", "[do not] update already checked-out packages (build modes only)") do |value|
                     do_update = value
+                end
+                opts.on("--keep-going", "-k", "continue building even though one package has an error") do
+                    Autobuild.ignore_errors = true
                 end
                 opts.on("--os", "displays the operating system as detected by autoproj") do
                     os = OSDependencies.operating_system
