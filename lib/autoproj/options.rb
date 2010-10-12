@@ -32,7 +32,7 @@ module Autoproj
         def doc
             doc = (options[:doc] || "#{name} (no documentation for this option)")
             if doc.respond_to?(:to_ary) # multi-line
-                first_line = Autoproj.color(doc[0, 1], :bold)
+                first_line = Autoproj.color(doc[0], :bold)
                 remaining = doc[1..-1].join("\n").split("\n").join("\n    ")
                 first_line + "\n    " + remaining
             else
