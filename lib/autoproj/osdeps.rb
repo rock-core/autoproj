@@ -128,8 +128,6 @@ module Autoproj
         def self.operating_system
             if @operating_system
                 return @operating_system
-            elsif Autoproj.has_config_key?('operating_system')
-                @operating_system = Autoproj.user_config('operating_system')
             elsif data = os_from_lsb
                 if data[0] != "debian"
                     # Fall back to reading debian_version, as
