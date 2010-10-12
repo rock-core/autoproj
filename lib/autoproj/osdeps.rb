@@ -58,6 +58,7 @@ module Autoproj
         def initialize(defs = Hash.new, file = nil)
             @definitions = defs.to_hash
             @sources     = Hash.new
+            @installed_packages = Array.new
             if file
                 defs.each_key do |package_name|
                     sources[package_name] = file
@@ -454,9 +455,16 @@ module Autoproj
             end
         end
 
+        # The set of packages that have already been installed
+        attr_reader :installed_packages
+
         # Requests the installation of the given set of packages
         def install(packages, package_osdeps = Hash.new)
             handled_os = OSDependencies.supported_operating_system?
+            # Remove the set of packages that have already been installed 
+            packages -= installed_packages
+            return if packages.empty?
+
             osdeps, gems = partition_packages(packages, package_osdeps)
             gems = filter_uptodate_gems(gems)
             if osdeps.empty? && gems.empty?
