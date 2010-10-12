@@ -970,6 +970,27 @@ manifest_source:
             end
             Autobuild.logdir = File.join('build', 'log')
 
+            require 'set'
+            curdir_entries = Dir.entries('.').to_set - [".", "..", "autoproj_bootstrap", ".gems"].to_set
+            if !curdir_entries.empty? && ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] != '1'
+                while true
+                    print "The current directory is not empty, continue bootstrapping anyway ? [yes] "
+                    STDOUT.flush
+                    answer = STDIN.readline.chomp
+                    if answer == "no"
+                        exit
+                    elsif answer == "" || answer == "yes"
+                        # Set this environment variable since we might restart
+                        # autoproj later on.
+                        ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] = '1'
+                        break
+                    else
+                        STDOUT.puts "invalid answer. Please answer 'yes' or 'no'"
+                        STDOUT.flush
+                    end
+                end
+            end
+
             # Check if GEM_HOME is set. If it is the case, assume that we are
             # bootstrapping from another installation directory and start by
             # copying the .gems directory

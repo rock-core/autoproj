@@ -5,6 +5,28 @@ if RUBY_VERSION < "1.8.7"
     exit 1
 end
 
+require 'set'
+curdir_entries = Dir.entries('.').to_set - [".", "..", "autoproj_bootstrap", ".gems"].to_set
+if !curdir_entries.empty? && ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] != '1'
+    while true
+        print "The current directory is not empty, continue bootstrapping anyway ? [yes] "
+        STDOUT.flush 
+        answer = STDIN.readline.chomp
+        if answer == "no"
+            exit
+        elsif answer == "" || answer == "yes"
+            # Set the environment variable since we might restart the
+            # autoproj_bootstrap script and -- anyway -- will run "autoproj
+            # bootstrap" later on
+            ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] = '1'
+            break
+        else
+            STDOUT.puts "invalid answer. Please answer 'yes' or 'no'"
+            STDOUT.flush
+        end
+    end
+end
+
 needed_gem_home = ENV['AUTOPROJ_GEM_HOME'] || "#{Dir.pwd}/.gems"
 if $LOADED_FEATURES.find { |str| str =~ /bygems/ }
     if ENV['GEM_HOME'] != needed_gem_home
