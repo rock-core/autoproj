@@ -968,7 +968,6 @@ manifest_source:
             if File.exists?(File.join("autoproj", "manifest"))
                 raise ConfigError, "this installation is already bootstrapped. Remove the autoproj directory if it is not the case"
             end
-            Autobuild.logdir = File.join('build', 'log')
 
             require 'set'
             curdir_entries = Dir.entries('.').to_set - [".", "..", "autoproj_bootstrap", ".gems"].to_set
@@ -990,6 +989,8 @@ manifest_source:
                     end
                 end
             end
+
+            Autobuild.logdir = File.join(Autoproj.prefix, 'log')
 
             # Check if GEM_HOME is set. If it is the case, assume that we are
             # bootstrapping from another installation directory and start by
