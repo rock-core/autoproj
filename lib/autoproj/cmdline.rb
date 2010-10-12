@@ -498,6 +498,7 @@ OS dependencies through autoproj.
         def self.manifest; Autoproj.manifest end
         def self.bootstrap?; !!@bootstrap end
         def self.only_status?; !!@only_status end
+        def self.only_local?; !!@only_local end
         def self.check?; !!@check end
         def self.manifest_update?; !!@manifest_update end
         def self.only_config?; !!@only_config end
@@ -518,6 +519,7 @@ OS dependencies through autoproj.
         def self.list_newest?; @list_newest end
         def self.parse_arguments(args)
             @only_status = false
+            @only_local  = false
             @check = false
             @manifest_update = false
             @display_configuration = false
@@ -608,6 +610,9 @@ where 'mode' is one of:
                 end
                 opts.on("--list-newest", "for each source directory, list what is the newest file used by autoproj for dependency tracking") do
                     Autoproj::CmdLine.list_newest = true
+                end
+                opts.on("--local", "for status, do not access the network") do
+                    @only_local = true
                 end
 
                 opts.on("--verbose", "verbose output") do
@@ -780,7 +785,7 @@ where 'mode' is one of:
                 elsif !File.directory?(pkg.srcdir)
                     lines << Autoproj.color("  is not imported yet", :magenta)
                 else
-                    status = pkg.importer.status(pkg)
+                    status = pkg.importer.status(pkg,@only_local)
                     if status.uncommitted_code
                         lines << Autoproj.color("  contains uncommitted modifications", :red)
                     end
