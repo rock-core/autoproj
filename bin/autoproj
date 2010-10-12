@@ -51,7 +51,7 @@ Autoproj::OSDependencies.autodetect_ruby
 report(Autobuild.debug) do
     selected_packages =
         begin Autoproj::CmdLine.parse_arguments(ARGV.dup)
-        rescue Exception => e
+        rescue RuntimeError => e
             if Autoproj::CmdLine.bootstrap? && !Autoproj.in_autoproj_installation?(Dir.pwd)
                 STDERR.puts <<EOTEXT
 
