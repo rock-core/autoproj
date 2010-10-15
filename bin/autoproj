@@ -86,8 +86,10 @@ EOTEXT
 
     # Basic initialization
     Autoproj::CmdLine.initialize
-    Autoproj::CmdLine.update_myself
-    Autoproj::CmdLine.update_configuration
+    if selected_packages.empty?
+        Autoproj::CmdLine.update_myself
+        Autoproj::CmdLine.update_configuration
+    end
     Autoproj::CmdLine.load_configuration
     manifest = Autoproj.manifest
 
