@@ -52,7 +52,11 @@ module Autoproj
         # The Gem::SpecFetcher object that should be used to query RubyGems, and
         # install RubyGems packages
         def gem_fetcher
-            @gem_fetcher ||= Gem::SpecFetcher.fetcher
+            if !@gem_fetcher
+                Autobuild.progress "looking for RubyGems updates"
+                @gem_fetcher = Gem::SpecFetcher.fetcher
+            end
+            @gem_fetcher
         end
 
         def initialize(defs = Hash.new, file = nil)
