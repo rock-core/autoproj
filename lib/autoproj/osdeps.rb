@@ -323,7 +323,7 @@ module Autoproj
                 elsif result == WRONG_OS
                     raise ConfigError, "there is an osdeps definition for #{name}, but not for this operating system"
                 elsif result == WRONG_OS_VERSION
-                    raise ConfigError, "there is an osdeps definition for #{name}, but no for this particular operating system version"
+                    raise ConfigError, "there is an osdeps definition for #{name}, but not for this particular operating system version"
                 elsif result == IGNORE
                     next
                 elsif result[0] == PACKAGES
