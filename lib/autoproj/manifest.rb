@@ -1227,7 +1227,7 @@ module Autoproj
                     expanded_packages |= (packages & all_layout_packages)
                 end
 
-                !packages.empty? && !sources.empty?
+                !packages.empty? || !sources.empty?
             end
 
             if selected_packages.empty?
