@@ -616,6 +616,15 @@ module Autoproj
         # The path to the manifest file that has been loaded
         attr_reader :file
 
+        # True if osdeps should be handled in update and build, or left to the
+        # osdeps command
+        def auto_osdeps?
+            if data.has_key?('auto_osdeps')
+                !!data['auto_osdeps']
+            else true
+            end
+        end
+
         # True if autoproj should run an update automatically when the user
         # uses" build"
         def auto_update?

@@ -142,7 +142,7 @@ OS dependencies through autoproj.
                 Autobuild.do_update = manifest.auto_update?
             end
             if Autoproj::CmdLine.update_os_dependencies.nil?
-                Autoproj::CmdLine.update_os_dependencies = manifest.auto_update?
+                Autoproj::CmdLine.update_os_dependencies = manifest.auto_osdeps?
             end
 
             # Initialize the Autoproj.osdeps object by loading the default. The
@@ -525,7 +525,7 @@ OS dependencies through autoproj.
             @check = false
             @manifest_update = false
             @display_configuration = false
-            @update_os_dependencies = true
+            @update_os_dependencies = nil
             update_os_dependencies  = nil
             @force_re_build_with_depends = false
             force_re_build_with_depends = nil
@@ -727,7 +727,6 @@ where 'mode' is one of:
                 @update_os_dependencies = true
             when "update"
                 Autobuild.do_update = true
-                @update_os_dependencies = true
                 Autobuild.do_build  = false
             when "check"
                 Autobuild.do_update = false
@@ -743,7 +742,6 @@ where 'mode' is one of:
                 Autobuild.do_update = false
                 @update_os_dependencies = true
                 Autobuild.do_build  = false
-                Autoproj::OSDependencies.force_osdeps = true
             when "status"
                 @only_status = true
                 Autobuild.do_update = false
@@ -755,7 +753,7 @@ where 'mode' is one of:
             when "update-config"
                 @only_config = true
                 Autobuild.do_update = true
-                @update_os_dependencies = false
+                @update_os_dependencies = true
                 Autobuild.do_build = false
             when "list-config"
                 @only_config = true
