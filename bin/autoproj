@@ -21,8 +21,8 @@ end
 def report(debug)
     Autobuild::Reporting.report do
         yield
-        Autobuild::Reporting.success
     end
+    Autobuild::Reporting.success
 
 rescue ConfigError => e
     STDERR.puts
