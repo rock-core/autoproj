@@ -206,10 +206,11 @@ module Autoproj
         end
 
         GAIN_ROOT_ACCESS = <<-EOSCRIPT
-        if test `id -u` != "0"; then
-            exec sudo /bin/bash $0 "$@"
-        
-        fi
+# Gain root access using sudo
+if test `id -u` != "0"; then
+    exec sudo /bin/bash $0 "$@"
+
+fi
         EOSCRIPT
 
         OS_PACKAGE_CHECK = {
@@ -342,10 +343,8 @@ module Autoproj
 
 
         def generate_os_script(os_name, os_packages, shell_snippets)
-            "#! /bin/bash\n" +
-            GAIN_ROOT_ACCESS + "\n" +
-                (OS_PACKAGE_INSTALL[os_name] % [os_packages.join("' '")]) +
-                "\n" + shell_snippets.join("\n")
+            (OS_PACKAGE_INSTALL[os_name] % [os_packages.join("' '")]) +
+            "\n" + shell_snippets.join("\n")
         end
 
         # Returns true if +name+ is an acceptable OS package for this OS and
@@ -487,6 +486,134 @@ module Autoproj
         # The set of packages that have already been installed
         attr_reader :installed_packages
 
+        def osdeps_interaction_unknown_os(osdeps)
+            puts
+            puts "=========================================================="
+            puts "| " + Autoproj.color("The packages that will be built require some other software to be installed", :bold)
+            puts "| Since your operating system is unknown to autoproj, you will have to ensure"
+            puts "| that they are installed yourself."
+            puts "| #{Autoproj.color("If it is already the case, simply ignore this message", :red)}"
+            puts "|"
+            puts "|  " + osdeps.join("\n|  ")
+            puts "|"
+
+            if automatic_osdeps_mode == ASK || automatic_osdeps_mode == WAIT
+                print Autoproj.color("Press ENTER to continue")
+                STDOUT.flush
+            end
+            STDIN.readline
+            puts
+            nil
+        end
+
+        def osdeps_interaction(osdeps, os_packages, shell_script)
+            if !OSDependencies.supported_operating_system?
+                return osdeps_interaction_unknown_os(osdeps)
+            elsif OSDependencies.force_osdeps
+                return true
+            elsif automatic_osdeps_mode == AUTOMATIC
+                return true
+            end
+
+            puts
+            puts "=========================================================="
+            puts "| " + Autoproj.color("The packages that will be built require some other software to be installed", :bold)
+            puts "| " + Autoproj.color("and you required autoproj to not install them itself", :bold)
+            puts "| " + Autoproj.color("If these packages are already installed, simply ignore this message", :red)
+            puts "|"
+            puts "| The following packages are available as OS dependencies, i.e. as prebuilt"
+            puts "| packages provided by your distribution / operating system. You will have to"
+            puts "| install them manually if they are not already installed"
+            puts "|"
+            puts "|  " + os_packages.sort.join("\n|  ")
+            puts "|"
+            puts "| the following command line(s) can be used to install them:"
+            puts "|"
+            puts "|   " + shell_script.split("\n").join("\n|   ")
+            puts "|"
+
+            if automatic_osdeps_mode == ASK
+                print "|= " + Autoproj.color("Should I run this command lines for you ? [yes] ", :bold)
+                STDOUT.flush
+
+                while true
+                    answer = STDIN.readline.chomp
+                    if answer == ''
+                        return true
+                    elsif answer == "no"
+                        return false
+                    elsif answer == 'yes'
+                        return true
+                    else
+                        print "invalid answer. Please answer with 'yes' or 'no' "
+                        STDOUT.flush
+                    end
+                end
+
+            elsif automatic_osdeps_mode == WAIT
+                puts "| Since you requested autoproj to not handle the osdeps automatically, you have"
+                puts "| to do it yourself. Alternatively, you can run 'autoproj force-osdeps' and/or"
+                puts "| change to automatic osdeps handling by running an autoproj operation with the"
+                puts "| --reconfigure option (e.g. autoproj build --reconfigure)"
+                puts "|"
+                print "|= " + Autoproj.color("Press ENTER to continue ", :bold)
+                STDOUT.flush
+                STDIN.readline
+                puts
+                return false
+            end
+        end
+
+        def gems_interaction(gems, cmdline)
+            if OSDependencies.force_osdeps
+                return true
+            elsif automatic_osdeps_mode == AUTOMATIC
+                return true
+            end
+
+            puts
+            puts "=========================================================="
+            puts "| " + Autoproj.color("The packages that will be built require some Ruby Gems to be installed", :bold)
+            puts "| " + Autoproj.color("and you required autoproj to not do it itself", :bold)
+            puts "| Alternatively, you can run 'autoproj force-osdeps' and/or change to automatic osdeps"
+            puts "| handling by running an autoproj operation with the --reconfigure option (e.g."
+            puts "| autoproj build --reconfigure)"
+            puts "|"
+            puts "| Autoproj expects these Gems to be installed in #{Autoproj.gem_home}"
+            puts "| This can be overriden by setting the AUTOPROJ_GEM_HOME environment"
+            puts "| variable manually"
+            puts "|"
+
+            if automatic_osdeps_mode == ASK
+                print "|= " + Autoproj.color("Should I install these packages ? [yes] ", :bold)
+                STDOUT.flush
+
+                while true
+                    answer = STDIN.readline.chomp
+                    if answer == ''
+                        return true
+                    elsif answer == "no"
+                        return false
+                    elsif answer == 'yes'
+                        return true
+                    else
+                        print "invalid answer. Please answer with 'yes' or 'no' "
+                        STDOUT.flush
+                    end
+                end
+
+            elsif automatic_osdeps_mode == WAIT
+                puts "| You can install these gems manually by running"
+                puts "|    #{cmdline.join(" ")}"
+                puts "|"
+                print "|= " + Autoproj.color("Press ENTER to continue ", :bold)
+                STDOUT.flush
+                STDIN.readline
+                puts
+                return false
+            end
+        end
+
         # Requests the installation of the given set of packages
         def install(packages, package_osdeps = Hash.new)
             handled_os = OSDependencies.supported_operating_system?
@@ -504,115 +631,35 @@ module Autoproj
             if osdeps.empty? && gems.empty?
                 return
             end
-
-            if automatic_osdeps_mode == AUTOMATIC && !handled_os && !osdeps.empty?
-                puts
-                puts Autoproj.color("==============================", :bold)
-                puts Autoproj.color("The packages that will be built require some other software to be installed", :bold)
-                puts "  " + osdeps.join("\n  ")
-                puts Autoproj.color("==============================", :bold)
-                puts
-            end
-
-            if !OSDependencies.force_osdeps && automatic_osdeps_mode != AUTOMATIC
-                puts
-                puts Autoproj.color("==============================", :bold)
-                puts Autoproj.color("The packages that will be built require some other software to be installed", :bold)
-                puts
-                if !osdeps.empty?
-                    puts "From the operating system:"
-                    puts "  " + osdeps.join("\n  ")
-                    puts
-                end
-                if !gems.empty?
-                    puts "From RubyGems:"
-                    puts "  " + gems.join("\n  ")
-                    puts
-                end
-
-                if automatic_osdeps_mode == ASK
-                    if !handled_os
-                        if gems.empty?
-                            # Nothing we can do, but the users required "ASK".
-                            # So, at least, let him press enter
-                            print "There are external packages, but I can't install them on this OS. Press ENTER to continue"
-                            STDOUT.flush
-                            STDIN.readline
-                            do_osdeps = false
-                        else
-                            print "Should I install the RubyGems packages ? [yes] "
-                        end
-                    else
-                        print "Should I install these packages ? [yes] "
-                    end
-                    STDOUT.flush
-
-                    do_osdeps = nil
-                    while do_osdeps.nil?
-                        answer = STDIN.readline.chomp
-                        if answer == ''
-                            do_osdeps = true
-                        elsif answer == "no"
-                            do_osdeps = false
-                        elsif answer == 'yes'
-                            do_osdeps = true
-                        else
-                            print "invalid answer. Please answer with 'yes' or 'no' "
-                            STDOUT.flush
-                        end
-                    end
-                else
-                    puts "Since you requested autoproj to not handle the osdeps automatically, you have to"
-                    puts "do it yourself. Alternatively, you can run 'autoproj osdeps' and/or change to"
-                    puts "automatic osdeps handling by running an autoproj operation with the --reconfigure"
-                    puts "option (e.g. autoproj build --reconfigure)"
-                    puts Autoproj.color("==============================", :bold)
-                    puts
-
-                    if automatic_osdeps_mode == WAIT
-                        print "Press ENTER to continue "
-                        STDOUT.flush
-                        STDIN.readline
-                    end
-                end
-
-                if !do_osdeps
-                    return
-                end
-            end
-
+            
             did_something = false
 
-            if handled_os && (!os_packages.empty? || !shell_snippets.empty?)
-                shell_script = generate_os_script(os_name, os_packages, shell_snippets)
-                if Autoproj.verbose
-                    Autoproj.progress "Installing non-ruby OS dependencies with"
-                    Autoproj.progress shell_script
+            if !os_packages.empty?
+                if handled_os
+                    shell_script = generate_os_script(os_name, os_packages, shell_snippets)
                 end
+                if osdeps_interaction(osdeps, os_packages, shell_script)
+                    Autoproj.progress "  installing OS packages: #{os_packages.sort.join(", ")}"
 
-                File.open('osdeps.sh', 'w') do |file|
-                    file.write shell_script
+                    if Autoproj.verbose
+                        Autoproj.progress "Generating installation script for non-ruby OS dependencies"
+                        Autoproj.progress shell_script
+                    end
+
+                    Tempfile.open('osdeps_sh') do |io|
+                        io.puts "#! /bin/bash"
+                        io.puts GAIN_ROOT_ACCESS
+                        io.write shell_script
+                        io.flush
+                        Autobuild::Subprocess.run 'autoproj', 'osdeps', '/bin/bash', io.path
+                    end
+                    did_something = true
                 end
-                Autobuild.progress "installing/updating OS dependencies: #{osdeps.join(", ")}"
-                begin
-                    Autobuild::Subprocess.run 'autoproj', 'osdeps', '/bin/bash', File.expand_path('osdeps.sh')
-                ensure
-                    FileUtils.rm_f 'osdeps.sh'
-                end
-                did_something ||= true
             end
 
-            if !gems.empty?
-                gems = filter_uptodate_gems(gems)
-            end
-
-            # Now install what is left
+            # Now install the RubyGems
             if !gems.empty?
                 guess_gem_program
-                if Autoproj.verbose
-                    Autoproj.progress "Installing rubygems dependencies with"
-                    Autoproj.progress "gem install #{gems.join(" ")}"
-                end
 
                 cmdline = [Autobuild.tool('gem'), 'install']
                 if Autoproj::OSDependencies.gem_with_prerelease
@@ -620,9 +667,11 @@ module Autoproj
                 end
                 cmdline.concat(gems)
 
-                Autobuild.progress "installing/updating RubyGems dependencies: #{gems.join(", ")}"
-                Autobuild::Subprocess.run 'autoproj', 'osdeps', *cmdline
-                did_something ||= true
+                if gems_interaction(gems, cmdline)
+                    Autobuild.progress "installing/updating RubyGems dependencies: #{gems.sort.join(", ")}"
+                    Autobuild::Subprocess.run 'autoproj', 'osdeps', *cmdline
+                end
+                did_something = true
             end
 
             did_something

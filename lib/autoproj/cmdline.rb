@@ -46,11 +46,11 @@ module Autoproj
             short_doc = "Should autoproj handle the OS package installation automatically (yes, no, wait or ask) ?"
             long_doc =<<-EOT
 * if you say "yes", the OS dependencies will be handled by autoproj.
-* if you say "no", the list of OS dependencies that need to be installed will be
-  listed, and autoproj will go on, assuming that you have installed them yourself.
+* if you say "no", the list of OS dependencies that need to be installed
+  will be listed, and autoproj will go on, assuming that you have installed them yourself.
 * if you say "ask", you will be prompted each time a package needs to be installed.
-* if you say "wait", autoproj will simply wait for you to press ENTER to continue
-  after it prompted you for the dependencies.
+* if you say "wait", autoproj will simply wait for you to press ENTER to
+  continue after it prompted you for the dependencies.
     
 This value can be changed anytime by calling an autoproj operation
 with the --reconfigure option (e.g. autoproj update --reconfigure).
