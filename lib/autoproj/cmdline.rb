@@ -144,6 +144,9 @@ OS dependencies through autoproj.
             if Autoproj::CmdLine.update_os_dependencies.nil?
                 Autoproj::CmdLine.update_os_dependencies = manifest.auto_osdeps?
             end
+            if Autoproj::CmdLine.update_os_dependencies
+                Autoproj.reset_option('operating_system')
+            end
 
             # Initialize the Autoproj.osdeps object by loading the default. The
             # rest is loaded later

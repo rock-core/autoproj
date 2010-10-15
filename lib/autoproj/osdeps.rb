@@ -132,10 +132,13 @@ module Autoproj
         def self.operating_system
             if @operating_system
                 return @operating_system
+            elsif Autoproj.has_config_key?('operating_system')
+                STDERR.puts "using cached value"
+                @operating_system = Autoproj.user_config('operating_system')
             elsif data = os_from_lsb
                 if data[0] != "debian"
-                    # Fall back to reading debian_version, as
-                    # sid is listed as lenny by lsb-release
+                    # if on Debian proper, fall back to reading debian_version,
+                    # as sid is listed as lenny by lsb-release
                     @operating_system = data
                 end
             end
