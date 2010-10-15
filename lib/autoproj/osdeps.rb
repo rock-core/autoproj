@@ -183,6 +183,27 @@ module Autoproj
             return [distributor, [codename, version]]
         end
 
+        # On a dpkg-enabled system, checks if the provided package is installed
+        # and returns true if it is the case
+        def self.dpkg_package_installed?(package_name)
+            if !@dpkg_installed_packages
+                @dpkg_installed_packages = Set.new
+                dpkg_status = File.readlines('/var/lib/dpkg/status')
+                dpkg_status.grep(/^(Package|Status)/).
+                    each_slice(2) do |package, status|
+                        if status.chomp == "Status: install ok installed"
+                            @dpkg_installed_packages << package.split[1].chomp
+                        end
+                    end
+            end
+            
+            if package_name =~ /^(\w[a-z0-9+-.]+)/
+                @dpkg_installed_packages.include?($1)
+            else
+                Autoproj.progress "WARN: #{package_name} is not a valid Debian package name"
+                false
+            end
+        end
 
         GAIN_ROOT_ACCESS = <<-EOSCRIPT
         if test `id -u` != "0"; then
@@ -191,6 +212,10 @@ module Autoproj
         fi
         EOSCRIPT
 
+        OS_PACKAGE_CHECK = {
+            'debian' => method(:dpkg_package_installed?),
+            'ubuntu' => method(:dpkg_package_installed?)
+        }
         OS_PACKAGE_INSTALL = {
             'debian' => "export DEBIAN_FRONTEND=noninteractive; apt-get install -y '%s'",
             'ubuntu' => "export DEBIAN_FRONTEND=noninteractive; apt-get install -y '%s'",
@@ -316,10 +341,7 @@ module Autoproj
         end
 
 
-        def generate_os_script(dependencies)
-            os_name, os_version = OSDependencies.operating_system
-            os_packages, shell_snippets = resolve_os_dependencies(dependencies)
-
+        def generate_os_script(os_name, os_packages, shell_snippets)
             "#! /bin/bash\n" +
             GAIN_ROOT_ACCESS + "\n" +
                 (OS_PACKAGE_INSTALL[os_name] % [os_packages.join("' '")]) +
@@ -414,9 +436,14 @@ module Autoproj
             end
         end
 
-        def filter_uptodate_gems(gems)
-            Autobuild.progress "looking for RubyGems updates"
+        def filter_uptodate_packages(packages, os_name)
+            check_method = OS_PACKAGE_CHECK[os_name]
+            return if !check_method
 
+            packages.find_all { |pkg| !check_method[pkg] }
+        end
+
+        def filter_uptodate_gems(gems)
             # Don't install gems that are already there ...
             gems = gems.dup
             gems.delete_if do |name|
@@ -468,7 +495,12 @@ module Autoproj
             return if packages.empty?
 
             osdeps, gems = partition_packages(packages, package_osdeps)
-            gems = filter_uptodate_gems(gems)
+            if handled_os
+                os_name, os_version = OSDependencies.operating_system
+                os_packages, shell_snippets = resolve_os_dependencies(osdeps)
+                os_packages = filter_uptodate_packages(os_packages, os_name)
+            end
+            gems   = filter_uptodate_gems(gems)
             if osdeps.empty? && gems.empty?
                 return
             end
@@ -551,8 +583,8 @@ module Autoproj
 
             did_something = false
 
-            if handled_os && !osdeps.empty?
-                shell_script = generate_os_script(osdeps)
+            if handled_os && (!os_packages.empty? || !shell_snippets.empty?)
+                shell_script = generate_os_script(os_name, os_packages, shell_snippets)
                 if Autoproj.verbose
                     Autoproj.progress "Installing non-ruby OS dependencies with"
                     Autoproj.progress shell_script
