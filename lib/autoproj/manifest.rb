@@ -1113,6 +1113,13 @@ module Autoproj
             Autobuild::Package.each.map { |name, _| name }.to_set
         end
 
+        # Returns all the packages that can be built in this installation
+        def all_packages
+            packages.values.
+                map { |pkg| pkg.autobuild.name }.
+                find_all { |pkg_name| !Autoproj.osdeps || !Autoproj.osdeps.has?(pkg_name) }
+        end
+
         # Returns the set of packages that should be built if the user does not
         # specify any on the command line
         def default_packages
@@ -1120,9 +1127,7 @@ module Autoproj
                         layout_packages(layout, true)
                     else
                         # No layout, all packages are selected
-                        packages.values.
-                            map { |pkg| pkg.autobuild.name }.
-                            find_all { |pkg_name| !Autoproj.osdeps || !Autoproj.osdeps.has?(pkg_name) }
+                        all_packages
                     end
 
             names.delete_if { |pkg_name| excluded?(pkg_name) || ignored?(pkg_name) }
@@ -1246,21 +1251,17 @@ module Autoproj
             # Finally, check for package source directories
             all_packages = self.all_package_names
             selected_packages.delete_if do |sel|
-                match = Regexp.new("^#{Regexp.quote(sel)}")
+                match_dir      = Regexp.new("^#{Regexp.quote(sel)}")
+                match_pkg_name = Regexp.new(Regexp.quote(sel))
                 all_packages.each do |pkg_name|
                     pkg = Autobuild::Package[pkg_name]
-                    if pkg.srcdir =~ match
+                    if pkg_name =~ match_pkg_name || pkg.srcdir =~ match_dir
                         expanded_packages << pkg_name
                     end
                 end
             end
 
-            # Some packages might be there even though they are not listed in
-            # the layout (either un-defined or depended-upon by other packages).
-            # Check for those by looking for root_dir/package_name
-
-            # Finally, remove packages that are explicitely excluded and/or
-            # ignored
+            # Remove packages that are explicitely excluded and/or ignored
             expanded_packages.delete_if { |pkg_name| excluded?(pkg_name) || ignored?(pkg_name) }
             expanded_packages.to_set
         end
