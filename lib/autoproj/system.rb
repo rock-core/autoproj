@@ -170,7 +170,7 @@ module Autoproj
 
             output = `ldd -r #{name} 2>&1`
             if output =~ /undefined symbol/
-                Autoproj.progress("WARN: #{name} has undefined symbols", :magenta)
+                Autoproj.progress("  WARN: #{name} has undefined symbols", :magenta)
             end
         end
     end
