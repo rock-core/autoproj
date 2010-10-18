@@ -521,10 +521,14 @@ OS dependencies through autoproj.
         def self.build?; @mode =~ /build/ end
         def self.doc?; @mode == "doc" end
         def self.snapshot?; @mode == "snapshot" end
+        def self.show_osdeps?; @mode == "osdeps" && @show_osdeps end
+        def self.revshow_osdeps?; @mode == "osdeps" && @revshow_osdeps end
         def self.list_newest?; @list_newest end
         def self.parse_arguments(args)
             @only_status = false
             @only_local  = false
+            @show_osdeps = false
+            @revshow_osdeps = false
             @check = false
             @manifest_update = false
             @display_configuration = false
@@ -618,6 +622,12 @@ where 'mode' is one of:
                 end
                 opts.on("--list-newest", "for each source directory, list what is the newest file used by autoproj for dependency tracking") do
                     Autoproj::CmdLine.list_newest = true
+                end
+                opts.on("--rshow", "in the osdeps mode, shows information for each OS package") do
+                    @revshow_osdeps = true
+                end
+                opts.on("--show", "in the osdeps mode, show a per-package listing of the OS dependencies instead of installing them") do
+                    @show_osdeps = true
                 end
                 opts.on("--local", "for status, do not access the network") do
                     @only_local = true
@@ -1186,6 +1196,111 @@ export PATH=$GEM_HOME/bin:$PATH
 
             File.open(overrides_path, 'w') do |io|
                 io.write YAML.dump(overrides)
+            end
+        end
+
+        # Displays the reverse OS dependencies (i.e. for each osdeps package,
+        # who depends on it and where it is defined)
+        def self.revshow_osdeps(packages)
+            _, ospkg_to_pkg = Autoproj.manifest.list_os_dependencies(packages)
+
+            # A mapping from a package name to
+            #   [is_os_pkg, is_gem_pkg, definitions, used_by]
+            #
+            # where 
+            #
+            # +used_by+ is the set of autobuild package names that use this
+            # osdeps package
+            #
+            # +definitions+ is a osdep_name => definition_file mapping
+            mapping = Hash.new { |h, k| h[k] = [false, false, Hash.new, Set.new] }
+
+            ospkg_to_pkg.each do |pkg_osdep, pkgs|
+                osdeps, gems = Autoproj.osdeps.
+                    partition_packages([pkg_osdep], ospkg_to_pkg)
+
+                gems.each do |gem_name|
+                    mapping[gem_name][1] = true
+                    mapping[gem_name][2][pkg_osdep] = Autoproj.osdeps.source_of(pkg_osdep)
+                    mapping[gem_name][3] |= pkgs
+                end
+
+                if Autoproj::OSDependencies.supported_operating_system?
+                    osdeps = Autoproj.osdeps.
+                        resolve_os_dependencies(osdeps)
+                end
+                osdeps.each do |ospkg_name|
+                    mapping[ospkg_name][0] = true
+                    mapping[ospkg_name][2][pkg_osdep] = Autoproj.osdeps.source_of(pkg_osdep)
+                    mapping[ospkg_name][3] |= pkgs
+                end
+            end
+
+            mapping = mapping.sort_by(&:first)
+            mapping.each do |pkg_name, (is_os_pkg, is_gem_pkg, definitions, used_by)|
+                kind = if is_os_pkg && is_gem_pkg
+                           "both a RubyGem and OS package"
+                       elsif is_os_pkg
+                           "an OS package"
+                       else
+                           "a RubyGem package"
+                       end
+
+                puts "#{pkg_name} is #{kind}"
+                definitions.to_a.
+                    sort_by(&:first).
+                    each do |osdep_name, file_name|
+                        puts "  defined as #{osdep_name} in #{file_name}"
+                    end
+
+                puts "  depended-upon by #{used_by.sort.join(", ")}"
+            end
+        end
+
+        # Displays the OS dependencies required by the given packages
+        def self.show_osdeps(packages)
+            _, ospkg_to_pkg = Autoproj.manifest.list_os_dependencies(packages)
+
+            # ospkg_to_pkg is the reverse mapping to what we want. Invert it
+            mapping = Hash.new { |h, k| h[k] = Set.new }
+            ospkg_to_pkg.each do |ospkg, pkgs|
+                pkgs.each do |pkg_name|
+                    mapping[pkg_name] << ospkg
+                end
+            end
+        
+            # Now sort it by package name (better for display)
+            package_osdeps = mapping.to_a.
+                sort_by { |name, _| name }
+
+            package_osdeps.each do |pkg_name, pkg_osdeps|
+                if pkg_osdeps.empty?
+                    puts "  #{pkg_name}: no OS dependencies"
+                    next
+                end
+
+                osdeps, gems = Autoproj.osdeps.
+                    partition_packages(pkg_osdeps, ospkg_to_pkg)
+
+                puts "  #{pkg_name}:"
+                if !gems.empty?
+                    puts "    RubyGem packages: #{gems.to_a.sort.join(", ")}"
+                end
+
+                # If we are on a supported OS, convert the osdeps name to plain
+                # package name
+                if Autoproj::OSDependencies.supported_operating_system?
+                    pkg_osdeps = Autoproj.osdeps.
+                        resolve_os_dependencies(osdeps)
+
+                    if !pkg_osdeps.empty?
+                        puts "    OS packages:      #{pkg_osdeps.to_a.sort.join(", ")}"
+                    end
+                else
+                    if !os_packages.empty?
+                        puts "    OS dependencies:  #{os_packages.to_a.sort.join(", ")}"
+                    end
+                end
             end
         end
     end

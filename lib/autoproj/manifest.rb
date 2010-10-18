@@ -1184,7 +1184,15 @@ module Autoproj
             selected_packages.each(&:load_package_manifest)
         end
 
-        def install_os_dependencies(packages)
+        # call-seq:
+        #   list_os_dependencies(packages) => required_packages, ospkg_to_pkg
+        #
+        # Returns the set of dependencies required by the listed packages.
+        #
+        # +required_packages+ is the set of osdeps names that are required for
+        # +packages+ and +ospkg_to_pkg+ a mapping from the osdeps name to the
+        # set of packages that require this OS package.
+        def list_os_dependencies(packages)
             required_os_packages = Set.new
             package_os_deps = Hash.new { |h, k| h[k] = Array.new }
             packages.each do |pkg_name|
@@ -1199,6 +1207,12 @@ module Autoproj
                 end
             end
 
+            return required_os_packages, package_os_deps
+        end
+
+        # Installs the OS dependencies that are required by the given packages
+        def install_os_dependencies(packages)
+            required_os_packages, package_os_deps = list_os_dependencies(packages)
             Autoproj.osdeps.install(required_os_packages, package_os_deps)
         end
 
