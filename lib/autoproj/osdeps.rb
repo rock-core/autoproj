@@ -113,10 +113,15 @@ module Autoproj
         # Returns true if it is possible to install packages for the operating
         # system on which we are installed
         def self.supported_operating_system?
-            osdef = operating_system
-            return false if !osdef
-
-            OS_PACKAGE_INSTALL.has_key?(osdef[0])
+            if @supported_operating_system.nil?
+                osdef = operating_system
+                @supported_operating_system =
+                    if !osdef then false
+                    else
+                        OS_PACKAGE_INSTALL.has_key?(osdef[0])
+                    end
+            end
+            return @supported_operating_system
         end
 
         # Autodetects the operating system name and version
@@ -231,7 +236,6 @@ fi
         WRONG_OS_VERSION = 2
         IGNORE           = 3
         PACKAGES         = 4
-        SHELL_SNIPPET    = 5
         UNKNOWN_OS       = 7
         AVAILABLE        = 10
 
@@ -253,9 +257,6 @@ fi
         # [PACKAGES, definition]::
         #   +definition+ is an array of package names that this OS's package
         #   manager can understand
-        # [SHELL_SNIPPET, definition]::
-        #   +definition+ is a string which is a shell snippet that will install
-        #   the package
         def resolve_package(name)
             os_name, os_version = OSDependencies.operating_system
 
@@ -291,7 +292,7 @@ fi
                     version_list.to_s.split(',').
                         map(&:downcase).
                         any? do |v|
-                        os_version.any? { |osv| Regexp.new(v) =~ osv }
+                            os_version.any? { |osv| Regexp.new(v) =~ osv }
                         end
                 end
 
@@ -306,7 +307,7 @@ fi
             elsif data.to_str =~ /\w+/
                 return [PACKAGES, [data.to_str]]
             else
-                return [SHELL_SNIPPET, data.to_str]
+                raise ConfigError, "invalid package specificiation #{data} in #{source_of(name)}"
             end
         end
 
@@ -318,7 +319,6 @@ fi
             os_name, os_version = OSDependencies.operating_system
 
             os_packages    = []
-            shell_snippets = []
             dependencies.each do |name|
                 result = resolve_package(name)
                 if result == NO_PACKAGE
@@ -331,8 +331,6 @@ fi
                     next
                 elsif result[0] == PACKAGES
                     os_packages.concat(result[1])
-                elsif result[0] == SHELL_SNIPPET
-                    shell_snippets << result[1]
                 end
             end
 
@@ -340,13 +338,12 @@ fi
                 raise ConfigError, "I don't know how to install packages on #{os_name}"
             end
 
-            return os_packages, shell_snippets
+            return os_packages
         end
 
 
-        def generate_os_script(os_name, os_packages, shell_snippets)
-            (OS_PACKAGE_INSTALL[os_name] % [os_packages.join("' '")]) +
-            "\n" + shell_snippets.join("\n")
+        def generate_os_script(os_name, os_packages)
+            (OS_PACKAGE_INSTALL[os_name] % [os_packages.join("' '")])
         end
 
         # Returns true if +name+ is an acceptable OS package for this OS and
@@ -626,7 +623,7 @@ fi
             osdeps, gems = partition_packages(packages, package_osdeps)
             if handled_os
                 os_name, os_version = OSDependencies.operating_system
-                os_packages, shell_snippets = resolve_os_dependencies(osdeps)
+                os_packages = resolve_os_dependencies(osdeps)
                 os_packages = filter_uptodate_packages(os_packages, os_name)
             end
             gems   = filter_uptodate_gems(gems)
@@ -638,7 +635,7 @@ fi
 
             if !os_packages.empty?
                 if handled_os
-                    shell_script = generate_os_script(os_name, os_packages, shell_snippets)
+                    shell_script = generate_os_script(os_name, os_packages)
                 end
                 if osdeps_interaction(osdeps, os_packages, shell_script)
                     Autoproj.progress "  installing OS packages: #{os_packages.sort.join(", ")}"
