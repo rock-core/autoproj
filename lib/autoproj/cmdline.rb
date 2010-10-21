@@ -97,15 +97,15 @@ module Autoproj
             Autoproj.osdeps = Autoproj::OSDependencies.load_default
             Autoproj.osdeps.silent = !osdeps?
             Autoproj.osdeps.filter_uptodate_packages = osdeps_filter_uptodate?
-            if Autoproj::CmdLine.osdeps_forced_mode
-                Autoproj.osdeps.osdeps_mode = Autoproj::CmdLine.osdeps_forced_mode
-            end
-            if Autoproj::CmdLine.update_os_dependencies? || Autoproj::CmdLine.osdeps?
-                Autoproj.reset_option('operating_system')
+            if osdeps_forced_mode
+                Autoproj.osdeps.osdeps_mode = osdeps_forced_mode
             end
             # Do that AFTER we have properly setup Autoproj.osdeps as to avoid
             # unnecessarily redetecting the operating system
 	    Autoproj::OSDependencies.define_osdeps_mode_option
+            if update_os_dependencies? || osdeps?
+                Autoproj.reset_option('operating_system')
+            end
             Autoproj.osdeps.osdeps_mode
         end
 
