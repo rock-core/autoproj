@@ -149,6 +149,8 @@ module Autoproj
     def self.load(source, *path)
         path = File.join(*path)
         Kernel.load path
+    rescue Interrupt
+        raise
     rescue Exception => e
         Autoproj.filter_load_exception(e, source, path)
     end
