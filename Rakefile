@@ -51,6 +51,7 @@ namespace 'dist' do
     task 'bootstrap' do
         require 'yaml'
         osdeps_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'osdeps.rb'))
+        options_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'options.rb'))
         osdeps_defaults = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'default.osdeps'))
         # Filter rubygems dependencies from the OSdeps default. They will be
         # installed at first build
@@ -67,6 +68,7 @@ namespace 'dist' do
 
         bootstrap_code = File.read(File.join(Dir.pwd, 'bin', 'autoproj_bootstrap.in')).
             gsub('OSDEPS_CODE', osdeps_code).
+            gsub('OPTIONS_CODE', options_code).
             gsub('OSDEPS_DEFAULTS', osdeps_defaults)
         File.open(File.join(Dir.pwd, 'doc', 'guide', 'src', 'autoproj_bootstrap'), 'w') do |io|
             io.write bootstrap_code

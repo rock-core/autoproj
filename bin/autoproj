@@ -173,41 +173,39 @@ EOTEXT
         Autoproj.osdeps.install(Autoproj.build_system_dependencies)
     end
 
-    begin
-        # Now, we actually do the import. Unfortunately, at this stage, we need to
-        # import the package and its dependencies ourselves so that we are able to
-        # build the list of packages that have actually been selected on the command
-        # line.
-        all_enabled_packages = Autoproj::CmdLine.import_packages(selected_packages)
+    # Now, we actually do the import. Unfortunately, at this stage, we need to
+    # import the package and its dependencies ourselves so that we are able to
+    # build the list of packages that have actually been selected on the command
+    # line.
+    all_enabled_packages = Autoproj::CmdLine.import_packages(selected_packages)
 
-        if Autoproj::CmdLine.build? || Autoproj::CmdLine.doc? || Autoproj::CmdLine.update_os_dependencies?
-            if all_enabled_packages.empty?
-                STDERR.puts color("autoproj: nothing to do", :bold)
-            elsif Autoproj::CmdLine.build? || Autoproj::CmdLine.doc?
-                Autoproj::CmdLine.build_packages(selected_packages, all_enabled_packages)
-            elsif Autoproj::CmdLine.update_os_dependencies?
-                manifest.install_os_dependencies(all_enabled_packages)
-            end
+    if all_enabled_packages.empty?
+        STDERR.puts color("autoproj: nothing to do", :bold)
+    elsif Autoproj::CmdLine.update_os_dependencies?
+        manifest.install_os_dependencies(all_enabled_packages)
+    elsif Autoproj::CmdLine.doc?
+        Autoproj::CmdLine.build_packages(selected_packages, all_enabled_packages)
+    elsif Autoproj::CmdLine.build? 
+        begin
+            Autoproj::CmdLine.build_packages(selected_packages, all_enabled_packages)
 
             # Now, do some sanity checks on the result
             prefixes = all_enabled_packages.inject(Set.new) do |set, pkg_name|
                 set << Autobuild::Package[pkg_name].prefix
             end
 
-            if Autoproj::CmdLine.build?
-                Autoproj.progress
-                Autoproj.progress "checking for undefined symbols in installed libraries", :bold
-                prefixes.each do |prefix|
-                    libdir = File.join(prefix, "lib")
-                    if File.directory?(libdir)
-                        Autoproj.validate_solib_dependencies(libdir)
-                    end
+            Autoproj.progress
+            Autoproj.progress "checking for undefined symbols in installed libraries", :bold
+            prefixes.each do |prefix|
+                libdir = File.join(prefix, "lib")
+                if File.directory?(libdir)
+                    Autoproj.validate_solib_dependencies(libdir)
                 end
             end
+        ensure
+            Autoproj.export_env_sh
+            STDERR.puts color("autoproj: updated #{Autoproj.root_dir}/env.sh", :green)
         end
-    ensure
-        Autoproj.export_env_sh
-        STDERR.puts color("autoproj: updated #{Autoproj.root_dir}/env.sh", :green)
     end
 end
 

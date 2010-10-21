@@ -30,54 +30,6 @@ module Autoproj
     end
 
     module CmdLine
-	def self.handle_automatic_osdeps
-            if !Autoproj.has_config_key?('automatic_osdeps') && ENV['AUTOPROJ_AUTOMATIC_OSDEPS']
-                mode = ENV['AUTOPROJ_AUTOMATIC_OSDEPS']
-                mode =
-                    if mode == 'true'     then Autoproj::OSDependencies::AUTOMATIC
-                    elsif mode == 'false' then Autoproj::OSDependencies::MANUAL
-                    elsif mode == 'wait'  then Autoproj::OSDependencies::WAIT
-                    else Autoproj::OSDependencies::ASK
-                    end
-
-                Autoproj.change_option('automatic_osdeps', mode, true)
-            end
-
-            short_doc = "Should autoproj handle the OS package installation automatically (yes, no, wait or ask) ?"
-            long_doc =<<-EOT
-* if you say "yes", the OS dependencies will be handled by autoproj.
-* if you say "no", the list of OS dependencies that need to be installed
-  will be listed, and autoproj will go on, assuming that you have installed them yourself.
-* if you say "ask", you will be prompted each time a package needs to be installed.
-* if you say "wait", autoproj will simply wait for you to press ENTER to
-  continue after it prompted you for the dependencies.
-    
-This value can be changed anytime by calling an autoproj operation
-with the --reconfigure option (e.g. autoproj update --reconfigure).
-Moreover, the "autoproj osdeps" call will always allow you to install
-OS dependencies through autoproj.
-            EOT
-            long_doc = long_doc.strip
-
-	    Autoproj.configuration_option 'automatic_osdeps', 'string',
-		:default => 'yes',
-		:doc => [short_doc, long_doc] do |value|
-                    begin
-                        Autoproj::BuildOption.validate_boolean(value, Hash.new)
-                    rescue Autoproj::InputError
-                        if value.to_s == "ask"
-                            :ask
-                        elsif value.to_s == "wait"
-                            :wait
-                        else
-                            raise Autoproj::InputError, "invalid value. Please answer 'yes', 'no', 'wait' or 'ask' -- without the quotes"
-                        end
-                    end
-                end
-
-	    Autoproj.user_config('automatic_osdeps')
-	end
-
         def self.initialize
             Autobuild::Reporting << Autoproj::Reporter.new
             if mail_config[:to]
@@ -105,8 +57,6 @@ OS dependencies through autoproj.
             Autobuild.prefix  = Autoproj.build_dir
             Autobuild.srcdir  = Autoproj.root_dir
             Autobuild.logdir = File.join(Autobuild.prefix, 'log')
-
-	    handle_automatic_osdeps
 
             ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
             if ruby != 'ruby'
@@ -141,20 +91,32 @@ OS dependencies through autoproj.
             if Autobuild.do_update.nil?
                 Autobuild.do_update = manifest.auto_update?
             end
-            if Autoproj::CmdLine.update_os_dependencies.nil?
-                Autoproj::CmdLine.update_os_dependencies = manifest.auto_osdeps?
-            end
-            if Autoproj::CmdLine.update_os_dependencies
-                Autoproj.reset_option('operating_system')
-            end
 
             # Initialize the Autoproj.osdeps object by loading the default. The
             # rest is loaded later
             Autoproj.osdeps = Autoproj::OSDependencies.load_default
+            Autoproj.osdeps.silent = !osdeps?
+            Autoproj.osdeps.filter_uptodate_packages = osdeps_filter_uptodate?
+            if Autoproj::CmdLine.osdeps_forced_mode
+                Autoproj.osdeps.osdeps_mode = Autoproj::CmdLine.osdeps_forced_mode
+            end
+            if Autoproj::CmdLine.update_os_dependencies? || Autoproj::CmdLine.osdeps?
+                Autoproj.reset_option('operating_system')
+            end
+            # Do that AFTER we have properly setup Autoproj.osdeps as to avoid
+            # unnecessarily redetecting the operating system
+	    Autoproj::OSDependencies.define_osdeps_mode_option
+            Autoproj.osdeps.osdeps_mode
         end
 
         def self.update_myself
             return if !Autoproj::CmdLine.update_os_dependencies?
+
+            # This is a guard to avoid infinite recursion in case the user is
+            # running autoproj osdeps --force
+            if ENV['AUTOPROJ_RESTARTING'] == '1'
+                return
+            end
 
             # First things first, see if we need to update ourselves
             if Autoproj.osdeps.install(%w{autobuild autoproj})
@@ -162,6 +124,7 @@ OS dependencies through autoproj.
                 #
                 # ...But first save the configuration (!)
                 Autoproj.save_config
+                ENV['AUTOPROJ_RESTARTING'] = '1'
                 require 'rbconfig'
                 ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
                 exec(ruby, $0, *ARGV)
@@ -220,13 +183,18 @@ OS dependencies through autoproj.
 
             # Update the remote sources if there are any
             if manifest.has_remote_sources?
-                Autoproj.progress("autoproj: updating remote definitions of package sets", :bold)
+                if manifest.should_update_remote_sources
+                    Autoproj.progress("autoproj: updating remote definitions of package sets", :bold)
+                end
+
                 # If we need to install some packages to import our remote sources, do it
                 if update_os_dependencies?
                     Autoproj.osdeps.install(source_os_dependencies)
                 end
 
-                manifest.update_remote_sources
+                if manifest.should_update_remote_sources
+                    manifest.update_remote_sources
+                end
                 Autoproj.progress
             end
         end
@@ -507,7 +475,15 @@ OS dependencies through autoproj.
         def self.check?; !!@check end
         def self.manifest_update?; !!@manifest_update end
         def self.only_config?; !!@only_config end
-        def self.update_os_dependencies?; !!@update_os_dependencies end
+        def self.update_os_dependencies?
+            # Check if the mode disables osdeps anyway ...
+            if !@update_os_dependencies.nil? && !@update_os_dependencies
+                return false
+            end
+
+            # Now look for what the user wants
+            Autoproj.osdeps.osdeps_mode != 'none' || !Autoproj.osdeps.silent?
+        end
         class << self
             attr_accessor :update_os_dependencies
             attr_accessor :snapshot_dir
@@ -521,19 +497,29 @@ OS dependencies through autoproj.
         def self.build?; @mode =~ /build/ end
         def self.doc?; @mode == "doc" end
         def self.snapshot?; @mode == "snapshot" end
+
+        def self.osdeps?; @mode == "osdeps" end
         def self.show_osdeps?; @mode == "osdeps" && @show_osdeps end
         def self.revshow_osdeps?; @mode == "osdeps" && @revshow_osdeps end
+        def self.osdeps_forced_mode; @osdeps_forced_mode end
+        def self.osdeps_filter_uptodate?
+            if @mode == "osdeps"
+                @osdeps_filter_uptodate
+            else true
+            end
+        end
         def self.list_newest?; @list_newest end
         def self.parse_arguments(args)
             @only_status = false
             @only_local  = false
             @show_osdeps = false
             @revshow_osdeps = false
+            @osdeps_filter_uptodate = true
+            @osdeps_forced_mode = nil
             @check = false
             @manifest_update = false
             @display_configuration = false
             @update_os_dependencies = nil
-            update_os_dependencies  = nil
             @force_re_build_with_depends = false
             force_re_build_with_depends = nil
             @only_config = false
@@ -600,7 +586,7 @@ where 'mode' is one of:
                 opts.on("--keep-going", "-k", "continue building even though one package has an error") do
                     Autobuild.ignore_errors = true
                 end
-                opts.on("--os", "displays the operating system as detected by autoproj") do
+                opts.on("--os-version", "displays the operating system as detected by autoproj") do
                     os = OSDependencies.operating_system
                     if !os
                         puts "no information about that OS"
@@ -614,9 +600,6 @@ where 'mode' is one of:
                     exit 0
                 end
 
-                opts.on("--[no-]osdeps", "[do not] install prepackaged dependencies (build and update modes only)") do |value|
-                    update_os_dependencies = value
-                end
                 opts.on("--with-depends", "apply rebuild and force-build to both packages selected on the command line and their dependencies") do
                     force_re_build_with_depends = true
                 end
@@ -628,6 +611,34 @@ where 'mode' is one of:
                 end
                 opts.on("--show", "in the osdeps mode, show a per-package listing of the OS dependencies instead of installing them") do
                     @show_osdeps = true
+                end
+                opts.on("--no-osdeps", "disable osdeps handling in build and update modes") do |value|
+                    @osdeps_forced_mode = 'none'
+                end
+                opts.on("--all", "in osdeps mode, install both OS packages and RubyGem packages, regardless of the otherwise selected mode") do
+                    @osdeps_forced_mode = 'all'
+                end
+                opts.on("--os", "in osdeps mode, install OS packages and display information about the RubyGem packages, regardless of the otherwise selected mode") do
+                    if @osdeps_forced_mode == 'ruby'
+                        # Make --ruby --os behave like --all
+                        @osdeps_forced_mode = 'all'
+                    else
+                        @osdeps_forced_mode = 'os'
+                    end
+                end
+                opts.on('--force', 'in osdeps mode, do not filter out installed and uptodate packages') do
+                    @osdeps_filter_uptodate = false
+                end
+                opts.on("--ruby", "in osdeps mode, install only RubyGem packages and display information about the OS packages, regardless of the otherwise selected mode") do
+                    if @osdeps_forced_mode == 'os'
+                        # Make --ruby --os behave like --all
+                        @osdeps_forced_mode = 'all'
+                    else
+                        @osdeps_forced_mode = 'ruby'
+                    end
+                end
+                opts.on("--none", "in osdeps mode, do not install any package but display information about them, regardless of the otherwise selected mode") do
+                    @osdeps_forced_mode = 'none'
                 end
                 opts.on("--local", "for status, do not access the network") do
                     @only_local = true
@@ -686,7 +697,6 @@ where 'mode' is one of:
 
             selection = args.dup
             @partial_build = !selection.empty?
-            @update_os_dependencies = update_os_dependencies if !update_os_dependencies.nil?
             @force_re_build_with_depends = force_re_build_with_depends if !force_re_build_with_depends.nil?
             Autobuild.do_update = do_update if !do_update.nil?
             selection
@@ -945,8 +955,9 @@ where 'mode' is one of:
             vcs = Autoproj.normalize_vcs_definition(vcs_def)
 
             # Install the OS dependencies required for this VCS
-            handle_automatic_osdeps
+	    Autoproj::OSDependencies.define_osdeps_mode_option
             osdeps = Autoproj::OSDependencies.load_default
+            osdeps.osdeps_mode
             osdeps.install([vcs.type])
 
             # Now check out the actual configuration

@@ -80,6 +80,9 @@ module Autoproj
 
         def self.validate_string(value, options)
             if possible_values = options[:possible_values]
+                if options[:lowercase]
+                    value = value.downcase
+                end
                 if !possible_values.include?(value)
                     raise InputError, "invalid value '#{value}', accepted values are '#{possible_values.join(", ")}'"
                 end

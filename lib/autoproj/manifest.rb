@@ -752,6 +752,16 @@ module Autoproj
             each_remote_source(false).any? { true }
         end
 
+        # True if calling update_remote_sources will actually do anything
+        def should_update_remote_sources
+            each_remote_source(false) do |source|
+                if !File.directory?(source.local_dir)
+                    return true
+                end
+            end
+            false
+        end
+
         # Like #each_source, but filters out local package sets
         def each_remote_source(load_description = true)
             if !block_given?

@@ -20,6 +20,9 @@ module Autoproj
         end
         @aliases = Hash.new
 
+        attr_writer :silent
+        def silent?; @silent end
+
         def self.alias(old_name, new_name)
             @aliases[new_name] = old_name
         end
@@ -68,6 +71,8 @@ module Autoproj
                     sources[package_name] = file
                 end
             end
+            @silent = true
+            @filter_uptodate_packages = true
         end
 
         # Returns the full path to the osdeps file from which the package
@@ -118,7 +123,7 @@ module Autoproj
                 @supported_operating_system =
                     if !osdef then false
                     else
-                        OS_PACKAGE_INSTALL.has_key?(osdef[0])
+                        OS_AUTO_PACKAGE_INSTALL.has_key?(osdef[0])
                     end
             end
             return @supported_operating_system
@@ -138,8 +143,11 @@ module Autoproj
             if @operating_system
                 return @operating_system
             elsif Autoproj.has_config_key?('operating_system')
-                @operating_system = Autoproj.user_config('operating_system')
-            elsif data = os_from_lsb
+                return (@operating_system = Autoproj.user_config('operating_system'))
+            end
+
+            Autoproj.progress "  autodetecting the operating system"
+            if data = os_from_lsb
                 if data[0] != "debian"
                     # if on Debian proper, fall back to reading debian_version,
                     # as sid is listed as lenny by lsb-release
@@ -224,7 +232,14 @@ fi
             'debian' => method(:dpkg_package_installed?),
             'ubuntu' => method(:dpkg_package_installed?)
         }
-        OS_PACKAGE_INSTALL = {
+        OS_USER_PACKAGE_INSTALL = {
+            'debian' => "apt-get install '%s'",
+            'ubuntu' => "apt-get install '%s'",
+            'gentoo' => "emerge '%s'",
+            'arch' => "pacman '%s'"
+        }
+
+        OS_AUTO_PACKAGE_INSTALL = {
             'debian' => "export DEBIAN_FRONTEND=noninteractive; apt-get install -y '%s'",
             'ubuntu' => "export DEBIAN_FRONTEND=noninteractive; apt-get install -y '%s'",
             'gentoo' => "emerge --noreplace '%s'",
@@ -334,7 +349,7 @@ fi
                 end
             end
 
-            if !OS_PACKAGE_INSTALL.has_key?(os_name)
+            if !OS_AUTO_PACKAGE_INSTALL.has_key?(os_name)
                 raise ConfigError, "I don't know how to install packages on #{os_name}"
             end
 
@@ -342,8 +357,14 @@ fi
         end
 
 
-        def generate_os_script(os_name, os_packages)
-            (OS_PACKAGE_INSTALL[os_name] % [os_packages.join("' '")])
+        def generate_user_os_script(os_name, os_packages)
+            if OS_USER_PACKAGE_INSTALL[os_name]
+                (OS_USER_PACKAGE_INSTALL[os_name] % [os_packages.join("' '")])
+            else generate_auto_os_script(os_name, os_packages)
+            end
+        end
+        def generate_auto_os_script(os_name, os_packages)
+            (OS_AUTO_PACKAGE_INSTALL[os_name] % [os_packages.join("' '")])
         end
 
         # Returns true if +name+ is an acceptable OS package for this OS and
@@ -434,13 +455,24 @@ fi
             end
         end
 
-        def filter_uptodate_packages(packages, os_name)
+        # Returns true if the osdeps system knows how to remove uptodate
+        # packages from the needs-to-be-installed package list on this OS
+        def can_filter_uptodate_packages?
+            os_name, _ = OSDependencies.operating_system
+            !!OS_PACKAGE_CHECK[os_name]
+        end
+
+        # Returns the set of packages in +packages+ that are not already
+        # installed on this OS, if it is supported
+        def filter_uptodate_os_packages(packages, os_name)
             check_method = OS_PACKAGE_CHECK[os_name]
-            return if !check_method
+            return packages.dup if !check_method
 
             packages.find_all { |pkg| !check_method[pkg] }
         end
 
+        # Returns the set of RubyGem packages in +packages+ that are not already
+        # installed, or that can be upgraded
         def filter_uptodate_gems(gems)
             # Don't install gems that are already there ...
             gems = gems.dup
@@ -462,23 +494,155 @@ fi
             gems
         end
 
-        AUTOMATIC = true
-        MANUAL    = false
-        WAIT      = :wait
-        ASK       = :ask
+        HANDLE_ALL  = 'all'
+        HANDLE_RUBY = 'ruby'
+        HANDLE_OS   = 'os'
+        HANDLE_NONE = 'none'
 
-        def automatic_osdeps_mode
-            if mode = ENV['AUTOPROJ_AUTOMATIC_OSDEPS']
-                mode =
-                    if mode == 'true' then AUTOMATIC
-                    elsif mode == 'false' then MANUAL
-                    elsif mode == 'wait' then WAIT
-                    else ASK
-                    end
-                Autoproj.change_option('automatic_osdeps', mode, true)
-                mode
+        def self.osdeps_mode_option_unsupported_os
+            long_doc =<<-EOT
+The software packages that autoproj will have to build may require other
+prepackaged softwares (a.k.a. OS dependencies) to be installed (RubyGems
+packages, packages from your operating system/distribution, ...). Autoproj is
+usually able to install those automatically, but unfortunately your operating
+system is not (yet) supported by autoproj's osdeps mechanism, it can only offer
+you some limited support.
+
+RubyGem packages are a cross-platform mechanism, and are therefore supported.
+However, you will have to install the kind of OS dependencies (so-called OS
+packages)
+
+This option is meant to allow you to control autoproj's behaviour while handling
+OS dependencies.
+
+* if you say "ruby", the RubyGem packages will be installed.
+* if you say "none", autoproj will not do anything related to the OS
+  dependencies.
+
+As any configuration value, the mode can be changed anytime by calling
+an autoproj operation with the --reconfigure option (e.g. autoproj update
+--reconfigure).
+
+Finally, OS dependencies can be installed by calling "autoproj osdeps"
+with the corresponding option (--all, --ruby, --os or --none). Calling
+"autoproj osdeps" without arguments will also give you information as
+to what you should install to compile the software successfully.
+            EOT
+            message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (ruby, none) ?", long_doc.strip ]
+
+	    Autoproj.configuration_option 'osdeps_mode', 'string',
+		:default => 'ruby',
+		:doc => [short_doc, long_doc],
+                :possible_values => %w{ruby none},
+                :lowercase => true
+        end
+
+        def self.osdeps_mode_option_supported_os
+            long_doc =<<-EOT
+The software packages that autoproj will have to build may require other
+prepackaged softwares (a.k.a. OS dependencies) to be installed (RubyGems
+packages, packages from your operating system/distribution, ...). Autoproj
+is able to install those automatically for you.
+
+Advanced users may want to control this behaviour. Additionally, the
+installation of some packages require administration rights, which you may
+not have. This option is meant to allow you to control autoproj's behaviour
+while handling OS dependencies.
+
+* if you say "all", it will install all packages automatically.
+  This requires root access thru 'sudo'
+* if you say "ruby", only the Ruby packages will be installed.
+  Installing these packages does not require root access.
+* if you say "os", only the OS-provided packages will be installed.
+  Installing these packages requires root access.
+* if you say "none", autoproj will not do anything related to the
+  OS dependencies.
+
+As any configuration value, the mode can be changed anytime by calling
+an autoproj operation with the --reconfigure option (e.g. autoproj update
+--reconfigure).
+
+Finally, OS dependencies can be installed by calling "autoproj osdeps"
+with the corresponding option (--all, --ruby, --os or --none).
+            EOT
+            message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (all, ruby, os, none) ?", long_doc.strip ]
+
+	    Autoproj.configuration_option 'osdeps_mode', 'string',
+		:default => 'all',
+		:doc => message,
+                :possible_values => %w{all ruby os none},
+                :lowercase => true
+        end
+
+        def self.define_osdeps_mode_option
+            if supported_operating_system?
+                osdeps_mode_option_supported_os
             else
-                Autoproj.user_config('automatic_osdeps')
+                osdeps_mode_option_unsupported_os
+            end
+        end
+
+        def self.osdeps_mode_string_to_value(string)
+            string = string.downcase
+            case string
+            when 'all'  then HANDLE_ALL
+            when 'ruby' then HANDLE_RUBY
+            when 'os'   then HANDLE_OS
+            when 'none' then HANDLE_NONE
+            else raise ArgumentError, "invalid osdeps mode string '#{string}'"
+            end
+        end
+
+        # If set to true (the default), #install will try to remove the list of
+        # already uptodate packages from the installed packages. Set to false to
+        # install all packages regardless of their status
+        attr_accessor :filter_uptodate_packages
+
+        # Override the osdeps mode
+        def osdeps_mode=(value)
+            @osdeps_mode = OSDependencies.osdeps_mode_string_to_value(value)
+        end
+
+        # Returns the osdeps mode chosen by the user
+        def osdeps_mode
+            # This has two uses. It caches the value extracted from the
+            # AUTOPROJ_OSDEPS_MODE and/or configuration file. Moreover, it
+            # allows to override the osdeps mode by using
+            # OSDependencies#osdeps_mode=
+            if @osdeps_mode
+                return @osdeps_mode
+            end
+
+            @osdeps_mode = OSDependencies.osdeps_mode
+        end
+
+        def self.osdeps_mode
+            while true
+                mode =
+                    if !Autoproj.has_config_key?('osdeps_mode') &&
+                        mode_name = ENV['AUTOPROJ_OSDEPS_MODE']
+                        begin OSDependencies.osdeps_mode_string_to_value(mode_name)
+                        rescue ArgumentError
+                            Autoproj.warn "invalid osdeps mode given through AUTOPROJ_OSDEPS_MODE (#{mode})"
+                            nil
+                        end
+                    else
+                        mode_name = Autoproj.user_config('osdeps_mode')
+                        begin OSDependencies.osdeps_mode_string_to_value(mode_name)
+                        rescue ArgumentError
+                            Autoproj.warn "invalid osdeps mode stored in configuration file"
+                            nil
+                        end
+                    end
+
+                if mode
+                    @osdeps_mode = mode
+                    return mode
+                end
+
+                # Invalid configuration values. Retry
+                Autoproj.reset_option('osdeps_mode')
+                ENV['AUTOPROJ_OSDEPS_MODE'] = nil
             end
         end
 
@@ -486,131 +650,93 @@ fi
         attr_reader :installed_packages
 
         def osdeps_interaction_unknown_os(osdeps)
-            puts
-            puts "=========================================================="
-            puts "| " + Autoproj.color("The packages that will be built require some other software to be installed", :bold)
-            puts "| Since your operating system is unknown to autoproj, you will have to ensure"
-            puts "| that they are installed yourself."
-            puts "| #{Autoproj.color("If it is already the case, simply ignore this message", :red)}"
-            puts "|"
-            puts "|  " + osdeps.join("\n|  ")
-            puts "|"
+            puts <<-EOMSG
+  #{Autoproj.color("The build process requires some other software packages to be installed on our operating system", :bold)}
+  #{Autoproj.color("If they are already installed, simply ignore this message", :red)}"
+  
+    #{osdeps.join("\n    ")}
 
-            if automatic_osdeps_mode == ASK || automatic_osdeps_mode == WAIT
-                print Autoproj.color("Press ENTER to continue")
-                STDOUT.flush
-            end
+            EOMSG
+            print Autoproj.color("Press ENTER to continue", :bold)
+            STDOUT.flush
             STDIN.readline
             puts
             nil
         end
 
-        def osdeps_interaction(osdeps, os_packages, shell_script)
+        def osdeps_interaction(osdeps, os_packages, shell_script, silent)
             if !OSDependencies.supported_operating_system?
-                return osdeps_interaction_unknown_os(osdeps)
+                if silent
+                    return false
+                else
+                    return osdeps_interaction_unknown_os(osdeps)
+                end
             elsif OSDependencies.force_osdeps
                 return true
-            elsif automatic_osdeps_mode == AUTOMATIC
+            elsif osdeps_mode == HANDLE_ALL || osdeps_mode == HANDLE_OS
                 return true
-            end
-
-            puts
-            puts "=========================================================="
-            puts "| " + Autoproj.color("The packages that will be built require some other software to be installed", :bold)
-            puts "| " + Autoproj.color("and you required autoproj to not install them itself", :bold)
-            puts "| " + Autoproj.color("If these packages are already installed, simply ignore this message", :red)
-            puts "|"
-            puts "| The following packages are available as OS dependencies, i.e. as prebuilt"
-            puts "| packages provided by your distribution / operating system. You will have to"
-            puts "| install them manually if they are not already installed"
-            puts "|"
-            puts "|  " + os_packages.sort.join("\n|  ")
-            puts "|"
-            puts "| the following command line(s) can be used to install them:"
-            puts "|"
-            puts "|   " + shell_script.split("\n").join("\n|   ")
-            puts "|"
-
-            if automatic_osdeps_mode == ASK
-                print "|= " + Autoproj.color("Should I run this command lines for you ? [yes] ", :bold)
-                STDOUT.flush
-
-                while true
-                    answer = STDIN.readline.chomp
-                    if answer == ''
-                        return true
-                    elsif answer == "no"
-                        return false
-                    elsif answer == 'yes'
-                        return true
-                    else
-                        print "invalid answer. Please answer with 'yes' or 'no' "
-                        STDOUT.flush
-                    end
-                end
-
-            elsif automatic_osdeps_mode == WAIT
-                puts "| Since you requested autoproj to not handle the osdeps automatically, you have"
-                puts "| to do it yourself. Alternatively, you can run 'autoproj force-osdeps' and/or"
-                puts "| change to automatic osdeps handling by running an autoproj operation with the"
-                puts "| --reconfigure option (e.g. autoproj build --reconfigure)"
-                puts "|"
-                print "|= " + Autoproj.color("Press ENTER to continue ", :bold)
-                STDOUT.flush
-                STDIN.readline
-                puts
+            elsif silent
                 return false
             end
+
+            # We're asked to not install the OS packages but to display them
+            # anyway, do so now
+            puts <<-EOMSG
+
+  #{Autoproj.color("The build process and/or the packages require some other software to be installed", :bold)}
+  #{Autoproj.color("and you required autoproj to not install them itself", :bold)}
+  #{Autoproj.color("\nIf these packages are already installed, simply ignore this message\n", :red) if !can_filter_uptodate_packages?}
+    The following packages are available as OS dependencies, i.e. as prebuilt
+    packages provided by your distribution / operating system. You will have to
+    install them manually if they are not already installed
+    
+      #{os_packages.sort.join("\n      ")}
+    
+    the following command line(s) can be run as root to install them:
+    
+      #{shell_script.split("\n").join("\n|   ")}
+
+            EOMSG
+            print "    #{Autoproj.color("Press ENTER to continue ", :bold)}"
+            STDOUT.flush
+            STDIN.readline
+            puts
+            false
         end
 
-        def gems_interaction(gems, cmdline)
+        def gems_interaction(gems, cmdline, silent)
             if OSDependencies.force_osdeps
                 return true
-            elsif automatic_osdeps_mode == AUTOMATIC
+            elsif osdeps_mode == HANDLE_ALL || osdeps_mode == HANDLE_RUBY
                 return true
-            end
-
-            puts
-            puts "=========================================================="
-            puts "| " + Autoproj.color("The packages that will be built require some Ruby Gems to be installed", :bold)
-            puts "| " + Autoproj.color("and you required autoproj to not do it itself", :bold)
-            puts "| Alternatively, you can run 'autoproj force-osdeps' and/or change to automatic osdeps"
-            puts "| handling by running an autoproj operation with the --reconfigure option (e.g."
-            puts "| autoproj build --reconfigure)"
-            puts "|"
-            puts "| Autoproj expects these Gems to be installed in #{Autoproj.gem_home}"
-            puts "| This can be overriden by setting the AUTOPROJ_GEM_HOME environment"
-            puts "| variable manually"
-            puts "|"
-
-            if automatic_osdeps_mode == ASK
-                print "|= " + Autoproj.color("Should I install these packages ? [yes] ", :bold)
-                STDOUT.flush
-
-                while true
-                    answer = STDIN.readline.chomp
-                    if answer == ''
-                        return true
-                    elsif answer == "no"
-                        return false
-                    elsif answer == 'yes'
-                        return true
-                    else
-                        print "invalid answer. Please answer with 'yes' or 'no' "
-                        STDOUT.flush
-                    end
-                end
-
-            elsif automatic_osdeps_mode == WAIT
-                puts "| You can install these gems manually by running"
-                puts "|    #{cmdline.join(" ")}"
-                puts "|"
-                print "|= " + Autoproj.color("Press ENTER to continue ", :bold)
-                STDOUT.flush
-                STDIN.readline
-                puts
+            elsif silent
                 return false
             end
+
+            # We're not supposed to install rubygem packages but silent is not
+            # set, so display information about them anyway
+            puts <<-EOMSG
+  #{Autoproj.color("The build process and/or the packages require some Ruby Gems to be installed", :bold)}
+  #{Autoproj.color("and you required autoproj to not do it itself", :bold)}
+    You can use the --all or --ruby options to autoproj osdeps to install these
+    packages anyway, and/or change to the osdeps handling mode by running an
+    autoproj operation with the --reconfigure option as for instance
+    autoproj build --reconfigure
+    
+    The following command line can be used to install them manually
+    
+      #{cmdline.join(" ")}
+    
+    Autoproj expects these Gems to be installed in #{Autoproj.gem_home} This can
+    be overriden by setting the AUTOPROJ_GEM_HOME environment variable manually
+
+            EOMSG
+            print "    #{Autoproj.color("Press ENTER to continue ", :bold)}"
+
+            STDOUT.flush
+            STDIN.readline
+            puts
+            false
         end
 
         # Requests the installation of the given set of packages
@@ -624,20 +750,22 @@ fi
             if handled_os
                 os_name, os_version = OSDependencies.operating_system
                 os_packages = resolve_os_dependencies(osdeps)
-                os_packages = filter_uptodate_packages(os_packages, os_name)
+                if filter_uptodate_packages
+                    os_packages = filter_uptodate_os_packages(os_packages, os_name)
+                end
             end
-            gems   = filter_uptodate_gems(gems)
-            if osdeps.empty? && gems.empty?
-                return
+            if filter_uptodate_packages
+                gems   = filter_uptodate_gems(gems)
             end
-            
+
             did_something = false
 
-            if !os_packages.empty?
+            if !osdeps.empty? && (!os_packages || !os_packages.empty?)
                 if handled_os
-                    shell_script = generate_os_script(os_name, os_packages)
+                    shell_script = generate_auto_os_script(os_name, os_packages)
+                    user_shell_script = generate_user_os_script(os_name, os_packages)
                 end
-                if osdeps_interaction(osdeps, os_packages, shell_script)
+                if osdeps_interaction(osdeps, os_packages, user_shell_script, silent?)
                     Autoproj.progress "  installing OS packages: #{os_packages.sort.join(", ")}"
 
                     if Autoproj.verbose
@@ -666,11 +794,11 @@ fi
                 end
                 cmdline.concat(gems)
 
-                if gems_interaction(gems, cmdline)
+                if gems_interaction(gems, cmdline, silent?)
                     Autobuild.progress "installing/updating RubyGems dependencies: #{gems.sort.join(", ")}"
                     Autobuild::Subprocess.run 'autoproj', 'osdeps', *cmdline
+                    did_something = true
                 end
-                did_something = true
             end
 
             did_something
