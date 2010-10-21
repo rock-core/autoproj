@@ -640,6 +640,7 @@ with the corresponding option (--all, --ruby, --os or --none).
 
                 if mode
                     @osdeps_mode = mode
+                    Autoproj.change_option('osdeps_mode', mode_name, true)
                     return mode
                 end
 
