@@ -18,7 +18,6 @@ if !curdir_entries.empty? && ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] != '1
             # Set the environment variable since we might restart the
             # autoproj_bootstrap script and -- anyway -- will run "autoproj
             # bootstrap" later on
-            ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] = '1'
             break
         else
             STDOUT.puts "invalid answer. Please answer 'yes' or 'no'"
@@ -26,6 +25,9 @@ if !curdir_entries.empty? && ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] != '1
         end
     end
 end
+
+# Environment is clean, so just mark it as so unconditionally
+ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] = '1'
 
 needed_gem_home = ENV['AUTOPROJ_GEM_HOME'] || "#{Dir.pwd}/.gems"
 if $LOADED_FEATURES.find { |str| str =~ /bygems/ }
