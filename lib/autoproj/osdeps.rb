@@ -485,6 +485,9 @@ fi
                     available = gem_fetcher.find_matching(dep, false, true, OSDependencies.gem_with_prerelease)
                     installed_version = installed.map(&:version).max
                     available_version = available.map { |(name, v), source| v }.max
+                    if !available_version
+                        raise ConfigError, "cannot find any gem with the name '#{name}'"
+                    end
                     needs_update = (available_version > installed_version)
                     !needs_update
                 else
