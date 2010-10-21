@@ -482,7 +482,7 @@ fi
                 if !installed.empty? && Autobuild.do_update
                     # Look if we can update the package ...
                     dep = Gem::Dependency.new(name, version_requirements)
-                    available = gem_fetcher.find_matching(dep)
+                    available = gem_fetcher.find_matching(dep, false, true, OSDependencies.gem_with_prerelease)
                     installed_version = installed.map(&:version).max
                     available_version = available.map { |(name, v), source| v }.max
                     needs_update = (available_version > installed_version)
