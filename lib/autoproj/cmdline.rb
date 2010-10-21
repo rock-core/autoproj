@@ -1006,7 +1006,7 @@ manifest_source:
             end
 
             require 'set'
-            curdir_entries = Dir.entries('.').to_set - [".", "..", "autoproj_bootstrap", ".gems"].to_set
+            curdir_entries = Dir.entries('.').to_set - [".", "..", "autoproj_bootstrap", ".gems", 'env.sh'].to_set
             if !curdir_entries.empty? && ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] != '1'
                 while true
                     print "The current directory is not empty, continue bootstrapping anyway ? [yes] "
