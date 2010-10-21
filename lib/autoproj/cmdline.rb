@@ -120,6 +120,10 @@ module Autoproj
 
             # First things first, see if we need to update ourselves
             if Autoproj.osdeps.install(%w{autobuild autoproj})
+                puts
+                Autoproj.progress 'autoproj and/or autobuild has been updated, restarting autoproj'
+                puts
+
                 # We updated autobuild or autoproj themselves ... Restart !
                 #
                 # ...But first save the configuration (!)
