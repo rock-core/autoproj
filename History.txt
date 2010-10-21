@@ -1,3 +1,17 @@
+= Version 1.6.2
+ * overhauled osdeps fine-grained configuration. See
+   http://orocos.org/dfki/autoproj/osdeps.html
+   for more information
+ * fix too-aggressive caching of operating system characteristics,
+   which breaks on OS upgrades.
+ * on Debian-like systems, filter out packages that are already installed
+ * on all systems, filter packages that have already been handled by the osdeps
+ * add a -k option that continues operation even after errors. The sum of all
+   errors are properly presented at the end of the run.
+ * when boostrapping, check that the current directory is empty and warn the
+   user if it is not.
+ * a few minor bugfixes
+
 = Version 1.6.1
  * fix a limitation of giving directories on the command line. Before, only
    packages that were explicitely listed in the layout would be selected. Now,
