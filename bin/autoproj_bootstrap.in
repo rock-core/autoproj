@@ -99,13 +99,23 @@ end
 
 OSDEPS_CODE
 OPTIONS_CODE
+SYSTEM_CODE
+
+# Override Autoproj.root_dir
+module Autoproj
+    def self.root_dir
+        @root_dir
+    end
+    @root_dir = Dir.pwd
+end
 
 DEFS = <<EODEFS
 OSDEPS_DEFAULTS
 EODEFS
 
 Autoproj::OSDependencies.define_osdeps_mode_option
-ENV['AUTOPROJ_OSDEPS_MODE'] = Autoproj::OSDependencies.osdeps_mode
+osdeps_mode = Autoproj::OSDependencies.osdeps_mode
+ENV['AUTOPROJ_OSDEPS_MODE'] = osdeps_mode
 
 # First thing we do is install a proper ruby environment. We make sure that we
 # aren't installing any gems for now (as we need to choose the right gem
@@ -113,8 +123,10 @@ ENV['AUTOPROJ_OSDEPS_MODE'] = Autoproj::OSDependencies.osdeps_mode
 Autobuild.programs['gem'] = nil
 Autoproj::OSDependencies.autodetect_ruby
 
+osdeps_management = Autoproj::OSDependencies.new(YAML.load(DEFS))
+osdeps_management.silent = false
+
 begin
-    osdeps_management = Autoproj::OSDependencies.new(YAML.load(DEFS))
     STDERR.puts "autoproj: installing a proper Ruby environment (this can take a long time)"
     osdeps_management.install(['ruby'])
 rescue Autoproj::ConfigError => e
@@ -128,7 +140,6 @@ PACKAGES      = %w{rdoc autobuild libxml2 libxslt zlib build-essential lsb_relea
 ENV['RUBYOPT']  = "-rubygems"
 require 'rubygems'
 
-osdeps_management = Autoproj::OSDependencies.new(YAML.load(DEFS))
 STDERR.puts "autoproj: installing autoproj and its dependencies (this can take a long time)"
 # First install the dependencies of autoproj, as we don't want them to be
 # affected by the prerelease flag
