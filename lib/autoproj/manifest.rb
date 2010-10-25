@@ -754,6 +754,10 @@ module Autoproj
 
         # True if calling update_remote_sources will actually do anything
         def should_update_remote_sources
+            if Autobuild.do_update
+                return true
+            end
+
             each_remote_source(false) do |source|
                 if !File.directory?(source.local_dir)
                     return true
