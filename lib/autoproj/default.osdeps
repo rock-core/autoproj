@@ -15,14 +15,9 @@ ruby18:
 
 ruby19:
     debian:
-        squeeze,sid:
-            - ruby1.9.1
-            - ruby1.9.1-dev
-            - rubygems1.9.1
-        stable:
-            - ruby1.9.1
-            - ruby1.9.1-dev
-            - rubygems1.9.1
+        - ruby1.9.1
+        - ruby1.9.1-dev
+        - rubygems1.9.1
 
     ubuntu:
         - ruby1.9.1
@@ -63,7 +58,11 @@ autoproj: gem
 
 # The following definitions are for the VCS and build systems
 git:
-    debian,ubuntu: git-core
+    debian:
+        lenny:
+            git
+        default: git-core
+    ubuntu: git-core
     gentoo: dev-vcs/git
     arch: git
 svn:

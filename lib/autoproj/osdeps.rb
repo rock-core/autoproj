@@ -119,11 +119,11 @@ module Autoproj
         # system on which we are installed
         def self.supported_operating_system?
             if @supported_operating_system.nil?
-                osdef = operating_system
+                os_names, _ = operating_system
                 @supported_operating_system =
-                    if !osdef then false
+                    if !os_names then false
                     else
-                        OS_AUTO_PACKAGE_INSTALL.has_key?(osdef[0])
+                        os_names.any? { |os_name| OS_AUTO_PACKAGE_INSTALL.has_key?(os_name) }
                     end
             end
             return @supported_operating_system
@@ -143,15 +143,21 @@ module Autoproj
             if @operating_system
                 return @operating_system
             elsif Autoproj.has_config_key?('operating_system')
-                return (@operating_system = Autoproj.user_config('operating_system'))
+                os = Autoproj.user_config('operating_system')
+                if !os.respond_to?(:to_ary) # upgrade from previous format
+                    @operating_system = nil
+                end
             end
 
             Autoproj.progress "  autodetecting the operating system"
-            if data = os_from_lsb
-                if data[0] != "debian"
-                    # if on Debian proper, fall back to reading debian_version,
-                    # as sid is listed as lenny by lsb-release
-                    @operating_system = data
+            name, versions = os_from_lsb
+            if name
+                if name != "debian"
+                    if File.exists?("/etc/debian_version")
+                        @operating_system = [[name, "debian"], versions]
+                    else
+                        @operating_system = [[name], versions]
+                    end
                 end
             end
 
@@ -159,18 +165,18 @@ module Autoproj
                 # Need to do some heuristics unfortunately
                 @operating_system =
                     if File.exists?('/etc/debian_version')
-                        codename = [File.read('/etc/debian_version').strip]
-                        if codename.first =~ /sid/
-                            codename << "unstable" << "sid"
+                        codenames = [File.read('/etc/debian_version').strip]
+                        if codenames.first =~ /sid/
+                            codenames << "unstable" << "sid"
                         end
-                        ['debian', codename]
+                        [['debian'], codenames]
                     elsif File.exists?('/etc/gentoo-release')
                         release_string = File.read('/etc/gentoo-release').strip
                         release_string =~ /^.*([^\s]+)$/
                             version = $1
-                        ['gentoo', [version]]
+                        [['gentoo'], [version]]
                     elsif File.exists?('/etc/arch-release')
-                        ['arch', []]
+                        [['arch'], []]
                     end
             end
 
@@ -180,8 +186,8 @@ module Autoproj
 
             # Normalize the names to lowercase
             @operating_system =
-                [@operating_system[0].downcase,
-                 @operating_system[1].map(&:downcase)]
+                 [@operating_system[0].map(&:downcase),
+                 [@operating_system[1].map(&:downcase) + ["default"]]]
             Autoproj.change_option('operating_system', @operating_system, true)
             @operating_system
         end
@@ -273,28 +279,30 @@ fi
         #   +definition+ is an array of package names that this OS's package
         #   manager can understand
         def resolve_package(name)
-            os_name, os_version = OSDependencies.operating_system
+            os_names, os_versions = OSDependencies.operating_system
 
             dep_def = definitions[name]
             if !dep_def
                 return NO_PACKAGE
             end
 
-            if !os_name
+            if !os_names
                 return UNKNOWN_OS
             end
 
             # Find a matching entry for the OS name
-            os_entry = dep_def.find do |name_list, data|
-                name_list.split(',').
-                    map(&:downcase).
-                    any? { |n| n == os_name }
+            os_entry = nil
+            os_names.find do |os_name|
+                os_entry = dep_def.find do |name_list, data|
+                    name_list.split(',').
+                        map(&:downcase).
+                        any? { |n| n == os_name }
+                end
             end
 
             if !os_entry
                 return WRONG_OS
             end
-
             data = os_entry.last
 
             # This package does not need to be installed on this operating system (example: build tools on Gentoo)
@@ -303,12 +311,17 @@ fi
             end
 
             if data.kind_of?(Hash)
-                version_entry = data.find do |version_list, data|
-                    version_list.to_s.split(',').
-                        map(&:downcase).
-                        any? do |v|
-                            os_version.any? { |osv| Regexp.new(v) =~ osv }
+                version_entry = nil
+                os_versions.each do |os_version|
+                    version_entry =
+                        data.find do |version_list, data|
+                            version_list.to_s.split(',').
+                                map(&:downcase).
+                                any? do |v|
+                                    os_version.any? { |osv| Regexp.new(v) =~ osv }
+                                end
                         end
+                    break if version_entry
                 end
 
                 if !version_entry
@@ -319,7 +332,7 @@ fi
 
             if data.respond_to?(:to_ary)
                 return [PACKAGES, data]
-            elsif data.to_str =~ /\w+/
+            elsif data.respond_to?(:to_str)
                 return [PACKAGES, [data.to_str]]
             else
                 raise ConfigError, "invalid package specificiation #{data} in #{source_of(name)}"
@@ -331,7 +344,7 @@ fi
         #
         # Raises ConfigError if some packages can't be found
         def resolve_os_dependencies(dependencies)
-            os_name, os_version = OSDependencies.operating_system
+            os_names, _ = OSDependencies.operating_system
 
             os_packages    = []
             dependencies.each do |name|
@@ -349,22 +362,30 @@ fi
                 end
             end
 
-            if !OS_AUTO_PACKAGE_INSTALL.has_key?(os_name)
-                raise ConfigError, "I don't know how to install packages on #{os_name}"
+            if !os_names.any? { |os_name| OS_AUTO_PACKAGE_INSTALL.has_key?(os_name) }
+                raise ConfigError, "I don't know how to install packages on #{os_names.first}"
             end
 
             return os_packages
         end
 
 
-        def generate_user_os_script(os_name, os_packages)
-            if OS_USER_PACKAGE_INSTALL[os_name]
-                (OS_USER_PACKAGE_INSTALL[os_name] % [os_packages.join("' '")])
-            else generate_auto_os_script(os_name, os_packages)
+        def generate_user_os_script(os_names, os_packages)
+            user_package_install = nil
+            os_names.find do |os_name|
+                user_package_install = OS_USER_PACKAGE_INSTALL[os_name]
+            end
+            if user_package_install
+                (user_package_install % [os_packages.join("' '")])
+            else generate_auto_os_script(os_names, os_packages)
             end
         end
-        def generate_auto_os_script(os_name, os_packages)
-            (OS_AUTO_PACKAGE_INSTALL[os_name] % [os_packages.join("' '")])
+        def generate_auto_os_script(os_names, os_packages)
+            auto_package_install = nil
+            os_names.find do |os_name|
+                auto_package_install = OS_AUTO_PACKAGE_INSTALL[os_name]
+            end
+            (auto_package_install % [os_packages.join("' '")])
         end
 
         # Returns true if +name+ is an acceptable OS package for this OS and
@@ -458,14 +479,17 @@ fi
         # Returns true if the osdeps system knows how to remove uptodate
         # packages from the needs-to-be-installed package list on this OS
         def can_filter_uptodate_packages?
-            os_name, _ = OSDependencies.operating_system
-            !!OS_PACKAGE_CHECK[os_name]
+            os_names, _ = OSDependencies.operating_system
+            !!os_names.any? { |os_name| OS_PACKAGE_CHECK[os_name] }
         end
 
         # Returns the set of packages in +packages+ that are not already
         # installed on this OS, if it is supported
-        def filter_uptodate_os_packages(packages, os_name)
-            check_method = OS_PACKAGE_CHECK[os_name]
+        def filter_uptodate_os_packages(packages, os_names)
+            check_method = nil
+            os_names.find do |os_name|
+                check_method = OS_PACKAGE_CHECK[os_name]
+            end
             return packages.dup if !check_method
 
             packages.find_all { |pkg| !check_method[pkg] }
@@ -752,10 +776,10 @@ with the corresponding option (--all, --ruby, --os or --none).
 
             osdeps, gems = partition_packages(packages, package_osdeps)
             if handled_os
-                os_name, os_version = OSDependencies.operating_system
+                os_names, os_versions = OSDependencies.operating_system
                 os_packages = resolve_os_dependencies(osdeps)
                 if filter_uptodate_packages
-                    os_packages = filter_uptodate_os_packages(os_packages, os_name)
+                    os_packages = filter_uptodate_os_packages(os_packages, os_names)
                 end
             end
             if filter_uptodate_packages
@@ -766,8 +790,8 @@ with the corresponding option (--all, --ruby, --os or --none).
 
             if !osdeps.empty? && (!os_packages || !os_packages.empty?)
                 if handled_os
-                    shell_script = generate_auto_os_script(os_name, os_packages)
-                    user_shell_script = generate_user_os_script(os_name, os_packages)
+                    shell_script = generate_auto_os_script(os_names, os_packages)
+                    user_shell_script = generate_user_os_script(os_names, os_packages)
                 end
                 if osdeps_interaction(osdeps, os_packages, user_shell_script, silent?)
                     Autoproj.progress "  installing OS packages: #{os_packages.sort.join(", ")}"
