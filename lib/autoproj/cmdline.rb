@@ -417,6 +417,23 @@ module Autoproj
                 end
             end
 
+            begin
+                Autobuild.do_update = false
+                packages = Autobuild::Package.each.
+                    find_all { |pkg_name, pkg| File.directory?(pkg.srcdir) }.
+                    delete_if { |pkg_name, pkg| !all_enabled_packages.include?(pkg_name) || Autoproj.manifest.excluded?(pkg_name) || Autoproj.manifest.ignored?(pkg_name) }
+
+                packages.each do |_, pkg|
+                    pkg.isolate_errors do
+                        pkg.prepare
+                    end
+                end
+
+            ensure
+                Autobuild.do_update = old_update_flag
+            end
+
+
             if Autoproj.verbose
                 Autoproj.progress "autoproj: finished importing packages"
             end
