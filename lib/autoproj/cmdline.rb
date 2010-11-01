@@ -578,15 +578,30 @@ where 'mode' is one of:
   doc:    generate and install documentation for packages that have some
 
 -- Status & Update
-  envsh: update the env.sh script
-  status: displays the state of the packages w.r.t. their source VCS
-  list:   list all available packages
-  update: only import/update packages, do not build them
+  envsh:         update the env.sh script
+  osdeps:        install the OS-provided packages
+  status:        displays the state of the packages w.r.t. their source VCS
+  list-config:   list all available packages
+  update:        only import/update packages, do not build them
   update-config: only update the configuration
+
+-- Experimental Features (USE AT YOUR OWN RISK)
+  check:  compares dependencies in manifest.xml with autodetected ones
+          (valid only for package types that do autodetection, like
+          orogen packages)
+  manifest-update: like check, but updates the manifest.xml file
+          (CAREFUL: optional dependencies will get added as well!!!)
+  snapshot: create a standalone autoproj configuration where all packages
+            are pinned to their current version. I.e. building a snapshot
+            should give you the exact same result.
 
 -- Autoproj Configuration
   bootstrap: starts a new autoproj installation. Usage:
     autoproj bootstrap [manifest_url|source_vcs source_url opt1=value1 opt2=value2 ...]
+
+    For example:
+    autoproj bootstrap git git://github.com/doudou/rubim-all.git branch=all
+
   switch-config: change where the configuration should be taken from. Syntax:
     autoproj switch-config source_vcs source_url opt1=value1 opt2=value2 ...
 
@@ -1123,6 +1138,11 @@ export PATH=$GEM_HOME/bin:$PATH
             missing.to_set.to_a.sort
         end
 
+        # Verifies that each package's manifest is up-to-date w.r.t. the
+        # automatically-detected dependencies
+        #
+        # Only useful for package types that do some automatic dependency
+        # detection
         def self.check(packages)
             packages.sort.each do |pkg_name|
                 result = []
