@@ -1284,6 +1284,12 @@ module Autoproj
                 all_packages.each do |pkg_name|
                     pkg = Autobuild::Package[pkg_name]
                     if pkg_name =~ match_pkg_name || pkg.srcdir =~ match_dir
+                        # Check-out packages that are not in the manifest only
+                        # if they are explicitely selected
+                        if !File.directory?(pkg.srcdir) && !all_layout_packages.include?(pkg.name)
+                            next
+                        end
+
                         expanded_packages << pkg_name
                     end
                 end
