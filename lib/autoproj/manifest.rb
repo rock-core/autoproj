@@ -1282,7 +1282,6 @@ module Autoproj
                     if pkg_name =~ match_pkg_name || pkg.srcdir =~ match_dir
                         # Check-out packages that are not in the manifest only
                         # if they are explicitely selected
-                        puts "#{pkg_name} #{pkg.srcdir} #{sel} #{pkg_name != sel} #{pkg.srcdir != sel}"
                         if pkg_name != sel && pkg.srcdir != sel && !all_layout_packages.include?(pkg.name)
                             next
                         end
