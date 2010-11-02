@@ -1246,7 +1246,7 @@ module Autoproj
 
             # First, remove packages that are directly referenced by name or by
             # package set names
-            selected_packages.delete_if do |sel|
+            selected_packages.each do |sel|
                 sel = Regexp.new(Regexp.quote(sel))
 
                 packages = all_layout_packages.
@@ -1263,13 +1263,9 @@ module Autoproj
                 !packages.empty? || !sources.empty?
             end
 
-            if selected_packages.empty?
-                return expanded_packages
-            end
-
             # Now, search for layout names
             each_package_set(nil) do |layout_name, packages, _|
-                selected_packages.delete_if do |sel|
+                selected_packages.each do |sel|
                     if layout_name[0..-1] =~ Regexp.new("#{sel}\/?$")
                         expanded_packages |= packages.to_set
                     end
@@ -1278,7 +1274,7 @@ module Autoproj
 
             # Finally, check for package source directories
             all_packages = self.all_package_names
-            selected_packages.delete_if do |sel|
+            selected_packages.each do |sel|
                 match_dir      = Regexp.new("^#{Regexp.quote(sel)}")
                 match_pkg_name = Regexp.new(Regexp.quote(sel))
                 all_packages.each do |pkg_name|
@@ -1286,7 +1282,8 @@ module Autoproj
                     if pkg_name =~ match_pkg_name || pkg.srcdir =~ match_dir
                         # Check-out packages that are not in the manifest only
                         # if they are explicitely selected
-                        if !File.directory?(pkg.srcdir) && !all_layout_packages.include?(pkg.name)
+                        puts "#{pkg_name} #{pkg.srcdir} #{sel} #{pkg_name != sel} #{pkg.srcdir != sel}"
+                        if pkg_name != sel && pkg.srcdir != sel && !all_layout_packages.include?(pkg.name)
                             next
                         end
 
