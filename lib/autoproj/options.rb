@@ -87,9 +87,12 @@ module Autoproj
             if possible_values = options[:possible_values]
                 if options[:lowercase]
                     value = value.downcase
+                elsif options[:uppercase]
+                    value = value.upcase
                 end
+
                 if !possible_values.include?(value)
-                    raise InputError, "invalid value '#{value}', accepted values are '#{possible_values.join(", ")}'"
+                    raise InputError, "invalid value '#{value}', accepted values are '#{possible_values.join("', '")}' (without the quotes)"
                 end
             end
             value
