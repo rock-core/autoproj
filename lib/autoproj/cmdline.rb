@@ -213,7 +213,7 @@ module Autoproj
             # First, we allow to user to specify packages based on disk paths, so
             # resolve those
             seen = Set.new
-            manifest.each_package_set do |name, packages, enabled_packages|
+            manifest.each_layout_level do |name, packages, enabled_packages|
                 packages -= seen
 
                 srcdir  = File.join(Autoproj.root_dir, name)
@@ -250,7 +250,7 @@ module Autoproj
         end
 
 
-        def self.display_sources(manifest)
+        def self.display_configuration(manifest)
             # We can't have the Manifest class load the source.yml file, as it
             # cannot resolve all constants. So we need to do it ourselves to get
             # the name ...

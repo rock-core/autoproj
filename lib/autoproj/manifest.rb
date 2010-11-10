@@ -219,11 +219,11 @@ module Autoproj
         result
     end
 
-    # A source is a version control repository which contains general source
+    # A package set is a version control repository which contains general
     # information with package version control information (source.yml file),
     # package definitions (.autobuild files), and finally definition of
     # dependencies that are provided by the operating system (.osdeps file).
-    class Source
+    class PackageSet
         # The VCSDefinition object that defines the version control holding
         # information for this source. Local package sets (i.e. the ones that are not
         # under version control) use the 'local' version control name. For them,
@@ -510,8 +510,8 @@ module Autoproj
         end
     end
 
-    # Specialization of the Source class for the overrides listed in autoproj/
-    class LocalSource < Source
+    # Specialization of the PackageSet class for the overrides listed in autoproj/
+    class LocalPackageSet < PackageSet
         def initialize
             super(Autoproj.normalize_vcs_definition(:type => 'local', :url => Autoproj.config_dir))
         end
@@ -547,6 +547,11 @@ module Autoproj
             end
         end
     end
+
+    # DEPRECATED. For backward-compatibility only.
+    Source = PackageSet
+    # DEPRECATED. For backward-compatibility only.
+    LocalSource = LocalPackageSet
 
     PackageDefinition = Struct.new :autobuild, :user_block, :package_set, :file
 
