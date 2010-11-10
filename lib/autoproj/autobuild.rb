@@ -74,6 +74,27 @@ module Autobuild
             depends_on(name)
         end
 
+        def optional_dependency(name)
+            optional_dependencies << name
+        end
+
+        def resolve_optional_dependencies
+            optional_dependencies.each do |name|
+                if Autoproj.manifest.package_enabled?(name)
+                    if Autoproj.verbose
+                        STDERR.puts "adding optional dependency #{self.name} => #{name}"
+                    end
+                    depends_on(name)
+                elsif Autoproj.verbose
+                    STDERR.puts "NOT adding optional dependency #{self.name} => #{name}"
+                end
+            end
+        end
+
+        def optional_dependencies
+            @optional_dependencies ||= Set.new
+        end
+
         def os_packages
             @os_packages ||= Set.new
         end
@@ -441,5 +462,20 @@ class Autobuild::ArchiveImporter
 
         { 'url' =>  File.join('$AUTOPROJ_SOURCE_DIR', File.basename(@cachefile)) }
     end
+end
+
+def package(name)
+    Autobuild::Package[name]
+end
+
+# Returns true if +name+ is a valid package and is included in the build
+def package_enabled?(name)
+    Autoproj.manifest.package_enabled?(name, false)
+end
+
+# If used in init.rb, allows to disable automatic imports from specific package
+# sets
+def disable_imports_from(name)
+    Autoproj.manifest.disable_imports_from(name)
 end
 

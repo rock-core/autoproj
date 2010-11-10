@@ -1,3 +1,15 @@
+= Version 1.7.0
+ * introduced cross-package-set imports. A package set can now tell autoproj to
+   install another one in a recursive manner (see user's guide)
+ * added optional dependencies.
+       pkg.optional_dependency pkg_name
+   will not add the dependency if pkg_name is explicitely excluded from the
+   build
+ * added the #package toplevel method to get a package handle, i.e.
+       package('orocos/rtt')
+   is equivalent to the old
+       Autobuild::Package['orocos/rtt']
+   
 = Version 1.6.2
  * overhauled osdeps fine-grained configuration. See
    http://orocos.org/dfki/autoproj/osdeps.html
@@ -10,7 +22,7 @@
    errors are properly presented at the end of the run.
  * when boostrapping, check that the current directory is empty and warn the
    user if it is not.
- * a few minor bugfixes
+ * a few more minor bugfixes
 
 = Version 1.6.1
  * fix a limitation of giving directories on the command line. Before, only

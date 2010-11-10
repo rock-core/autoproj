@@ -224,17 +224,38 @@ module Autoproj
     # package definitions (.autobuild files), and finally definition of
     # dependencies that are provided by the operating system (.osdeps file).
     class PackageSet
+        attr_reader :manifest
         # The VCSDefinition object that defines the version control holding
         # information for this source. Local package sets (i.e. the ones that are not
         # under version control) use the 'local' version control name. For them,
         # local? returns true.
         attr_accessor :vcs
+
+        # If this package set has been imported from another package set, this
+        # is the other package set object
+        attr_accessor :imported_from
+
+        # If true, this package set has been loaded because another set imports
+        # it. If false, it is loaded explicitely by the user
+        def explicit?; !@imported_from end
+
         attr_reader :source_definition
         attr_reader :constants_definitions
 
+        # Sets the auto_imports flag. See #auto_imports?
+        attr_writer :auto_imports
+        # If true (the default), imports listed in this package set will be
+        # automatically loaded by autoproj
+        def auto_imports?; !!@auto_imports end
+
         # Create this source from a VCSDefinition object
-        def initialize(vcs)
+        def initialize(manifest, vcs)
+            @manifest = manifest
             @vcs = vcs
+
+            @provides = Set.new
+            @imports  = Array.new
+            @auto_imports = true
         end
 
         # True if this source has already been checked out on the local autoproj
@@ -250,6 +271,39 @@ module Autoproj
                 !File.exists?(File.join(raw_local_dir, "init.rb"))
         end
 
+        # Create a PackageSet instance from its description as found in YAML
+        # configuration files
+        def self.from_spec(manifest, spec, load_description)
+            options, vcs_spec = Kernel.filter_options spec, :auto_imports => true
+
+            # Look up for short notation (i.e. not an explicit hash). It is
+            # either vcs_type:url or just url. In the latter case, we expect
+            # 'url' to be a path to a local directory
+            vcs_def = begin
+                          vcs_spec = Autoproj.expand(vcs_spec, manifest.constant_definitions)
+                          Autoproj.normalize_vcs_definition(vcs_spec)
+                      rescue ConfigError => e
+                          raise ConfigError, "in #{file}: #{e.message}"
+                      end
+
+            source = PackageSet.new(manifest, vcs_def)
+            source.auto_imports = options[:auto_imports]
+            if load_description
+                if source.present?
+                    source.load_description_file
+                else
+                    raise InternalError, "cannot load description file as it has not been checked out yet"
+                end
+            else
+                # Try to load just the name from the source.yml file
+                source.load_minimal
+            end
+
+            source
+        end
+
+
+
         # Remote sources can be accessed through a hidden directory in
         # $AUTOPROJ_ROOT/.remotes, or through a symbolic link in
         # autoproj/remotes/
@@ -261,7 +315,7 @@ module Autoproj
             if local?
                 return vcs.url 
             else
-                File.join(Autoproj.remotes_dir, automatic_name)
+                File.join(Autoproj.remotes_dir, vcs.to_s.gsub(/[^\w]/, '_'))
             end
         end
 
@@ -291,19 +345,14 @@ module Autoproj
             end
         end
 
-        # A name generated from the VCS url
-        def automatic_name
-            vcs.to_s.gsub(/[^\w]/, '_')
-        end
-
         # Returns the source name
         def name
             if @source_definition then
-                @source_definition['name'] || automatic_name
+                @source_definition['name'] || vcs.to_s
             elsif @name
                 @name
             else
-                automatic_name
+                vcs.to_s
             end
         end
 
@@ -334,8 +383,11 @@ module Autoproj
             source_definition
         end
 
-        # Load and validate the name from the YAML hash
-        def load_name
+        # Load and validate the self-contained information from the YAML hash
+        def load_minimal
+            # If @source_definition is set, it means that load_description_file
+            # has been called and that therefore all information has already
+            # been parsed
             definition = @source_definition || raw_description_file
             @name = definition['name']
 
@@ -345,7 +397,21 @@ module Autoproj
                 raise ConfigError, "source #{self} is named 'local', but this is a reserved name"
             end
 
+            @provides = (definition['provides'] || Set.new).to_set
+            @imports  = (definition['imports'] || Array.new).map do |set_def|
+                pkg_set = PackageSet.from_spec(manifest, set_def, false)
+                pkg_set.imported_from = self
+                pkg_set
+            end
+
         rescue InternalError
+            # This ignores raw_description_file error if the package set is not
+            # checked out yet
+        end
+
+        # Yields the imports this package set declares, as PackageSet instances
+        def each_imported_set(&block)
+            @imports.each(&block)
         end
 
         # Path to the source.yml file
@@ -353,14 +419,18 @@ module Autoproj
             File.join(local_dir, 'source.yml')
         end
 
-        # Load the source.yml file that describes this source, and resolve the
-        # $BLABLA values that are in there. Use #raw_description_file to avoid
-        # resolving those values
+        # Load the source.yml file and resolves all information it contains.
+        #
+        # This for instance requires configuration options to be defined. Use
+        # PackageSet#load_minimal to load only self-contained information
         def load_description_file
-            @source_definition = raw_description_file
-            load_name
+            if @source_definition
+                return
+            end
 
-            
+            @source_definition = raw_description_file
+            load_minimal
+
             # Compute the definition of constants
             begin
                 constants = source_definition['constants'] || Hash.new
@@ -508,18 +578,26 @@ module Autoproj
                 end
             end
         end
+
+        # True if this package set provides the given package set name. I.e. if
+        # it has this name or the name is listed in the "replaces" field of
+        # source.yml
+        def provides?(name)
+            name == self.name ||
+                provides.include?(name)
+        end
     end
 
     # Specialization of the PackageSet class for the overrides listed in autoproj/
     class LocalPackageSet < PackageSet
-        def initialize
-            super(Autoproj.normalize_vcs_definition(:type => 'local', :url => Autoproj.config_dir))
+        def initialize(manifest)
+            super(manifest, Autoproj.normalize_vcs_definition(:type => 'local', :url => Autoproj.config_dir))
         end
 
         def name
             'local'
         end
-        def load_name
+        def load_minimal
         end
 
         def source_file
@@ -558,7 +636,6 @@ module Autoproj
     # The Manifest class represents the information included in the main
     # manifest file, and allows to manipulate it
     class Manifest
-        FakePackage = Struct.new :text_name, :name, :srcdir, :importer, :updated
 
         # Data structure used to use autobuild importers without a package, to
         # import configuration data.
@@ -566,7 +643,21 @@ module Autoproj
         # It has to match the interface of Autobuild::Package that is relevant
         # for importers
         class FakePackage
-            def autoproj_name; name end
+            attr_reader :text_name
+            attr_reader :name
+            attr_reader :srcdir
+            attr_reader :importer
+
+            # Used by the autobuild importers
+            attr_accessor :updated
+
+            def initialize(text_name, srcdir, importer = nil)
+                @text_name = text_name
+                @name = text_name.gsub /[^\w]/, '_'
+                @srcdir = srcdir
+                @importer = importer
+            end
+
             def import
                 importer.import(self)
             end
@@ -598,6 +689,13 @@ module Autoproj
         # Loads the manifest file located at +file+ and returns the Manifest
         # instance that represents it
 	def self.load(file)
+	    manifest = Manifest.new
+            manifest.load(file)
+            manifest
+	end
+
+        # Load the manifest data contained in +file+
+        def load(file)
             begin
                 data = YAML.load(File.read(file))
             rescue Errno::ENOENT
@@ -605,14 +703,20 @@ module Autoproj
             rescue ArgumentError => e
                 raise ConfigError, "error in #{file}: #{e.message}"
             end
-	    Manifest.new(file, data)
-	end
+
+            @file = file
+            @data = data
+
+            if data['constants']
+                @constant_definitions = Autoproj.resolve_constant_definitions(data['constants'])
+            end
+        end
 
         # The manifest data as a Hash
         attr_reader :data
 
         # The set of packages defined so far as a mapping from package name to 
-        # [Autobuild::Package, source, file] tuple
+        # [Autobuild::Package, package_set, file] tuple
         attr_reader :packages
 
         # A mapping from package names into PackageManifest objects
@@ -638,21 +742,18 @@ module Autoproj
 
         attr_reader :constant_definitions
 
-	def initialize(file, data)
-            @file = file
-	    @data = data
+	def initialize
+            @file = nil
+	    @data = nil
             @packages = Hash.new
             @package_manifests = Hash.new
             @automatic_exclusions = Hash.new
             @constants_definitions = Hash.new
+            @disabled_imports = Set.new
 
+            @constant_definitions = Hash.new
             if Autoproj.has_config_key?('manifest_source')
                 @vcs = Autoproj.normalize_vcs_definition(Autoproj.user_config('manifest_source'))
-            end
-            if data['constants']
-                @constant_definitions = Autoproj.resolve_constant_definitions(data['constants'])
-            else
-                @constant_definitions = Hash.new
             end
 	end
 
@@ -772,11 +873,11 @@ module Autoproj
         end
 
         # Like #each_source, but filters out local package sets
-        def each_remote_source(load_description = true)
+        def each_remote_package_set(load_description = true)
             if !block_given?
-                enum_for(:each_remote_source, load_description)
+                enum_for(:each_remote_package_set, load_description)
             else
-                each_source(load_description) do |source|
+                each_package_set(load_description) do |source|
                     if !source.local?
                         yield(source)
                     end
@@ -784,73 +885,79 @@ module Autoproj
             end
         end
 
-        def source_from_spec(spec, load_description) # :nodoc:
-            # Look up for short notation (i.e. not an explicit hash). It is
-            # either vcs_type:url or just url. In the latter case, we expect
-            # 'url' to be a path to a local directory
-            vcs_def = begin
-                          spec = Autoproj.expand(spec, constant_definitions)
-                          Autoproj.normalize_vcs_definition(spec)
-                      rescue ConfigError => e
-                          raise ConfigError, "in #{file}: #{e.message}"
-                      end
-
-            source = Source.new(vcs_def)
-            if load_description
-                if source.present?
-                    source.load_description_file
-                else
-                    raise InternalError, "cannot load description file as it has not been checked out yet"
-                end
-            else
-                # Try to load just the name from the source.yml file
-                source.load_name
-            end
-
-            source
+        def each_remote_source(*args, &block)
+            each_remote_package_set(*args, &block)
         end
 
-
         # call-seq:
-        #   each_source { |source_description| ... }
+        #   each_package_set { |pkg_set| ... }
         #
-        # Lists all package sets defined in this manifest, by yielding a Source
-        # object that describes it.
-        def each_source(load_description = true, &block)
+        # Lists all package sets defined in this manifest, by yielding a
+        # PackageSet object that describes it.
+        def each_package_set(load_description = true, &block)
             if !block_given?
-                return enum_for(:each_source, load_description)
+                return enum_for(:each_package_set, load_description)
             end
 
-            if @sources
+            if @package_sets
                 if load_description
-                    @sources.each do |src|
+                    @package_sets.each do |src|
                         if !src.source_definition
                             src.load_description_file
                         end
                     end
                 end
-                return @sources.each(&block)
+                return @package_sets.each(&block)
             end
 
-            all_sources = []
-
+            all_sets = Array.new
 	    (data['package_sets'] || []).each do |spec|
-                all_sources << source_from_spec(spec, load_description)
+                pkg_set = PackageSet.from_spec(self, spec, load_description)
+                if @disabled_imports.include?(pkg_set.name)
+                    pkg_set.auto_imports = false
+                end
+
+                if pkg_set.auto_imports?
+                    pkg_set.each_imported_set do |imported_set|
+                        if all_sets.any? { |src| src.vcs == imported_set.vcs }
+                            next
+                        end
+
+                        all_sets << imported_set
+                    end
+                end
+                all_sets << pkg_set
             end
 
             # Now load the local source 
-            local = LocalSource.new
+            local = LocalPackageSet.new(self)
             if load_description
                 local.load_description_file
             else
-                local.load_name
+                local.load_minimal
             end
             if !load_description || !local.empty?
-                all_sources << local
+                all_sets << local
             end
+            
+            if load_description
+                all_sets.each(&:load_description_file)
+            end
+            all_sets.each(&block)
+        end
 
-            all_sources.each(&block)
-            @sources = all_sources
+        # DEPRECATED. For backward-compatibility only
+        #
+        # use #each_package_set instead
+        def each_source(*args, &block)
+            each_package_set(*args, &block)
+        end
+
+        # Save the currently known package sets. After this call,
+        # #each_package_set will always return the same set regardless of
+        # changes on the manifest's data structures
+        def cache_package_sets
+            @package_sets = each_source(load_description).to_a
         end
 
         # Register a new package
@@ -898,13 +1005,11 @@ module Autoproj
         # the name used when displaying the import progress, +pkg_name+ the
         # internal name used to represent the package and +into+ the directory
         # in which the package should be checked out.
-        def self.create_autobuild_package(vcs, text_name, pkg_name, into)
+        def self.create_autobuild_package(vcs, text_name, into)
             importer     = vcs.create_autobuild_importer
             return if !importer # updates have been disabled by using the 'none' type
 
-            fake_package = FakePackage.new(text_name, pkg_name, into)
-            fake_package.importer = importer
-            fake_package
+            FakePackage.new(text_name, into, importer)
 
         rescue Autobuild::ConfigException => e
             raise ConfigError, "cannot import #{name}: #{e.message}", e.backtrace
@@ -913,8 +1018,8 @@ module Autoproj
         # Imports or updates a source (remote or otherwise).
         #
         # See create_autobuild_package for informations about the arguments.
-        def self.update_source(vcs, text_name, pkg_name, into)
-            fake_package = create_autobuild_package(vcs, text_name, pkg_name, into)
+        def self.update_package_set(vcs, text_name, into)
+            fake_package = create_autobuild_package(vcs, text_name, into)
             fake_package.import
 
         rescue Autobuild::ConfigException => e
@@ -923,28 +1028,52 @@ module Autoproj
 
         # Updates the main autoproj configuration
         def update_yourself
-            Manifest.update_source(vcs, "autoproj main configuration", "autoproj_conf", Autoproj.config_dir)
+            Manifest.update_package_set(vcs, "autoproj main configuration", Autoproj.config_dir)
+        end
+
+        def update_remote_set(pkg_set)
+            Manifest.update_package_set(
+                pkg_set.vcs,
+                pkg_set.name,
+                pkg_set.raw_local_dir)
         end
 
         # Updates all the remote sources in ROOT_DIR/.remotes, as well as the
         # symbolic links in ROOT_DIR/autoproj/remotes
-        def update_remote_sources
+        def update_remote_package_sets
             # Iterate on the remote sources, without loading the source.yml
             # file (we're not ready for that yet)
-            sources = []
-            each_remote_source(false) do |source|
-                name = if source.present? then source.name
-                       else source.vcs.url
-                       end
-                Manifest.update_source(source.vcs, name, source.automatic_name, source.raw_local_dir)
-                sources << source
+            #
+            # Do it iteratively to properly take imports into account, but we
+            # first unconditionally update all the existing sets to properly
+            # handle imports that have been removed
+            updated_sets     = Hash.new
+            each_remote_package_set(false) do |pkg_set|
+                if pkg_set.present? && pkg_set.explicit?
+                    update_remote_set(pkg_set)
+                    updated_sets[pkg_set.raw_local_dir] = pkg_set
+                end
+            end
+
+            old_updated_sets = nil
+            while old_updated_sets != updated_sets
+                old_updated_sets = updated_sets.dup
+                each_remote_package_set(false) do |pkg_set|
+                    next if updated_sets.has_key?(pkg_set.raw_local_dir)
+
+                    if !pkg_set.explicit?
+                        Autoproj.progress "  #{pkg_set.imported_from.name}: auto-importing #{pkg_set.name}"
+                    end
+                    update_remote_set(pkg_set)
+                    updated_sets[pkg_set.raw_local_dir] = pkg_set
+                end
             end
 
             # Check for directories in ROOT_DIR/.remotes that do not map to a
             # source repository, and remove them
             Dir.glob(File.join(Autoproj.remotes_dir, '*')).each do |dir|
                 dir = File.expand_path(dir)
-                if File.directory?(dir) && !sources.any? { |s| s.raw_local_dir == dir }
+                if File.directory?(dir) && !updated_sets.has_key?(dir)
                     FileUtils.rm_rf dir
                 end
             end
@@ -956,7 +1085,7 @@ module Autoproj
             # Create symbolic links from .remotes/weird_url to
             # autoproj/remotes/name. Explicitely load the source name first
             each_remote_source(false) do |source|
-                source.load_name
+                source.load_minimal
                 symlink_dest = File.join(remotes_symlinks_dir, source.name)
 
                 # Check if the current symlink is valid, and recreate it if it
@@ -983,6 +1112,11 @@ module Autoproj
             end
         end
 
+        # DEPRECATED. For backward-compatibility only
+        def update_remote_sources(*args, &block)
+            update_remote_package_sets(*args, &block)
+        end
+
         def importer_definition_for(package_name, package_source = nil)
             if !package_source
                 package_source = packages.values.
@@ -990,13 +1124,16 @@ module Autoproj
                     package_set
             end
 
-            sources = each_source.to_a
+            sources = each_source.to_a.dup
 
             # Remove sources listed before the package source
             while !sources.empty? && sources[0].name != package_source.name
                 sources.shift
             end
             package_source = sources.shift
+            if !package_source
+                raise InternalError, "cannot find the package set that defines #{package_name}"
+            end
 
             # Get the version control information from the package source. There
             # must be one
@@ -1049,12 +1186,12 @@ module Autoproj
             if Autobuild::Package[name]
                 [name]
             else
-                source = each_source.find { |source| source.name == name }
-                if !source
+                pkg_set = each_package_set.find { |set| set.name == name }
+                if !pkg_set
                     raise ConfigError, "in #{file}: #{name} is neither a package nor a source"
                 end
                 packages.values.
-                    find_all { |pkg| pkg.package_set.name == source.name }.
+                    find_all { |pkg| pkg.package_set.name == pkg_set.name }.
                     map { |pkg| pkg.autobuild.name }.
                     find_all { |pkg_name| !Autoproj.osdeps || !Autoproj.osdeps.has?(pkg_name) }
             end
@@ -1064,11 +1201,15 @@ module Autoproj
         #
         # If recursive is false, yields only the packages at this level.
         # Otherwise, return all packages.
-        def layout_packages(layout_def, recursive)
+        def layout_packages(layout_def, recursive, validate = true)
             result = []
             layout_def.each do |value|
                 if !value.kind_of?(Hash) # sublayout
-                    result.concat(resolve_package_set(value))
+                    begin
+                        result.concat(resolve_package_set(value))
+                    rescue ConfigError
+                        raise if validate
+                    end
                 end
             end
 
@@ -1093,7 +1234,7 @@ module Autoproj
 
         # Looks into the layout setup in the manifest, and yields each layout
         # and sublayout in order
-        def each_package_set(selection = nil, layout_name = '/', layout_def = data['layout'], &block)
+        def each_layout_level(selection = nil, layout_name = '/', layout_def = data['layout'], &block)
             if !layout_def
                 yield(layout_name, default_packages, default_packages)
                 return nil
@@ -1117,14 +1258,14 @@ module Autoproj
 
             # Now, enumerate the sublayouts
             each_sublayout(layout_def) do |subname, sublayout|
-                each_package_set(selection, "#{layout_name}#{subname}/", sublayout, &block)
+                each_layout_level(selection, "#{layout_name}#{subname}/", sublayout, &block)
             end
         end
 
         # Returns the set of package names that are explicitely listed in the
         # layout, minus the excluded and ignored ones
-        def all_layout_packages
-            default_packages
+        def all_layout_packages(validate = true)
+            default_packages(validate)
         end
 
         # Returns all defined package names, minus the excluded and ignored ones
@@ -1139,11 +1280,30 @@ module Autoproj
                 find_all { |pkg_name| !Autoproj.osdeps || !Autoproj.osdeps.has?(pkg_name) }
         end
 
+        # Returns true if +name+ is a valid package and is included in the build
+        #
+        # If +validate+ is true, the layout will have to be well-defined. It can
+        # therefore be used only after all sources have been successfully
+        # loaded.
+        #
+        # If it is false, non-defined packages/package sets in the layout will
+        # simply be ignored
+        def package_enabled?(name, validate = true)
+            if !Autobuild::Package[name]
+                if validate
+                    raise ArgumentError, "package #{name} does not exist"
+                end
+                return false
+            end
+
+            !excluded?(name)
+        end
+
         # Returns the set of packages that should be built if the user does not
         # specify any on the command line
-        def default_packages
+        def default_packages(validate = true)
             names = if layout = data['layout']
-                        layout_packages(layout, true)
+                        layout_packages(layout, true, validate)
                     else
                         # No layout, all packages are selected
                         all_packages
@@ -1155,7 +1315,7 @@ module Autoproj
 
         # Returns the package directory for the given package name
         def whereis(package_name)
-            each_package_set do |layout_name, packages, _|
+            each_layout_level do |layout_name, packages, _|
                 if packages.include?(package_name)
                     return layout_name
                 end
@@ -1201,6 +1361,11 @@ module Autoproj
         # See #load_package_manifest
         def load_package_manifests(selected_packages)
             selected_packages.each(&:load_package_manifest)
+        end
+
+        # Disable all automatic imports from the given package set name
+        def disable_imports_from(pkg_set_name)
+            @disabled_imports << pkg_set_name
         end
 
         # call-seq:
@@ -1269,7 +1434,7 @@ module Autoproj
             end
 
             # Now, search for layout names
-            each_package_set(nil) do |layout_name, packages, _|
+            each_layout_level(nil) do |layout_name, packages, _|
                 selected_packages.each do |sel|
                     if layout_name[0..-1] =~ Regexp.new("#{sel}\/?$")
                         expanded_packages |= packages.to_set

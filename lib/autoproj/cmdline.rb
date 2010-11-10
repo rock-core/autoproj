@@ -71,14 +71,16 @@ module Autoproj
                 Autoproj.env_add 'PATH', bindir
             end
 
+            Autoproj.manifest = Manifest.new
+
             # We load the local init.rb first so that the manifest loading
             # process can use options defined there for the autoproj version
             # control information (for instance)
-            local_source = LocalSource.new
+            local_source = LocalPackageSet.new(Autoproj.manifest)
             Autoproj.load_if_present(local_source, local_source.local_dir, "init.rb")
 
             manifest_path = File.join(Autoproj.config_dir, 'manifest')
-            Autoproj.manifest = Manifest.load(manifest_path)
+            Autoproj.manifest.load(manifest_path)
 
             # Once thing left to do: handle the Autoproj.auto_update
             # configuration parameter. This has to be done here as the rest of
@@ -177,7 +179,7 @@ module Autoproj
             if manifest.vcs
                 manifest.update_yourself
                 manifest_path = File.join(Autoproj.config_dir, 'manifest')
-                Autoproj.manifest = manifest = Manifest.load(manifest_path)
+                manifest.load(manifest_path)
             end
 
             source_os_dependencies = manifest.each_remote_source(false).
@@ -237,6 +239,11 @@ module Autoproj
                 end
             end
 
+            # Resolve optional dependencies
+            manifest.packages.each_value do |pkg|
+                pkg.autobuild.resolve_optional_dependencies
+            end
+
             # Load the package's override files. each_source must not load the
             # source.yml file, as init.rb may define configuration options that are used
             # there
@@ -254,24 +261,39 @@ module Autoproj
             # We can't have the Manifest class load the source.yml file, as it
             # cannot resolve all constants. So we need to do it ourselves to get
             # the name ...
-            sources = manifest.each_source(false).to_a
+            sets = manifest.each_package_set(false).to_a
 
-            if sources.empty?
+            if sets.empty?
                 Autoproj.progress("autoproj: no package sets defined in autoproj/manifest", :bold, :red)
             else
                 Autoproj.progress("autoproj: available package sets", :bold)
-                manifest.each_source(false) do |source|
-                    source_yml = source.raw_description_file
-                    Autoproj.progress "  #{source_yml['name']}"
-                    if source.local?
-                        Autoproj.progress "    local source in #{source.local_dir}"
+                manifest.each_package_set do |pkg_set|
+                    next if pkg_set.empty?
+                    if pkg_set.imported_from
+                        Autoproj.progress "  #{pkg_set.name} (imported by #{pkg_set.imported_from.name})"
                     else
-                        Autoproj.progress "    from:  #{source.vcs}"
-                        Autoproj.progress "    local: #{source.local_dir}"
+                        Autoproj.progress "  #{pkg_set.name} (listed in manifest)"
+                    end
+                    if pkg_set.local?
+                        Autoproj.progress "    local set in #{pkg_set.local_dir}"
+                    else
+                        Autoproj.progress "    from:  #{pkg_set.vcs}"
+                        Autoproj.progress "    local: #{pkg_set.local_dir}"
+                    end
+
+                    imports = pkg_set.each_imported_set.to_a
+                    if !imports.empty?
+                        Autoproj.progress "    imports #{imports.size} package sets"
+                        if !pkg_set.auto_imports?
+                            Autoproj.progress "      automatic imports are DISABLED for this set"
+                        end
+                        imports.each do |imported_set|
+                            Autoproj.progress "      #{imported_set.name}"
+                        end
                     end
 
                     lines = []
-                    source.each_package.
+                    pkg_set.each_package.
                         map { |pkg| [pkg.name, manifest.package_manifests[pkg.name]] }.
                         sort_by { |name, _| name }.
                         each do |name, source_manifest|
