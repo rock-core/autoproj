@@ -94,6 +94,17 @@ module Autoproj
             @type == 'local'
         end
 
+        def ==(other_vcs)
+            return false if !other_vcs.kind_of?(VCSDefinition)
+            if local?
+                other_vcs.local? && url == other.url
+            elsif !other_vcs.local?
+                this_importer = create_autobuild_importer
+                other_importer = other_vcs.create_autobuild_importer
+                this_importer.repository_id == other_importer.repository_id
+            end
+        end
+
         def self.to_absolute_url(url, root_dir = nil)
             # NOTE: we MUST use nil as default argument of root_dir as we don't
             # want to call Autoproj.root_dir unless completely necessary
@@ -302,7 +313,18 @@ module Autoproj
             source
         end
 
-
+        def repository_id
+            if local?
+                local_dir
+            else
+                importer = vcs.create_autobuild_importer
+                if importer.respond_to?(:repository_id)
+                    importer.repository_id
+                else
+                    vcs.to_s
+                end
+            end
+        end
 
         # Remote sources can be accessed through a hidden directory in
         # $AUTOPROJ_ROOT/.remotes, or through a symbolic link in
@@ -313,9 +335,9 @@ module Autoproj
         # For local sources, is simply returns the path to the source directory.
         def raw_local_dir
             if local?
-                return vcs.url 
+                File.expand_path(vcs.url)
             else
-                File.join(Autoproj.remotes_dir, vcs.to_s.gsub(/[^\w]/, '_'))
+                File.expand_path(File.join(Autoproj.remotes_dir, vcs.to_s.gsub(/[^\w]/, '_')))
             end
         end
 
@@ -347,9 +369,7 @@ module Autoproj
 
         # Returns the source name
         def name
-            if @source_definition then
-                @source_definition['name'] || vcs.to_s
-            elsif @name
+            if @name
                 @name
             else
                 vcs.to_s
@@ -598,6 +618,9 @@ module Autoproj
             'local'
         end
         def load_minimal
+        end
+        def repository_id
+            'local'
         end
 
         def source_file
@@ -911,15 +934,19 @@ module Autoproj
             end
 
             all_sets = Array.new
-	    (data['package_sets'] || []).each do |spec|
-                pkg_set = PackageSet.from_spec(self, spec, load_description)
+	    explicit_sets = (data['package_sets'] || []).map do |spec|
+                PackageSet.from_spec(self, spec, load_description)
+            end
+
+            explicit_sets.each do |pkg_set|
                 if @disabled_imports.include?(pkg_set.name)
                     pkg_set.auto_imports = false
                 end
 
                 if pkg_set.auto_imports?
                     pkg_set.each_imported_set do |imported_set|
-                        if all_sets.any? { |src| src.vcs == imported_set.vcs }
+                        if explicit_sets.any? { |src| src.vcs == imported_set.vcs } ||
+                            all_sets.any? { |src| src.vcs == imported_set.vcs }
                             next
                         end
 
@@ -1049,9 +1076,10 @@ module Autoproj
             # handle imports that have been removed
             updated_sets     = Hash.new
             each_remote_package_set(false) do |pkg_set|
-                if pkg_set.present? && pkg_set.explicit?
+                next if !pkg_set.explicit?
+                if pkg_set.present?
                     update_remote_set(pkg_set)
-                    updated_sets[pkg_set.raw_local_dir] = pkg_set
+                    updated_sets[pkg_set.repository_id] = pkg_set
                 end
             end
 
@@ -1059,13 +1087,13 @@ module Autoproj
             while old_updated_sets != updated_sets
                 old_updated_sets = updated_sets.dup
                 each_remote_package_set(false) do |pkg_set|
-                    next if updated_sets.has_key?(pkg_set.raw_local_dir)
+                    next if updated_sets.has_key?(pkg_set.repository_id)
 
                     if !pkg_set.explicit?
                         Autoproj.progress "  #{pkg_set.imported_from.name}: auto-importing #{pkg_set.name}"
                     end
                     update_remote_set(pkg_set)
-                    updated_sets[pkg_set.raw_local_dir] = pkg_set
+                    updated_sets[pkg_set.repository_id] = pkg_set
                 end
             end
 
@@ -1073,7 +1101,7 @@ module Autoproj
             # source repository, and remove them
             Dir.glob(File.join(Autoproj.remotes_dir, '*')).each do |dir|
                 dir = File.expand_path(dir)
-                if File.directory?(dir) && !updated_sets.has_key?(dir)
+                if File.directory?(dir) && !updated_sets.values.find { |pkg| pkg.raw_local_dir == dir }
                     FileUtils.rm_rf dir
                 end
             end
@@ -1084,7 +1112,7 @@ module Autoproj
 
             # Create symbolic links from .remotes/weird_url to
             # autoproj/remotes/name. Explicitely load the source name first
-            each_remote_source(false) do |source|
+            updated_sets.each_value do |source|
                 source.load_minimal
                 symlink_dest = File.join(remotes_symlinks_dir, source.name)
 
