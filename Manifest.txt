@@ -41,6 +41,7 @@ lib/autoproj/options.rb
 lib/autoproj/osdeps.rb
 lib/autoproj/system.rb
 lib/autoproj/version.rb
+samples/autoproj/README.txt
 samples/autoproj/init.rb
 samples/autoproj/manifest
 samples/autoproj/overrides.rb
