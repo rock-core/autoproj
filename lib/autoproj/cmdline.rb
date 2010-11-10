@@ -139,6 +139,7 @@ module Autoproj
 
         def self.load_configuration(silent = false)
             manifest = Autoproj.manifest
+            manifest.cache_package_sets
 
             # Load init.rb files. each_source must not load the source.yml file, as
             # init.rb may define configuration options that are used there
