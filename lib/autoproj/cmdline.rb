@@ -42,6 +42,10 @@ module Autoproj
                 Autoproj.prefix = Autoproj.user_config('prefix')
             end
 
+            if Autoproj.has_config_key?('randomize_layout')
+                @randomize_layout = Autoproj.user_config('randomize_layout')
+            end
+
             # If we are under rubygems, check that the GEM_HOME is right ...
             if $LOADED_FEATURES.any? { |l| l =~ /rubygems/ }
                 if ENV['GEM_HOME'] != Autoproj.gem_home
@@ -219,10 +223,17 @@ module Autoproj
             manifest.each_layout_level do |name, packages, enabled_packages|
                 packages -= seen
 
-                srcdir  = File.join(Autoproj.root_dir, name)
-                prefix  = File.join(Autoproj.build_dir, name)
-                logdir  = File.join(prefix, "log")
                 packages.each do |pkg_name|
+                    place =
+                        if randomize_layout?
+                            Digest::SHA256.hexdigest(pkg_name)[0, 12]
+                        else name
+                        end
+
+                    srcdir  = File.join(Autoproj.root_dir, place)
+                    prefix  = File.join(Autoproj.build_dir, place)
+                    logdir  = File.join(prefix, "log")
+
                     pkg = Autobuild::Package[pkg_name]
                     pkg.srcdir = File.join(srcdir, pkg_name)
                     pkg.prefix = prefix
@@ -519,6 +530,7 @@ module Autoproj
         def self.check?; !!@check end
         def self.manifest_update?; !!@manifest_update end
         def self.only_config?; !!@only_config end
+        def self.randomize_layout?; !!@randomize_layout end
         def self.update_os_dependencies?
             # Check if the mode disables osdeps anyway ...
             if !@update_os_dependencies.nil? && !@update_os_dependencies
@@ -702,6 +714,10 @@ where 'mode' is one of:
                 end
                 opts.on("--local", "for status, do not access the network") do
                     @only_local = true
+                end
+                opts.on('--randomize-layout', 'in build and full-build, generate a random layout') do
+                    @randomize_layout = true
+                    Autoproj.change_option('randomize_layout', true)
                 end
 
                 opts.on("--verbose", "verbose output") do
