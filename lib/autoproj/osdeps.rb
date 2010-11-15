@@ -144,8 +144,9 @@ module Autoproj
                 return @operating_system
             elsif Autoproj.has_config_key?('operating_system')
                 os = Autoproj.user_config('operating_system')
-                if !os.respond_to?(:to_ary) # upgrade from previous format
-                    @operating_system = nil
+                if os.respond_to?(:to_ary) # upgrade from previous format
+                    @operating_system = os
+                    return os
                 end
             end
 
@@ -189,6 +190,7 @@ module Autoproj
                  [@operating_system[0].map(&:downcase),
                  [@operating_system[1].map(&:downcase) + ["default"]]]
             Autoproj.change_option('operating_system', @operating_system, true)
+            Autoproj.save_config
             @operating_system
         end
 
