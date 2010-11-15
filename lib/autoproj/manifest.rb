@@ -914,6 +914,28 @@ module Autoproj
             each_remote_package_set(*args, &block)
         end
 
+        # Helper method for #each_package_set
+        def enumerate_package_set(pkg_set, explicit_sets, all_sets) # :nodoc:
+            if @disabled_imports.include?(pkg_set.name)
+                pkg_set.auto_imports = false
+            end
+
+            result = []
+            if pkg_set.auto_imports?
+                pkg_set.each_imported_set do |imported_set|
+                    if explicit_sets.any? { |src| src.vcs == imported_set.vcs } ||
+                        all_sets.any? { |src| src.vcs == imported_set.vcs }
+                        next
+                    end
+
+                    all_sets << imported_set
+                    result.concat(enumerate_package_set(imported_set, explicit_sets, all_sets))
+                end
+            end
+            result << pkg_set
+            result
+        end
+
         # call-seq:
         #   each_package_set { |pkg_set| ... }
         #
@@ -974,7 +996,7 @@ module Autoproj
         # #each_package_set will always return the same set regardless of
         # changes on the manifest's data structures
         def cache_package_sets
-            @package_sets = each_source(load_description).to_a
+            @package_sets = each_package_set(false).to_a
         end
 
         # Register a new package
@@ -1006,11 +1028,11 @@ module Autoproj
             end
 
             if vcs
-                yield(vcs, "autoproj main configuration", "autoproj_config", Autoproj.config_dir)
+                yield(vcs, "autoproj main configuration", Autoproj.config_dir)
             end
 
             each_remote_source(false) do |source|
-                yield(source.vcs, source.name || source.vcs.url, source.automatic_name, source.local_dir)
+                yield(source.vcs, source.name || source.vcs.url, source.local_dir)
             end
             self
         end

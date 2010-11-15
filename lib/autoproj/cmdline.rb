@@ -935,8 +935,8 @@ where 'mode' is one of:
             console = Autoproj.console
             
             sources = Autoproj.manifest.each_configuration_source.
-                map do |vcs, text_name, pkg_name, local_dir|
-                    Autoproj::Manifest.create_autobuild_package(vcs, text_name, pkg_name, local_dir)
+                map do |vcs, text_name, local_dir|
+                    Autoproj::Manifest.create_autobuild_package(vcs, text_name, local_dir)
                 end
 
             if !sources.empty?
@@ -1033,7 +1033,7 @@ where 'mode' is one of:
                     
                 FileUtils.mv config_dir, backup_name
             end
-            Autoproj::Manifest.update_source(vcs, "autoproj main configuration", 'autoproj_config', config_dir)
+            Autoproj::Manifest.update_package_set(vcs, "autoproj main configuration", config_dir)
 
             # Now write it in the config file
             File.open(File.join(Autoproj.config_dir, "config.yml"), "a") do |io|
