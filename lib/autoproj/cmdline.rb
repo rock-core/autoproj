@@ -566,7 +566,7 @@ module Autoproj
             end
         end
         def self.list_newest?; @list_newest end
-        def self.parse_arguments(args)
+        def self.parse_arguments(args, with_mode = true)
             @only_status = false
             @only_local  = false
             @show_osdeps = false
@@ -761,14 +761,16 @@ where 'mode' is one of:
             parser.parse!(args)
             @mail_config = mail_config
 
-            @mode = args.shift
-            unknown_mode = catch(:unknown) do
-                handle_mode(@mode, args)
-            end
-            if unknown_mode
-                STDERR.puts "unknown mode #{@mode}"
-                STDERR.puts "run autoproj --help for more documentation"
-                exit(1)
+            if with_mode
+                @mode = args.shift
+                unknown_mode = catch(:unknown) do
+                    handle_mode(@mode, args)
+                end
+                if unknown_mode
+                    STDERR.puts "unknown mode #{@mode}"
+                    STDERR.puts "run autoproj --help for more documentation"
+                    exit(1)
+                end
             end
 
             selection = args.dup
