@@ -45,7 +45,7 @@ module Autoproj
             # If we are under rubygems, check that the GEM_HOME is right ...
             if $LOADED_FEATURES.any? { |l| l =~ /rubygems/ }
                 if ENV['GEM_HOME'] != Autoproj.gem_home
-                    raise ConfigError, "RubyGems is already loaded with a different GEM_HOME, make sure you are loading the right env.sh script !"
+                    raise ConfigError.new, "RubyGems is already loaded with a different GEM_HOME, make sure you are loading the right env.sh script !"
                 end
             end
 
@@ -348,11 +348,11 @@ module Autoproj
 
         def self.verify_package_availability(pkg_name)
             if reason = Autoproj.manifest.exclusion_reason(pkg_name)
-                raise ConfigError, "#{pkg_name} is excluded from the build: #{reason}"
+                raise ConfigError.new, "#{pkg_name} is excluded from the build: #{reason}"
             end
             pkg = Autobuild::Package[pkg_name]
             if !pkg
-                raise ConfigError, "#{pkg_name} does not seem to exist"
+                raise ConfigError.new, "#{pkg_name} does not seem to exist"
             end
 
             # Verify that its dependencies are there, and add
@@ -372,7 +372,7 @@ module Autoproj
                 map do |pkg_name|
                     pkg = Autobuild::Package[pkg_name]
                     if !pkg
-                        raise ConfigError, "selected package #{pkg_name} does not exist"
+                        raise ConfigError.new, "selected package #{pkg_name} does not exist"
                     end
                     pkg
                 end.to_set
@@ -420,7 +420,7 @@ module Autoproj
                     # If the package has no importer, the source directory must
                     # be there
                     if !pkg.importer && !File.directory?(pkg.srcdir)
-                        raise ConfigError, "#{pkg.name} has no VCS, but is not checked out in #{pkg.srcdir}"
+                        raise ConfigError.new, "#{pkg.name} has no VCS, but is not checked out in #{pkg.srcdir}"
                     end
 
                     Rake::Task["#{pkg.name}-import"].invoke
@@ -1058,7 +1058,7 @@ manifest_source:
 
         def self.bootstrap(*args)
             if File.exists?(File.join("autoproj", "manifest"))
-                raise ConfigError, "this installation is already bootstrapped. Remove the autoproj directory if it is not the case"
+                raise ConfigError.new, "this installation is already bootstrapped. Remove the autoproj directory if it is not the case"
             end
 
             require 'set'
@@ -1119,7 +1119,7 @@ manifest_source:
                 manifest_data =
                     begin open(manifest_url) { |file| file.read }
                     rescue
-                        raise ConfigError, "cannot read #{manifest_url}, did you mean 'autoproj bootstrap VCSTYPE #{manifest_url}' ?"
+                        raise ConfigError.new, "cannot read #{manifest_url}, did you mean 'autoproj bootstrap VCSTYPE #{manifest_url}' ?"
                     end
 
                 File.open(File.join(Autoproj.config_dir, "manifest"), "w") do |io|

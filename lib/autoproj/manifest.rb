@@ -86,7 +86,7 @@ module Autoproj
         def initialize(type, url, options)
             @type, @url, @options = type, url, options
             if type != "none" && type != "local" && !Autobuild.respond_to?(type)
-                raise ConfigError, "version control #{type} is unknown to autoproj"
+                raise ConfigError.new, "version control #{type} is unknown to autoproj"
             end
         end
 
@@ -143,7 +143,7 @@ module Autoproj
             spec = if url.empty?
                        source_dir = File.expand_path(File.join(Autoproj.config_dir, spec))
                        if !File.directory?(source_dir)
-                           raise ConfigError, "'#{spec.inspect}' is neither a remote source specification, nor a local source definition"
+                           raise ConfigError.new, "'#{spec.inspect}' is neither a remote source specification, nor a local source definition"
                        end
 
                        Hash[:type => 'local', :url => source_dir]
@@ -166,7 +166,7 @@ module Autoproj
     def self.normalize_vcs_definition(spec)
         spec = vcs_definition_to_hash(spec)
         if !(spec[:type] && (spec[:type] == 'none' || spec[:url]))
-            raise ConfigError, "the source specification #{spec.inspect} misses either the VCS type or an URL"
+            raise ConfigError.new, "the source specification #{spec.inspect} misses either the VCS type or an URL"
         end
 
         spec, vcs_options = Kernel.filter_options spec, :type => nil, :url => nil
@@ -202,7 +202,7 @@ module Autoproj
         else
             value = single_expansion(value, definitions)
             if contains_expansion?(value)
-                raise ConfigError, "some expansions are not defined in #{value.inspect}"
+                raise ConfigError.new, "some expansions are not defined in #{value.inspect}"
             end
             value
         end
@@ -387,17 +387,15 @@ module Autoproj
 
             source_file = File.join(raw_local_dir, "source.yml")
             if !File.exists?(source_file)
-                raise ConfigError, "source #{vcs.type}:#{vcs.url} should have a source.yml file, but does not"
+                raise ConfigError.new, "source #{vcs.type}:#{vcs.url} should have a source.yml file, but does not"
             end
 
-            begin
-                source_definition = YAML.load(File.read(source_file))
-            rescue ArgumentError => e
-                raise ConfigError, "error in #{source_file}: #{e.message}"
+            source_definition = Autoproj.in_file(source_file, ArgumentError) do
+                YAML.load(File.read(source_file))
             end
 
             if !source_definition || !source_definition['name']
-                raise ConfigError, "#{source_file} does not have a 'name' field"
+                raise ConfigError.new(source_file), "in #{source_file}: missing a 'name' field"
             end
 
             source_definition
@@ -412,14 +410,19 @@ module Autoproj
             @name = definition['name']
 
             if @name !~ /^[\w_\.-]+$/
-                raise ConfigError, "invalid source name '#{@name}': source names can only contain alphanumeric characters, and .-_"
+                raise ConfigError.new(source_file),
+                    "in #{source_file}: invalid source name '#{@name}': source names can only contain alphanumeric characters, and .-_"
             elsif @name == "local"
-                raise ConfigError, "source #{self} is named 'local', but this is a reserved name"
+                raise ConfigError.new(source_file),
+                    "in #{source_file}: the name 'local' is a reserved name"
             end
 
             @provides = (definition['provides'] || Set.new).to_set
             @imports  = (definition['imports'] || Array.new).map do |set_def|
-                pkg_set = PackageSet.from_spec(manifest, set_def, false)
+                pkg_set = Autoproj.in_file(source_file) do
+                    PackageSet.from_spec(manifest, set_def, false)
+                end
+
                 pkg_set.imported_from = self
                 pkg_set
             end
@@ -452,12 +455,9 @@ module Autoproj
             load_minimal
 
             # Compute the definition of constants
-            begin
+            Autoproj.in_file(source_file) do
                 constants = source_definition['constants'] || Hash.new
                 @constants_definitions = Autoproj.resolve_constant_definitions(constants)
-
-            rescue ConfigError => e
-                raise ConfigError, "#{File.join(local_dir, "source.yml")}: #{e.message}", e.backtrace
             end
         end
 
@@ -495,9 +495,9 @@ module Autoproj
             all_vcs     = source_definition[section_name]
             if all_vcs
                 if all_vcs.kind_of?(Hash)
-                    raise ConfigError, "wrong format for the #{section_name} section, you forgot the '-' in front of the package names"
+                    raise ConfigError.new, "wrong format for the #{section_name} section, you forgot the '-' in front of the package names"
                 elsif !all_vcs.kind_of?(Array)
-                    raise ConfigError, "wrong format for the #{section_name} section"
+                    raise ConfigError.new, "wrong format for the #{section_name} section"
                 end
             end
 
@@ -539,7 +539,7 @@ module Autoproj
                             if spec == "none"
                                 spec = { :type => "none" }
                             else
-                                raise ConfigError, "invalid VCS specification '#{name}: #{spec}'"
+                                raise ConfigError.new, "invalid VCS specification '#{name}: #{spec}'"
                             end
                         end
                     end
@@ -570,8 +570,6 @@ module Autoproj
                 end
                 vcs_spec
             end
-        rescue ConfigError => e
-            raise ConfigError, "#{e.message} in #{source_file}", e.backtrace
         end
 
         # Returns the VCS definition for +package_name+ as defined in this
@@ -636,10 +634,8 @@ module Autoproj
         def raw_description_file
             path = source_file
             if File.file?(path)
-                begin
-                    data = YAML.load(File.read(path)) || Hash.new
-                rescue ArgumentError => e
-                    raise ConfigError, "error in #{source_file}: #{e.message}"
+                data = Autoproj.in_file(path, ArgumentError) do
+                    YAML.load(File.read(path)) || Hash.new
                 end
                 data['name'] = 'local'
                 data
@@ -719,12 +715,12 @@ module Autoproj
 
         # Load the manifest data contained in +file+
         def load(file)
-            begin
-                data = YAML.load(File.read(file))
-            rescue Errno::ENOENT
-                raise ConfigError, "expected an autoproj configuration in #{File.expand_path(File.dirname(file))}, but #{file} does not exist"
-            rescue ArgumentError => e
-                raise ConfigError, "error in #{file}: #{e.message}"
+            if !File.exists?(file)
+                raise ConfigError.new(dirname), "expected an autoproj configuration in #{dirname}, but #{file} does not exist"
+            end
+
+            data = Autoproj.in_file(file, ArgumentError) do
+                YAML.load(File.read(file))
             end
 
             @file = file
@@ -859,7 +855,7 @@ module Autoproj
             end
 
             if source_name && !done_something
-                raise ConfigError, "in #{file}: source '#{source_name}' does not exist"
+                raise ConfigError.new(file), "in #{file}: source '#{source_name}' does not exist"
             end
 	end
 
@@ -933,27 +929,15 @@ module Autoproj
                 return @package_sets.each(&block)
             end
 
-            all_sets = Array.new
 	    explicit_sets = (data['package_sets'] || []).map do |spec|
-                PackageSet.from_spec(self, spec, load_description)
+                Autoproj.in_file(self.file) do
+                    PackageSet.from_spec(self, spec, load_description)
+                end
             end
 
+            all_sets = Array.new
             explicit_sets.each do |pkg_set|
-                if @disabled_imports.include?(pkg_set.name)
-                    pkg_set.auto_imports = false
-                end
-
-                if pkg_set.auto_imports?
-                    pkg_set.each_imported_set do |imported_set|
-                        if explicit_sets.any? { |src| src.vcs == imported_set.vcs } ||
-                            all_sets.any? { |src| src.vcs == imported_set.vcs }
-                            next
-                        end
-
-                        all_sets << imported_set
-                    end
-                end
-                all_sets << pkg_set
+                all_sets.concat(enumerate_package_set(pkg_set, explicit_sets, all_sets + [pkg_set]))
             end
 
             # Now load the local source 
@@ -1039,7 +1023,7 @@ module Autoproj
             FakePackage.new(text_name, into, importer)
 
         rescue Autobuild::ConfigException => e
-            raise ConfigError, "cannot import #{name}: #{e.message}", e.backtrace
+            raise ConfigError.new, "cannot import #{name}: #{e.message}", e.backtrace
         end
 
         # Imports or updates a source (remote or otherwise).
@@ -1050,7 +1034,7 @@ module Autoproj
             fake_package.import
 
         rescue Autobuild::ConfigException => e
-            raise ConfigError, "cannot import #{name}: #{e.message}", e.backtrace
+            raise ConfigError.new, "cannot import #{name}: #{e.message}", e.backtrace
         end
 
         # Updates the main autoproj configuration
@@ -1202,7 +1186,7 @@ module Autoproj
                     Autoproj.add_build_system_dependency vcs.type
                     pkg.autobuild.importer = vcs.create_autobuild_importer
                 else
-                    raise ConfigError, "source #{pkg.package_set.name} defines #{pkg.autobuild.name}, but does not provide a version control definition for it"
+                    raise ConfigError.new, "source #{pkg.package_set.name} defines #{pkg.autobuild.name}, but does not provide a version control definition for it"
                 end
             end
         end
@@ -1214,9 +1198,9 @@ module Autoproj
             if Autobuild::Package[name]
                 [name]
             else
-                pkg_set = each_package_set.find { |set| set.name == name }
+                pkg_set = each_package_set(false).find { |set| set.name == name }
                 if !pkg_set
-                    raise ConfigError, "in #{file}: #{name} is neither a package nor a source"
+                    raise ConfigError.new, "#{name} is neither a package nor a source"
                 end
                 packages.values.
                     find_all { |pkg| pkg.package_set.name == pkg_set.name }.
@@ -1343,12 +1327,14 @@ module Autoproj
 
         # Returns the package directory for the given package name
         def whereis(package_name)
-            each_layout_level do |layout_name, packages, _|
-                if packages.include?(package_name)
-                    return layout_name
+            Autoproj.in_file(self.file) do
+                each_layout_level do |layout_name, packages, _|
+                    if packages.include?(package_name)
+                        return layout_name
+                    end
                 end
+                raise ArgumentError, "cannot find #{package_name} in the layout section"
             end
-            raise ArgumentError, "cannot find #{package_name} in the current layout"
         end
 
         # Loads the package's manifest.xml file for the current package
@@ -1377,9 +1363,11 @@ module Autoproj
                 begin
                     package.depends_on name
                 rescue Autobuild::ConfigException => e
-                    raise ConfigError, "manifest #{manifest_path} of #{package.name} from #{source.name} lists '#{name}' as dependency, which is listed in the layout of #{file} but has no autobuild definition", e.backtrace
+                    raise ConfigError.new(manifest_path),
+                        "manifest #{manifest_path} of #{package.name} from #{source.name} lists '#{name}' as dependency, which is listed in the layout of #{file} but has no autobuild definition", e.backtrace
                 rescue ConfigError => e
-                    raise ConfigError, "manifest #{manifest_path} of #{package.name} from #{source.name} lists '#{name}' as dependency, but it is neither a normal package nor an osdeps package. osdeps reports: #{e.message}", e.backtrace
+                    raise ConfigError.new(manifest_path),
+                        "manifest #{manifest_path} of #{package.name} from #{source.name} lists '#{name}' as dependency, but it is neither a normal package nor an osdeps package. osdeps reports: #{e.message}", e.backtrace
                 end
             end
         end
@@ -1557,7 +1545,7 @@ module Autoproj
                     if dependency
                         yield(dependency)
                     else
-                        raise ConfigError, "manifest of #{package.name} has a <depend> tag without a 'package' attribute"
+                        raise ConfigError.new, "manifest of #{package.name} has a <depend> tag without a 'package' attribute"
                     end
                 end
             else

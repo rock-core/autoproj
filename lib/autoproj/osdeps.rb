@@ -7,7 +7,7 @@ module Autoproj
                 data = YAML.load(File.read(file)) || Hash.new
                 verify_definitions(data)
             rescue ArgumentError => e
-                raise ConfigError, "error in #{file}: #{e.message}"
+                raise ConfigError.new, "error in #{file}: #{e.message}"
             end
 
             OSDependencies.new(data, file)
@@ -335,7 +335,7 @@ fi
             elsif data.respond_to?(:to_str)
                 return [PACKAGES, [data.to_str]]
             else
-                raise ConfigError, "invalid package specificiation #{data} in #{source_of(name)}"
+                raise ConfigError.new, "invalid package specificiation #{data} in #{source_of(name)}"
             end
         end
 
@@ -350,11 +350,11 @@ fi
             dependencies.each do |name|
                 result = resolve_package(name)
                 if result == NO_PACKAGE
-                    raise ConfigError, "there is no osdeps definition for #{name}"
+                    raise ConfigError.new, "there is no osdeps definition for #{name}"
                 elsif result == WRONG_OS
-                    raise ConfigError, "there is an osdeps definition for #{name}, but not for this operating system"
+                    raise ConfigError.new, "there is an osdeps definition for #{name}, but not for this operating system"
                 elsif result == WRONG_OS_VERSION
-                    raise ConfigError, "there is an osdeps definition for #{name}, but not for this particular operating system version"
+                    raise ConfigError.new, "there is an osdeps definition for #{name}, but not for this particular operating system version"
                 elsif result == IGNORE
                     next
                 elsif result[0] == PACKAGES
@@ -363,7 +363,7 @@ fi
             end
 
             if !os_names.any? { |os_name| OS_AUTO_PACKAGE_INSTALL.has_key?(os_name) }
-                raise ConfigError, "I don't know how to install packages on #{os_names.first}"
+                raise ConfigError.new, "I don't know how to install packages on #{os_names.first}"
             end
 
             return os_packages
@@ -446,7 +446,7 @@ fi
                         # This is *not* handled later, as is the absence of a
                         # package definition. The reason is that it is a bad
                         # configuration file, and should be fixed by the user
-                        raise ConfigError, "unknown OS-independent package management type #{pkg_def} for #{name}"
+                        raise ConfigError.new, "unknown OS-independent package management type #{pkg_def} for #{name}"
                     end
                 else
                     pkg_def.delete_if do |distrib_name, defs|
@@ -510,7 +510,7 @@ fi
                     installed_version = installed.map(&:version).max
                     available_version = available.map { |(name, v), source| v }.max
                     if !available_version
-                        raise ConfigError, "cannot find any gem with the name '#{name}'"
+                        raise ConfigError.new, "cannot find any gem with the name '#{name}'"
                     end
                     needs_update = (available_version > installed_version)
                     !needs_update

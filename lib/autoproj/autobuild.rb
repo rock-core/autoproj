@@ -154,9 +154,9 @@ module Autoproj
             end
 
             if source.local?
-                raise ConfigError, "#{path}:#{line_number} #{error.message}", error.backtrace
+                raise ConfigError.new(path), "#{path}:#{line_number} #{error.message}", error.backtrace
             else
-                raise ConfigError, "#{File.basename(path)}(source=#{source.name}):#{line_number} #{error.message}", error.backtrace
+                raise ConfigError.new(path), "#{File.basename(path)}(source=#{source.name}):#{line_number} #{error.message}", error.backtrace
             end
         else
             raise error

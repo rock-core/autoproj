@@ -14,7 +14,7 @@ module Autoproj
             @name, @type, @options = name.to_str, type.to_str, options.to_hash
             @validator = validator.to_proc if validator
             if !BuildOption.respond_to?("validate_#{type}")
-                raise ConfigError, "invalid option type #{type}"
+                raise ConfigError.new, "invalid option type #{type}"
             end
         end
 
@@ -154,7 +154,7 @@ module Autoproj
             @user_config[option_name] = [value, true]
             value
         else
-            raise ConfigError, "undeclared option '#{option_name}'"
+            raise ConfigError.new, "undeclared option '#{option_name}'"
         end
     end
 
