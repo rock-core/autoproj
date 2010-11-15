@@ -1042,16 +1042,39 @@ module Autoproj
             Manifest.update_package_set(vcs, "autoproj main configuration", Autoproj.config_dir)
         end
 
-        def update_remote_set(pkg_set)
+        def update_remote_set(pkg_set, remotes_symlinks_dir = nil)
             Manifest.update_package_set(
                 pkg_set.vcs,
                 pkg_set.name,
                 pkg_set.raw_local_dir)
+
+            if remotes_symlinks_dir
+                pkg_set.load_minimal
+                symlink_dest = File.join(remotes_symlinks_dir, pkg_set.name)
+
+                # Check if the current symlink is valid, and recreate it if it
+                # is not
+                if File.symlink?(symlink_dest)
+                    dest = File.readlink(symlink_dest)
+                    if dest != pkg_set.raw_local_dir
+                        FileUtils.rm_f symlink_dest
+                        FileUtils.ln_sf pkg_set.raw_local_dir, symlink_dest
+                    end
+                else
+                    FileUtils.rm_f symlink_dest
+                    FileUtils.ln_sf pkg_set.raw_local_dir, symlink_dest
+                end
+
+                symlink_dest
+            end
         end
 
         # Updates all the remote sources in ROOT_DIR/.remotes, as well as the
         # symbolic links in ROOT_DIR/autoproj/remotes
         def update_remote_package_sets
+            remotes_symlinks_dir = File.join(Autoproj.config_dir, 'remotes')
+            FileUtils.mkdir_p remotes_symlinks_dir
+
             # Iterate on the remote sources, without loading the source.yml
             # file (we're not ready for that yet)
             #
@@ -1059,10 +1082,11 @@ module Autoproj
             # first unconditionally update all the existing sets to properly
             # handle imports that have been removed
             updated_sets     = Hash.new
+            known_remotes = []
             each_remote_package_set(false) do |pkg_set|
                 next if !pkg_set.explicit?
                 if pkg_set.present?
-                    update_remote_set(pkg_set)
+                    known_remotes << update_remote_set(pkg_set, remotes_symlinks_dir)
                     updated_sets[pkg_set.repository_id] = pkg_set
                 end
             end
@@ -1076,7 +1100,7 @@ module Autoproj
                     if !pkg_set.explicit?
                         Autoproj.progress "  #{pkg_set.imported_from.name}: auto-importing #{pkg_set.name}"
                     end
-                    update_remote_set(pkg_set)
+                    known_remotes << update_remote_set(pkg_set, remotes_symlinks_dir)
                     updated_sets[pkg_set.repository_id] = pkg_set
                 end
             end
@@ -1088,32 +1112,6 @@ module Autoproj
                 if File.directory?(dir) && !updated_sets.values.find { |pkg| pkg.raw_local_dir == dir }
                     FileUtils.rm_rf dir
                 end
-            end
-
-            remotes_symlinks_dir = File.join(Autoproj.config_dir, 'remotes')
-            FileUtils.mkdir_p remotes_symlinks_dir
-            known_remotes = []
-
-            # Create symbolic links from .remotes/weird_url to
-            # autoproj/remotes/name. Explicitely load the source name first
-            updated_sets.each_value do |source|
-                source.load_minimal
-                symlink_dest = File.join(remotes_symlinks_dir, source.name)
-
-                # Check if the current symlink is valid, and recreate it if it
-                # is not
-                if File.symlink?(symlink_dest)
-                    dest = File.readlink(symlink_dest)
-                    if dest != source.raw_local_dir
-                        FileUtils.rm_f symlink_dest
-                        FileUtils.ln_sf source.raw_local_dir, symlink_dest
-                    end
-                else
-                    FileUtils.rm_f symlink_dest
-                    FileUtils.ln_sf source.raw_local_dir, symlink_dest
-                end
-
-                known_remotes << symlink_dest
             end
 
             # Now remove obsolete symlinks
