@@ -138,6 +138,15 @@ module Autoproj
     end
 
     def self.vcs_definition_to_hash(spec)
+        options = Hash.new
+        if spec.size == 1 && spec.keys.first =~ /auto_imports$/
+            # The user probably wrote
+            #   - string
+            #     auto_imports: false
+            options['auto_imports'] = spec.values.first
+            spec = spec.keys.first.split(" ").first
+        end
+
         if spec.respond_to?(:to_str)
             vcs, *url = spec.to_str.split ':'
             spec = if url.empty?
@@ -154,7 +163,7 @@ module Autoproj
 
         spec, vcs_options = Kernel.filter_options spec, :type => nil, :url => nil
 
-        return spec.merge(vcs_options)
+        return spec.merge(vcs_options).merge(options)
     end
 
     # Autoproj configuration files accept VCS definitions in three forms:
@@ -285,17 +294,14 @@ module Autoproj
         # Create a PackageSet instance from its description as found in YAML
         # configuration files
         def self.from_spec(manifest, spec, load_description)
+            spec = Autoproj.vcs_definition_to_hash(spec)
             options, vcs_spec = Kernel.filter_options spec, :auto_imports => true
 
             # Look up for short notation (i.e. not an explicit hash). It is
             # either vcs_type:url or just url. In the latter case, we expect
             # 'url' to be a path to a local directory
-            vcs_def = begin
-                          vcs_spec = Autoproj.expand(vcs_spec, manifest.constant_definitions)
-                          Autoproj.normalize_vcs_definition(vcs_spec)
-                      rescue ConfigError => e
-                          raise ConfigError, "in #{file}: #{e.message}"
-                      end
+            vcs_spec = Autoproj.expand(vcs_spec, manifest.constant_definitions)
+            vcs_def  = Autoproj.normalize_vcs_definition(vcs_spec)
 
             source = PackageSet.new(manifest, vcs_def)
             source.auto_imports = options[:auto_imports]
