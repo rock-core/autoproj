@@ -267,7 +267,7 @@ module Autoproj
         end
 
 
-        def self.display_configuration(manifest)
+        def self.display_configuration(manifest, package_list = nil)
             # We can't have the Manifest class load the source.yml file, as it
             # cannot resolve all constants. So we need to do it ourselves to get
             # the name ...
@@ -278,10 +278,26 @@ module Autoproj
                 return
             end
 
-            Autoproj.progress
-            Autoproj.progress("autoproj: available package sets", :bold)
             all_packages = Hash.new
-            manifest.each_package_set do |pkg_set|
+            if package_list
+                package_sets = Set.new
+                package_list.each do |name|
+                    pkg_set = manifest.definition_source(name)
+                    package_sets << pkg_set
+                    all_packages[name] = [manifest.package(name).autobuild, pkg_set.name]
+                end
+            else
+                package_sets = manifest.each_package_set
+                package_sets.each do |pkg_set|
+                    pkg_set.each_package.each do |pkg|
+                        all_packages[pkg.name] = [pkg, pkg_set.name]
+                    end
+                end
+            end
+
+            Autoproj.progress
+            Autoproj.progress("autoproj: package sets", :bold)
+            package_sets.each do |pkg_set|
                 next if pkg_set.empty?
                 if pkg_set.imported_from
                     Autoproj.progress "#{pkg_set.name} (imported by #{pkg_set.imported_from.name})"
@@ -307,14 +323,11 @@ module Autoproj
                 end
 
                 set_packages = pkg_set.each_package.sort_by(&:name)
-                set_packages.each do |pkg|
-                    all_packages[pkg.name] = [pkg, pkg_set.name]
-                end
                 Autoproj.progress "  defines: #{set_packages.map(&:name).join(", ")}"
             end
 
             Autoproj.progress
-            Autoproj.progress("autoproj: available packages", :bold)
+            Autoproj.progress("autoproj: packages", :bold)
             all_packages.to_a.sort_by(&:first).map(&:last).each do |pkg, pkg_set|
                 if File.exists?(File.join(pkg.srcdir, "manifest.xml"))
                     manifest.load_package_manifest(pkg.name)

@@ -109,7 +109,7 @@ EOTEXT
 
     # If in verbose mode, or if we only update sources, list the sources
     if Autoproj.verbose || Autoproj::CmdLine.display_configuration?
-        Autoproj::CmdLine.display_configuration(manifest)
+        Autoproj::CmdLine.display_configuration(manifest, selected_packages)
     end
     
     if Autoproj::CmdLine.bootstrap?
