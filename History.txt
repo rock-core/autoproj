@@ -1,13 +1,16 @@
 = Version 1.7.0
  * introduced cross-package-set imports. A package set can now tell autoproj to
    install another one in a recursive manner (see user's guide)
- * added optional dependencies.
+ * added optional dependencies, which will not be considered if the
+   depended-upon package is either not existing or is explicitely excluded from
+   the build. It is specified in Ruby with
        pkg.optional_dependency pkg_name
-   will not add the dependency if pkg_name is explicitely excluded from the
-   build
+   or in the package's manifest.xml files by setting the "optional" attribute to 1:
+       <depend package="pkg_name" optional="1" />
+
  * added the #package toplevel method to get a package handle, i.e.
        package('orocos/rtt')
-   is equivalent to the old
+   is equivalent to the former
        Autobuild::Package['orocos/rtt']
    
 = Version 1.6.2
