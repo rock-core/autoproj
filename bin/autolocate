@@ -31,8 +31,10 @@ root_dir =
     end
 
 Autoproj.silent = true
-Autoproj::CmdLine.initialize
 selection = Autoproj::CmdLine.parse_arguments(ARGV, false).first
+Autoproj::CmdLine.update_os_dependencies = false
+Dir.chdir(Autoproj.root_dir)
+Autoproj::CmdLine.initialize
 Autoproj::CmdLine.load_configuration
 Autoproj::CmdLine.initial_package_setup
 
