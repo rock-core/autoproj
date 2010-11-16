@@ -80,7 +80,7 @@ module Autobuild
 
         def resolve_optional_dependencies
             optional_dependencies.each do |name|
-                if Autoproj.manifest.package_enabled?(name)
+                if Autobuild::Package[name] && Autoproj.manifest.package_enabled?(name)
                     if Autoproj.verbose
                         STDERR.puts "adding optional dependency #{self.name} => #{name}"
                     end
