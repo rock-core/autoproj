@@ -1385,9 +1385,13 @@ module Autoproj
             manifest = PackageManifest.load(package, manifest_path)
             package_manifests[package.name] = manifest
 
-            manifest.each_dependency do |name|
+            manifest.each_dependency do |name, is_optional|
                 begin
-                    package.depends_on name
+                    if is_optional
+                        package.optional_dependency name
+                    else
+                        package.depends_on name
+                    end
                 rescue Autobuild::ConfigException => e
                     raise ConfigError.new(manifest_path),
                         "manifest #{manifest_path} of #{package.name} from #{source.name} lists '#{name}' as dependency, which is listed in the layout of #{file} but has no autobuild definition", e.backtrace
@@ -1554,10 +1558,10 @@ module Autoproj
         def each_os_dependency
             if block_given?
                 xml.xpath('//rosdep').each do |node|
-                    yield(node['name'])
+                    yield(node['name'], false)
                 end
                 package.os_packages.each do |name|
-                    yield(name)
+                    yield(name, false)
                 end
             else
                 enum_for :each_os_dependency
@@ -1568,8 +1572,14 @@ module Autoproj
             if block_given?
                 xml.xpath('//depend').each do |node|
                     dependency = node['package']
+                    optional   =
+                        if node['optional'].to_s == '1'
+                            true
+                        else false
+                        end
+
                     if dependency
-                        yield(dependency)
+                        yield(dependency, optional)
                     else
                         raise ConfigError.new, "manifest of #{package.name} has a <depend> tag without a 'package' attribute"
                     end
