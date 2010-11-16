@@ -1541,6 +1541,15 @@ module Autoproj
         # The raw XML data as a Nokogiri document
         attr_reader :xml
 
+        def short_documentation
+            xml.xpath('//description').each do |node|
+                if doc = node['brief']
+                    return doc.to_s
+                end
+            end
+            nil
+        end
+
         def initialize(package, doc)
             @package = package
             @xml = doc

@@ -277,57 +277,70 @@ module Autoproj
 
             if sets.empty?
                 Autoproj.progress("autoproj: no package sets defined in autoproj/manifest", :bold, :red)
-            else
-                Autoproj.progress("autoproj: available package sets", :bold)
-                manifest.each_package_set do |pkg_set|
-                    next if pkg_set.empty?
-                    if pkg_set.imported_from
-                        Autoproj.progress "  #{pkg_set.name} (imported by #{pkg_set.imported_from.name})"
-                    else
-                        Autoproj.progress "  #{pkg_set.name} (listed in manifest)"
-                    end
-                    if pkg_set.local?
-                        Autoproj.progress "    local set in #{pkg_set.local_dir}"
-                    else
-                        Autoproj.progress "    from:  #{pkg_set.vcs}"
-                        Autoproj.progress "    local: #{pkg_set.local_dir}"
-                    end
+                return
+            end
 
-                    imports = pkg_set.each_imported_set.to_a
-                    if !imports.empty?
-                        Autoproj.progress "    imports #{imports.size} package sets"
-                        if !pkg_set.auto_imports?
-                            Autoproj.progress "      automatic imports are DISABLED for this set"
-                        end
-                        imports.each do |imported_set|
-                            Autoproj.progress "      #{imported_set.name}"
-                        end
-                    end
+            Autoproj.progress
+            Autoproj.progress("autoproj: available package sets", :bold)
+            all_packages = Hash.new
+            manifest.each_package_set do |pkg_set|
+                next if pkg_set.empty?
+                if pkg_set.imported_from
+                    Autoproj.progress "#{pkg_set.name} (imported by #{pkg_set.imported_from.name})"
+                else
+                    Autoproj.progress "#{pkg_set.name} (listed in manifest)"
+                end
+                if pkg_set.local?
+                    Autoproj.progress "  local set in #{pkg_set.local_dir}"
+                else
+                    Autoproj.progress "  from:  #{pkg_set.vcs}"
+                    Autoproj.progress "  local: #{pkg_set.local_dir}"
+                end
 
-                    lines = []
-                    pkg_set.each_package.
-                        map { |pkg| [pkg.name, manifest.package_manifests[pkg.name]] }.
-                        sort_by { |name, _| name }.
-                        each do |name, source_manifest|
-                            vcs_def = manifest.importer_definition_for(name)
-                            if source_manifest
-                                lines << [name, source_manifest.short_documentation]
-                                lines << ["", vcs_def.to_s]
-                            else
-                                lines << [name, vcs_def.to_s]
-                            end
-                        end
+                imports = pkg_set.each_imported_set.to_a
+                if !imports.empty?
+                    Autoproj.progress "  imports #{imports.size} package sets"
+                    if !pkg_set.auto_imports?
+                        Autoproj.progress "    automatic imports are DISABLED for this set"
+                    end
+                    imports.each do |imported_set|
+                        Autoproj.progress "    #{imported_set.name}"
+                    end
+                end
 
-                    w_col1, w_col2 = nil
-                    lines.each do |col1, col2|
-                        w_col1 = col1.size if !w_col1 || col1.size > w_col1
-                        w_col2 = col2.size if !w_col2 || col2.size > w_col2
-                    end
-                    puts "    packages:"
-                    format = "    | %-#{w_col1}s | %-#{w_col2}s |"
-                    lines.each do |col1, col2|
-                        puts(format % [col1, col2])
-                    end
+                set_packages = pkg_set.each_package.sort_by(&:name)
+                set_packages.each do |pkg|
+                    all_packages[pkg.name] = [pkg, pkg_set.name]
+                end
+                Autoproj.progress "  defines: #{set_packages.map(&:name).join(", ")}"
+            end
+
+            Autoproj.progress
+            Autoproj.progress("autoproj: available packages", :bold)
+            all_packages.to_a.sort_by(&:first).map(&:last).each do |pkg, pkg_set|
+                if File.exists?(File.join(pkg.srcdir, "manifest.xml"))
+                    manifest.load_package_manifest(pkg.name)
+                end
+
+                pkg_manifest = manifest.package_manifests[pkg.name];
+                vcs_def = manifest.importer_definition_for(pkg.name)
+                Autoproj.progress "#{pkg.name}#{": #{pkg_manifest.short_documentation}" if pkg_manifest && pkg_manifest.short_documentation}", :bold
+                Autoproj.progress "   defined in #{pkg_set}"
+                Autoproj.progress "   #{vcs_def.to_s}"
+
+                optdeps = pkg.optional_dependencies.to_set
+                real_deps = pkg.dependencies.to_a
+                actual_real_deps = real_deps.find_all { |dep_name| !optdeps.include?(dep_name) }
+                if !actual_real_deps.empty?
+                    Autoproj.progress "   deps: #{actual_real_deps.join(", ")}"
+                end
+
+                selected_opt_deps, opt_deps = optdeps.partition { |dep_name| real_deps.include?(dep_name) }
+                if !selected_opt_deps.empty?
+                    Autoproj.progress "   enabled opt deps: #{selected_opt_deps.join(", ")}"
+                end
+                if !opt_deps.empty?
+                    Autoproj.progress "   disabled opt deps: #{opt_deps.join(", ")}"
                 end
             end
         end
