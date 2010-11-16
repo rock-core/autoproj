@@ -1,0 +1,73 @@
+#! /usr/bin/env ruby
+
+require "enumerator"
+require 'autobuild'
+require 'autobuild/reporting'
+require 'autoproj/autobuild'
+require 'autoproj/base'
+require 'autoproj/version'
+require 'autoproj/manifest'
+require 'autoproj/osdeps'
+require 'autoproj/system'
+require 'autoproj/options'
+require 'autoproj/cmdline'
+require 'logger'
+require 'utilrb/logger'
+
+include Autoproj
+
+root_dir =
+    begin Autoproj.root_dir
+    rescue UserError => error
+        if ENV['GEM_HOME']
+            Dir.chdir(File.join(ENV['GEM_HOME'], '..'))
+            begin Autoproj.root_dir
+            rescue UserError
+                raise error
+            end
+        else
+            raise
+        end
+    end
+
+Autoproj.silent = true
+Autoproj::CmdLine.initialize
+selection = Autoproj::CmdLine.parse_arguments(ARGV, false).first
+Autoproj::CmdLine.load_configuration
+Autoproj::CmdLine.initial_package_setup
+
+all_packages = Hash.new
+Autoproj.manifest.each_layout_level do |layout_name, packages, _|
+    all_packages[layout_name] = packages
+    if packages.include?(selection)
+        puts Autobuild::Package[selection].srcdir
+        exit(0)
+    end
+end
+
+split_selection = selection.split('/').map do |name|
+    /^#{Regexp.quote(name)}/
+end
+
+first_level = split_selection[0]
+candidates = []
+all_packages.each do |layout_name, packages|
+    layout_candidates = packages.find_all do |pkg_name|
+        if first_level =~ pkg_name
+            pkg_name.split('/').enum_for(:each_with_index).
+                all? do |part, index|
+                    split_selection[index] =~ part
+                end
+        end
+    end
+    candidates.concat(layout_candidates.map { |pkg_name| Autobuild::Package[pkg_name].srcdir })
+end
+if candidates.empty?
+    STDERR.puts Autoproj.console.color("cannot find #{selection} in the current autoproj installation", :bold, :red)
+elsif candidates.size > 1
+    STDERR.puts Autoproj.console.color("multiple packages match #{selection} in the current autoproj installation: #{candidates.join(", ")}", :bold, :red)
+else
+    puts candidates.first
+    exit(0)
+end
+
