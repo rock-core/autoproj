@@ -1150,6 +1150,8 @@ manifest_source:
                 do_switch_config(false, type, url, *options)
             end
 
+            Autoproj.save_config
+
             # Finally, generate an env.sh script
             File.open('env.sh', 'w') do |io|
                 io.write <<-EOSHELL
