@@ -108,10 +108,10 @@ module Autoproj
             end
             # Do that AFTER we have properly setup Autoproj.osdeps as to avoid
             # unnecessarily redetecting the operating system
-	    Autoproj::OSDependencies.define_osdeps_mode_option
             if update_os_dependencies? || osdeps?
                 Autoproj.reset_option('operating_system')
             end
+	    Autoproj::OSDependencies.define_osdeps_mode_option
             Autoproj.osdeps.osdeps_mode
         end
 
