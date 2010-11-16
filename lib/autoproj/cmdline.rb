@@ -465,8 +465,9 @@ module Autoproj
 
                     Rake::Task["#{pkg.name}-import"].invoke
                     manifest.load_package_manifest(pkg.name)
+                    pkg.resolve_optional_dependencies
+                    verify_package_availability(pkg.name)
                 end
-                manifest.resolve_optional_dependencies
 
                 current_packages.each do |pkg|
                     verify_package_availability(pkg.name)
