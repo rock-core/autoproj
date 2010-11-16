@@ -130,7 +130,7 @@ module Autoproj
             else
                 desc = "#{type}:#{url}"
                 if !options.empty?
-                    desc = "#{desc} #{options.map { |key, value| "#{key}=#{value}" }.join(" ")}"
+                    desc = "#{desc} #{options.to_a.sort_by { |key, _| key.to_s }.map { |key, value| "#{key}=#{value}" }.join(" ")}"
                 end
                 desc
             end
