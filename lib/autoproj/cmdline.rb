@@ -328,6 +328,10 @@ module Autoproj
                 Autoproj.progress "   defined in #{pkg_set}"
                 Autoproj.progress "   #{vcs_def.to_s}"
 
+                if !File.directory?(pkg.srcdir)
+                    Autoproj.progress "   NOT checked out yet, reported dependencies will be partial"
+                end
+
                 optdeps = pkg.optional_dependencies.to_set
                 real_deps = pkg.dependencies.to_a
                 actual_real_deps = real_deps.find_all { |dep_name| !optdeps.include?(dep_name) }
