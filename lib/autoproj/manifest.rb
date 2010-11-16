@@ -1011,6 +1011,10 @@ module Autoproj
             @packages[package_name].file
         end
 
+        def package(name)
+            packages[name]
+        end
+
         # Lists all defined packages and where they have been defined
         def each_package
             if !block_given?
@@ -1360,6 +1364,12 @@ module Autoproj
                     end
                 end
                 raise ArgumentError, "cannot find #{package_name} in the layout section"
+            end
+        end
+
+        def resolve_optional_dependencies
+            packages.each_value do |pkg|
+                pkg.autobuild.resolve_optional_dependencies
             end
         end
 

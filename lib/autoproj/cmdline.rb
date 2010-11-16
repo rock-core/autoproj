@@ -252,9 +252,7 @@ module Autoproj
             end
 
             # Resolve optional dependencies
-            manifest.packages.each_value do |pkg|
-                pkg.autobuild.resolve_optional_dependencies
-            end
+            manifest.resolve_optional_dependencies
 
             # Load the package's override files. each_source must not load the
             # source.yml file, as init.rb may define configuration options that are used
@@ -320,6 +318,7 @@ module Autoproj
             all_packages.to_a.sort_by(&:first).map(&:last).each do |pkg, pkg_set|
                 if File.exists?(File.join(pkg.srcdir, "manifest.xml"))
                     manifest.load_package_manifest(pkg.name)
+                    manifest.resolve_optional_dependencies
                 end
 
                 pkg_manifest = manifest.package_manifests[pkg.name];
@@ -454,6 +453,7 @@ module Autoproj
                     Rake::Task["#{pkg.name}-import"].invoke
                     manifest.load_package_manifest(pkg.name)
                 end
+                manifest.resolve_optional_dependencies
 
                 current_packages.each do |pkg|
                     verify_package_availability(pkg.name)
