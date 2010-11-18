@@ -981,6 +981,8 @@ module Autoproj
             
             if load_description
                 all_sets.each(&:load_description_file)
+            else
+                all_sets.each(&:load_minimal)
             end
             all_sets.each(&block)
         end
