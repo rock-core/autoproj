@@ -66,8 +66,10 @@ all_packages.each do |layout_name, packages|
 end
 if candidates.empty?
     STDERR.puts Autoproj.console.color("cannot find #{selection} in the current autoproj installation", :bold, :red)
+    exit 1
 elsif candidates.size > 1
     STDERR.puts Autoproj.console.color("multiple packages match #{selection} in the current autoproj installation: #{candidates.join(", ")}", :bold, :red)
+    exit 1
 else
     puts candidates.first
     exit(0)
