@@ -180,7 +180,13 @@ EOTEXT
     all_enabled_packages = Autoproj::CmdLine.import_packages(selected_packages)
 
     if Autoproj::CmdLine.update_os_dependencies? && !all_enabled_packages.empty?
-        manifest.install_os_dependencies(all_enabled_packages)
+        begin
+            update_mode = Autobuild.do_update
+            Autobuild.do_update ||= Autoproj::CmdLine.osdeps?
+            manifest.install_os_dependencies(all_enabled_packages)
+        ensure
+            Autobuild.do_update = update_mode
+        end
     end
 
     if all_enabled_packages.empty?
