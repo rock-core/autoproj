@@ -1,4 +1,5 @@
 = Version 1.7.0
+ * 1.6.2 should have been 1.7.0. Bump it now.
  * introduced cross-package-set imports. A package set can now tell autoproj to
    install another one in a recursive manner (see user's guide)
  * added optional dependencies, which will not be considered if the
@@ -12,6 +13,11 @@
        package('orocos/rtt')
    is equivalent to the former
        Autobuild::Package['orocos/rtt']
+ * added the --randomize-layout option which makes autoproj build each package
+   in a separate non-trivial subfolder, and install it in a separate folder as
+   well. This is meant to test the definition and handling of dependencies
+   between the different packages.
+ * added the autolocate tool, which returns the full path to a certain package
    
 = Version 1.6.2
  * overhauled osdeps fine-grained configuration. See
