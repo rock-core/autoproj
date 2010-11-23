@@ -775,6 +775,7 @@ module Autoproj
             @automatic_exclusions = Hash.new
             @constants_definitions = Hash.new
             @disabled_imports = Set.new
+            @moved_packages = Hash.new
 
             @constant_definitions = Hash.new
             if Autoproj.has_config_key?('manifest_source')
@@ -1534,6 +1535,20 @@ module Autoproj
             # Remove packages that are explicitely excluded and/or ignored
             expanded_packages.delete_if { |pkg_name| excluded?(pkg_name) || ignored?(pkg_name) }
             expanded_packages.to_set
+        end
+
+        attr_reader :moved_packages
+
+        # Moves the given package name from its current subdirectory to the
+        # provided one.
+        #
+        # For instance, for a package called drivers/xsens_imu
+        #
+        #   move("drivers/xsens_imu", "data_acquisition")
+        #
+        # will move the package into data_acquisition/xsens_imu
+        def move_package(package_name, new_dir)
+            moved_packages[package_name] = File.join(new_dir, File.basename(package_name))
         end
     end
 

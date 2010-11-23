@@ -485,3 +485,7 @@ def disable_imports_from(name)
     Autoproj.manifest.disable_imports_from(name)
 end
 
+# Moves the given package to a new subdirectory
+def move_package(name, new_dir)
+    Autoproj.manifest.move_package(name, new_dir)
+end

@@ -227,6 +227,8 @@ module Autoproj
                     place =
                         if randomize_layout?
                             Digest::SHA256.hexdigest(pkg_name)[0, 12]
+                        elsif target = manifest.moved_packages[pkg_name]
+                            target
                         else name
                         end
 
