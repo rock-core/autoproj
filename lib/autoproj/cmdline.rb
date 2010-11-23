@@ -1430,6 +1430,25 @@ export PATH=$GEM_HOME/bin:$PATH
                 end
             end
         end
+
+        # This method sets up autoproj and loads the configuration available in
+        # the current autoproj installation. It is meant as a simple way to
+        # initialize an autoproj environment for standalone tools
+        #
+        # Beware, it changes the current directory to the autoproj root dir
+        def self.initialize_and_load
+            require 'autoproj/autobuild'
+            require 'open-uri'
+            require 'autoproj/cmdline'
+
+            Autoproj::CmdLine.parse_arguments(ARGV.dup, false)
+            Dir.chdir(Autoproj.root_dir)
+
+            Autoproj::CmdLine.update_os_dependencies = false
+            Autoproj::CmdLine.initialize
+            Autoproj::CmdLine.load_configuration
+            Autoproj::CmdLine.initial_package_setup
+        end
     end
 end
 
