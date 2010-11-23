@@ -463,7 +463,13 @@ module Autoproj
                         raise ConfigError.new, "#{pkg.name} has no VCS, but is not checked out in #{pkg.srcdir}"
                     end
 
-                    Rake::Task["#{pkg.name}-import"].invoke
+                    ## COMPLETELY BYPASS RAKE HERE
+                    # The reason is that the ordering of import/prepare between
+                    # packages is not important BUT the ordering of import vs.
+                    # prepare in one package IS important: prepare is the method
+                    # that takes into account dependencies.
+                    pkg.import
+                    Rake::Task["#{pkg.name}-import"].instance_variable_set(:@already_invoked, true)
                     manifest.load_package_manifest(pkg.name)
                     pkg.resolve_optional_dependencies
                     verify_package_availability(pkg.name)
@@ -471,7 +477,8 @@ module Autoproj
 
                 current_packages.each do |pkg|
                     verify_package_availability(pkg.name)
-                    Rake::Task["#{pkg.name}-prepare"].invoke
+                    pkg.prepare
+                    Rake::Task["#{pkg.name}-prepare"].instance_variable_set(:@already_invoked, true)
 
                     # Verify that its dependencies are there, and add
                     # them to the selected_packages set so that they get
