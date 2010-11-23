@@ -340,6 +340,7 @@ module Autoproj
                 vcs_def = manifest.importer_definition_for(pkg.name)
                 Autoproj.progress "#{pkg.name}#{": #{pkg_manifest.short_documentation}" if pkg_manifest && pkg_manifest.short_documentation}", :bold
                 Autoproj.progress "   defined in #{pkg_set}"
+                Autoproj.progress "   source in #{pkg.srcdir}"
                 Autoproj.progress "   #{vcs_def.to_s}"
 
                 if !File.directory?(pkg.srcdir)
