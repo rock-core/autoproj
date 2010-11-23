@@ -1343,6 +1343,20 @@ module Autoproj
             !excluded?(name)
         end
 
+        # Returns true if +name+ is a valid package and is neither excluded from
+        # the build, nor ignored from the build
+        #
+        # If +validate+ is true, the method will raise ArgumentError if the
+        # package does not exists. 
+        #
+        # If it is false, the method will simply return false on non-defined
+        # packages 
+        def package_selected?(name, validate = true)
+            if package_enabled?(name)
+                !ignored?(name)
+            end
+        end
+
         # Returns the set of packages that should be built if the user does not
         # specify any on the command line
         def default_packages(validate = true)

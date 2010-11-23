@@ -468,6 +468,12 @@ def package(name)
     Autobuild::Package[name]
 end
 
+# Returns true if +name+ is a valid package and is neither excluded nor ignored
+# from the build
+def package_selected?(name)
+    Autoproj.manifest.package_selected?(name, false)
+end
+
 # Returns true if +name+ is a valid package and is included in the build
 def package_enabled?(name)
     Autoproj.manifest.package_enabled?(name, false)
