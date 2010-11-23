@@ -1326,12 +1326,11 @@ module Autoproj
 
         # Returns true if +name+ is a valid package and is included in the build
         #
-        # If +validate+ is true, the layout will have to be well-defined. It can
-        # therefore be used only after all sources have been successfully
-        # loaded.
+        # If +validate+ is true, the method will raise ArgumentError if the
+        # package does not exists. 
         #
-        # If it is false, non-defined packages/package sets in the layout will
-        # simply be ignored
+        # If it is false, the method will simply return false on non-defined
+        # packages 
         def package_enabled?(name, validate = true)
             if !Autobuild::Package[name]
                 if validate
