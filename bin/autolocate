@@ -39,31 +39,14 @@ Autoproj::CmdLine.load_configuration
 Autoproj::CmdLine.initial_package_setup
 
 all_packages = Hash.new
-Autoproj.manifest.each_layout_level do |layout_name, packages, _|
-    all_packages[layout_name] = packages
-    if packages.include?(selection)
+Autoproj.manifest.each_package do |pkg|
+    name = pkg.name
+    if name == selection
         puts Autobuild::Package[selection].srcdir
         exit(0)
     end
 end
 
-split_selection = selection.split('/').map do |name|
-    /^#{Regexp.quote(name)}/
-end
-
-first_level = split_selection[0]
-candidates = []
-all_packages.each do |layout_name, packages|
-    layout_candidates = packages.find_all do |pkg_name|
-        if first_level =~ pkg_name
-            pkg_name.split('/').enum_for(:each_with_index).
-                all? do |part, index|
-                    split_selection[index] =~ part
-                end
-        end
-    end
-    candidates.concat(layout_candidates.map { |pkg_name| Autobuild::Package[pkg_name].srcdir })
-end
 if candidates.empty?
     STDERR.puts Autoproj.console.color("cannot find #{selection} in the current autoproj installation", :bold, :red)
     exit 1
