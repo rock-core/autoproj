@@ -1105,6 +1105,8 @@ where 'mode' is one of:
             end
             Autoproj::Manifest.update_package_set(vcs, "autoproj main configuration", config_dir)
 
+            Autoproj.change_option "manifest_source", vcs_def.dup, true
+
             # Now write it in the config file
             File.open(File.join(Autoproj.config_dir, "config.yml"), "a") do |io|
                 io.puts <<-EOTEXT
@@ -1114,6 +1116,7 @@ manifest_source:
     #{vcs_def.map { |k, v| "#{k}: #{v}" }.join("\n    ")}
                 EOTEXT
             end
+
         rescue Exception
             if backup_name
                 FileUtils.rm_rf config_dir if config_dir
