@@ -268,20 +268,24 @@ module Autoproj
 
 
         def self.display_configuration(manifest, package_list = nil)
-            # We can't have the Manifest class load the source.yml file, as it
-            # cannot resolve all constants. So we need to do it ourselves to get
-            # the name ...
-            sets = manifest.each_package_set(false).to_a
-
-            if sets.empty?
-                Autoproj.progress("autoproj: no package sets defined in autoproj/manifest", :bold, :red)
-                return
+            # Load the manifest for packages that are already present on the
+            # file system
+            manifest.packages.each_value do |pkg|
+                if File.directory?(pkg.autobuild.srcdir)
+                    manifest.load_package_manifest(pkg.autobuild.name)
+                end
             end
 
             all_packages = Hash.new
             if package_list
-                package_sets = Set.new
+                all_selected_packages = Set.new
                 package_list.each do |name|
+                    all_selected_packages << name
+                    enumerate_dependencies(all_selected_packages, name)
+                end
+
+                package_sets = Set.new
+                all_selected_packages.each do |name|
                     pkg_set = manifest.definition_source(name)
                     package_sets << pkg_set
                     all_packages[name] = [manifest.package(name).autobuild, pkg_set.name]
@@ -293,6 +297,11 @@ module Autoproj
                         all_packages[pkg.name] = [pkg, pkg_set.name]
                     end
                 end
+            end
+
+            if package_sets.empty?
+                Autoproj.progress("autoproj: no package sets defined in autoproj/manifest", :bold, :red)
+                return
             end
 
             Autoproj.progress
@@ -385,6 +394,16 @@ module Autoproj
                 Autoproj.progress "will install #{selected_packages.to_a.join(", ")}"
             end
             selected_packages
+        end
+
+        def self.enumerate_dependencies(result, pkg_name)
+            pkg = Autobuild::Package[pkg_name]
+            pkg.dependencies.each do |dep_name|
+                if !result.include?(dep_name)
+                    result << dep_name
+                    enumerate_dependencies(result, dep_name)
+                end
+            end
         end
 
         def self.verify_package_availability(pkg_name)
@@ -1456,6 +1475,14 @@ export PATH=$GEM_HOME/bin:$PATH
             Autoproj::CmdLine.initialize
             Autoproj::CmdLine.load_configuration
             Autoproj::CmdLine.initial_package_setup
+
+            # Load the manifest for packages that are already present on the
+            # file system
+            manifest.packages.each_value do |pkg|
+                if File.directory?(pkg.autobuild.srcdir)
+                    manifest.load_package_manifest(pkg.autobuild.name)
+                end
+            end
         end
     end
 end
