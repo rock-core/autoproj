@@ -281,7 +281,7 @@ module Autoproj
                 all_selected_packages = Set.new
                 package_list.each do |name|
                     all_selected_packages << name
-                    enumerate_dependencies(all_selected_packages, name)
+                    Autobuild::Package[name].all_dependencies(all_selected_packages)
                 end
 
                 package_sets = Set.new
@@ -398,16 +398,6 @@ module Autoproj
                 Autoproj.progress "will install #{selected_packages.to_a.join(", ")}"
             end
             selected_packages
-        end
-
-        def self.enumerate_dependencies(result, pkg_name)
-            pkg = Autobuild::Package[pkg_name]
-            pkg.dependencies.each do |dep_name|
-                if !result.include?(dep_name)
-                    result << dep_name
-                    enumerate_dependencies(result, dep_name)
-                end
-            end
         end
 
         def self.verify_package_availability(pkg_name)
