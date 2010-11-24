@@ -1246,12 +1246,16 @@ module Autoproj
         #
         # If recursive is false, yields only the packages at this level.
         # Otherwise, return all packages.
-        def layout_packages(layout_def, recursive, validate = true)
-            result = []
+        def layout_packages(result, layout_def, recursive, validate = true)
             layout_def.each do |value|
                 if !value.kind_of?(Hash) # sublayout
                     begin
-                        result.concat(resolve_package_set(value))
+                        pkgs = resolve_package_set(value)
+                        pkgs.each do |p|
+                            result << p
+                            Autobuild::Package[p].all_dependencies(result)
+                        end
+
                     rescue ConfigError
                         raise if validate
                     end
@@ -1260,7 +1264,7 @@ module Autoproj
 
             if recursive
                 each_sublayout(layout_def) do |sublayout_name, sublayout_def|
-                    result.concat(layout_packages(sublayout_def, true))
+                    layout_packages(result, sublayout_def, true)
                 end
             end
 
@@ -1274,36 +1278,6 @@ module Autoproj
                     name, layout = value.find { true }
                     yield(name, layout)
                 end
-            end
-        end
-
-        # Looks into the layout setup in the manifest, and yields each layout
-        # and sublayout in order
-        def each_layout_level(selection = nil, layout_name = '/', layout_def = data['layout'], &block)
-            if !layout_def
-                yield(layout_name, default_packages, default_packages)
-                return nil
-            end
-
-            selection = selection.to_set if selection
-
-            # First of all, do the packages at this level
-            packages = layout_packages(layout_def, false)
-            # Remove excluded packages
-            packages.delete_if { |pkg_name| excluded?(pkg_name) }
-
-            if selection
-                selected_packages = packages.find_all { |pkg_name| selection.include?(pkg_name) }
-            else
-                selected_packages = packages.dup
-            end
-            if !packages.empty?
-                yield(layout_name, packages.to_set, selected_packages.to_set)
-            end
-
-            # Now, enumerate the sublayouts
-            each_sublayout(layout_def) do |subname, sublayout|
-                each_layout_level(selection, "#{layout_name}#{subname}/", sublayout, &block)
             end
         end
 
@@ -1361,7 +1335,7 @@ module Autoproj
         # specify any on the command line
         def default_packages(validate = true)
             names = if layout = data['layout']
-                        layout_packages(layout, true, validate)
+                        layout_packages(Set.new, layout, true, validate)
                     else
                         # No layout, all packages are selected
                         all_packages
@@ -1371,15 +1345,27 @@ module Autoproj
             names.to_set
         end
 
+        def search_layout(layout_level, layout_data, *names)
+            layout_data.each do |value|
+                if value.kind_of?(Hash)
+                    each_sublayout(value) do |subname, subdef|
+                        if result = search_layout("#{layout_level}/#{subname}", subdef)
+                            return result
+                        end
+                    end
+
+                elsif names.include?(value)
+                    return layout_level
+                end
+            end
+            nil
+        end
+
         # Returns the package directory for the given package name
         def whereis(package_name)
             Autoproj.in_file(self.file) do
-                each_layout_level do |layout_name, packages, _|
-                    if packages.include?(package_name)
-                        return layout_name
-                    end
-                end
-                raise ArgumentError, "cannot find #{package_name} in the layout section"
+                set_name = definition_source(package_name).name
+                return (search_layout("/", (data['layout'] || Hash.new), package_name, set_name) || "/")
             end
         end
 
@@ -1503,15 +1489,6 @@ module Autoproj
                 end
 
                 !packages.empty? || !sources.empty?
-            end
-
-            # Now, search for layout names
-            each_layout_level(nil) do |layout_name, packages, _|
-                selected_packages.each do |sel|
-                    if layout_name[0..-1] =~ Regexp.new("#{sel}\/?$")
-                        expanded_packages |= packages.to_set
-                    end
-                end
             end
 
             # Finally, check for package source directories

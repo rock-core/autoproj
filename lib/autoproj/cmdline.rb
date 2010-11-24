@@ -219,30 +219,28 @@ module Autoproj
             #
             # First, we allow to user to specify packages based on disk paths, so
             # resolve those
-            seen = Set.new
-            manifest.each_layout_level do |name, packages, enabled_packages|
-                packages -= seen
+            manifest.packages.each_value do |pkg_def|
+                pkg = pkg_def.autobuild
+                pkg_name = pkg.name
 
-                packages.each do |pkg_name|
-                    place =
-                        if randomize_layout?
-                            Digest::SHA256.hexdigest(pkg_name)[0, 12]
-                        elsif target = manifest.moved_packages[pkg_name]
-                            target
-                        else name
-                        end
+                layout =
+                    if randomize_layout?
+                        Digest::SHA256.hexdigest(pkg_name)[0, 12]
+                    else manifest.whereis(pkg_name)
+                    end
 
-                    srcdir  = File.join(Autoproj.root_dir, place)
-                    prefix  = File.join(Autoproj.build_dir, place)
-                    logdir  = File.join(prefix, "log")
+                place =
+                    if target = manifest.moved_packages[pkg_name]
+                        File.join(layout, target)
+                    else
+                        File.join(layout, pkg_name)
+                    end
 
-                    pkg = Autobuild::Package[pkg_name]
-                    pkg.srcdir = File.join(srcdir, pkg_name)
-                    pkg.prefix = prefix
-                    pkg.doc_target_dir = File.join(Autoproj.build_dir, 'doc', name, pkg_name)
-                    pkg.logdir = logdir
-                end
-                seen |= packages
+                pkg = Autobuild::Package[pkg_name]
+                pkg.srcdir = File.join(Autoproj.root_dir, place)
+                pkg.prefix = File.join(Autoproj.build_dir, layout)
+                pkg.doc_target_dir = File.join(Autoproj.build_dir, 'doc', name, pkg_name)
+                pkg.logdir = File.join(pkg.prefix, "log")
             end
 
             # Now call the blocks that the user defined in the autobuild files. We do it
