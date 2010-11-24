@@ -14,7 +14,7 @@ begin
             self.changes     = paragraphs_of('History.txt', 0..1).join("\n\n")
 
             extra_deps << 
-                ['autobuild',   '>= 1.5.24'] <<
+                ['autobuild',   '>= 1.5.25'] <<
                 ['rmail',   '>= 1.0.0'] <<
                 ['utilrb', '>= 1.3.3'] <<
                 ['nokogiri', '>= 1.3.3'] <<
