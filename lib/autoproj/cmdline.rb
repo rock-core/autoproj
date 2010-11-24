@@ -335,6 +335,8 @@ module Autoproj
                 Autoproj.progress "  defines: #{set_packages.map(&:name).join(", ")}"
             end
 
+            packages_not_present = []
+
             Autoproj.progress
             Autoproj.progress("autoproj: packages", :bold)
             all_packages.to_a.sort_by(&:first).map(&:last).each do |pkg, pkg_set|
@@ -355,6 +357,7 @@ module Autoproj
                 Autoproj.progress "   #{vcs_def.to_s}"
 
                 if !File.directory?(pkg.srcdir)
+                    packages_not_present << pkg.name
                     Autoproj.progress "   NOT checked out yet, reported dependencies will be partial"
                 end
 
@@ -372,6 +375,15 @@ module Autoproj
                 if !opt_deps.empty?
                     Autoproj.progress "   disabled opt deps: #{opt_deps.join(", ")}"
                 end
+            end
+
+            if !packages_not_present.empty?
+                Autoproj.progress
+                Autoproj.warn "the following packages are not yet checked out:"
+                packages_not_present.each_slice(4) do |*packages|
+                    Autoproj.warn "  #{packages.join(", ")}"
+                end
+                Autoproj.warn "therefore, the package list above and the listed dependencies are probably not complete"
             end
         end
 
