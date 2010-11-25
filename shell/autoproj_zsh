@@ -1,0 +1,12 @@
+function acd {
+    local pkg_path
+    pkg_path=$(autolocate $1)
+
+    if [ $? != 0 ]; then
+      return 1
+    else
+      cd $pkg_path
+      return 0
+    fi
+}
+
