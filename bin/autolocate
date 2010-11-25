@@ -32,6 +32,11 @@ root_dir =
 
 Autoproj.silent = true
 selection = Autoproj::CmdLine.parse_arguments(ARGV, false).first
+if !selection
+    STDERR.puts Autoproj.console.color("no package name given on the command line", :bold, :red)
+    exit 1
+end
+
 Autoproj::CmdLine.update_os_dependencies = false
 Dir.chdir(Autoproj.root_dir)
 Autoproj::CmdLine.initialize
