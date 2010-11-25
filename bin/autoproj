@@ -18,7 +18,7 @@ def color(*args)
     Autoproj.console.color(*args)
 end
 
-def report(debug)
+def report
     Autobuild::Reporting.report do
         yield
     end
@@ -34,13 +34,13 @@ rescue ConfigError => e
                 STDERR.puts color("  in #{path}", :red, :bold)
             end
     end
-    if debug then raise
+    if Autobuild.debug then raise
     else exit 1
     end
 rescue Interrupt
     STDERR.puts
     STDERR.puts color("Interrupted by user", :red, :bold)
-    if debug then raise
+    if Autobuild.debug then raise
     else exit 1
     end
 end
@@ -48,7 +48,7 @@ end
 Autoproj::OSDependencies.autodetect_ruby
 
 # Find the autoproj root dir
-report(Autobuild.debug) do
+report do
     selected_packages =
         begin Autoproj::CmdLine.parse_arguments(ARGV.dup)
         rescue RuntimeError => e
