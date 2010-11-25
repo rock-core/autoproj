@@ -171,16 +171,16 @@ module Autoproj
             #  * listed in the layout part of the manifest
             #  * but have no definition
             explicit = manifest.normalized_layout
-            explicit.each_key do |pkg_or_set|
+            explicit.each do |pkg_or_set, layout_level|
                 next if Autobuild::Package[pkg_or_set]
                 next if manifest.has_package_set?(pkg_or_set)
 
                 # This is not known. Check if we can auto-add it
-                full_path = File.join(Autoproj.root_dir, pkg_or_set)
+                full_path = File.expand_path(File.join(Autoproj.root_dir, layout_level, pkg_or_set))
                 next if !File.directory?(full_path)
 
                 if handler = Autoproj.package_handler_for(full_path)
-                    Autoproj.progress "auto-adding #{pkg_or_set} as a #{handler.gsub(/_package/, '')} package"
+                    Autoproj.progress "  auto-adding #{pkg_or_set} #{"in #{layout_level} " if layout_level != "/"}using the #{handler.gsub(/_package/, '')} package handler"
                     Autoproj.in_package_set(manifest.local_package_set, manifest.file) do
                         send(handler, pkg_or_set)
                     end
