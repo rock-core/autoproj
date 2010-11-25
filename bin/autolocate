@@ -38,12 +38,18 @@ Autoproj::CmdLine.initialize
 Autoproj::CmdLine.load_configuration
 Autoproj::CmdLine.initial_package_setup
 
-all_packages = Hash.new
+selection_rx = Regexp.new(Regexp.quote(selection))
+candidates = []
 Autoproj.manifest.each_package do |pkg|
     name = pkg.name
+    next if !Autoproj.manifest.package_enabled?(name)
+
+    srcdir = Autobuild::Package[name].srcdir
     if name == selection
-        puts Autobuild::Package[selection].srcdir
+        puts srcdir
         exit(0)
+    elsif name =~ selection_rx
+        candidates << srcdir
     end
 end
 
