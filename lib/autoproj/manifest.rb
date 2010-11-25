@@ -995,6 +995,10 @@ module Autoproj
             each_package_set(*args, &block)
         end
 
+        def local_package_set
+            each_package_set.find { |s| s.kind_of?(LocalPackageSet) }
+        end
+
         # Save the currently known package sets. After this call,
         # #each_package_set will always return the same set regardless of
         # changes on the manifest's data structures
@@ -1224,6 +1228,12 @@ module Autoproj
             end
         end
 
+        # Returns true if +name+ is the name of a package set known to this
+        # autoproj installation
+        def has_package_set?(name)
+            each_package_set(false).find { |set| set.name == name }
+        end
+
         # +name+ can either be the name of a source or the name of a package. In
         # the first case, we return all packages defined by that source. In the
         # latter case, we return the singleton array [name]
@@ -1246,28 +1256,17 @@ module Autoproj
         #
         # If recursive is false, yields only the packages at this level.
         # Otherwise, return all packages.
-        def layout_packages(result, layout_def, recursive, validate = true)
-            layout_def.each do |value|
-                if !value.kind_of?(Hash) # sublayout
-                    begin
-                        pkgs = resolve_package_set(value)
-                        pkgs.each do |p|
-                            result << p
-                            Autobuild::Package[p].all_dependencies(result)
-                        end
-
-                    rescue ConfigError
-                        raise if validate
+        def layout_packages(result, validate)
+            normalized_layout.each_key do |pkg_or_set|
+                begin
+                    resolve_package_set(pkg_or_set).each do |pkg_name|
+                        result << pkg_name
+                        Autobuild::Package[pkg_name].all_dependencies(result)
                     end
+                rescue ConfigError
+                    raise if validate
                 end
             end
-
-            if recursive
-                each_sublayout(layout_def) do |sublayout_name, sublayout_def|
-                    layout_packages(result, sublayout_def, true)
-                end
-            end
-
             result
         end
 
@@ -1331,11 +1330,20 @@ module Autoproj
             end
         end
 
+        # Returns the set of packages that are selected by the layout
+        def all_selected_packages
+            result = default_packages.to_set
+            result.each do |pkg_name|
+                Autobuild::Package[pkg_name].all_dependencies(result)
+            end
+            result
+        end
+
         # Returns the set of packages that should be built if the user does not
         # specify any on the command line
         def default_packages(validate = true)
             names = if layout = data['layout']
-                        layout_packages(Set.new, layout, true, validate)
+                        layout_packages(Set.new, validate)
                     else
                         # No layout, all packages are selected
                         all_packages
@@ -1345,27 +1353,26 @@ module Autoproj
             names.to_set
         end
 
-        def search_layout(layout_level, layout_data, *names)
+        def normalized_layout(result = Hash.new { '/' }, layout_level = '/', layout_data = (data['layout'] || Hash.new))
             layout_data.each do |value|
                 if value.kind_of?(Hash)
                     each_sublayout(value) do |subname, subdef|
-                        if result = search_layout("#{layout_level}/#{subname}", subdef)
-                            return result
-                        end
+                        normalized_layout(result, "#{layout_level}/#{subname}", subdef)
                     end
 
-                elsif names.include?(value)
-                    return layout_level
+                else
+                    result[value] = layout_level
                 end
             end
-            nil
+            result
         end
 
         # Returns the package directory for the given package name
         def whereis(package_name)
             Autoproj.in_file(self.file) do
                 set_name = definition_source(package_name).name
-                return (search_layout("/", (data['layout'] || Hash.new), package_name, set_name) || "/")
+                actual_layout = normalized_layout
+                return actual_layout[package_name] || actual_layout[set_name]
             end
         end
 
@@ -1464,17 +1471,17 @@ module Autoproj
         #  * as a package name
         #
         # This method converts the first two directories into the third one
-        def expand_package_selection(selected_packages)
+        def expand_package_selection(selection)
             base_dir = Autoproj.root_dir
 
             # The expanded selection
             expanded_packages = Set.new
             # All the packages that are available on this installation
-            all_layout_packages = self.all_layout_packages
+            all_layout_packages = self.all_selected_packages
 
             # First, remove packages that are directly referenced by name or by
             # package set names
-            selected_packages.each do |sel|
+            selection.each do |sel|
                 sel = Regexp.new(Regexp.quote(sel))
 
                 packages = all_layout_packages.
@@ -1493,7 +1500,7 @@ module Autoproj
 
             # Finally, check for package source directories
             all_packages = self.all_package_names
-            selected_packages.each do |sel|
+            selection.each do |sel|
                 match_pkg_name = Regexp.new(Regexp.quote(sel))
                 all_packages.each do |pkg_name|
                     pkg = Autobuild::Package[pkg_name]

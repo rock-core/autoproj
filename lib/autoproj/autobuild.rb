@@ -163,21 +163,38 @@ module Autoproj
         end
     end
 
+    def self.in_package_set(source, path)
+        @file_stack.push([source, File.expand_path(path).gsub(/^#{Regexp.quote(Autoproj.root_dir)}\//, '')])
+        yield
+    ensure
+        @file_stack.pop
+    end
+
     def self.import_autobuild_file(source, path)
         return if @loaded_autobuild_files.include?(path)
 
-        @file_stack.push([source, File.expand_path(path).gsub(/^#{Regexp.quote(Autoproj.root_dir)}\//, '')])
-        begin
-            Kernel.load path
-        rescue ConfigError => e
-            raise
-        rescue Exception => e
-            filter_load_exception(e, source, path)
+        in_package_set(source, File.expand_path(path).gsub(/^#{Regexp.quote(Autoproj.root_dir)}\//, '')) do
+            begin
+                Kernel.load path
+            rescue ConfigError => e
+                raise
+            rescue Exception => e
+                filter_load_exception(e, source, path)
+            end
+            @loaded_autobuild_files << path
         end
-        @loaded_autobuild_files << path
+    end
 
-    ensure
-        @file_stack.pop
+    # Tries to find a handler automatically for 'full_path'
+    def self.package_handler_for(full_path)
+        if !Dir.enum_for(:glob, File.join(full_path, "*.orogen")).to_a.empty?
+            "orogen_package"
+        elsif File.file?(File.join(full_path, "CMakeLists.txt"))
+            "cmake_package"
+        elsif File.directory?(File.join(full_path, "lib")) &&
+            !Dir.enum_for(:glob, File.join(full_path, "*.rb")).to_a.empty?
+            "ruby_package"
+        end
     end
 end
 
