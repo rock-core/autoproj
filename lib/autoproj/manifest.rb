@@ -1356,10 +1356,8 @@ module Autoproj
         def normalized_layout(result = Hash.new { '/' }, layout_level = '/', layout_data = (data['layout'] || Hash.new))
             layout_data.each do |value|
                 if value.kind_of?(Hash)
-                    each_sublayout(value) do |subname, subdef|
-                        normalized_layout(result, "#{layout_level}/#{subname}", subdef)
-                    end
-
+                    subname, subdef = value.find { true }
+                    normalized_layout(result, "#{layout_level}#{subname}/", subdef)
                 else
                     result[value] = layout_level
                 end
