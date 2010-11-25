@@ -54,6 +54,26 @@ Autoproj.manifest.each_package do |pkg|
 end
 
 if candidates.empty?
+    # Try harder. Match directory prefixes
+    directories = selection.split('/')
+    rx = directories.
+        map { |d| "#{Regexp.quote(d)}\\w*" }.
+        join("/")
+    rx = Regexp.new(rx)
+
+    Autoproj.manifest.each_package do |pkg|
+        name = pkg.name
+        next if !Autoproj.manifest.package_enabled?(name)
+
+        srcdir = Autobuild::Package[name].srcdir
+        if name =~ rx
+            candidates << srcdir
+        end
+    end
+
+end
+
+if candidates.empty?
     STDERR.puts Autoproj.console.color("cannot find #{selection} in the current autoproj installation", :bold, :red)
     exit 1
 elsif candidates.size > 1
