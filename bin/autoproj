@@ -219,7 +219,7 @@ EOTEXT
 
     if Autoproj::CmdLine.update_envsh?
         Autoproj.export_env_sh
-        STDERR.puts color("autoproj: updated #{Autoproj.root_dir}/env.sh", :green)
+        Autoproj.progress "autoproj: updated #{Autoproj.root_dir}/env.sh", :green
     end
 
     if Autoproj::CmdLine.show_statistics?
