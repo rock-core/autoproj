@@ -642,6 +642,8 @@ module Autoproj
         def self.doc?; @mode == "doc" end
         def self.snapshot?; @mode == "snapshot" end
 
+        def self.show_statistics?; !!@show_statistics end
+
         def self.osdeps?; @mode == "osdeps" end
         def self.show_osdeps?; @mode == "osdeps" && @show_osdeps end
         def self.revshow_osdeps?; @mode == "osdeps" && @revshow_osdeps end
@@ -757,6 +759,9 @@ where 'mode' is one of:
                         end
                     end
                     exit 0
+                end
+                opts.on('--stats', 'displays statistics about each of the phases in the package building process') do
+                    @show_statistics = true
                 end
 
                 opts.on("--with-depends", "apply rebuild and force-build to both packages selected on the command line and their dependencies") do

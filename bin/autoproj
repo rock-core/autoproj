@@ -221,5 +221,50 @@ EOTEXT
         Autoproj.export_env_sh
         STDERR.puts color("autoproj: updated #{Autoproj.root_dir}/env.sh", :green)
     end
+
+    if Autoproj::CmdLine.show_statistics?
+        per_phase = Hash.new
+        per_type  = Hash.new
+
+        Autoproj.progress
+        Autoproj.progress "statistics about the build", :bold
+
+        Autoproj.manifest.each_package.sort_by(&:name).each do |pkg|
+            next if pkg.statistics.empty?
+
+            if per_phase.empty?
+                Autoproj.progress "detailed per package"
+            end
+
+            puts "  #{pkg.name}: %.1fs" % [pkg.statistics.values.inject(&:+)]
+            pkg.statistics.each_key.sort.each do |phase|
+                per_phase[phase] ||= 0
+                per_phase[phase] += pkg.statistics[phase]
+                per_type[pkg.class] ||= Hash.new
+                per_type[pkg.class][phase] ||= 0
+                per_type[pkg.class][phase] += pkg.statistics[phase]
+                puts "    #{phase}: %.1fs" % [pkg.statistics[phase]]
+            end
+        end
+
+        if !per_type.empty?
+            Autoproj.progress
+            Autoproj.progress "detailed per package type"
+            per_type.each do |pkg_type, phases|
+                Autoproj.progress "  #{pkg_type.name}: %.1fs" % [phases.values.inject(&:+)]
+                phases.each_key.sort.each do |phase_name|
+                    Autoproj.progress "    #{phase_name}: %.1fs" % [phases[phase_name]]
+                end
+            end
+        end
+
+        if !per_phase.empty?
+            Autoproj.progress
+            Autoproj.progress "summary per phase"
+            per_phase.keys.sort.each do |phase_name|
+                Autoproj.progress "  #{phase_name}: %.1fs" % [per_phase[phase_name]]
+            end
+        end
+    end
 end
 
