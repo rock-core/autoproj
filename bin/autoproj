@@ -103,8 +103,14 @@ EOTEXT
         Autobuild.do_update = Autoproj.auto_update?
     end
 
-    selected_packages = Autoproj::CmdLine.resolve_user_selection(selected_packages)
-    Autoproj.manifest.explicit_selection = selected_packages
+    resolved_selected_packages = Autoproj::CmdLine.resolve_user_selection(selected_packages)
+    if !selected_packages.empty?
+        command_line_selection = resolved_selected_packages.dup
+    else
+        command_line_selection = Array.new
+    end
+    Autoproj.manifest.explicit_selection = resolved_selected_packages
+    selected_packages = resolved_selected_packages
     Autoproj::CmdLine.initial_package_setup
 
     # If in verbose mode, or if we only update sources, list the sources
@@ -192,9 +198,9 @@ EOTEXT
     if all_enabled_packages.empty?
         STDERR.puts color("autoproj: nothing to do", :bold)
     elsif Autoproj::CmdLine.doc?
-        Autoproj::CmdLine.build_packages(selected_packages, all_enabled_packages)
+        Autoproj::CmdLine.build_packages(command_line_selection, all_enabled_packages)
     elsif Autoproj::CmdLine.build? 
-        Autoproj::CmdLine.build_packages(selected_packages, all_enabled_packages)
+        Autoproj::CmdLine.build_packages(command_line_selection, all_enabled_packages)
 
         # Now, do some sanity checks on the result
         prefixes = all_enabled_packages.inject(Set.new) do |set, pkg_name|
