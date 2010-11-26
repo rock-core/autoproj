@@ -976,7 +976,9 @@ where 'mode' is one of:
                     else pkg.autoproj_name
                     end
 
-                if !pkg.importer.respond_to?(:status)
+                if !pkg.importer
+                    lines << Autoproj.color("  is a local-only package (no VCS)", :bold, :red)
+                elsif !pkg.importer.respond_to?(:status)
                     lines << Autoproj.color("  the #{pkg.importer.class.name.gsub(/.*::/, '')} importer does not support status display", :bold, :red)
                 elsif !File.directory?(pkg.srcdir)
                     lines << Autoproj.color("  is not imported yet", :magenta)
