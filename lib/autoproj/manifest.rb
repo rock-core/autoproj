@@ -745,7 +745,7 @@ module Autoproj
         # Load the manifest data contained in +file+
         def load(file)
             if !File.exists?(file)
-                raise ConfigError.new(dirname), "expected an autoproj configuration in #{dirname}, but #{file} does not exist"
+                raise ConfigError.new(File.dirname(file)), "expected an autoproj configuration in #{File.dirname(file)}, but #{file} does not exist"
             end
 
             data = Autoproj.in_file(file, ArgumentError) do
