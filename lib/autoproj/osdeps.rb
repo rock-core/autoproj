@@ -47,6 +47,9 @@ module Autoproj
 
         # The information contained in the OSdeps files, as a hash
         attr_reader :definitions
+        # All the information contained in all the OSdeps files, as a mapping
+        # from the OSdeps package name to [osdeps_file, definition] pairs
+        attr_reader :all_definitions
         # The information as to from which osdeps file the current package
         # information in +definitions+ originates. It is a mapping from the
         # package name to the osdeps file' full path
@@ -64,11 +67,14 @@ module Autoproj
 
         def initialize(defs = Hash.new, file = nil)
             @definitions = defs.to_hash
+            @all_definitions = Hash.new { |h, k| h[k] = Array.new }
+
             @sources     = Hash.new
             @installed_packages = Array.new
             if file
                 defs.each_key do |package_name|
                     sources[package_name] = file
+                    all_definitions[package_name] << [[file], defs[package_name]]
                 end
             end
             @silent = true
@@ -96,6 +102,16 @@ module Autoproj
                 v2
             end
             @sources = sources.merge(info.sources)
+            @all_definitions = all_definitions.merge(info.all_definitions) do |package_name, all_defs, new_all_defs|
+                all_defs = all_defs.dup
+                new_all_defs = new_all_defs.dup
+                new_all_defs.delete_if do |files, data|
+                    if entry = all_defs.find { |_, d| d == data }
+                        entry[0] |= files
+                    end
+                end
+                all_defs.concat(new_all_defs)
+            end
         end
 
         # Perform some sanity checks on the given osdeps definitions
