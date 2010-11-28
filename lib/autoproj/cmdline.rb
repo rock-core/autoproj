@@ -770,14 +770,14 @@ where 'mode' is one of:
                 opts.on("--list-newest", "for each source directory, list what is the newest file used by autoproj for dependency tracking") do
                     Autoproj::CmdLine.list_newest = true
                 end
-                opts.on("--rshow", "in the osdeps mode, shows information for each OS package") do
+                opts.on("--no-osdeps", "in build and update modes, disable osdeps handling") do |value|
+                    @osdeps_forced_mode = 'none'
+                end
+                opts.on("--rshow", "in osdeps mode, shows information for each OS package") do
                     @revshow_osdeps = true
                 end
-                opts.on("--show", "in the osdeps mode, show a per-package listing of the OS dependencies instead of installing them") do
+                opts.on("--show", "in osdeps mode, show a per-package listing of the OS dependencies instead of installing them") do
                     @show_osdeps = true
-                end
-                opts.on("--no-osdeps", "disable osdeps handling in build and update modes") do |value|
-                    @osdeps_forced_mode = 'none'
                 end
                 opts.on("--all", "in osdeps mode, install both OS packages and RubyGem packages, regardless of the otherwise selected mode") do
                     @osdeps_forced_mode = 'all'
