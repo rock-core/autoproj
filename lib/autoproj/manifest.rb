@@ -1585,9 +1585,28 @@ module Autoproj
         # The raw XML data as a Nokogiri document
         attr_reader :xml
 
+        def documentation
+            xml.xpath('//description').each do |node|
+                doc = node.content.strip
+                if doc.empty?
+                    if doc = short_documentation
+                        return doc
+                    end
+                    return "no documentation available for #{package.name} in its manifest.xml file"
+                else
+                    return doc
+                end
+            end
+            nil
+        end
+
         def short_documentation
             xml.xpath('//description').each do |node|
-                if doc = node['brief']
+                doc = node['brief']
+                if doc
+                    doc = doc.to_s.strip
+                end
+                if doc && !doc.empty?
                     return doc.to_s
                 end
             end
