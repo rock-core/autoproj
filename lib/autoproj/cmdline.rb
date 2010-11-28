@@ -870,6 +870,9 @@ where 'mode' is one of:
             @force_re_build_with_depends = force_re_build_with_depends if !force_re_build_with_depends.nil?
             Autobuild.do_update = do_update if !do_update.nil?
             selection
+
+        rescue OptionParser::InvalidOption => e
+            raise ConfigError, e.message, e.backtrace
         end
 
         def self.handle_mode(mode, remaining_args)
