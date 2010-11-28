@@ -1234,6 +1234,8 @@ manifest_source:
                 manifest_data =
                     begin open(manifest_url) { |file| file.read }
                     rescue
+                        # Delete the autoproj directory
+                        FileUtils.rm_rf 'autoproj'
                         raise ConfigError.new, "cannot read #{manifest_url}, did you mean 'autoproj bootstrap VCSTYPE #{manifest_url}' ?"
                     end
 
