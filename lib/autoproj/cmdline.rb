@@ -262,7 +262,7 @@ module Autoproj
                 pkg = Autobuild::Package[pkg_name]
                 pkg.srcdir = File.join(Autoproj.root_dir, place)
                 pkg.prefix = File.join(Autoproj.build_dir, layout)
-                pkg.doc_target_dir = File.join(Autoproj.build_dir, 'doc', name, pkg_name)
+                pkg.doc_target_dir = File.join(Autoproj.build_dir, 'doc', pkg_name)
                 pkg.logdir = File.join(pkg.prefix, "log")
             end
 
