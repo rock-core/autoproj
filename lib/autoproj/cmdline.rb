@@ -1100,22 +1100,6 @@ where 'mode' is one of:
                     do_switch_config(true, type, url, *options)
                 end
             end
-
-            # And now save the options: note that we keep the current option set even
-            # though we switched configuration. This is not a problem as undefined
-            # options will not be reused
-            #
-            # TODO: cleanup the options to only keep the relevant ones
-            vcs_def = Hash['type' => type, 'url' => url]
-            options.each do |opt|
-                opt_name, opt_val = opt.split '='
-                vcs_def[opt_name] = opt_val
-            end
-            # Validate the option hash, just in case
-            Autoproj.normalize_vcs_definition(vcs_def)
-            # Save the new options
-            Autoproj.change_option('manifest_source', vcs_def, true)
-            Autoproj.save_config
         end
 
         def self.do_switch_config(delete_current, type, url, *options)
@@ -1150,17 +1134,25 @@ where 'mode' is one of:
             end
             Autoproj::Manifest.update_package_set(vcs, "autoproj main configuration", config_dir)
 
-            Autoproj.change_option "manifest_source", vcs_def.dup, true
+            # If the new tree has a configuration file, load it and set
+            # manifest_source
+            Autoproj.load_config
 
-            # Now write it in the config file
-            File.open(File.join(Autoproj.config_dir, "config.yml"), "a") do |io|
-                io.puts <<-EOTEXT
-manifest_source:
-    type: #{vcs_def.delete(:type)}
-    url: #{vcs_def.delete(:url)}
-    #{vcs_def.map { |k, v| "#{k}: #{v}" }.join("\n    ")}
-                EOTEXT
+            # And now save the options: note that we keep the current option set even
+            # though we switched configuration. This is not a problem as undefined
+            # options will not be reused
+            #
+            # TODO: cleanup the options to only keep the relevant ones
+            vcs_def = Hash['type' => type, 'url' => url]
+            options.each do |opt|
+                opt_name, opt_val = opt.split '='
+                vcs_def[opt_name] = opt_val
             end
+            # Validate the option hash, just in case
+            Autoproj.normalize_vcs_definition(vcs_def)
+            # Save the new options
+            Autoproj.change_option "manifest_source", vcs_def.dup, true
+            Autoproj.save_config
 
         rescue Exception
             if backup_name
