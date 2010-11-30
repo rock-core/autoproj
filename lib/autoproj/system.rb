@@ -112,6 +112,12 @@ module Autoproj
         Autoproj.env_set 'LD_LIBRARY_PATH'
     end
 
+    class << self
+        attr_writer :shell_helpers
+        def shell_helpers?; !!@shell_helpers end
+    end
+    @shell_helpers = true
+
     # Create the env.sh script in +subdir+. In general, +subdir+ should be nil.
     def self.export_env_sh(subdir = nil)
         filename = if subdir
@@ -136,6 +142,20 @@ module Autoproj
             end
             variables.each do |var|
                 io.puts "export #{var}"
+            end
+
+            shell_dir = File.expand_path(File.join("..", "..", "shell"), File.dirname(__FILE__))
+            if Autoproj.shell_helpers? && shell = ENV['SHELL']
+                shell_kind = File.basename(shell)
+                if shell_kind =~ /^\w+$/
+                    shell_file = File.join(shell_dir, "autoproj_#{shell_kind}")
+                    if File.exists?(shell_file)
+                        Autoproj.progress
+                        Autoproj.progress "autodetected the shell to be #{shell_kind}, sourcing autoproj shell helpers"
+                        Autoproj.progress "add \"Autoproj.shell_helpers = false\" in autoproj/init.rb to disable"
+                        io.puts "source \"#{shell_file}\""
+                    end
+                end
             end
         end
     end
