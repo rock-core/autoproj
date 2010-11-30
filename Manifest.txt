@@ -2,6 +2,7 @@ History.txt
 Manifest.txt
 README.txt
 Rakefile
+bin/autolocate
 bin/autoproj
 doc/guide/config.yaml
 doc/guide/ext/init.rb
@@ -49,6 +50,8 @@ samples/autoproj/overrides.rb
 samples/autoproj/overrides.yml
 samples/manifest.xml
 samples/osdeps.yml
+shell/autoproj_bash
+shell/autoproj_zsh
 test/data/test_manifest/autoproj/local/local.autobuild
 test/data/test_manifest/autoproj/manifest
 test/test_debian.rb
