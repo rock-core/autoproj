@@ -142,7 +142,7 @@ The resulting software is installed in
 EOTEXT
     end
 
-    if Autoproj::CmdLine.only_config?
+    if Autoproj::CmdLine.only_config? || Autoproj::CmdLine.reconfigure?
         exit(0)
     end
 

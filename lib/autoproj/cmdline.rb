@@ -155,7 +155,9 @@ module Autoproj
             if !silent
                 Autoproj.progress("autoproj: loading ...", :bold)
                 if !Autoproj.reconfigure?
-                    Autoproj.progress("run 'autoproj --reconfigure' to change configuration values", :bold)
+                    Autoproj.progress("run 'autoproj reconfigure' to change configuration options", :bold)
+                    Autoproj.progress("and use 'autoproj switch-config' to change the remote source for", :bold)
+                    Autoproj.progress("autoproj's main build configuration", :bold)
                 end
             end
             manifest.each_autobuild_file do |source, name|
@@ -641,6 +643,7 @@ module Autoproj
         def self.build?; @mode =~ /build/ end
         def self.doc?; @mode == "doc" end
         def self.snapshot?; @mode == "snapshot" end
+        def self.reconfigure?; @mode == "reconfigure" end
 
         def self.show_statistics?; !!@show_statistics end
 
@@ -708,6 +711,9 @@ where 'mode' is one of:
   list-config:   list all available packages
   update:        only import/update packages, do not build them
   update-config: only update the configuration
+  reconfigure:   change the configuration options. Additionally, the
+                 --reconfigure option can be used in other modes like
+                 update or build
 
 -- Experimental Features (USE AT YOUR OWN RISK)
   check:  compares dependencies in manifest.xml with autodetected ones
@@ -904,6 +910,12 @@ where 'mode' is one of:
                 Dir.chdir(Autoproj.root_dir)
                 switch_config(*remaining_args)
                 exit 0
+
+            when "reconfigure"
+                Autoproj.reconfigure = true
+                Autobuild.do_update = false
+                Autobuild.do_build = false
+                @update_os_dependencies = false
 
             when "build"
             when "force-build"
