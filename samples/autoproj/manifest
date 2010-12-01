@@ -1,13 +1,9 @@
 # List of VCS information or subdirectories of autoproj/ in which to find
 # package set definitions.
 package_sets:
-# Examples from the RubyInMotion package sets
+# Examples from the Rock package set
 #   - type: git
-#     url: git://github.com/doudou/rubim.base.git
-#   - type: git
-#     url: git://github.com/doudou/rubim.orocos.git
-#   - type: git
-#     url: git://github.com/doudou/rubim.drivers.git
+#     url: git://gitorious.com/rock/package_set.git
 
 # The layout section specifies what to build, and where to build it (as a
 # subdirectory of the root installation directory). In the example below, all
@@ -16,8 +12,8 @@ package_sets:
 # files in build/tools/typelib, build/tools/orocos/rtt, ...
 #
 # layout:
-#   - tools:
-#     - rubim.orocos
+#   - rock:
+#     - rock.toolchain
 #
 # Single packages can also be selected instead of whole package sets. The
 # package names are interpreted as a regular expression, so it is possible to
