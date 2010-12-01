@@ -18,10 +18,12 @@
    well. This is meant to test the definition and handling of dependencies
    between the different packages.
  * added the autolocate tool, which returns the full path to a certain package.
-   The shell function "acd", akin to rosbuild's roscd, it provided in shell/
+   The shell function "acd", akin to rosbuild's roscd, is also provided for
+   recognized shells (bash and zsh at the moment). The relevant files are
+   sourced in env.sh
  * added an easier way to add a local checked-out package to a build without
    going through editing 20 files. Packages are automatically detected and added
-   as soon as they are explicitely added to autoproj/manifest.
+   as soon as they are explicitely listed in autoproj/manifest.
  * added the --stats option that displays timing statistics about the build
    
 = Version 1.6.2
