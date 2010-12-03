@@ -26,10 +26,6 @@ begin
         end
     end
 
-    # Define our own documentation handling. Rake.clear_tasks is defined by Hoe
-    Rake.clear_tasks(/dist:(re|clobber_|)docs/)
-    Rake.clear_tasks(/dist:publish_docs/)
-
 rescue LoadError
     STDERR.puts "cannot load the Hoe gem. Distribution is disabled"
 rescue Exception => e
@@ -38,15 +34,6 @@ rescue Exception => e
 end
 
 namespace 'dist' do
-    task 'publish_docs' => 'doc' do
-        if !system('doc/update_github')
-            raise "cannot update the gh-pages branch for GitHub"
-        end
-        if !system('git', 'push', 'origin', '+gh-pages')
-            raise "cannot push the documentation"
-        end
-    end
-
     desc "generate the bootstrap script"
     task 'bootstrap' do
         require 'yaml'
@@ -72,19 +59,18 @@ namespace 'dist' do
             gsub('OPTIONS_CODE', options_code).
             gsub('SYSTEM_CODE', system_code).
             gsub('OSDEPS_DEFAULTS', osdeps_defaults)
-        File.open(File.join(Dir.pwd, 'doc', 'guide', 'src', 'autoproj_bootstrap'), 'w') do |io|
+        File.open(File.join(Dir.pwd, 'bin', 'autoproj_bootstrap'), 'w') do |io|
             io.write bootstrap_code
         end
     end
 end
 
 do_doc = begin
-             require 'webgen/webgentask'
              require 'rdoc/task'
              true
          rescue LoadError => e
-             STDERR.puts "ERROR: cannot load webgen and/or RDoc, documentation generation disabled"
-             STDERR.puts "ERROR:   #{e.message}"
+             STDERR.puts "WARN: cannot load RDoc, documentation generation disabled"
+             STDERR.puts "WARN:   #{e.message}"
          end
 
 if do_doc
@@ -96,18 +82,10 @@ if do_doc
     end
 
     namespace 'doc' do
-        task 'all' => %w{guide api}
-        task 'clobber' => 'clobber_guide'
-        Webgen::WebgenTask.new('guide') do |website|
-            website.clobber_outdir = true
-            website.directory = File.join(Dir.pwd, 'doc', 'guide')
-            website.config_block = lambda do |config|
-                config['output'] = ['Webgen::Output::FileSystem', File.join(Dir.pwd, 'doc', 'html')]
-            end
-        end
-        task 'guide' => 'dist:bootstrap'
+        task 'all' => %w{api}
+        task 'clobber' => 'clobber_api'
         RDoc::Task.new("api") do |rdoc|
-            rdoc.rdoc_dir = 'doc/html/api'
+            rdoc.rdoc_dir = 'doc'
             rdoc.title    = "autoproj"
             rdoc.options << '--show-hash'
             rdoc.rdoc_files.include('lib/**/*.rb')

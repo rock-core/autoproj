@@ -1,4 +1,4 @@
-doc/html
+doc
 *.sw*
 webgen.cache
 doc/guide/src/autoproj_bootstrap
