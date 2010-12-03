@@ -4,6 +4,7 @@ README.txt
 Rakefile
 bin/autolocate
 bin/autoproj
+bin/autoproj_stress_test
 doc/guide/config.yaml
 doc/guide/ext/init.rb
 doc/guide/ext/previous_next.rb
