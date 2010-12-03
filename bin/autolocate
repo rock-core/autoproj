@@ -1,47 +1,19 @@
 #! /usr/bin/env ruby
 
-require "enumerator"
-require 'autobuild'
-require 'autobuild/reporting'
-require 'autoproj/autobuild'
-require 'autoproj/base'
-require 'autoproj/version'
-require 'autoproj/manifest'
-require 'autoproj/osdeps'
-require 'autoproj/system'
-require 'autoproj/options'
+require 'autoproj'
 require 'autoproj/cmdline'
-require 'logger'
-require 'utilrb/logger'
-
-include Autoproj
-
-root_dir =
-    begin Autoproj.root_dir
-    rescue UserError => error
-        if ENV['GEM_HOME']
-            Dir.chdir(File.join(ENV['GEM_HOME'], '..'))
-            begin Autoproj.root_dir
-            rescue UserError
-                raise error
-            end
-        else
-            raise
-        end
-    end
 
 Autoproj.silent = true
-selection = Autoproj::CmdLine.parse_arguments(ARGV, false).first
-if !selection
-    STDERR.puts Autoproj.console.color("no package name given on the command line", :bold, :red)
+root_dir  = Autoproj::CmdLine.initialize_root_directory
+selection = Autoproj::CmdLine.initialize_and_load(ARGV)
+if selection.empty?
+    puts root_dir
+    exit 0
+elsif selection.size > 1
+    STDERR.puts Autoproj.console.color("more than one name given on the command line", :red)
     exit 1
 end
-
-Autoproj::CmdLine.update_os_dependencies = false
-Dir.chdir(Autoproj.root_dir)
-Autoproj::CmdLine.initialize
-Autoproj::CmdLine.load_configuration
-Autoproj::CmdLine.initial_package_setup
+selection = selection.first
 
 selection_rx = Regexp.new(Regexp.quote(selection))
 candidates = []
