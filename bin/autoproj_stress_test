@@ -27,7 +27,7 @@ while !packages.empty?
     STDERR.puts
     STDERR.puts "=================================================="
     STDERR.puts "==== added #{pkg}"
-    if !system('autoproj', 'fast-build', '--randomize-layout')
+    if !system('autoproj', 'full-build', '--randomize-layout', pkg)
         File.open(File.join(root_dir, 'failures.txt'), 'a') do |io|
             io.puts "the following layout failed:"
             io.puts "  - " + manifest_data['layout'].join("\n  - ")
