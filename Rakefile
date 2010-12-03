@@ -64,6 +64,7 @@ namespace 'dist' do
         end
     end
 end
+file 'bin/autoproj_bootstrap' => 'dist:bootstrap'
 
 do_doc = begin
              require 'rdoc/task'

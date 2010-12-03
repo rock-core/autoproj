@@ -4,6 +4,7 @@ README.txt
 Rakefile
 bin/autolocate
 bin/autoproj
+bin/autoproj_bootstrap
 bin/autoproj_stress_test
 lib/autoproj.rb
 lib/autoproj/autobuild.rb
