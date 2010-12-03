@@ -1535,6 +1535,19 @@ export PATH=$GEM_HOME/bin:$PATH
             remaining_arguments
         end
 
+        def self.initialize_root_directory
+            Autoproj.root_dir
+        rescue Autoproj::UserError => error
+            if ENV['GEM_HOME']
+                Dir.chdir(File.join(ENV['GEM_HOME'], '..'))
+                begin Autoproj.root_dir
+                rescue Autoproj::UserError
+                    raise error
+                end
+            else
+                raise
+            end
+        end
     end
 end
 
