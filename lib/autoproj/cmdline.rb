@@ -1511,12 +1511,13 @@ export PATH=$GEM_HOME/bin:$PATH
         # initialize an autoproj environment for standalone tools
         #
         # Beware, it changes the current directory to the autoproj root dir
-        def self.initialize_and_load
+        def self.initialize_and_load(cmdline_arguments = ARGV.dup)
             require 'autoproj/autobuild'
             require 'open-uri'
             require 'autoproj/cmdline'
 
-            Autoproj::CmdLine.parse_arguments(ARGV.dup, false)
+            remaining_arguments = Autoproj::CmdLine.
+                parse_arguments(cmdline_arguments, false)
             Dir.chdir(Autoproj.root_dir)
 
             Autoproj::CmdLine.update_os_dependencies = false
@@ -1531,7 +1532,9 @@ export PATH=$GEM_HOME/bin:$PATH
                     manifest.load_package_manifest(pkg.autobuild.name)
                 end
             end
+            remaining_arguments
         end
+
     end
 end
 
