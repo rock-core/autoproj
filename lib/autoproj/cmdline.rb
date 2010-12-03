@@ -589,6 +589,7 @@ module Autoproj
 
         def self.build_packages(selected_packages, all_enabled_packages)
             if Autoproj::CmdLine.doc?
+                Autobuild.only_doc = true
                 Autoproj.progress("autoproj: building and installing documentation", :bold)
             else
                 Autoproj.progress("autoproj: building and installing packages", :bold)
