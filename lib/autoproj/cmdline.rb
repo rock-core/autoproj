@@ -747,7 +747,7 @@ where 'mode' is one of:
                     Autoproj.reconfigure = true
                 end
                 opts.on("--version", "displays the version and then exits") do
-                    STDERR.puts "autoproj v#{Autoproj::VERSION}"
+                    puts "autoproj v#{Autoproj::VERSION}"
                     exit(0)
                 end
                 opts.on("--[no-]update", "[do not] update already checked-out packages (build modes only)") do |value|
