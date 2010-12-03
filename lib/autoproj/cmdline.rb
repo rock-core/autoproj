@@ -97,6 +97,9 @@ module Autoproj
             if Autobuild.do_update.nil?
                 Autobuild.do_update = manifest.auto_update?
             end
+            if @update_os_dependencies.nil?
+                @update_os_dependencies = manifest.auto_update?
+            end
 
             # Initialize the Autoproj.osdeps object by loading the default. The
             # rest is loaded later
