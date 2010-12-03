@@ -1,0 +1,35 @@
+#! /usr/bin/env ruby
+
+require 'autoproj'
+require 'autoproj/cmdline'
+
+Autoproj::CmdLine.initialize_and_load([])
+manifest = Autoproj.manifest
+
+manifest_path = File.join(Autoproj.config_dir, 'manifest')
+manifest_data = YAML.load(File.read(manifest_path))
+manifest_data['layout'] = Array.new
+
+packages = manifest.each_package.map(&:name)
+
+while !packages.empty?
+    pkg = packages[rand(packages.size)]
+    next if !pkg
+    packages.delete(pkg)
+
+    manifest_data['layout'] << pkg
+    File.open(manifest_path, 'w') do |io|
+        io.write YAML.dump(manifest_data)
+    end
+
+    STDERR.puts
+    STDERR.puts
+    STDERR.puts
+    STDERR.puts "=================================================="
+    STDERR.puts "==== added #{pkg}"
+    if !system('autoproj', 'fast-build', '--randomize-layout')
+        STDERR.puts "the following layout failed:"
+        STDERR.puts "  - " + manifest_data['layout'].join("\n  - ")
+    end
+end
+
