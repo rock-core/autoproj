@@ -419,7 +419,7 @@ def not_on(*architectures)
         end
     end
 
-    os = OSDependencies.operating_system
+    os = Autoproj::OSDependencies.operating_system
     matching_archs = architectures.find_all { |arch| arch[0] == os[0] }
     if matching_archs.empty?
         return yield
