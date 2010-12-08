@@ -1,52 +1,58 @@
 = Version 1.7.0
- * 1.6.2 should have been 1.7.0. Bump it now.
 == For basic use
- * removed some OS dependency updates that should not be there. In practice, it
-   means that build and fast-build will generally be a lot faster
- * The shell function "acd", akin to rosbuild's roscd, is also provided for
-   recognized shells (bash and zsh at the moment). The relevant files are
-   sourced in env.sh if the user's shell is compatible
+ * removed some OS dependency updates that should not be there. In
+   practice, it means that build and fast-build will generally be a
+   lot faster
+ * The shell function "acd", akin to rosbuild's roscd, is also
+   provided for recognized shells (bash and zsh at the moment). The
+   relevant files are sourced in env.sh if the user's shell is
+   compatible
    See http://rock-robotics.org/quick_start.html#shell_helpers
- * added an easier way to add a local checked-out package to a build without
-   going through editing 20 files. Packages are automatically detected and added
-   to the build as soon as their path, relative to the root dir, are explicitely
-   listed in autoproj/manifest.
+ * added an easier way to add a local checked-out package to a build
+   without going through editing 20 files. Packages are automatically
+   detected and added to the build as soon as their path, relative to
+   the root dir, are explicitely listed in autoproj/manifest.
    See http://rock-robotics.org/autoproj/autoproj/adding_packages.html
- * added the --stats option that displays timing statistics about the build.
-   Raw statistics are always saved in install/log/stats.log
+ * added the --stats option that displays timing statistics about the
+   build.  Raw statistics are always saved in install/log/stats.log
 == For advanced use
- * introduced cross-package-set imports. A package set can now tell autoproj to
-   install another one in a recursive manner
+ * introduced cross-package-set imports. A package set can now tell
+   autoproj to install another one in a recursive manner
    See http://rock-robotics.org/autoproj/advanced/cross_set_dependencies.html
- * added optional dependencies, which will not be considered if the depended-
-   upon package is either not existing or is explicitely excluded from the build.
+ * added optional dependencies, which will not be considered if the
+   depended- upon package is either not existing or is explicitely
+   excluded from the build.
    See http://rock-robotics.org/autoproj/advanced/package_dependencies.html
  * added the #package toplevel method to get a package handle, i.e.
        package('orocos/rtt')
    is equivalent to the former
        Autobuild::Package['orocos/rtt']
  * added tools to test the build configuration on build servers.
-   - the --randomize-layout option which makes autoproj build each package
-     in a separate non-trivial subfolder, and install it in a separate folder as
-     well. This is meant to test the definition and handling of dependencies
-     between the different packages.
-   - the autoproj_stress_test script clears the layout and adds packages one by
-     one in a random order, testing at each step if the resulting configuration
-     works fine. It turns on --randomize-layout as well.
- * "acd" is using the autolocate tool, which returns the full path to a certain package.
+   - the --randomize-layout option which makes autoproj build each
+     package in a separate non-trivial subfolder, and install it in a
+     separate folder as well. This is meant to test the definition and
+     handling of dependencies between the different packages.
+   - the autoproj_stress_test script clears the layout and adds
+     packages one by one in a random order, testing at each step if
+     the resulting configuration works fine. It turns on
+     --randomize-layout as well.
+ * "acd" is using the autolocate tool, which returns the full path to
+   a certain package.
    
 = Version 1.6.2
  * overhauled osdeps fine-grained configuration. See
-   http://orocos.org/dfki/autoproj/osdeps.html
+   http://rock-robotics.org/autoproj/osdeps.html
    for more information
  * fix too-aggressive caching of operating system characteristics,
    which breaks on OS upgrades.
- * on Debian-like systems, filter out packages that are already installed
- * on all systems, filter packages that have already been handled by the osdeps
- * add a -k option that continues operation even after errors. The sum of all
-   errors are properly presented at the end of the run.
- * when boostrapping, check that the current directory is empty and warn the
-   user if it is not.
+ * on Debian-like systems, filter out packages that are already
+   installed
+ * on all systems, filter packages that have already been handled by
+   the osdeps
+ * add a -k option that continues operation even after errors. The sum
+   of all errors are properly presented at the end of the run.
+ * when boostrapping, check that the current directory is empty and
+   warn the user if it is not.
  * a few more minor bugfixes
 
 = Version 1.6.1
