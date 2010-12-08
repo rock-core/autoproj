@@ -902,7 +902,7 @@ where 'mode' is one of:
                 remaining_args.clear
 
                 @display_configuration = true
-                Autobuild.do_build = false
+                Autobuild.do_build  = false
                 Autobuild.do_update = false
                 @update_os_dependencies = false
                 @only_config = true
@@ -918,62 +918,77 @@ where 'mode' is one of:
             when "reconfigure"
                 Autoproj.reconfigure = true
                 Autobuild.do_update = false
-                Autobuild.do_build = false
+                Autobuild.do_build  = false
                 @update_os_dependencies = false
 
-            when "build"
-            when "force-build"
-                Autobuild.do_forced_build = true
-            when "rebuild"
-                Autobuild.do_rebuild = true
             when "fast-build"
                 Autobuild.do_update = false
+                Autobuild.do_build  = true
                 @update_os_dependencies = false
+            when "build"
+                Autobuild.do_update = nil
+                Autobuild.do_build  = true
+                @update_os_dependencies = nil
+            when "force-build"
+                Autobuild.do_update = nil
+                Autobuild.do_build  = true
+                @update_os_dependencies = nil
+                Autobuild.do_forced_build = true
+            when "rebuild"
+                Autobuild.do_update = nil
+                Autobuild.do_build  = true
+                @update_os_dependencies = nil
+                Autobuild.do_rebuild = true
+            when "full-build"
+                Autobuild.do_update = true
+                Autobuild.do_build  = true
+                @update_os_dependencies = true
             when "snapshot"
                 @snapshot_dir = remaining_args.shift
                 Autobuild.do_update = false
-                Autobuild.do_build = false
+                Autobuild.do_build  = false
                 @update_os_dependencies = false
-            when "full-build"
-                Autobuild.do_update = true
-                @update_os_dependencies = true
             when "update"
                 Autobuild.do_update = true
                 Autobuild.do_build  = false
+                @update_os_dependencies = true
             when "check"
                 Autobuild.do_update = false
+                Autobuild.do_build  = false
                 @update_os_dependencies = false
-                Autobuild.do_build = false
                 @check = true
             when "manifest-update"
                 Autobuild.do_update = false
+                Autobuild.do_build  = false
                 @update_os_dependencies = false
-                Autobuild.do_build = false
                 @manifest_update = true
             when "osdeps"
                 Autobuild.do_update = false
+                Autobuild.do_build  = false
                 @update_os_dependencies = true
-                Autobuild.do_build  = false
             when "status"
-                @only_status = true
                 Autobuild.do_update = false
-                @update_os_dependencies = false
-            when "envsh"
                 Autobuild.do_build  = false
+                @update_os_dependencies = false
+                @only_status = true
+            when "envsh"
                 Autobuild.do_update = false
+                Autobuild.do_build  = false
                 @update_os_dependencies = false
             when "update-config"
-                @only_config = true
                 Autobuild.do_update = true
-                @update_os_dependencies = true
-                Autobuild.do_build = false
+                Autobuild.do_build  = false
+                @update_os_dependencies = false
+                @only_config = true
             when "list-config"
+                Autobuild.do_update = false
+                Autobuild.do_build  = false
+                @update_os_dependencies = false
                 @only_config = true
                 @display_configuration = true
-                Autobuild.do_update = false
-                @update_os_dependencies = false
             when "doc"
                 Autobuild.do_update = false
+                Autobuild.do_build  = false
                 @update_os_dependencies = false
                 Autobuild.do_doc    = true
                 Autobuild.only_doc  = true
