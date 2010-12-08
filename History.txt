@@ -1,3 +1,10 @@
+= Version 1.7.1
+== Quickfix release
+ * autoproj update was not installing osdeps even if the osdeps mode was not
+   'none'
+ * fix autolocate (and therefore acd) in configurations that use not_on and
+   only_on
+
 = Version 1.7.0
 == For basic use
  * removed some OS dependency updates that should not be there. In
