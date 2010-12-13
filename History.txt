@@ -1,3 +1,8 @@
+= Version 1.7.2
+== Quickfix release
+ * fix layouts that use subdirectories
+ * load overrides.rb being loaded *before* the optiona dependencies are resolved
+
 = Version 1.7.1
 == Quickfix release
  * autoproj update was not installing osdeps even if the osdeps mode was not
