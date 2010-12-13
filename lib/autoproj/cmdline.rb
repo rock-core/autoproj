@@ -279,15 +279,15 @@ module Autoproj
                 end
             end
 
-            # Resolve optional dependencies
-            manifest.resolve_optional_dependencies
-
             # Load the package's override files. each_source must not load the
             # source.yml file, as init.rb may define configuration options that are used
             # there
             manifest.each_source(false).to_a.reverse.each do |source|
                 Autoproj.load_if_present(source, source.local_dir, "overrides.rb")
             end
+
+            # Resolve optional dependencies
+            manifest.resolve_optional_dependencies
 
             # We now have processed the process setup blocks. All configuration
             # should be done and we can save the configuration data.
