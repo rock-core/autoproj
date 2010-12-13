@@ -1376,7 +1376,7 @@ module Autoproj
             names.to_set
         end
 
-        def normalized_layout(result = Hash.new { '/' }, layout_level = '/', layout_data = (data['layout'] || Hash.new))
+        def normalized_layout(result = Hash.new, layout_level = '/', layout_data = (data['layout'] || Hash.new))
             layout_data.each do |value|
                 if value.kind_of?(Hash)
                     subname, subdef = value.find { true }
@@ -1393,7 +1393,7 @@ module Autoproj
             Autoproj.in_file(self.file) do
                 set_name = definition_source(package_name).name
                 actual_layout = normalized_layout
-                return actual_layout[package_name] || actual_layout[set_name]
+                return actual_layout[package_name] || actual_layout[set_name] || '/'
             end
         end
 
