@@ -28,6 +28,9 @@ end
 
 module Autobuild
     class Package
+        # The Autoproj::PackageManifest object that describes this package
+        attr_accessor :description
+
         def autoproj_name # :nodoc:
             srcdir.gsub /^#{Regexp.quote(Autoproj.root_dir)}\//, ''
         end

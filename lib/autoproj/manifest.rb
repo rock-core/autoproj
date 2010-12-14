@@ -1423,6 +1423,7 @@ module Autoproj
             end
 
             manifest = PackageManifest.load(package, manifest_path)
+            pkg.autobuild.description = manifest
             package_manifests[package.name] = manifest
 
             manifest.each_dependency do |name, is_optional|
