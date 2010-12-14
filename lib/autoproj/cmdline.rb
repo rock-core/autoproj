@@ -531,6 +531,10 @@ module Autoproj
 
                 current_packages.each do |pkg|
                     verify_package_availability(pkg.name)
+                    Autoproj.post_import_blocks.each do |block|
+                        block.call(pkg)
+                    end
+
                     pkg.prepare
                     Rake::Task["#{pkg.name}-prepare"].instance_variable_set(:@already_invoked, true)
 
@@ -551,6 +555,10 @@ module Autoproj
 
                 packages.each do |_, pkg|
                     pkg.isolate_errors do
+                        Autoproj.post_import_blocks.each do |block|
+                            block.call(pkg)
+                        end
+
                         pkg.prepare
                     end
                 end

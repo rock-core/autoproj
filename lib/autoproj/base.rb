@@ -23,6 +23,15 @@ module Autoproj
             raise e
         end
     end
+
+    @post_import_blocks = Array.new
+    class << self
+        attr_reader :post_import_blocks
+    end
+
+    def self.post_import(&block)
+        @post_import_blocks << block
+    end
 end
 
 
