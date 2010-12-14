@@ -1585,6 +1585,18 @@ module Autoproj
         # The raw XML data as a Nokogiri document
         attr_reader :xml
 
+        # The list of tags defined for this package
+        #
+        # Tags are defined as multiple <tags></tags> blocks, each of which can
+        # contain multiple comma-separated tags 
+        def tags
+            result = []
+            xml.xpath('//tags').each do |node|
+                result.concat(node.content.strip.split(','))
+            end
+            result
+        end
+
         def documentation
             xml.xpath('//description').each do |node|
                 doc = node.content.strip
