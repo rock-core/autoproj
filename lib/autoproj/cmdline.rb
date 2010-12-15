@@ -373,9 +373,15 @@ module Autoproj
                     manifest.resolve_optional_dependencies
                 end
 
-                pkg_manifest = manifest.package_manifests[pkg.name];
+                pkg_manifest = pkg.description
                 vcs_def = manifest.importer_definition_for(pkg.name)
                 Autoproj.progress "#{pkg.name}#{": #{pkg_manifest.short_documentation}" if pkg_manifest && pkg_manifest.short_documentation}", :bold
+                tags = pkg.tags.to_a
+                if tags.empty?
+                    Autoproj.progress "   no tags"
+                else
+                    Autoproj.progress "   tags: #{pkg.tags.to_a.sort.join(", ")}"
+                end
                 Autoproj.progress "   defined in #{pkg_set}"
                 if File.directory?(pkg.srcdir)
                     Autoproj.progress "   checked out in #{pkg.srcdir}"
