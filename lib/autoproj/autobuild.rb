@@ -30,6 +30,25 @@ module Autobuild
     class Package
         # The Autoproj::PackageManifest object that describes this package
         attr_accessor :description
+        # The set of tags for this package. This is an union of the tags
+        # contained in +description+ and the ones explicitely added with
+        # #add_tag
+        def tags
+            result = (@added_tags || Set.new)
+            if description
+                result |= description.tags.to_set
+            end
+            result
+        end
+        # Tags explicitely added with #add_tag
+        attr_reader :added_tags
+        # Add a tag to the package. Use this if you don't want the tag to be
+        # shared with everyone that uses the package (i.e. cannot go in
+        # manifest.xml)
+        def add_tag(tag)
+            @added_tags ||= Set.new
+            @added_tags << tag
+        end
 
         def autoproj_name # :nodoc:
             srcdir.gsub /^#{Regexp.quote(Autoproj.root_dir)}\//, ''
