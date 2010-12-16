@@ -1280,14 +1280,16 @@ module Autoproj
         # If recursive is false, yields only the packages at this level.
         # Otherwise, return all packages.
         def layout_packages(result, validate)
-            normalized_layout.each_key do |pkg_or_set|
-                begin
-                    resolve_package_set(pkg_or_set).each do |pkg_name|
-                        result << pkg_name
-                        Autobuild::Package[pkg_name].all_dependencies(result)
+            Autoproj.in_file(self.file) do
+                normalized_layout.each_key do |pkg_or_set|
+                    begin
+                        resolve_package_set(pkg_or_set).each do |pkg_name|
+                            result << pkg_name
+                            Autobuild::Package[pkg_name].all_dependencies(result)
+                        end
+                    rescue ConfigError
+                        raise if validate
                     end
-                rescue ConfigError
-                    raise if validate
                 end
             end
             result
