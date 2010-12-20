@@ -1490,6 +1490,17 @@ module Autoproj
         # Installs the OS dependencies that are required by the given packages
         def install_os_dependencies(packages)
             required_os_packages, package_os_deps = list_os_dependencies(packages)
+            required_os_packages.delete_if do |pkg|
+                if excluded?(pkg)
+                    raise ConfigError.new, "the osdeps package #{pkg} is excluded from the build in #{file}. It is required by #{package_os_deps[pkg].join(", ")}"
+                end
+                if ignored?(pkg)
+                    if Autoproj.verbose
+                        Autoproj.progress "ignoring osdeps package #{pkg}"
+                    end
+                    true
+                end
+            end
             Autoproj.osdeps.install(required_os_packages, package_os_deps)
         end
 
