@@ -706,6 +706,10 @@ module Autoproj
                 @importer = importer
             end
 
+            def isolate_errors(mark_as_failed)
+                yield
+            end
+
             def import
                 importer.import(self)
             end
