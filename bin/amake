@@ -1,0 +1,9 @@
+#! /bin/sh
+
+if test -z "$@"; then
+    autoproj fast-build .
+else
+    autoproj fast-build "$@"
+fi
+
+
