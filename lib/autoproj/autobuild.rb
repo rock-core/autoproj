@@ -50,6 +50,10 @@ module Autobuild
             @added_tags << tag
         end
 
+        def has_tag?(tag)
+            tags.include?(tag.to_s)
+        end
+
         def autoproj_name # :nodoc:
             srcdir.gsub /^#{Regexp.quote(Autoproj.root_dir)}\//, ''
         end
