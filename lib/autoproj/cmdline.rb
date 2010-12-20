@@ -561,18 +561,20 @@ module Autoproj
 
                 packages.each do |_, pkg|
                     pkg.isolate_errors do
-                        Autoproj.post_import_blocks.each do |block|
-                            block.call(pkg)
-                        end
-
+                        manifest.load_package_manifest(pkg.name)
                         pkg.prepare
+
+                        pkg.isolate_errors do
+                            Autoproj.post_import_blocks.each do |block|
+                                block.call(pkg)
+                            end
+                        end
                     end
                 end
 
             ensure
                 Autobuild.do_update = old_update_flag
             end
-
 
             if Autoproj.verbose
                 Autoproj.progress "autoproj: finished importing packages"
