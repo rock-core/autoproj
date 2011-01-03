@@ -573,7 +573,11 @@ module Autoproj
                         end
                     end
 
-                    if Regexp.new("^" + name) =~ package_name
+                    name_match = name
+                    if name_match =~ /[^\w\/_-]/
+                        name_match = Regexp.new("^" + name_match)
+                    end
+                    if name_match === package_name
                         vcs_spec = vcs_spec.merge(spec)
                     end
                 end
