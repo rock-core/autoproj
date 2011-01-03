@@ -38,6 +38,12 @@ if candidates.empty?
         join("/")
     rx = Regexp.new(rx)
 
+    rx_strict = directories[0..-2].
+        map { |d| "#{Regexp.quote(d)}\\w*" }.
+        join("/")
+    rx_strict = Regexp.new("#{rx_strict}/#{Regexp.quote(directories.last)}$")
+
+    candidates_strict = []
     Autoproj.manifest.each_package do |pkg|
         name = pkg.name
         next if !Autoproj.manifest.package_enabled?(name)
@@ -46,8 +52,14 @@ if candidates.empty?
         if name =~ rx
             candidates << srcdir
         end
+        if name =~ rx_strict
+            candidates_strict << srcdir
+        end
     end
 
+    if candidates.size > 1 && candidates_strict.size == 1
+        candidates = candidates_strict
+    end
 end
 
 if candidates.empty?
