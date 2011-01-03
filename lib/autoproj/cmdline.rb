@@ -537,7 +537,7 @@ module Autoproj
 
                 current_packages.each do |pkg|
                     verify_package_availability(pkg.name)
-                    Autoproj.post_import_blocks.each do |block|
+                    Autoproj.each_post_import_block(pkg) do |block|
                         block.call(pkg)
                     end
 
@@ -564,10 +564,8 @@ module Autoproj
                         manifest.load_package_manifest(pkg.name)
                         pkg.prepare
 
-                        pkg.isolate_errors do
-                            Autoproj.post_import_blocks.each do |block|
-                                block.call(pkg)
-                            end
+                        Autoproj.each_post_import_block(pkg) do |block|
+                            block.call(pkg)
                         end
                     end
                 end

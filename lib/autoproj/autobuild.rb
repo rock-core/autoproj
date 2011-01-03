@@ -54,6 +54,12 @@ module Autobuild
             tags.include?(tag.to_s)
         end
 
+        # Ask autoproj to run the given block after this package has been
+        # imported
+        def post_import(&block)
+            Autoproj.post_import(self, &block)
+        end
+
         def autoproj_name # :nodoc:
             srcdir.gsub /^#{Regexp.quote(Autoproj.root_dir)}\//, ''
         end

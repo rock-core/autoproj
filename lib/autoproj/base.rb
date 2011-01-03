@@ -24,14 +24,26 @@ module Autoproj
         end
     end
 
-    @post_import_blocks = Array.new
+    @post_import_blocks = Hash.new { |h, k| h[k] = Array.new }
     class << self
         attr_reader :post_import_blocks
     end
 
-    def self.post_import(&block)
-        @post_import_blocks << block
+    def self.each_post_import_block(pkg, &block)
+        @post_import_blocks[nil].each(&block)
+        if @post_import_blocks.has_key?(pkg)
+            @post_import_blocks[pkg].each(&block)
+        end
+    end
+
+    def self.post_import(*packages, &block)
+        if packages.empty?
+            @post_import_blocks[nil] << block
+        else
+            packages.each do |pkg|
+                @post_import_blocks[pkg] << block
+            end
+        end
     end
 end
-
 
