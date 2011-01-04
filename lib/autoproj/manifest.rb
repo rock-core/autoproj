@@ -694,9 +694,7 @@ module Autoproj
         #
         # It has to match the interface of Autobuild::Package that is relevant
         # for importers
-        class FakePackage
-            attr_reader :text_name
-            attr_reader :name
+        class FakePackage < Autobuild::Package
             attr_reader :srcdir
             attr_reader :importer
 
@@ -704,32 +702,17 @@ module Autoproj
             attr_accessor :updated
 
             def initialize(text_name, srcdir, importer = nil)
-                @text_name = text_name
-                @name = text_name.gsub /[^\w]/, '_'
+                super(text_name)
                 @srcdir = srcdir
                 @importer = importer
-            end
-
-            def isolate_errors(mark_as_failed)
-                yield
+                @@packages.delete(text_name)
             end
 
             def import
                 importer.import(self)
             end
 
-            def progress(msg)
-                Autobuild.progress(msg % [text_name])
-            end
-
-            # Display a progress message, and later on update it with a progress
-            # value. %s in the string is replaced by the package name
-            def progress_with_value(msg)
-                Autobuild.progress_with_value(msg % [text_name])
-            end
-
-            def progress_value(value)
-                Autobuild.progress_value(value)
+            def add_stat(*args)
             end
         end
 
