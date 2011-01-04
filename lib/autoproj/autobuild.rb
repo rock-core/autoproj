@@ -50,8 +50,21 @@ module Autobuild
             @added_tags << tag
         end
 
+        # True if this package is tagged with the given tag string
         def has_tag?(tag)
             tags.include?(tag.to_s)
+        end
+
+        # Asks autoproj to remove the given file in the package's installation
+        # prefix
+        def remove_obsolete_installed_file(*path)
+            post_import do
+                path = File.join(prefix, *path)
+                if File.exists?(path)
+                    Autoproj.progress "  removing obsolete file #{path}", :bold
+                    FileUtils.rm_f path
+                end
+            end
         end
 
         # Ask autoproj to run the given block after this package has been
