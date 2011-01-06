@@ -450,6 +450,30 @@ def orogen_package(options, &block)
     end
 end
 
+# Declare that the packages declared in the block should be built only on the
+# given operating system. OS descriptions are space-separated strings containing
+# OS name and version.
+#
+# The block will simply be ignored if run on another architecture
+def only_on(*architectures)
+    architectures = architectures.map do |name|
+        if name.respond_to?(:to_str)
+            [name]
+        else name
+        end
+    end
+
+    os_names, os_versions = Autoproj::OSDependencies.operating_system
+    matching_archs = architectures.find_all { |arch| os_names.include?(arch[0].downcase) }
+    if matching_archs.empty?
+        return
+    elsif matching_archs.none? { |arch| !arch[1] || os_versions.include?(arch[1].downcase) }
+        return
+    end
+
+    yield
+end
+
 # Declare that the packages declared in the block should not be built in the
 # given operating system. OS descriptions are space-separated strings containing
 # OS name and version.
