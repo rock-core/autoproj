@@ -581,7 +581,7 @@ to what you should install to compile the software successfully.
 
 	    Autoproj.configuration_option 'osdeps_mode', 'string',
 		:default => 'ruby',
-		:doc => [short_doc, long_doc],
+		:doc => message,
                 :possible_values => %w{ruby none},
                 :lowercase => true
         end
