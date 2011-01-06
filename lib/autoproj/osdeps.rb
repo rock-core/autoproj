@@ -349,8 +349,10 @@ fi
             end
 
             if data.respond_to?(:to_ary)
+		# List of packages
                 return [PACKAGES, data]
             elsif data.respond_to?(:to_str)
+		# Single package
                 return [PACKAGES, [data.to_str]]
             else
                 raise ConfigError.new, "invalid package specificiation #{data} in #{source_of(name)}"
