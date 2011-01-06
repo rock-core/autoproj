@@ -1533,8 +1533,10 @@ module Autoproj
                     if pkg_name =~ match_pkg_name || sel =~ Regexp.new("^#{Regexp.quote(pkg.srcdir)}") || pkg.srcdir =~ Regexp.new("^#{Regexp.quote(sel)}")
                         # Check-out packages that are not in the manifest only
                         # if they are explicitely selected
-                        if pkg_name != sel && pkg.srcdir != sel && !all_layout_packages.include?(pkg.name)
-                            next
+                        if !all_layout_packages.include?(pkg.name)
+                            if !File.directory?(pkg.srcdir) && pkg_name != sel && pkg.srcdir != sel
+                                next
+                            end
                         end
 
                         expanded_packages << pkg_name
