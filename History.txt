@@ -1,3 +1,7 @@
+= Version 1.7.4
+ * add amake to the gem (forgot it in 1.7.3)
+ * fix some corner-cases in osdeps handling
+
 = Version 1.7.3
 == For basic usage
  * amake is a command that is a shortcut to "autoproj
