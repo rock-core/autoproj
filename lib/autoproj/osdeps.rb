@@ -186,9 +186,9 @@ module Autoproj
                     if File.exists?('/etc/debian_version')
                         codenames = [File.read('/etc/debian_version').strip]
                         if codenames.first =~ /sid/
-                            codenames << "unstable" << "sid"
+                            versions = codenames + ["unstable", "sid"]
                         end
-                        [['debian'], codenames]
+                        [['debian'], versions]
                     elsif File.exists?('/etc/gentoo-release')
                         release_string = File.read('/etc/gentoo-release').strip
                         release_string =~ /^.*([^\s]+)$/
