@@ -2,6 +2,7 @@ History.txt
 Manifest.txt
 README.txt
 Rakefile
+bin/amake
 bin/autolocate
 bin/autoproj
 bin/autoproj_bootstrap
