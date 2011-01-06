@@ -776,11 +776,8 @@ where 'mode' is one of:
                     if !os
                         puts "no information about that OS"
                     else
-                        puts "name: #{os[0]}"
-                        puts "version:"
-                        os[1].each do |version_name|
-                            puts "  #{version_name}"
-                        end
+                        puts "name(s): #{os[0].join(", ")}"
+                        puts "version(s): #{os[1].join(", ")}"
                     end
                     exit 0
                 end
