@@ -160,9 +160,11 @@ module Autoproj
                 return @operating_system
             elsif Autoproj.has_config_key?('operating_system')
                 os = Autoproj.user_config('operating_system')
-                if os.respond_to?(:to_ary) # upgrade from previous format
-                    @operating_system = os
-                    return os
+		if os.respond_to?(:to_ary)
+		    if os[0].respond_to?(:to_ary) && os[0].all? { |s| s.respond_to?(:to_str) } &&
+		       os[1].respond_to?(:to_ary) && os[1].all? { |s| s.respond_to?(:to_str) }
+		       @operating_system = os
+		    end
                 end
             end
 
@@ -329,17 +331,12 @@ fi
 
 	    # If data is a hash, it means we have to check the OS version as well
             if data.kind_of?(Hash)
-                version_entry = nil
-                os_versions.each do |os_version|
-                    version_entry =
-                        data.find do |version_list, _|
-                            version_list.to_s.split(',').
-                                map(&:downcase).
-                                any? do |v|
-                                    os_version.any? { |osv| Regexp.new(v) =~ osv }
-                                end
+                version_entry = data.find do |version_list, _|
+                    version_list.to_s.split(',').
+                        map(&:downcase).
+                        any? do |v|
+                            os_versions.any? { |osv| Regexp.new(v) =~ osv }
                         end
-                    break if version_entry
                 end
 
                 if !version_entry
@@ -796,7 +793,7 @@ with the corresponding option (--all, --ruby, --os or --none).
 
             osdeps, gems = partition_packages(packages, package_osdeps)
             if handled_os
-                os_names, os_versions = OSDependencies.operating_system
+                os_names, _ = OSDependencies.operating_system
                 os_packages = resolve_os_dependencies(osdeps)
                 if filter_uptodate_packages
                     os_packages = filter_uptodate_os_packages(os_packages, os_names)

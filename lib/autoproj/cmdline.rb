@@ -772,12 +772,12 @@ where 'mode' is one of:
                     Autobuild.ignore_errors = true
                 end
                 opts.on("--os-version", "displays the operating system as detected by autoproj") do
-                    os = OSDependencies.operating_system
-                    if !os
+                    os_names, os_versions = OSDependencies.operating_system
+                    if !os_names
                         puts "no information about that OS"
                     else
-                        puts "name(s): #{os[0].join(", ")}"
-                        puts "version(s): #{os[1].join(", ")}"
+                        puts "name(s): #{os_names.join(", ")}"
+                        puts "version(s): #{os_versions.join(", ")}"
                     end
                     exit 0
                 end

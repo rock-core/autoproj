@@ -464,11 +464,11 @@ def not_on(*architectures)
         end
     end
 
-    os = Autoproj::OSDependencies.operating_system
-    matching_archs = architectures.find_all { |arch| arch[0] == os[0] }
+    os_names, os_versions = Autoproj::OSDependencies.operating_system
+    matching_archs = architectures.find_all { |arch| os_names.include?(arch[0].downcase) }
     if matching_archs.empty?
         return yield
-    elsif matching_archs.all? { |arch| arch[1] && !os[1].include?(arch[1].downcase) }
+    elsif matching_archs.all? { |arch| arch[1] && !os_versions.include?(arch[1].downcase) }
         return yield
     end
 
