@@ -1,27 +1,34 @@
 = Version 1.7.3
 == For basic usage
- * amake is a command that is a shortcut to "autoproj build". I.e.
-    amake .
-   will build the package in the current directory and all its dependencies
- * added tag support. The manifest and the autobuild files allow to add textual
-   tags to packages, that will be picked up by documentation later on. Moreover,
-   some tags can be used to tune the build. For instance, rock uses the 'stable'
-   tag to set the CMAKE_BUILD_TYPE variable on cmake packages to either Debug
-   (non-stable) or RelWithDebInfo (stable).
+ * amake is a command that is a shortcut to "autoproj
+   build". I.e.  amake .  will build the package in the
+   current directory and all its dependencies
+ * added tag support. The manifest and the autobuild
+   files allow to add textual tags to packages, that
+   will be picked up by documentation later on.
+   Moreover, some tags can be used to tune the build.
+   For instance, rock uses the 'stable' tag to set the
+   CMAKE_BUILD_TYPE variable on cmake packages to
+   either Debug (non-stable) or RelWithDebInfo
+   (stable).
 
 == For advanced usage
  * support ignoring/excluding OS packages
- * define Package#post_import which allows to run a code block after the package
-   has been imported, but before the build. The global
+ * define Package#post_import which allows to run a
+   code block after the package has been imported, but
+   before the build. The global
      Autoproj.post_import do |pkg|
      end
    allows to do it for all defined packages.
- * define Package#remove_obsolete_installed_file(*path) which allows to remove
-   files from the installation directory. Useful for simple upgrade cases, when
+ * define Package#remove_obsolete_installed_file(*path)
+   which allows to remove files from the installation
+   directory. Useful for simple upgrade cases, when
    files move from one package to another
- * in source.yml, a package name is interpreted as a regular expression only if
-   it contains non-alphanumeric characters. This avoids some surprising effects
-   if the name of package BlaBla is a subset of the package BlaBlaBlo
+ * in source.yml, a package name is interpreted as a
+   regular expression only if it contains
+   non-alphanumeric characters. This avoids some
+   surprising effects if the name of package BlaBla is
+   a subset of the package BlaBlaBlo
 
 = Version 1.7.2
 == Quickfix release
