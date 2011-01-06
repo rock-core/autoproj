@@ -204,9 +204,14 @@ module Autoproj
             end
 
             # Normalize the names to lowercase
-            @operating_system =
-                 [@operating_system[0].map(&:downcase),
-                 @operating_system[1].map(&:downcase) + ["default"]]
+            names, versions = @operating_system[0], @operating_system[1]
+            names    = names.map(&:downcase)
+            versions = versions.map(&:downcase)
+            if !versions.include?('default')
+                versions += ['default']
+            end
+
+            @operating_system = [names, versions]
             Autoproj.change_option('operating_system', @operating_system, true)
             @operating_system
         end
