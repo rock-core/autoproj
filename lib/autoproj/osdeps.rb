@@ -164,6 +164,7 @@ module Autoproj
 		    if os[0].respond_to?(:to_ary) && os[0].all? { |s| s.respond_to?(:to_str) } &&
 		       os[1].respond_to?(:to_ary) && os[1].all? { |s| s.respond_to?(:to_str) }
 		       @operating_system = os
+                       return os
 		    end
                 end
             end
