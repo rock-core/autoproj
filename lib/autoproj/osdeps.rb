@@ -310,7 +310,7 @@ fi
             # Find a matching entry for the OS name
             os_entry = nil
             os_names.find do |os_name|
-                os_entry = dep_def.find do |name_list, data|
+                os_entry = dep_def.find do |name_list, _|
                     name_list.split(',').
                         map(&:downcase).
                         any? { |n| n == os_name }
@@ -327,11 +327,12 @@ fi
                 return IGNORE
             end
 
+	    # If data is a hash, it means we have to check the OS version as well
             if data.kind_of?(Hash)
                 version_entry = nil
                 os_versions.each do |os_version|
                     version_entry =
-                        data.find do |version_list, data|
+                        data.find do |version_list, _|
                             version_list.to_s.split(',').
                                 map(&:downcase).
                                 any? do |v|
