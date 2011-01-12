@@ -55,10 +55,27 @@ module Autobuild
             tags.include?(tag.to_s)
         end
 
+        # Asks autoproj to remove references to the given obsolete oroGen
+        # package
+        def remove_obsolete_installed_orogen_package(name)
+            post_install do
+                path = File.join(prefix, 'lib', 'pkgconfig')
+                Dir.glob(File.join(path, "#{name}-*.pc")) do |pcfile|
+                    Autoproj.progress "  removing obsolete file #{pcfile}", :bold
+                    FileUtils.rm_f pcfile
+                end
+                pcfile = File.join(path, "orogen-project-#{name}.pc")
+                if File.exists?(pcfile)
+                    Autoproj.progress "  removing obsolete file #{pcfile}", :bold
+                    FileUtils.rm_f pcfile
+                end
+            end
+        end
+
         # Asks autoproj to remove the given file in the package's installation
         # prefix
         def remove_obsolete_installed_file(*path)
-            post_import do
+            post_install do
                 path = File.join(prefix, *path)
                 if File.exists?(path)
                     Autoproj.progress "  removing obsolete file #{path}", :bold
