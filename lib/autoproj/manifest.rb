@@ -1505,6 +1505,9 @@ module Autoproj
             # All the packages that are available on this installation
             all_layout_packages = self.all_selected_packages
 
+            # A selection to packages map that represents the matches found
+            matches = Hash.new { |h, k| h[k] = Set.new }
+
             # First, remove packages that are directly referenced by name or by
             # package set names
             selection.each do |sel|
@@ -1513,15 +1516,16 @@ module Autoproj
                 packages = all_layout_packages.
                     find_all { |pkg_name| pkg_name =~ sel }.
                     to_set
+                matches[sel] = packages
                 expanded_packages |= packages
 
                 sources = each_source.find_all { |source| source.name =~ sel }
                 sources.each do |source|
                     packages = resolve_package_set(source.name).to_set
-                    expanded_packages |= (packages & all_layout_packages)
+                    source_packages = (packages & all_layout_packages)
+                    matches[sel] |= source_packages
+                    expanded_packages |= source_packages
                 end
-
-                !packages.empty? || !sources.empty?
             end
 
             # Finally, check for package source directories
@@ -1539,6 +1543,7 @@ module Autoproj
                             end
                         end
 
+                        matches[sel] << pkg_name
                         expanded_packages << pkg_name
                     end
                 end
@@ -1546,7 +1551,7 @@ module Autoproj
 
             # Remove packages that are explicitely excluded and/or ignored
             expanded_packages.delete_if { |pkg_name| excluded?(pkg_name) || ignored?(pkg_name) }
-            expanded_packages.to_set
+            return expanded_packages.to_set, (selection - matches.keys)
         end
 
         attr_reader :moved_packages

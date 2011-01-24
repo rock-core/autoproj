@@ -238,7 +238,31 @@ module Autoproj
             end
         end
 
-        def self.initial_package_setup
+        def self.setup_package_directories(pkg)
+            pkg_name = pkg.name
+
+            layout =
+                if randomize_layout?
+                    Digest::SHA256.hexdigest(pkg_name)[0, 12]
+                else manifest.whereis(pkg_name)
+                end
+
+            place =
+                if target = manifest.moved_packages[pkg_name]
+                    File.join(layout, target)
+                else
+                    File.join(layout, pkg_name)
+                end
+
+            pkg = Autobuild::Package[pkg_name]
+            pkg.srcdir = File.join(Autoproj.root_dir, place)
+            pkg.prefix = File.join(Autoproj.build_dir, layout)
+            pkg.doc_target_dir = File.join(Autoproj.build_dir, 'doc', pkg_name)
+            pkg.logdir = File.join(pkg.prefix, "log")
+        end
+
+
+        def self.setup_all_package_directories
             manifest = Autoproj.manifest
 
             # Now starts a different stage of the whole build. Until now, we were
@@ -249,28 +273,11 @@ module Autoproj
             # resolve those
             manifest.packages.each_value do |pkg_def|
                 pkg = pkg_def.autobuild
-                pkg_name = pkg.name
-
-                layout =
-                    if randomize_layout?
-                        Digest::SHA256.hexdigest(pkg_name)[0, 12]
-                    else manifest.whereis(pkg_name)
-                    end
-
-                place =
-                    if target = manifest.moved_packages[pkg_name]
-                        File.join(layout, target)
-                    else
-                        File.join(layout, pkg_name)
-                    end
-
-                pkg = Autobuild::Package[pkg_name]
-                pkg.srcdir = File.join(Autoproj.root_dir, place)
-                pkg.prefix = File.join(Autoproj.build_dir, layout)
-                pkg.doc_target_dir = File.join(Autoproj.build_dir, 'doc', pkg_name)
-                pkg.logdir = File.join(pkg.prefix, "log")
+                setup_package_directories(pkg)
             end
+        end
 
+        def self.finalize_package_setup
             # Now call the blocks that the user defined in the autobuild files. We do it
             # now so that the various package directories are properly setup
             manifest.packages.each_value do |pkg|
@@ -436,9 +443,29 @@ module Autoproj
             end
             selected_packages = selected_packages.to_set
 
-            selected_packages = manifest.expand_package_selection(selected_packages)
-            if selected_packages.empty?
-                Autoproj.progress("autoproj: wrong package selection on command line", :red)
+            selected_packages, nonresolved = manifest.expand_package_selection(selected_packages)
+
+            # Try to auto-add stuff in nonresolved
+            nonresolved.delete_if do |sel|
+                next if !File.directory?(sel)
+                while sel != '/'
+                    if handler = Autoproj.package_handler_for(sel)
+                        Autoproj.progress "  auto-adding #{sel} using the #{handler.gsub(/_package/, '')} package handler"
+                        relative_to_root = Pathname.new(sel).relative_path_from(Pathname.new(Autoproj.root_dir))
+                        pkg = Autoproj.in_package_set(manifest.local_package_set, manifest.file) do
+                            send(handler, relative_to_root)
+                        end
+                        setup_package_directories(pkg)
+                        selected_packages << pkg.name
+                        break(true)
+                    end
+
+                    sel = File.dirname(sel)
+                end
+            end
+
+            if !nonresolved.empty?
+                Autoproj.progress("autoproj: wrong package selection on command line, cannot find a match for #{nonresolved.join(", ")}", :red)
                 exit 1
             elsif Autoproj.verbose
                 Autoproj.progress "will install #{selected_packages.to_a.join(", ")}"
@@ -1553,7 +1580,8 @@ export PATH=$GEM_HOME/bin:$PATH
             Autoproj::CmdLine.update_os_dependencies = false
             Autoproj::CmdLine.initialize
             Autoproj::CmdLine.load_configuration
-            Autoproj::CmdLine.initial_package_setup
+            Autoproj::CmdLine.setup_all_package_directories
+            Autoproj::CmdLine.finalize_package_setup
 
             # Load the manifest for packages that are already present on the
             # file system

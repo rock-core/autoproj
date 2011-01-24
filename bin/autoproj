@@ -103,7 +103,7 @@ EOTEXT
         Autobuild.do_update = Autoproj.auto_update?
     end
 
-    Autoproj::CmdLine.initial_package_setup
+    Autoproj::CmdLine.setup_all_package_directories
     resolved_selected_packages = Autoproj::CmdLine.resolve_user_selection(selected_packages)
     if !selected_packages.empty?
         command_line_selection = resolved_selected_packages.dup
@@ -112,6 +112,7 @@ EOTEXT
     end
     Autoproj.manifest.explicit_selection = resolved_selected_packages
     selected_packages = resolved_selected_packages
+    Autoproj::CmdLine.finalize_package_setup
 
     # If in verbose mode, or if we only update sources, list the sources
     if Autoproj.verbose || Autoproj::CmdLine.display_configuration?
