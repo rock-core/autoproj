@@ -465,7 +465,7 @@ module Autoproj
             end
 
             if !nonresolved.empty?
-                Autoproj.progress("autoproj: wrong package selection on command line, cannot find a match for #{nonresolved.join(", ")}", :red)
+                Autoproj.progress("autoproj: wrong package selection on command line, cannot find a match for #{nonresolved.to_a.join(", ")}", :red)
                 exit 1
             elsif Autoproj.verbose
                 Autoproj.progress "will install #{selected_packages.to_a.join(", ")}"
