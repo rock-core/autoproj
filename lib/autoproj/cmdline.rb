@@ -691,6 +691,7 @@ module Autoproj
         def self.reconfigure?; @mode == "reconfigure" end
 
         def self.show_statistics?; !!@show_statistics end
+        def self.ignore_dependencies?; @ignore_dependencies end
 
         def self.osdeps?; @mode == "osdeps" end
         def self.show_osdeps?; @mode == "osdeps" && @show_osdeps end
@@ -817,6 +818,9 @@ where 'mode' is one of:
                 end
                 opts.on("--list-newest", "for each source directory, list what is the newest file used by autoproj for dependency tracking") do
                     Autoproj::CmdLine.list_newest = true
+                end
+                opts.on('-n', '--no-deps', 'completely ignore dependencies') do |value|
+                    @ignore_dependencies = true
                 end
                 opts.on("--no-osdeps", "in build and update modes, disable osdeps handling") do |value|
                     @osdeps_forced_mode = 'none'

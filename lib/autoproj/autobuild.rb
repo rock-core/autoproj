@@ -96,6 +96,10 @@ module Autobuild
 
         alias __depends_on__ depends_on
         def depends_on(name)
+            if Autoproj::CmdLine.ignore_dependencies?
+                return
+            end
+
             explicit_selection  = Autoproj.manifest.explicitly_selected_package?(name)
 	    osdeps_availability = Autoproj.osdeps.availability_of(name)
             available_as_source = Autobuild::Package[name]
@@ -137,6 +141,10 @@ module Autobuild
         end
 
         def optional_dependency(name)
+            if Autoproj::CmdLine.ignore_dependencies?
+                return
+            end
+
             optional_dependencies << name
         end
 
