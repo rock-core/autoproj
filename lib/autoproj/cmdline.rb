@@ -148,6 +148,12 @@ module Autoproj
             manifest = Autoproj.manifest
             manifest.cache_package_sets
 
+            manifest.each_package_set(false) do |pkg_set|
+                if Gem::Version.new(pkg_set.required_autoproj_version) > Gem::Version.new(Autoproj::VERSION)
+                    raise ConfigError.new(pkg_set.source_file), "the #{pkg_set.name} package set requires autoproj v#{pkg_set.required_autoproj_version} but this is v#{Autoproj::VERSION}"
+                end
+            end
+
             # Load init.rb files. each_source must not load the source.yml file, as
             # init.rb may define configuration options that are used there
             manifest.each_source(false) do |source|

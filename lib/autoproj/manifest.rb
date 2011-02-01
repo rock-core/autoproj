@@ -396,6 +396,11 @@ module Autoproj
             end
         end
 
+        def required_autoproj_version
+            definition = @source_definition || raw_description_file
+            definition['required_autoproj_version'] || '0'
+        end
+
         # Returns the source name
         def name
             if @name
