@@ -1,6 +1,22 @@
 = Version 1.7.4
  * add amake to the gem (forgot it in 1.7.3)
  * fix some corner-cases in osdeps handling
+ * fix autoproj build <builddir> when <builddir> is
+   not the root of a package
+ * make autoproj build <builddir> (and amake <builddir>)
+   auto-add the package if it is not registered in
+   the current build configuration
+ * the --no-deps option allows to do operations without
+   taking the dependencies into account (for instance,
+   update or build a single package)
+ * allow version specifications for gems in the osdeps
+   files, e.g.
+     
+     hoe:
+       gem: "hoe < 1.9.0"
+
+ * add the required_autoproj_version field in source.yml
+   to require a specific autoproj version
 
 = Version 1.7.3
 == For basic usage
