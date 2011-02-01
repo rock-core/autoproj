@@ -429,8 +429,10 @@ fi
                 else
                     status
                 end
-            else
+            elsif !gemdeps.empty?
                 AVAILABLE
+            else
+                NO_PACKAGE
             end
         end
 
