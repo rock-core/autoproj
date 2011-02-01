@@ -1483,9 +1483,9 @@ export PATH=$GEM_HOME/bin:$PATH
                     partition_packages([pkg_osdep], ospkg_to_pkg)
 
                 gems.each do |gem_name|
-                    mapping[gem_name][1] = true
-                    mapping[gem_name][2][pkg_osdep] = Autoproj.osdeps.source_of(pkg_osdep)
-                    mapping[gem_name][3] |= pkgs
+                    mapping[gem_name.join(" ")][1] = true
+                    mapping[gem_name.join(" ")][2][pkg_osdep] = Autoproj.osdeps.source_of(pkg_osdep)
+                    mapping[gem_name.join(" ")][3] |= pkgs
                 end
 
                 if Autoproj::OSDependencies.supported_operating_system?

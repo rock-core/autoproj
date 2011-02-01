@@ -442,7 +442,17 @@ fi
         # package manager, and the set of packages that have to be installed
         # using Ruby's package manager, RubyGems.
         #
-        # Raises ConfigError if no package can be found
+        # The os_packages arrays is a list of names (strings)
+        #
+        # The gem_packages arrays is a list of [name, version] pairs. +version+
+        # is a version string, that is set only if the package has been given
+        # with a =VERSION specification, e.g.
+        #
+        #   gems:
+        #       hoe=1.8.0
+        #
+        # Raises ConfigError if an error exists in the osdeps files, and returns
+        # empty sets if the package can't be found
         def partition_packages(package_set, package_osdeps = Hash.new)
             package_set = package_set.
                 map { |name| OSDependencies.aliases[name] || name }.
@@ -481,6 +491,13 @@ fi
                     if !pkg_def.empty?
                         osdeps << name
                     end
+                end
+            end
+            gems.map! do |name|
+                if name =~ /^([^><=~]*)([><=~]+.*)$/
+                    [$1.strip, $2.strip]
+                else
+                    [name]
                 end
             end
             return osdeps, gems
@@ -523,10 +540,10 @@ fi
         def filter_uptodate_gems(gems)
             # Don't install gems that are already there ...
             gems = gems.dup
-            gems.delete_if do |name|
-                version_requirements = Gem::Requirement.default
+            gems.delete_if do |name, version|
+                version_requirements = Gem::Requirement.new(version || '>= 0')
                 installed = Gem.source_index.find_name(name, version_requirements)
-                if !installed.empty? && Autobuild.do_update
+                if (!installed.empty? && !version) && Autobuild.do_update
                     # Look if we can update the package ...
                     dep = Gem::Dependency.new(name, version_requirements)
                     available = gem_fetcher.find_matching(dep, false, true, OSDependencies.gem_with_prerelease)
@@ -755,7 +772,7 @@ with the corresponding option (--all, --ruby, --os or --none).
             false
         end
 
-        def gems_interaction(gems, cmdline, silent)
+        def gems_interaction(gems, cmdlines, silent)
             if OSDependencies.force_osdeps
                 return true
             elsif osdeps_mode == HANDLE_ALL || osdeps_mode == HANDLE_RUBY
@@ -776,7 +793,7 @@ with the corresponding option (--all, --ruby, --os or --none).
     
     The following command line can be used to install them manually
     
-      #{cmdline.join(" ")}
+      #{cmdlines.map { |c| c.join(" ") }.join("\n      ")}
     
     Autoproj expects these Gems to be installed in #{Autoproj.gem_home} This can
     be overriden by setting the AUTOPROJ_GEM_HOME environment variable manually
@@ -839,15 +856,26 @@ with the corresponding option (--all, --ruby, --os or --none).
             if !gems.empty?
                 guess_gem_program
 
-                cmdline = [Autobuild.tool('gem'), 'install']
+                base_cmdline = [Autobuild.tool('gem'), 'install']
                 if Autoproj::OSDependencies.gem_with_prerelease
-                    cmdline << "--prerelease"
+                    base_cmdline << "--prerelease"
                 end
-                cmdline.concat(gems)
+                with_version, without_version = gems.partition { |name, v| v }
 
-                if gems_interaction(gems, cmdline, silent?)
-                    Autobuild.progress "installing/updating RubyGems dependencies: #{gems.sort.join(", ")}"
-                    Autobuild::Subprocess.run 'autoproj', 'osdeps', *cmdline
+                cmdlines = []
+                if !without_version.empty?
+                    cmdlines << (base_cmdline + without_version.flatten)
+                end
+                with_version.each do |name, v|
+                    cmdlines << base_cmdline + [name, "-v", v]
+                end
+
+                if gems_interaction(gems, cmdlines, silent?)
+                    Autobuild.progress "installing/updating RubyGems dependencies: #{gems.map { |g| g.join(" ") }.sort.join(", ")}"
+
+                    cmdlines.each do |c|
+                        Autobuild::Subprocess.run 'autoproj', 'osdeps', *c
+                    end
                     did_something = true
                 end
             end
