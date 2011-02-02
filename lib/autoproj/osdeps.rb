@@ -545,14 +545,18 @@ fi
             gems.delete_if do |name, version|
                 version_requirements = Gem::Requirement.new(version || '>= 0')
                 installed = Gem.source_index.find_name(name, version_requirements)
-                if (!installed.empty? && !version) && Autobuild.do_update
+                if !installed.empty? && Autobuild.do_update
                     # Look if we can update the package ...
                     dep = Gem::Dependency.new(name, version_requirements)
-                    available = gem_fetcher.find_matching(dep, false, true, OSDependencies.gem_with_prerelease)
+                    available = gem_fetcher.find_matching(dep, true, true, OSDependencies.gem_with_prerelease)
                     installed_version = installed.map(&:version).max
                     available_version = available.map { |(name, v), source| v }.max
                     if !available_version
-                        raise ConfigError.new, "cannot find any gem with the name '#{name}'"
+                        if version
+                            raise ConfigError.new, "cannot find any gem with the name '#{name}' and version #{version}"
+                        else
+                            raise ConfigError.new, "cannot find any gem with the name '#{name}'"
+                        end
                     end
                     needs_update = (available_version > installed_version)
                     !needs_update
