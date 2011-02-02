@@ -1,5 +1,7 @@
 = Version 1.7.5
- * quickfix release: fix osdeps_mode issue on bootstrapping
+ * quickfix release
+ * fix osdeps_mode issue on bootstrapping
+ * fix expansion of array elements in source.yml
 
 = Version 1.7.4
  * add amake to the gem (forgot it in 1.7.3)

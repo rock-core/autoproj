@@ -208,6 +208,8 @@ module Autoproj
                 value[name] = expand(definition, definitions)
             end
             value
+        elsif value.respond_to?(:to_ary)
+            value.map { |val| expand(val, definitions) }
         else
             value = single_expansion(value, definitions)
             if contains_expansion?(value)
