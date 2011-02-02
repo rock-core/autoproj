@@ -1,7 +1,14 @@
 = Version 1.7.5
  * quickfix release
  * fix osdeps_mode issue on bootstrapping
+ * ignore osdeps-related errors in modes
+   where the osdeps should not be managed
+   by autoproj at all.
  * fix expansion of array elements in source.yml
+ * finally got a way to have amake work. The
+   RubyGem packaging had replaced the executable
+   by a RubyGem wrapper, assuming it was a ruby
+   file (but it was a shell script)
 
 = Version 1.7.4
  * add amake to the gem (forgot it in 1.7.3)

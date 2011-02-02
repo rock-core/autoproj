@@ -10,3 +10,10 @@ function acd {
     fi
 }
 
+function amake {
+    if test -z "$@"; then
+        autoproj fast-build .
+    else
+        autoproj fast-build "$@"
+    fi
+}
