@@ -109,13 +109,20 @@ module Autoproj
             if osdeps_forced_mode
                 Autoproj.osdeps.osdeps_mode = osdeps_forced_mode
             end
+
+            # Define the option NOW, as update_os_dependencies? needs to know in
+            # what mode we are.
+            #
+            # It might lead to having multiple operating system detections, but
+            # that's the best I can do for now.
+	    Autoproj::OSDependencies.define_osdeps_mode_option
+            Autoproj.osdeps.osdeps_mode
+
             # Do that AFTER we have properly setup Autoproj.osdeps as to avoid
             # unnecessarily redetecting the operating system
             if update_os_dependencies? || osdeps?
                 Autoproj.reset_option('operating_system')
             end
-	    Autoproj::OSDependencies.define_osdeps_mode_option
-            Autoproj.osdeps.osdeps_mode
         end
 
         def self.update_myself
