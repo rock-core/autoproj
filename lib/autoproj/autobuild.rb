@@ -210,7 +210,7 @@ module Autoproj
 
     def self.define(package_type, spec, &block)
         package = Autobuild.send(package_type, spec)
-        Autoproj.manifest.register_package package, block, *current_file
+        Autoproj.manifest.register_package(package, block, *current_file)
         package
     end
 
@@ -274,6 +274,19 @@ def ignore(*paths)
     end
 end
 
+# Adds a new setup block to an existing package
+def setup_package(package_name, &block)
+    if !block
+        raise ConfigError.new, "you must give a block to #setup_package"
+    end
+
+    package_definition = Autoproj.manifest.package(package_name)
+    if !package_definition
+        raise ConfigError.new, "#{package_name} is not a known package"
+    end
+    package_definition.add_setup_block(block)
+end
+
 # Common setup for packages
 def package_common(package_type, spec, &block) # :nodoc:
     package_name = Autoproj.package_name_from_options(spec)
@@ -282,6 +295,7 @@ def package_common(package_type, spec, &block) # :nodoc:
         current_file = Autoproj.current_file[1]
         old_file     = Autoproj.manifest.definition_file(package_name)
         Autoproj.warn "#{package_name} from #{current_file} is overriden by the definition in #{old_file}"
+
         return
     end
 
@@ -391,7 +405,7 @@ module Autoproj::RubyPackage
     end
 
     # The Rake task that is used to set up the package. Defaults to "default".
-    # Set to nil to disable documentation generation
+    # Set to nil to disable setup altogether
     attr_accessor :rake_setup_task
     # The Rake task that is used to generate documentation. Defaults to "doc".
     # Set to nil to disable documentation generation

@@ -688,7 +688,23 @@ module Autoproj
     # DEPRECATED. For backward-compatibility only.
     LocalSource = LocalPackageSet
 
-    PackageDefinition = Struct.new :autobuild, :user_block, :package_set, :file
+    # Class used to store information about a package definition
+    class PackageDefinition
+        attr_reader :autobuild
+        attr_reader :user_blocks
+        attr_reader :package_set
+        attr_reader :file
+
+        def initialize(autobuild, package_set, file)
+            @autobuild, @package_set, @file =
+                autobuild, package_set, file
+            @user_blocks = []
+        end
+
+        def add_setup_block(block)
+            user_blocks << block
+        end
+    end
 
     # The Manifest class represents the information included in the main
     # manifest file, and allows to manipulate it
@@ -1027,7 +1043,11 @@ module Autoproj
 
         # Register a new package
         def register_package(package, block, source, file)
-            @packages[package.name] = PackageDefinition.new(package, block, source, file)
+            pkg = PackageDefinition.new(package, source, file)
+            if block
+                pkg.add_setup_block(block)
+            end
+            @packages[package.name] = pkg
         end
 
         def definition_source(package_name)

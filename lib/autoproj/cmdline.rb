@@ -287,8 +287,8 @@ module Autoproj
             # Now call the blocks that the user defined in the autobuild files. We do it
             # now so that the various package directories are properly setup
             manifest.packages.each_value do |pkg|
-                if pkg.user_block
-                    pkg.user_block[pkg.autobuild]
+                pkg.user_blocks.each do |blk|
+                    blk[pkg.autobuild]
                 end
             end
 
