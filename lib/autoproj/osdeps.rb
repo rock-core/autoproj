@@ -738,6 +738,14 @@ with the corresponding option (--all, --ruby, --os or --none).
             nil
         end
 
+        def installs_os_packages?
+            osdeps_mode == HANDLE_ALL || osdeps_mode == HANDLE_OS
+        end
+
+        def installs_ruby_packages?
+            osdeps_mode == HANDLE_ALL || osdeps_mode == HANDLE_RUBY
+        end
+
         def osdeps_interaction(osdeps, os_packages, shell_script, silent)
             if !OSDependencies.supported_operating_system?
                 if silent
