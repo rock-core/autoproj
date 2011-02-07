@@ -1,3 +1,9 @@
+= Version 1.7.6
+ * ship the generic configuration of gitorious
+   server from Rock. It defines
+     Autoproj.gitorious_server_configuration
+   (see autoproj's API documentation)
+
 = Version 1.7.5
  * quickfix release
  * fix osdeps_mode issue on bootstrapping
