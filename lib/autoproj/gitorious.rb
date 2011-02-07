@@ -19,7 +19,7 @@ module Autoproj
     # Since it seems that the http method for gitorious servers is more stable, a
     # fallback importer is set up that falls back to using http for pulling as soon
     # as import failed
-    def gitorious_server_configuration(name, base_url, options = Hash.new)
+    def self.gitorious_server_configuration(name, base_url, options = Hash.new)
         options = Kernel.validate_options options,
             :fallback_to_http => true
 

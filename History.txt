@@ -1,3 +1,6 @@
+= Version 1.7.7
+ * quickfix a trivial bug
+
 = Version 1.7.6
  * ship the generic configuration of gitorious
    server from Rock. It defines
