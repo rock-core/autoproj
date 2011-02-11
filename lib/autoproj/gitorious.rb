@@ -52,7 +52,7 @@ module Autoproj
         # use http when git fails
         if Autobuild::Importer.respond_to?(:fallback) && options[:fallback_to_http]
             Autobuild::Importer.fallback do |package, importer|
-                root_rx = /^(?:http:\/\/git\.|git:\/\/|git@)#{Regexp.quote(base_url)}/
+                root_rx = /^(?:http:\/\/git\.|git:\/\/|git@)#{Regexp.quote(base_url)}:?/
                 if importer.kind_of?(Autobuild::Git) && importer.repository =~ root_rx && importer.repository !~ /^http/
                     Autoproj.warn "import from #{importer.repository} failed, falling back to using http for all packages on #{base_url}"
                     Autobuild::Package.each do |pkg_name, pkg|
