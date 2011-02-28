@@ -9,12 +9,3 @@ function acd {
       return 0
     fi
 }
-
-function amake {
-    if test -z "$@"; then
-        autoproj fast-build .
-    else
-        autoproj fast-build "$@"
-    fi
-}
-

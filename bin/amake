@@ -1,0 +1,8 @@
+#! /usr/bin/env ruby
+
+if ARGV.grep(/^-/).size == ARGV.size
+    ARGV.push '.'
+end
+ARGV.unshift "build"
+load File.expand_path('autoproj', File.dirname(__FILE__))
+
