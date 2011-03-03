@@ -2,10 +2,10 @@ History.txt
 Manifest.txt
 README.txt
 Rakefile
+bin/amake
+bin/aup
 bin/autolocate
 bin/autoproj
-bin/aup
-bin/amake
 bin/autoproj_bootstrap
 bin/autoproj_stress_test
 lib/autoproj.rb
@@ -13,9 +13,9 @@ lib/autoproj/autobuild.rb
 lib/autoproj/base.rb
 lib/autoproj/cmdline.rb
 lib/autoproj/default.osdeps
+lib/autoproj/gitorious.rb
 lib/autoproj/manifest.rb
 lib/autoproj/options.rb
-lib/autoproj/gitorious.rb
 lib/autoproj/osdeps.rb
 lib/autoproj/system.rb
 lib/autoproj/version.rb

@@ -1,3 +1,13 @@
+= Version 1.7.8
+ * fix bootstrap and switch-config with VCS options (i.e. setting a branch on
+   the git importer)
+ * amake now accepts options, i.e.
+   amake . --no-deps will only build the current package (without looking at
+   dependencies)
+ * added aup, which is a shortcut for autoproj update
+   as for amake, aup without arguments will update the package in which it is
+   started
+
 = Version 1.7.7
  * quickfix a trivial bug
 
