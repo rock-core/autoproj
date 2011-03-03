@@ -24,6 +24,11 @@ module Autoproj
         console.color(*args)
     end
 
+    # Displays an error message
+    def self.error(message)
+        Autoproj.progress("  ERROR: #{message}", :red, :bold)
+    end
+
     # Displays a warning message
     def self.warn(message)
         Autoproj.progress("  WARN: #{message}", :magenta)
@@ -1240,8 +1245,10 @@ where 'mode' is one of:
             Autoproj.change_option "manifest_source", vcs_def.dup, true
             Autoproj.save_config
 
-        rescue Exception
+        rescue Exception => e
+            Autoproj.error "switching configuration failed: #{e.message}"
             if backup_name
+                Autoproj.error "restoring old configuration"
                 FileUtils.rm_rf config_dir if config_dir
                 FileUtils.mv backup_name, config_dir
             end
