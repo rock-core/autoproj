@@ -1192,8 +1192,8 @@ where 'mode' is one of:
             vcs_def = Hash.new
             vcs_def[:type] = type
             vcs_def[:url]  = VCSDefinition.to_absolute_url(url)
-            while !options.empty?
-                name, value = options.shift.split("=")
+            options.each do |opt|
+                name, value = opt.split("=")
                 vcs_def[name] = value
             end
 
