@@ -1693,13 +1693,12 @@ module Autoproj
 
         def each_package_dependency
             if block_given?
-                xml.xpath('//depend').each do |node|
+                depend_nodes = xml.xpath('//depend').to_a +
+                    xml.xpath('//depend_optional').to_a
+
+                depend_nodes.each do |node|
                     dependency = node['package']
-                    optional   =
-                        if node['optional'].to_s == '1'
-                            true
-                        else false
-                        end
+                    optional = (node['optional'].to_s == '1' || node.name == "depend_optional")
 
                     if dependency
                         yield(dependency, optional)
