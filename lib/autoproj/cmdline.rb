@@ -972,8 +972,15 @@ where 'mode' is one of:
                 # configuration switch code. This is acceptable as long as we
                 # quit just after the switch
                 Dir.chdir(Autoproj.root_dir)
-                switch_config(*remaining_args)
-                exit 0
+                if switch_config(*remaining_args)
+                    Autobuild.do_update = true
+                    Autobuild.do_build  = false
+                    @update_os_dependencies = false
+                    @only_config = true
+                    remaining_args.clear
+                else
+                    exit 0
+                end
 
             when "reconfigure"
                 Autoproj.reconfigure = true
@@ -1179,6 +1186,16 @@ where 'mode' is one of:
             if vcs && (vcs.type == type && vcs.url == url)
                 # Don't need to do much: simply change the options and save the config
                 # file, the VCS handler will take care of the actual switching
+                vcs_def = Autoproj.user_config('manifest_source')
+                options.each do |opt|
+                    opt_name, opt_value = opt.split('=')
+                    vcs_def[opt_name] = opt_value
+                end
+                Autoproj.normalize_vcs_definition(vcs_def)
+                Autoproj.change_option "manifest_source", vcs_def.dup, true
+                Autoproj.save_config
+                true
+
             else
                 # We will have to delete the current autoproj directory. Ask the user.
                 opt = Autoproj::BuildOption.new("delete current config", "boolean",
@@ -1190,6 +1207,7 @@ where 'mode' is one of:
                 Dir.chdir(Autoproj.root_dir) do
                     do_switch_config(true, type, url, *options)
                 end
+                false
             end
         end
 
