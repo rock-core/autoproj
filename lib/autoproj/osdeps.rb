@@ -600,6 +600,8 @@ Finally, OS dependencies can be installed by calling "autoproj osdeps"
 with the corresponding option (--all, --ruby, --os or --none). Calling
 "autoproj osdeps" without arguments will also give you information as
 to what you should install to compile the software successfully.
+
+So, what do you want ? (ruby or none)
             EOT
             message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (ruby, none) ?", long_doc.strip ]
 
@@ -637,6 +639,8 @@ an autoproj operation with the --reconfigure option (e.g. autoproj update
 
 Finally, OS dependencies can be installed by calling "autoproj osdeps"
 with the corresponding option (--all, --ruby, --os or --none).
+
+So, what do you want ? (all, ruby, os or none)
             EOT
             message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (all, ruby, os, none) ?", long_doc.strip ]
 
