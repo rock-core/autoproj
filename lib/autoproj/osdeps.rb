@@ -156,7 +156,7 @@ module Autoproj
         #
         # Examples: ['debian', ['sid', 'unstable']] or ['ubuntu', ['lucid lynx', '10.04']]
         def self.operating_system
-            if @operating_system
+            if !@operating_system.nil?
                 return @operating_system
             elsif Autoproj.has_config_key?('operating_system')
                 os = Autoproj.user_config('operating_system')
@@ -169,19 +169,28 @@ module Autoproj
                 end
             end
 
-            Autoproj.progress "  autodetecting the operating system"
-            name, versions = os_from_lsb
-            if name
-                if name != "debian"
-                    if File.exists?("/etc/debian_version")
-                        @operating_system = [[name, "debian"], versions]
-                    else
-                        @operating_system = [[name], versions]
+            if user_os = ENV['AUTOPROJ_OS']
+                if user_os.empty?
+                    @operating_system = false
+                else
+                    names, versions = user_os.split(':')
+                    @operating_system = [names.split(','), versions.split(',')]
+                end
+            else
+                Autoproj.progress "  autodetecting the operating system"
+                name, versions = os_from_lsb
+                if name
+                    if name != "debian"
+                        if File.exists?("/etc/debian_version")
+                            @operating_system = [[name, "debian"], versions]
+                        else
+                            @operating_system = [[name], versions]
+                        end
                     end
                 end
             end
 
-            if !@operating_system
+            if @operating_system.nil?
                 # Need to do some heuristics unfortunately
                 @operating_system =
                     if File.exists?('/etc/debian_version')
