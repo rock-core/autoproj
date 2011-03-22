@@ -707,6 +707,7 @@ module Autoproj
         def self.doc?; @mode == "doc" end
         def self.snapshot?; @mode == "snapshot" end
         def self.reconfigure?; @mode == "reconfigure" end
+        def self.list_unused?; @mode == "list-unused" end
 
         def self.show_statistics?; !!@show_statistics end
         def self.ignore_dependencies?; @ignore_dependencies end
@@ -927,6 +928,7 @@ where 'mode' is one of:
                 @mode = args.shift
                 unknown_mode = catch(:unknown) do
                     handle_mode(@mode, args)
+                    false
                 end
                 if unknown_mode
                     STDERR.puts "unknown mode #{@mode}"
@@ -1059,6 +1061,10 @@ where 'mode' is one of:
                 @update_os_dependencies = false
                 Autobuild.do_doc    = true
                 Autobuild.only_doc  = true
+            when "list-unused"
+                Autobuild.do_update = false
+                Autobuild.do_build  = false
+                @update_os_dependencies = false
             else
                 throw :unknown, true
             end
@@ -1646,6 +1652,48 @@ export PATH=$GEM_HOME/bin:$PATH
                 end
             else
                 raise
+            end
+        end
+
+        def self.list_unused(all_enabled_packages)
+            all_enabled_packages = all_enabled_packages.map do |pkg_name|
+                Autobuild::Package[pkg_name]
+            end
+            leaf_dirs = (all_enabled_packages.map(&:srcdir) +
+                all_enabled_packages.map(&:prefix)).to_set
+            leaf_dirs << Autoproj.config_dir
+            leaf_dirs << Autoproj.gem_home
+            leaf_dirs << Autoproj.remotes_dir
+
+            root = Autoproj.root_dir
+            all_dirs = leaf_dirs.dup
+            leaf_dirs.each do |dir|
+                dir = File.dirname(dir)
+                while dir != root
+                    break if all_dirs.include?(dir)
+                    all_dirs << dir
+                    dir = File.dirname(dir)
+                end
+            end
+            all_dirs << Autoproj.root_dir
+
+            unused = Set.new
+            Find.find(Autoproj.root_dir) do |path|
+                next if !File.directory?(path)
+                if !all_dirs.include?(path)
+                    unused << path
+                    Find.prune
+                elsif leaf_dirs.include?(path)
+                    Find.prune
+                end
+            end
+
+
+            root = Pathname.new(Autoproj.root_dir)
+            Autoproj.progress
+            Autoproj.progress "The following directories are not part of a package used in the current autoproj installation", :bold
+            unused.to_a.sort.each do |dir|
+                puts "  #{Pathname.new(dir).relative_path_from(root)}"
             end
         end
     end

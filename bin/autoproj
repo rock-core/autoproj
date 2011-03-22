@@ -166,9 +166,15 @@ EOTEXT
     elsif Autoproj::CmdLine.revshow_osdeps?
         all_enabled_packages = Autoproj::CmdLine.import_packages(selected_packages)
         Autoproj::CmdLine.revshow_osdeps(all_enabled_packages)
+        exit(0)
     elsif Autoproj::CmdLine.show_osdeps?
         all_enabled_packages = Autoproj::CmdLine.import_packages(selected_packages)
         Autoproj::CmdLine.show_osdeps(all_enabled_packages)
+        exit(0)
+    elsif Autoproj::CmdLine.list_unused?
+        all_enabled_packages = Autoproj::CmdLine.import_packages(selected_packages)
+        Autoproj::CmdLine.list_unused(all_enabled_packages)
+        exit(0)
     end
 
     STDERR.puts
