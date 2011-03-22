@@ -726,7 +726,7 @@ with the corresponding option (--all, --ruby, --os or --none).
         def osdeps_interaction_unknown_os(osdeps)
             puts <<-EOMSG
   #{Autoproj.color("The build process requires some other software packages to be installed on our operating system", :bold)}
-  #{Autoproj.color("If they are already installed, simply ignore this message", :red)}"
+  #{Autoproj.color("If they are already installed, simply ignore this message", :red)}
   
     #{osdeps.join("\n    ")}
 
