@@ -1489,11 +1489,11 @@ export PATH=$GEM_HOME/bin:$PATH
             end
 
             overrides_path = File.join(target_dir, 'overrides.yml')
-            overrides =
-                if File.exists?(overrides_path)
-                    YAML.load(File.read(overrides_path))
-                else Hash.new
-                end
+            if File.exists?(overrides_path)
+                overrides = YAML.load(File.read(overrides_path))
+            end
+            # In Ruby 1.9, an empty file results in YAML.load returning false
+            overrides ||= Hash.new
 
             if overrides['overrides']
                 overrides['overrides'].concat(version_control)
