@@ -820,6 +820,14 @@ module Autoproj
             end
 	end
 
+
+        # Call this method to ignore a specific package. It must not be used in
+        # init.rb, as the manifest is not yet loaded then
+        def ignore_package(package_name)
+            list = (data['ignore_packages'] ||= Array.new)
+            list << package_name
+        end
+
         # True if the given package should not be built, with the packages that
         # depend on him have this dependency met.
         #

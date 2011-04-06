@@ -1,8 +1,32 @@
 #! /usr/bin/env ruby
+require 'optparse'
 
-if ARGV.grep(/^-/).size == ARGV.size
-    ARGV.push '.'
+build_all = false
+parser = OptionParser.new do |opt|
+    opt.banner = "aup [options] [dir_or_package]
+Runs autoproj update for the given directory or package name.
+Selects the current directory if none is given. Override by
+passing the --all option.
+
+Accepts all options from autoproj update plus the following options:
+
+"
+    opt.on('--all', 'runs autoproj build without arguments (does not add the current directory)') do
+        build_all = true
+    end
+    opt.on('--help', 'shows this help message') do
+        puts parser
+        exit(0)
+    end
 end
-ARGV.unshift "update"
+
+remaining = parser.parse(ARGV)
+if remaining.grep(/^-/).size == remaining.size && !build_all
+    remaining.push '.'
+end
+remaining.unshift 'update'
+
+ARGV.clear
+ARGV.concat(remaining)
 load File.expand_path('autoproj', File.dirname(__FILE__))
 
