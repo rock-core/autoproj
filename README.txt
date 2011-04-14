@@ -7,8 +7,8 @@ version control repository (think "distributed version control"). It also
 provides an easy integration of the local operating system (Debian, Ubuntu,
 Fedora, maybe MacOSX at some point).
 
-This tool has been developped in the frame of the RubyInMotion project
-(http://sites.google.com/site/rubyinmotion), to install robotics-related
+This tool has been over the years. It is now maintained in the frame of the Rock
+robotics project (http://rock-robotics.org), to install robotics-related
 software -- that is often bleeding edge. Unlike [the ROS build
 system](http://ros.org), it is not bound to one build system, one VCS and one
 integration framework. The philosophy behind autoproj

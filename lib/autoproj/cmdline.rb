@@ -795,13 +795,18 @@ where 'mode' is one of:
     autoproj bootstrap [manifest_url|source_vcs source_url opt1=value1 opt2=value2 ...]
 
     For example:
-    autoproj bootstrap git git://github.com/doudou/rubim-all.git branch=all
+    autoproj bootstrap git git://gitorious.org/rock/buildconfig.git
 
   switch-config: change where the configuration should be taken from. Syntax:
     autoproj switch-config source_vcs source_url opt1=value1 opt2=value2 ...
 
     For example:
-    autoproj switch-config git git://github.com/doudou/rubim-all.git branch=all
+    autoproj switch-config git git://gitorious.org/rock/buildconfig.git
+
+    In case only the options need to be changed, the source_vcs and source_url fields can be omitted:
+
+    For example:
+    autoproj switch-config branch=next
 
 -- Additional options:
     EOBANNER
