@@ -13,15 +13,15 @@ software -- that is often bleeding edge. Unlike [the ROS build
 system](http://ros.org), it is not bound to one build system, one VCS and one
 integration framework. The philosophy behind autoproj
 is:
- * supports both CMake and autotools, and can be adapted to other tools
- * supports different VCS: cvs, svn, git, plain tarballs.
- * software packages are plain packages, meaning that they can be built and
-   installed /outside/ an autoproj tree, and are not tied *at all* to the
-   autoproj build system.
- * leverage the actual OS package management system. Right now, only Debian-like
-   systems (like Ubuntu) are supported, simply because it is the only one I have
-   access to.
- * handle code generation properly
+* supports both CMake and autotools, and can be adapted to other tools
+* supports different VCS: cvs, svn, git, plain tarballs.
+* software packages are plain packages, meaning that they can be built and
+  installed /outside/ an autoproj tree, and are not tied *at all* to the
+  autoproj build system.
+* leverage the actual OS package management system. Right now, only Debian-like
+  systems (like Ubuntu) are supported, simply because it is the only one I have
+  access to.
+* handle code generation properly
 
 It tries as much as possible to follow the lead of Willow Garage on the package
 specification. More specifically, the package manifest files are common between
@@ -38,12 +38,12 @@ complete configuration per-project).
 
 Each package definition includes:
 
- * how to get the package's source code
- * how to build the package
- * on what the package depends. This can be either another package built by
-   autoproj, or an operating system package.
+* how to get the package's source code
+* how to build the package
+* on what the package depends. This can be either another package built by
+  autoproj, or an operating system package.
 
-See [this page](writing_manifest.html) for more information.
+See this page[http://rock-robotics.org/writing_manifest.html] for more information.
 
 
 Software packages in Autoproj
@@ -59,6 +59,6 @@ As a guideline, we recommend that inter-package dependencies are managed by
 using pkg-config.
 
 To describe the package, and more importantly to setup cross-package
-dependencies, [an optional manifest file can be
-added](package_sets/manifest-xml.html).
+dependencies, an optional manifest file can be
+added[http://rock-robotics.org/package_sets/manifest-xml.html].
 
