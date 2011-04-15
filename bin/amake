@@ -25,7 +25,22 @@ Accepts all options from autoproj build plus the following options:
     end
 end
 
-remaining = parser.parse(ARGV)
+# Accept options that are invalid in +parser+, to pass them on to autoproj
+# itself
+options = ARGV.dup
+remaining = []
+while !options.empty?
+    begin
+        head = options.shift
+        remaining.concat(parser.parse([head]))
+    rescue OptionParser::InvalidOption
+        remaining << head
+        retry
+    end
+end
+
+# If --all is not given *and* there is no non-option argument (i.e. no directory
+# / package name), add the current directory to the command line
 if remaining.grep(/^-/).size == remaining.size && !build_all
     remaining.push '.'
 end
