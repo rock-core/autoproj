@@ -116,6 +116,8 @@ module Autobuild
                 if osdeps_availability == Autoproj::OSDependencies::AVAILABLE
                     @os_packages << name
                     return
+                elsif osdeps_availability == Autoproj::OSDependencies::IGNORE
+                    return
                 end
 
                 if osdeps_availability == Autoproj::OSDependencies::UNKNOWN_OS

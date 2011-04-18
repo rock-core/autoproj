@@ -320,6 +320,10 @@ fi
                 return NO_PACKAGE
             end
 
+            if dep_def == 'ignore'
+                return IGNORE
+            end
+
             if !os_names
                 return UNKNOWN_OS
             end
