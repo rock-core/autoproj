@@ -244,12 +244,27 @@ module Autoproj
             if !@dpkg_installed_packages
                 @dpkg_installed_packages = Set.new
                 dpkg_status = File.readlines('/var/lib/dpkg/status')
-                dpkg_status.grep(/^(Package|Status)/).
-                    each_slice(2) do |package, status|
-                        if status.chomp == "Status: install ok installed"
-                            @dpkg_installed_packages << package.split[1].chomp
+
+                current_packages = []
+                is_installed = false
+                dpkg_status.each do |line|
+                    line = line.chomp
+                    if line == ""
+                        if is_installed
+                            current_packages.each do |pkg|
+                                @dpkg_installed_packages << pkg
+                            end
+                            current_packages.clear
+                            is_installed = false
                         end
+                    elsif line =~ /Package: (.*)$/
+                        current_packages << $1
+                    elsif line =~ /Provides: (.*)$/
+                        current_packages << $1
+                    elsif line == "Status: install ok installed"
+                        is_installed = true
                     end
+                end
             end
             
             if package_name =~ /^(\w[a-z0-9+-.]+)/
