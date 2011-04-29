@@ -137,7 +137,7 @@ module Autobuild
                         # Call osdeps to get a proper error message
                         osdeps, gems = Autoproj.osdeps.partition_packages([name].to_set, name => [self.name])
                         Autoproj.osdeps.resolve_os_dependencies(osdeps)
-                    rescue ConfigError => e
+                    rescue Autoproj::ConfigError => e
                         if osdeps_availability != Autoproj::OSDependencies::NO_PACKAGE && !Autoproj.osdeps.installs_os_packages?
                             Autoproj.warn "in #{File.join(srcdir, 'manifest.xml')}: #{e.message}"
                             Autoproj.warn "this osdeps dependency is simply ignored as you asked autoproj to not install osdeps packages"
