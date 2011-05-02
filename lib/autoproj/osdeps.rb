@@ -97,7 +97,7 @@ module Autoproj
                     root_dir ||= "#{Autoproj.root_dir}/"
                     old = source_of(h).gsub(root_dir, '')
                     new = info.source_of(h).gsub(root_dir, '')
-                    Autoproj.warn("osdeps definition for #{h}, previously defined in #{old} overriden by #{new}")
+                    Autoproj.warn("osdeps definition for #{h}, previously defined in #{old} overridden by #{new}")
                 end
                 v2
             end
@@ -842,7 +842,7 @@ So, what do you want ? (all, ruby, os or none)
       #{cmdlines.map { |c| c.join(" ") }.join("\n      ")}
     
     Autoproj expects these Gems to be installed in #{Autoproj.gem_home} This can
-    be overriden by setting the AUTOPROJ_GEM_HOME environment variable manually
+    be overridden by setting the AUTOPROJ_GEM_HOME environment variable manually
 
             EOMSG
             print "    #{Autoproj.color("Press ENTER to continue ", :bold)}"
