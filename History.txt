@@ -1,18 +1,15 @@
 = Version 1.7.9
  * improve ruby 1.9 compatibility
  * fix ignoring osdeps dependencies completely, i.e.
-
     ruby: ignore
-
    is now working fine (before, one had to provide at least an OS name)
-
  * on dpkg-based systems (debian, ubuntu), fix detection of installed virtual packages
  * fix passing autoproj options from aup and amake to autoproj itself (it was
    broken). One can now *really* do
-
      amake --no-deps
-
    as advertised by the 1.7.8 release notes.
+ * autoproj_bootstrap now follows the AUTOPROJ_DEFAULT_OSDEPS environment
+   variable
 
 = Version 1.7.8
  * fix bootstrap and switch-config with VCS options (i.e. setting a branch on
