@@ -260,7 +260,7 @@ module Autoproj
                     elsif line =~ /Package: (.*)$/
                         current_packages << $1
                     elsif line =~ /Provides: (.*)$/
-                        current_packages << $1
+                        current_packages.concat($1.split(',').map(&:strip))
                     elsif line == "Status: install ok installed"
                         is_installed = true
                     end
