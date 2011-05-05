@@ -1,3 +1,7 @@
+= Version 1.7.10
+ * really fix support of virtual packages on dpkg-based systems (debian, ubuntu)
+   1.7.9 was only supporting packages that were providing only one package
+  
 = Version 1.7.9
  * improve ruby 1.9 compatibility
  * fix ignoring osdeps dependencies completely, i.e.
