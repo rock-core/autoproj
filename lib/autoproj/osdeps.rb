@@ -338,6 +338,9 @@ fi
             if dep_def == 'ignore'
                 return IGNORE
             end
+            if dep_def == 'nonexistent'
+                return WRONG_OS_VERSION
+            end
 
             if !os_names
                 return UNKNOWN_OS
@@ -377,6 +380,10 @@ fi
                     return WRONG_OS_VERSION
                 end
                 data = version_entry.last
+            end
+
+            if data.respond_to?(:to_str) && data.to_str == 'nonexistent'
+                return WRONG_OS_VERSION
             end
 
             if data.respond_to?(:to_ary)
