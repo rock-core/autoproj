@@ -813,6 +813,7 @@ module Autoproj
             @constants_definitions = Hash.new
             @disabled_imports = Set.new
             @moved_packages = Hash.new
+            @osdeps_overrides = Hash.new
 
             @constant_definitions = Hash.new
             if Autoproj.has_config_key?('manifest_source')
@@ -1526,6 +1527,31 @@ module Autoproj
             Autoproj.osdeps.install(required_os_packages, package_os_deps)
         end
 
+        # The set of overrides added with #add_osdeps_overrides
+        attr_reader :osdeps_overrides
+
+        # Declares that autoproj should use normal package(s) to provide the
+        # +osdeps_name+ OS package in cases +osdeps_name+ does not exist.
+        #
+        # The full syntax is
+        #
+        #   Autoproj.add_osdeps_overrides 'opencv', :package => 'external/opencv'
+        #
+        # If more than one packages should be built, use the :packages option
+        # with an array:
+        #
+        #   Autoproj.add_osdeps_overrides 'opencv', :packages => ['external/opencv', 'external/test']
+        #
+        # The :force option allows to force the usage of the source package(s),
+        # regardless of the availability of the osdeps package.
+        def add_osdeps_overrides(osdeps_name, options)
+            options = Kernel.validate_options options, :package => nil, :packages => [], :force => false
+            if pkg = options.delete(:package)
+                options[:packages] << pkg
+            end
+            @osdeps_overrides[osdeps_name.to_s] = options
+        end
+
         # Package selection can be done in three ways:
         #  * as a subdirectory in the layout
         #  * as a on-disk directory
@@ -1718,6 +1744,9 @@ module Autoproj
                 enum_for :each_package_dependency
             end
         end
+    end
+    def self.add_osdeps_overrides(*args, &block)
+        manifest.add_osdeps_overrides(*args, &block)
     end
 end
 

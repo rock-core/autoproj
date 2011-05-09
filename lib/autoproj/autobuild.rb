@@ -111,8 +111,22 @@ module Autobuild
 	    osdeps_availability = Autoproj.osdeps.availability_of(name)
             available_as_source = Autobuild::Package[name]
 
+            osdeps_overrides = Autoproj.manifest.osdeps_overrides[name]
+            if osdeps_overrides
+                source_packages = osdeps_overrides[:packages]
+                if source_packages.empty?
+                    source_packages << name
+                end
+                force_source_usage = osdeps_overrides[:force]
+                available_as_source = true
+            end
+
 	    # Prefer OS packages to source packages
-            if !explicit_selection 
+            if force_source_usage
+                source_packages.each do |pkg_name|
+                    __depends_on__(pkg_name)
+                end
+            elsif !explicit_selection 
                 if osdeps_availability == Autoproj::OSDependencies::AVAILABLE
                     @os_packages << name
                     return
@@ -149,10 +163,11 @@ module Autobuild
                     end
                     # Should never reach further than that
                 end
+                __depends_on__(name) # to get the error message
+            else
+                # Normal dependency
+                __depends_on__(name)
             end
-
-
-            __depends_on__(name) # to get the error message
         end
 
         def depends_on_os_package(name)
