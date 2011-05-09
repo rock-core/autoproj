@@ -469,6 +469,7 @@ module Autoproj
                 while sel != '/'
                     if handler = Autoproj.package_handler_for(sel)
                         Autoproj.progress "  auto-adding #{sel} using the #{handler.gsub(/_package/, '')} package handler"
+                        sel = File.expand_path(sel)
                         relative_to_root = Pathname.new(sel).relative_path_from(Pathname.new(Autoproj.root_dir))
                         pkg = Autoproj.in_package_set(manifest.local_package_set, manifest.file) do
                             send(handler, relative_to_root)
