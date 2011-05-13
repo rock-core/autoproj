@@ -274,6 +274,10 @@ module Autoproj
         @file_stack.pop
     end
 
+    class << self
+        attr_reader :loaded_autobuild_files
+    end
+
     def self.import_autobuild_file(source, path)
         return if @loaded_autobuild_files.include?(path)
 

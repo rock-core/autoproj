@@ -41,6 +41,10 @@ module Autoproj
                 Autobuild::Reporting << Autobuild::MailReporter.new(mail_config)
             end
 
+            # Remove from LOADED_FEATURES everything that is coming from our
+            # configuration directory
+            Autobuild::Package.clear
+            Autoproj.loaded_autobuild_files.clear
             Autoproj.load_config
 
             if Autoproj.has_config_key?('prefix')
