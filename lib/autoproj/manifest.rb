@@ -1611,7 +1611,29 @@ module Autoproj
             end
 
             # Remove packages that are explicitely excluded and/or ignored
-            expanded_packages.delete_if { |pkg_name| excluded?(pkg_name) || ignored?(pkg_name) }
+            #
+            # Raise an error if an explicit selection expands only to an
+            # excluded package, and display a warning for ignored packages
+            matches.each do |sel, expansion|
+                next if expansion.empty?
+                excluded, other = expansion.partition { |pkg_name| excluded?(pkg_name) }
+                ignored,  ok    = other.partition { |pkg_name| ignored?(pkg_name) }
+
+                if ok.empty? && ignored.empty?
+                    packages = excluded.map do |pkg_name|
+                        [pkg_name, Autoproj.manifest.exclusion_reason(pkg_name)]
+                    end
+                    raise ConfigError.new, "selection #{sel} expands to #{packages.map(&:first).join(", ")} which are excluded from the build:\n  #{packages.map { |name, reason| "#{name}: #{reason}" }.join("\n  ")}"
+                elsif !ignored.empty?
+                    ignored.each do |pkg_name|
+                        Autoproj.warn "#{pkg_name} was selected for #{sel}, but is explicitely ignored in the manifest"
+                    end
+                end
+            end
+
+            expanded_packages.delete_if do |pkg_name|
+                excluded?(pkg_name) || ignored?(pkg_name)
+            end
             return expanded_packages.to_set, (selection - matches.keys)
         end
 
