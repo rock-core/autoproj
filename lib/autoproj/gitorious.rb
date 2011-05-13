@@ -55,14 +55,26 @@ module Autoproj
                 root_rx = /^(?:http:\/\/git\.|git:\/\/|git@)#{Regexp.quote(base_url)}:?/
                 if importer.kind_of?(Autobuild::Git) && importer.repository =~ root_rx && importer.repository !~ /^http/
                     Autoproj.warn "import from #{importer.repository} failed, falling back to using http for all packages on #{base_url}"
+
+                    base_replace_string = "http://git.#{base_url}"
                     Autobuild::Package.each do |pkg_name, pkg|
                         if pkg.importer.kind_of?(Autobuild::Git) && pkg.importer.repository =~ root_rx
-                            pkg.importer.repository.gsub!(root_rx, "http://git.#{base_url}")
+                            if pkg.importer.repository =~ /^git@/
+                                replace_string = "#{base_replace_string}/"
+                            else
+                                replace_string = base_replace_string
+                            end
+                            pkg.importer.repository.gsub!(root_rx, replace_string)
                         end
                     end
 
                     http_importer = importer.dup
-                    http_importer.repository = importer.repository.gsub(root_rx, "http://git.#{base_url}")
+                    if http_importer.repository =~ /^git@/
+                        replace_string = "#{base_replace_string}/"
+                    else
+                        replace_string = base_replace_string
+                    end
+                    http_importer.repository = importer.repository.gsub(root_rx, replace_string)
                     http_importer
                 end
             end
