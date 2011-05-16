@@ -555,7 +555,8 @@ module Autoproj
                 current_packages = current_packages.sort_by(&:name)
 
                 current_packages.
-                    delete_if { |pkg| all_enabled_packages.include?(pkg.name) }
+                    delete_if { |pkg| all_enabled_packages.include?(pkg.name) }.
+                    delete_if { |pkg| Autoproj.manifest.ignored?(pkg.name) }
                 all_enabled_packages |= current_packages.map(&:name).to_set
 
                 # Recursively check that no package in the selection depend on
