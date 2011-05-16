@@ -1085,10 +1085,14 @@ module Autoproj
         end
 
         def definition_source(package_name)
-            @packages[package_name].package_set
+            if pkg_def = @packages[package_name]
+                pkg_def.package_set
+            end
         end
         def definition_file(package_name)
-            @packages[package_name].file
+            if pkg_def = @packages[package_name]
+                pkg_def.file
+            end
         end
 
         def package(name)
