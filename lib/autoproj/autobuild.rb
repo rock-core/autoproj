@@ -124,7 +124,7 @@ module Autobuild
             end
 
 	    # Prefer OS packages to source packages
-            if force_source_usage
+            if force_source_usage && !source_packages.any? { |pkg_name| Autoproj.manifest.excluded?(pkg_name) }
                 source_packages.each do |pkg_name|
                     __depends_on__(pkg_name)
                 end
