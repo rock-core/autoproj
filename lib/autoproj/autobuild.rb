@@ -341,7 +341,7 @@ def package_common(package_type, spec, &block) # :nodoc:
     end
 
     # Check if this package is ignored
-    if Autoproj.manifest.ignored?(package_name)
+    if Autoproj.manifest.ignored?(package_name) || Autoproj.manifest.ignored?(Autoproj.current_file[0].name)
         return Autoproj.define(:dummy, spec)
     end
 

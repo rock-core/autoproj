@@ -835,7 +835,15 @@ module Autoproj
         # This is useful if the packages are already installed on this system.
         def ignored?(package_name)
             if data['ignore_packages']
-                data['ignore_packages'].any? { |l| Regexp.new(l) =~ package_name }
+                data['ignore_packages'].any? do |l|
+                    if package_name == l
+                        true
+                    elsif source = definition_source(package_name)
+                        source.name == l
+                    else
+                        false
+                    end
+                end
             else
                 false
             end
