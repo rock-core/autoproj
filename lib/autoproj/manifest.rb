@@ -1436,7 +1436,9 @@ module Autoproj
             layout_data.each do |value|
                 if value.kind_of?(Hash)
                     subname, subdef = value.find { true }
-                    normalized_layout(result, "#{layout_level}#{subname}/", subdef)
+                    if subdef
+                        normalized_layout(result, "#{layout_level}#{subname}/", subdef)
+                    end
                 else
                     result[value] = layout_level
                 end
