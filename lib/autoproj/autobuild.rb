@@ -321,8 +321,11 @@ def setup_package(package_name, &block)
     package_definition = Autoproj.manifest.package(package_name)
     if !package_definition
         raise ConfigError.new, "#{package_name} is not a known package"
+    elsif package_definition.autobuild.kind_of?(Autobuild::DummyPackage)
+        # Nothing to do!
+    else
+        package_definition.add_setup_block(block)
     end
-    package_definition.add_setup_block(block)
 end
 
 # Common setup for packages
