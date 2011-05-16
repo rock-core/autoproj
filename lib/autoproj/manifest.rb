@@ -849,6 +849,21 @@ module Autoproj
             end
         end
 
+        # Removes all registered exclusions
+        def clear_exclusions
+            automatic_exclusions.clear
+            if excl = data['exclude_packages']
+                excl.clear
+            end
+        end
+
+        # Removes all registered ignored packages
+        def clear_ignored
+            if ignored = data['ignore_packages']
+                ignored.clear
+            end
+        end
+
         # The set of package names that are listed in the excluded_packages
         # section of the manifest
         def manifest_exclusions
