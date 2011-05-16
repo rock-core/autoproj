@@ -98,6 +98,8 @@ module Autobuild
         def depends_on(name)
             if Autoproj::CmdLine.ignore_dependencies?
                 return
+            elsif Autoproj.manifest.ignored?(name)
+                return
             end
 
             @os_packages ||= Set.new
