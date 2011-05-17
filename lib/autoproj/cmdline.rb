@@ -306,6 +306,7 @@ module Autoproj
                 pkg.user_blocks.each do |blk|
                     blk[pkg.autobuild]
                 end
+                pkg.setup = true
             end
 
             # Load the package's override files. each_source must not load the

@@ -696,6 +696,8 @@ module Autoproj
         attr_reader :user_blocks
         attr_reader :package_set
         attr_reader :file
+        def setup?; !!@setup end
+        attr_writer :setup
 
         def initialize(autobuild, package_set, file)
             @autobuild, @package_set, @file =
@@ -705,6 +707,9 @@ module Autoproj
 
         def add_setup_block(block)
             user_blocks << block
+            if setup?
+                block.call(autobuild)
+            end
         end
     end
 
