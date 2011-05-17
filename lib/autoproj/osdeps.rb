@@ -333,16 +333,11 @@ fi
             dep_def = definitions[name]
             if !dep_def
                 return NO_PACKAGE
-            end
-
-            if dep_def == 'ignore'
+            elsif dep_def == 'ignore'
                 return IGNORE
-            end
-            if dep_def == 'nonexistent'
+            elsif dep_def == 'nonexistent'
                 return WRONG_OS_VERSION
-            end
-
-            if !os_names
+            elsif !os_names
                 return UNKNOWN_OS
             end
 
@@ -510,6 +505,7 @@ fi
                 if pkg_def.respond_to?(:to_str)
                     case(pkg_def.to_str)
                     when "ignore" then
+                        osdeps << name
                     when "gem" then
                         gems << name
                     else
