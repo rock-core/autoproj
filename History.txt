@@ -1,3 +1,41 @@
+= Version 1.7.11
+ * loads of fixes related to ignore_packages
+   - fix ignored packages being built if a package depends on them
+   - allow whole package sets to be ignored
+   - make setup_package(package_name) { |pkg| ... } ignore the block if the
+     package is ignored
+ * really fix ignoring osdeps dependencies completely (thought to be working in
+   1.7.9). The following syntax is now accepted in osdeps files:
+
+    ruby: ignore
+
+ * add the 'nonexistent' keyword in osdeps files. In combination with the
+   default target, it makes it easier to add new osdeps packages. For instance,
+   the following snippet will cause anyone trying to get libnl2-dev to fail on
+   older ubuntu versions:
+
+    libnl2:
+       debian: libnl2-dev
+       ubuntu:
+         '10.04,10.10': nonexistent
+         default: libnl2-dev
+
+ * add more fine-grained control over the osdeps/source packages relationships.
+   Until now, we had a fallback mechanism in which nonexistent osdeps would be
+   replaced by source packages with the same name.
+
+   The replacement packages can now be specified (they don't have to have the
+   same name) with
+
+     Autoproj.add_osdeps_overrides 'opencv', :packages => ['external/opencv']
+
+   Moreover, if one wants to make sure that the source package is taken instead
+   of the osdeps one regardless of everything else, he can do
+
+     Autoproj.add_osdeps_overrides 'opencv', :packages => ['external/opencv'], :force => true
+
+ * small API addition and fixes
+
 = Version 1.7.10
  * really fix support of virtual packages on dpkg-based systems (debian, ubuntu)
    1.7.9 was only supporting packages that were providing only one package
