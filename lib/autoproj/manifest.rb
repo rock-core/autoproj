@@ -955,7 +955,7 @@ module Autoproj
             #
             # And honestly I don't think someone will have 20 000 package sets
             done_something = false
-            each_source(false) do |source| 
+            each_package_set(false) do |source| 
                 next if source_name && source.name != source_name
                 done_something = true
 
@@ -965,7 +965,7 @@ module Autoproj
             end
 
             if source_name && !done_something
-                raise ConfigError.new(file), "in #{file}: source '#{source_name}' does not exist"
+                raise ConfigError.new(file), "in #{file}: package set '#{source_name}' does not exist"
             end
 	end
 
@@ -975,7 +975,7 @@ module Autoproj
                 return enum_for(:each_source_file)
             end
 
-            each_source(false) do |source|
+            each_package_set(false) do |source|
 		Dir.glob(File.join(source.local_dir, "*.osdeps")).each do |file|
 		    yield(source, file)
 		end
@@ -1001,7 +1001,7 @@ module Autoproj
             false
         end
 
-        # Like #each_source, but filters out local package sets
+        # Like #each_package_set, but filters out local package sets
         def each_remote_package_set(load_description = true)
             if !block_given?
                 enum_for(:each_remote_package_set, load_description)
@@ -1288,7 +1288,7 @@ module Autoproj
                     package_set
             end
 
-            sources = each_source.to_a.dup
+            sources = each_package_set.to_a.dup
 
             # Remove sources listed before the package source
             while !sources.empty? && sources[0].name != package_source.name
