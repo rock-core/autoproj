@@ -1520,7 +1520,9 @@ module Autoproj
             end
 
             manifest_path = File.join(package.srcdir, "manifest.xml")
-            if !File.file?(manifest_path)
+            if !File.directory?(package.srcdir)
+                return
+            elsif !File.file?(manifest_path)
                 Autoproj.warn "#{package.name} from #{source.name} does not have a manifest"
                 return
             end
