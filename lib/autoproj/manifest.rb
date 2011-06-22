@@ -713,6 +713,32 @@ module Autoproj
         end
     end
 
+    # A set of packages that can be referred to by name
+    class Metapackage
+        # The metapackage name
+        attr_reader :name
+        # The packages listed in this metapackage
+        attr_reader :packages
+
+        def initialize(name)
+            @name = name
+            @packages = []
+        end
+        # Adds a package to this metapackage
+        def add(pkg)
+            @packages << pkg
+        end
+        def each_package(&block)
+            @packages.each(&block)
+        end
+        def include?(pkg)
+            if !pkg.respond_to?(:to_str)
+                pkg = pkg.name
+            end
+            @packages.any? { |p| p.name == pkg }
+        end
+    end
+
     # The Manifest class represents the information included in the main
     # manifest file, and allows to manipulate it
     class Manifest
@@ -809,6 +835,8 @@ module Autoproj
 
         attr_reader :constant_definitions
 
+        attr_reader :metapackages
+
 	def initialize
             @file = nil
 	    @data = nil
@@ -819,6 +847,7 @@ module Autoproj
             @disabled_imports = Set.new
             @moved_packages = Hash.new
             @osdeps_overrides = Hash.new
+            @metapackages = Hash.new
 
             @constant_definitions = Hash.new
             if Autoproj.has_config_key?('manifest_source')
@@ -843,8 +872,8 @@ module Autoproj
                 data['ignore_packages'].any? do |l|
                     if package_name == l
                         true
-                    elsif source = definition_source(package_name)
-                        source.name == l
+                    elsif (pkg_set = metapackages[l]) && pkg_set.include?(package_name)
+                        true
                     else
                         false
                     end
@@ -1078,6 +1107,9 @@ module Autoproj
         # changes on the manifest's data structures
         def cache_package_sets
             @package_sets = each_package_set(false).to_a
+            @package_sets.each do |pkg_set|
+                @metapackages[pkg_set.name] ||= Metapackage.new(pkg_set.name)
+            end
         end
 
         # Register a new package
@@ -1087,6 +1119,7 @@ module Autoproj
                 pkg.add_setup_block(block)
             end
             @packages[package.name] = pkg
+            @metapackages[pkg.package_set.name].add(pkg.autobuild)
         end
 
         def definition_source(package_name)
@@ -1323,15 +1356,22 @@ module Autoproj
             if Autobuild::Package[name]
                 [name]
             else
-                pkg_set = each_package_set(false).find { |set| set.name == name }
+                pkg_set = each_metapackage.find { |set| set.name == name }
                 if !pkg_set
                     raise ConfigError.new, "#{name} is neither a package nor a source"
                 end
-                packages.values.
-                    find_all { |pkg| pkg.package_set.name == pkg_set.name }.
-                    map { |pkg| pkg.autobuild.name }.
+                pkg_set.each_package.
+                    map(&:name).
                     find_all { |pkg_name| !Autoproj.osdeps || !Autoproj.osdeps.has?(pkg_name) }
             end
+        end
+
+        # Lists all defined metapackages
+        #
+        # Autoproj defines one metapackage per package set, which by default
+        # includes all the packages that the package set defines.
+        def each_metapackage(&block)
+            metapackages.each_value(&block)
         end
 
         # Returns the packages contained in the provided layout definition
@@ -1614,12 +1654,13 @@ module Autoproj
                 matches[sel] = packages
                 expanded_packages |= packages
 
-                sources = each_source.find_all { |source| source.name =~ sel }
-                sources.each do |source|
-                    packages = resolve_package_set(source.name).to_set
-                    source_packages = (packages & all_layout_packages)
-                    matches[sel] |= source_packages
-                    expanded_packages |= source_packages
+                each_metapackage do |pkg|
+                    if pkg.name =~ sel
+                        packages = resolve_package_set(pkg.name).to_set
+                        packages = (packages & all_layout_packages)
+                        matches[sel] |= packages
+                        expanded_packages |= packages
+                    end
                 end
             end
 
