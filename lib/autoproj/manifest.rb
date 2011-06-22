@@ -1358,7 +1358,7 @@ module Autoproj
             else
                 pkg_set = each_metapackage.find { |set| set.name == name }
                 if !pkg_set
-                    raise ConfigError.new, "#{name} is neither a package nor a source"
+                    raise ConfigError.new, "#{name} is neither a package nor a package set name. Packages in autoproj must be declared in an autobuild file."
                 end
                 pkg_set.each_package.
                     map(&:name).
