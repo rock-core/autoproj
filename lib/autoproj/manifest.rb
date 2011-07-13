@@ -1455,7 +1455,9 @@ module Autoproj
                 normalized_layout.each_key do |pkg_or_set|
                     begin
                         resolve_package_set(pkg_or_set).each do |pkg_name|
-                            result << pkg_name
+                            if !excluded?(pkg_name) && !ignored?(pkg_name)
+                                result << pkg_name
+                            end
                             Autobuild::Package[pkg_name].all_dependencies(result)
                         end
                     rescue ConfigError
