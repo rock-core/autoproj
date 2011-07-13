@@ -350,6 +350,18 @@ module Autoproj
         # automatically loaded by autoproj
         def auto_imports?; !!@auto_imports end
 
+        # Returns the Metapackage object that has the same name than this
+        # package set
+        def metapackage
+            manifest.metapackage(name)
+        end
+
+        # List of the packages that are built if the package set is selected in
+        # the layout
+        def default_packages
+            metapackage.packages
+        end
+
         # Create this source from a VCSDefinition object
         def initialize(manifest, vcs)
             @manifest = manifest
@@ -1211,12 +1223,27 @@ module Autoproj
             packages[name]
         end
 
-        # Lists all defined packages and where they have been defined
-        def each_package
+        # Lists all defined packages as PackageDefinition objects
+        def each_package_definition(&block)
+            if !block_given?
+                return enum_for(:each_package_definition)
+            end
+            packages.each_value(&block)
+        end
+
+        # Lists all defined autobuild packages as instances of
+        # Autobuild::Package and its subclasses
+        def each_autobuild_package
             if !block_given?
                 return enum_for(:each_package)
             end
             packages.each_value { |pkg| yield(pkg.autobuild) }
+        end
+
+        # DEPRECATED: use either #each_autobuild_package and
+        # #each_package_definition
+        def each_package(&block)
+            each_autobuild_package(&block)
         end
 
         # The VCS object for the main configuration itself
@@ -1430,7 +1457,7 @@ module Autoproj
             if Autobuild::Package[name]
                 [name]
             else
-                pkg_set = each_metapackage.find { |set| set.name == name }
+                pkg_set = find_metapackage(name)
                 if !pkg_set
                     raise ConfigError.new, "#{name} is neither a package nor a package set name. Packages in autoproj must be declared in an autobuild file."
                 end
@@ -1438,6 +1465,10 @@ module Autoproj
                     map(&:name).
                     find_all { |pkg_name| !Autoproj.osdeps || !Autoproj.osdeps.has?(pkg_name) }
             end
+        end
+
+        def find_metapackage(name)
+            @metapackages[name.to_s]
         end
 
         # call-seq:
