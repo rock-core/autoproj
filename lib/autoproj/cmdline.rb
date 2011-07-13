@@ -468,7 +468,7 @@ module Autoproj
 
             selected_packages, nonresolved = manifest.expand_package_selection(selected_packages)
 
-            # Try to auto-add stuff in nonresolved
+            # Try to auto-add stuff if nonresolved
             nonresolved.delete_if do |sel|
                 next if !File.directory?(sel)
                 while sel != '/'
