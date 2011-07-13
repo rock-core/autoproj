@@ -166,20 +166,26 @@ module Autoproj
     # If any error is detected, the backtrace will be filtered so that it is
     # easier to understand by the user. Moreover, if +source+ is non-nil, the
     # package set name will be mentionned.
-    def self.load(source, *path)
+    def self.load(package_set, *path)
         path = File.join(*path)
-        Kernel.load path
-    rescue Interrupt
-        raise
-    rescue Exception => e
-        Autoproj.filter_load_exception(e, source, path)
+        in_package_set(package_set, File.expand_path(path).gsub(/^#{Regexp.quote(Autoproj.root_dir)}\//, '')) do
+            begin
+                Kernel.load path
+            rescue Interrupt
+                raise
+            rescue ConfigError => e
+                raise
+            rescue Exception => e
+                filter_load_exception(e, package_set, path)
+            end
+        end
     end
 
     # Same as #load, but runs only if the file exists.
-    def self.load_if_present(source, *path)
+    def self.load_if_present(package_set, *path)
         path = File.join(*path)
         if File.file?(path)
-            self.load(source, *path)
+            self.load(package_set, *path)
         end
     end
 

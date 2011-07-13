@@ -289,17 +289,8 @@ module Autoproj
 
     def self.import_autobuild_file(package_set, path)
         return if @loaded_autobuild_files.include?(path)
-
-        in_package_set(package_set, File.expand_path(path).gsub(/^#{Regexp.quote(Autoproj.root_dir)}\//, '')) do
-            begin
-                Kernel.load path
-            rescue ConfigError => e
-                raise
-            rescue Exception => e
-                filter_load_exception(e, package_set, path)
-            end
-            @loaded_autobuild_files << path
-        end
+        Autoproj.load(package_set, path)
+        @loaded_autobuild_files << path
     end
 
     # Tries to find a handler automatically for 'full_path'
