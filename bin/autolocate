@@ -62,6 +62,15 @@ if candidates.empty?
     end
 end
 
+if candidates.size > 1
+    # If there is more than one candidate, check if there are some that are not
+    # present on disk
+    present = candidates.find_all { |dir| File.directory?(dir) }
+    if present.size == 1
+        candidates = present
+    end
+end
+
 if candidates.empty?
     STDERR.puts Autoproj.console.color("cannot find #{selection} in the current autoproj installation", :bold, :red)
     exit 1
