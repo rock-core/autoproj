@@ -111,7 +111,7 @@ module Autoproj
             # (to_absolute_url might be called on installations that are being
             # bootstrapped, and as such don't have a root dir yet).
             url = Autoproj.single_expansion(url, 'HOME' => ENV['HOME'])
-            if url && url !~ /^(\w+:\/)?\/|^\w+\@|^(\w+\@)?[\w\.-]+:/
+            if url && url !~ /^(\w+:\/)?\/|^[:\w]+\@|^(\w+\@)?[\w\.-]+:/
                 url = File.expand_path(url, root_dir || Autoproj.root_dir)
             end
             url
