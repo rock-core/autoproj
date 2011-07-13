@@ -79,6 +79,18 @@ module Autoproj
                 end
             end
         end
+
+        Autoproj.add_source_handler name.downcase do |url, options|
+            if url !~ /\.git$/
+                url += ".git"
+            end
+            if url !~ /^\//
+                url = "/#{url}"
+            end
+            base_url = Autoproj.user_config("#{name}_ROOT")
+            base_push_url = Autoproj.user_config("#{name}_PUSH_ROOT")
+            return Hash[:type => 'git', :url => "#{base_url}#{url}", :push_to => "#{base_push_url}#{url}"].merge(options)
+        end
     end
 end
 

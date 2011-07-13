@@ -137,33 +137,105 @@ module Autoproj
         end
     end
 
+    @custom_source_handlers = Hash.new
+
+    # Returns true if +vcs+ refers to a source handler name added by
+    # #add_source_handler
+    def self.has_source_handler?(vcs)
+        @custom_source_handlers.has_key?(vcs.to_s)
+    end
+
+    # Returns the source handlers associated with +vcs+
+    #
+    # Source handlers are added by Autoproj.add_source_handler. The returned
+    # value is an object that responds to #call(url, options) and return a VCS
+    # definition as a hash
+    def self.call_source_handler(vcs, url, options)
+        handler = @custom_source_handlers[vcs.to_s]
+        if !handler
+            raise ArgumentError, "there is no source handler for #{vcs}"
+        else
+            return handler.call(url, options)
+        end
+    end
+
+    # call-seq:
+    #   Autoproj.add_source_handler name do |url, options|
+    #     # build a hash that represent source configuration
+    #     # and return it
+    #   end
+    #
+    # Add a custom source handler named +name+
+    #
+    # Custom source handlers are shortcuts that can be used to represent VCS
+    # information. For instance, the gitorious_server_configuration method
+    # defines a source handler that allows to easily add new gitorious packages:
+    #
+    #   gitorious_server_configuration 'GITORIOUS', 'gitorious.org'
+    #
+    # defines the "gitorious" source handler, which allows people to write
+    #
+    #
+    #   version_control:
+    #       - tools/orocos.rb
+    #         gitorious: rock-toolchain/orocos-rb
+    #         branch: test
+    #
+    # 
+    def self.add_source_handler(name, &handler)
+        @custom_source_handlers[name.to_s] = lambda(&handler)
+    end
+
     def self.vcs_definition_to_hash(spec)
         options = Hash.new
-        if spec.size == 1 && spec.keys.first =~ /auto_imports$/
-            # The user probably wrote
-            #   - string
-            #     auto_imports: false
-            options['auto_imports'] = spec.values.first
-            spec = spec.keys.first.split(" ").first
+
+        plain = Array.new
+        filtered_spec = Hash.new
+        spec.each do |key, value|
+            keys = key.to_s.split(/\s+/)
+            plain.concat(keys[0..-2])
+            filtered_spec[keys[-1].to_sym] = value
         end
+        spec = filtered_spec
 
-        if spec.respond_to?(:to_str)
-            vcs, *url = spec.to_str.split ':'
-            spec = if url.empty?
-                       source_dir = File.expand_path(File.join(Autoproj.config_dir, spec))
-                       if !File.directory?(source_dir)
-                           raise ConfigError.new, "'#{spec.inspect}' is neither a remote source specification, nor a local source definition"
-                       end
+        if plain.size > 1
+            raise ConfigError.new, "invalid syntax"
+        elsif plain.size == 1
+            short_url = plain.first
+            vcs, *url = short_url.split(':')
 
-                       Hash[:type => 'local', :url => source_dir]
-                   else
-                       Hash[:type => vcs.to_str, :url => url.join(":").to_str]
-                   end
+            # Check if VCS is a known version control system or source handler
+            # shortcut. If it is not, look for a local directory called
+            # short_url
+            if Autobuild.respond_to?(vcs)
+                spec.merge!(:type => vcs, :url => url.join(':'))
+            elsif has_source_handler?(vcs)
+                spec = call_source_handler(vcs, url.join(':'), spec)
+            else
+                source_dir = File.expand_path(File.join(Autoproj.config_dir, short_url))
+                if !File.directory?(source_dir)
+                    raise ConfigError.new, "'#{spec.inspect}' is neither a remote source specification, nor a local source definition"
+                end
+                spec.merge!(:type => 'local', :url => source_dir)
+            end
         end
 
         spec, vcs_options = Kernel.filter_options spec, :type => nil, :url => nil
+        spec.merge!(vcs_options)
+        if !spec[:url]
+            # Verify that none of the keys are source handlers. If it is the
+            # case, convert
+            filtered_spec = Hash.new
+            spec.dup.each do |key, value|
+                if has_source_handler?(key)
+                    spec.delete(key)
+                    spec = call_source_handler(key, value, spec)
+                    break
+                end
+            end
+        end
 
-        return spec.merge(vcs_options).merge(options)
+        spec
     end
 
     # Autoproj configuration files accept VCS definitions in three forms:
