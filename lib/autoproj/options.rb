@@ -177,6 +177,10 @@ module Autoproj
         config_file = File.join(Autoproj.config_dir, "config.yml")
         if File.exists?(config_file)
             config = YAML.load(File.read(config_file))
+            if !config
+                return
+            end
+
             config.each do |key, value|
                 @user_config[key] = [value, false]
             end
