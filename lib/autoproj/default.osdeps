@@ -89,5 +89,8 @@ archive:
     gentoo: [app-arch/tar, app-arch/unzip]
     arch: [tar, unzip]
 
+vcs:
+    debian,ubuntu: cvs
+
 # vim: expandtab
 
