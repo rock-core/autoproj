@@ -245,6 +245,12 @@ module Autoproj
         @file_stack.last
     end
 
+    # The PackageSet object representing the package set that is currently being
+    # loaded
+    def self.current_package_set
+        current_file.first
+    end
+
     def self.define(package_type, spec, &block)
         package = Autobuild.send(package_type, spec)
         Autoproj.manifest.register_package(package, block, *current_file)
@@ -658,3 +664,16 @@ end
 def move_package(name, new_dir)
     Autoproj.manifest.move_package(name, new_dir)
 end
+
+# This can be used only during the load of a package set
+#
+# It defines the set of packages that will be built if 'package_set_name' is
+# used. By default, all of the package set's packages are included. After a call
+# to default_packages, only the packages listed (and their dependencies) are.
+def default_packages(*names)
+    pkg_set = Autoproj.current_package_set
+    meta    = Autoproj.manifest.metapackage(pkg_set.name)
+    meta.packages.clear
+    Autoproj.manifest.metapackage(pkg_set.name, *names)
+end
+

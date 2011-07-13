@@ -1438,6 +1438,32 @@ module Autoproj
             end
         end
 
+        # call-seq:
+        #   metapackage 'meta_name' => Metapackage
+        #   metapackage 'meta_name', 'pkg1', 'pkg2' => Metapackage
+        #
+        # Metapackage definition
+        #
+        # In the first form, returns a Metapackage instance for the metapackage
+        # named 'meta_name'.
+        #
+        # In the second form, adds the listed packages to the metapackage and
+        # returns the Metapackage instance
+        def metapackage(name, *packages, &block)
+            meta = (@metapackages[name.to_s] ||= Metapackage.new(name))
+            packages.each do |pkg_name|
+                package_names = resolve_package_set(pkg_name)
+                package_names.each do |pkg_name|
+                    meta.add(Autobuild::Package[pkg_name])
+                end
+            end
+
+            if block
+                meta.instance_eval(&block)
+            end
+            meta
+        end
+
         # Lists all defined metapackages
         #
         # Autoproj defines one metapackage per package set, which by default
