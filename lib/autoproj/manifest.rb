@@ -1519,8 +1519,11 @@ module Autoproj
 
         # Returns all the packages that can be built in this installation
         def all_packages
-            packages.values.
-                map { |pkg| pkg.autobuild.name }.
+            result = Set.new
+            each_package_set do |pkg_set|
+                result |= metapackage(pkg_set.name).packages.map(&:name).to_set
+            end
+            result.to_a.
                 find_all { |pkg_name| !Autoproj.osdeps || !Autoproj.osdeps.has?(pkg_name) }
         end
 
