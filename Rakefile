@@ -26,8 +26,9 @@ begin
         end
     end
 
-rescue LoadError
+rescue LoadError => e
     STDERR.puts "cannot load the Hoe gem. Distribution is disabled"
+    STDERR.puts "error message is: #{e.message}"
 rescue Exception => e
     STDERR.puts "cannot load the Hoe gem, or Hoe fails. Distribution is disabled"
     STDERR.puts "error message is: #{e.message}"
