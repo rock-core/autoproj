@@ -238,8 +238,9 @@ module Autoproj
 
     # Returns the information about the file that is currently being loaded
     #
-    # The return value is [source, path], where +source+ is the Source instance
-    # and +path+ is the path of the file w.r.t. the autoproj root directory
+    # The return value is [package_set, path], where +package_set+ is the
+    # PackageSet instance and +path+ is the path of the file w.r.t. the autoproj
+    # root directory
     def self.current_file
         @file_stack.last
     end
@@ -251,7 +252,7 @@ module Autoproj
     end
 
     @loaded_autobuild_files = Set.new
-    def self.filter_load_exception(error, source, path)
+    def self.filter_load_exception(error, package_set, path)
         raise error if Autoproj.verbose
         rx_path = Regexp.quote(path)
         if error_line = error.backtrace.find { |l| l =~ /#{rx_path}/ }
@@ -259,18 +260,18 @@ module Autoproj
                 line_number = "#{line_number}:"
             end
 
-            if source.local?
+            if package_set.local?
                 raise ConfigError.new(path), "#{path}:#{line_number} #{error.message}", error.backtrace
             else
-                raise ConfigError.new(path), "#{File.basename(path)}(source=#{source.name}):#{line_number} #{error.message}", error.backtrace
+                raise ConfigError.new(path), "#{File.basename(path)}(package_set=#{package_set.name}):#{line_number} #{error.message}", error.backtrace
             end
         else
             raise error
         end
     end
 
-    def self.in_package_set(source, path)
-        @file_stack.push([source, File.expand_path(path).gsub(/^#{Regexp.quote(Autoproj.root_dir)}\//, '')])
+    def self.in_package_set(package_set, path)
+        @file_stack.push([package_set, File.expand_path(path).gsub(/^#{Regexp.quote(Autoproj.root_dir)}\//, '')])
         yield
     ensure
         @file_stack.pop
@@ -280,16 +281,16 @@ module Autoproj
         attr_reader :loaded_autobuild_files
     end
 
-    def self.import_autobuild_file(source, path)
+    def self.import_autobuild_file(package_set, path)
         return if @loaded_autobuild_files.include?(path)
 
-        in_package_set(source, File.expand_path(path).gsub(/^#{Regexp.quote(Autoproj.root_dir)}\//, '')) do
+        in_package_set(package_set, File.expand_path(path).gsub(/^#{Regexp.quote(Autoproj.root_dir)}\//, '')) do
             begin
                 Kernel.load path
             rescue ConfigError => e
                 raise
             rescue Exception => e
-                filter_load_exception(e, source, path)
+                filter_load_exception(e, package_set, path)
             end
             @loaded_autobuild_files << path
         end
