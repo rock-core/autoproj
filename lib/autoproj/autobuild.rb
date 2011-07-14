@@ -656,6 +656,19 @@ def move_package(name, new_dir)
     Autoproj.manifest.move_package(name, new_dir)
 end
 
+# Removes all the packages currently added from the given metapackage
+#
+# Calling this function will make sure that the given metapackage is now empty.
+def clear_metapackage(name)
+    meta = Autoproj.manifest.metapackage(name)
+    meta.packages.clear
+end
+
+# Declares a new metapackage, or adds packages to an existing one
+def metapackage(name, *packages)
+    Autoproj.manifest.metapackage(name, *packages)
+end
+
 # This can be used only during the load of a package set
 #
 # It defines the set of packages that will be built if 'package_set_name' is
@@ -663,8 +676,7 @@ end
 # to default_packages, only the packages listed (and their dependencies) are.
 def default_packages(*names)
     pkg_set = Autoproj.current_package_set
-    meta    = Autoproj.manifest.metapackage(pkg_set.name)
-    meta.packages.clear
-    Autoproj.manifest.metapackage(pkg_set.name, *names)
+    clear_metapackage(pkg_set.name)
+    metapackage(pkg_set.name, *names)
 end
 
