@@ -1,3 +1,65 @@
+= Version 1.7.12
+ * improved some error messages
+ * fixed error if config.yml is empty
+ * fixed issues with implicitly selecting ignored or excluded packages on the
+   command line
+ * added metapackage support. One can now "group" packages under a certain name,
+   said name being used in the manifest' layout, exclude_packgaes and/or
+   ignore_packages.
+
+   This is used in the autobuild files with
+
+      metapackage 'name', 'package1', 'package2', ...
+
+   The "default" metapackage, i.e. the list of packages that are selected when a
+   package set name is used in layout/exclude/ignore, can also be configured
+   with
+
+      default_packages 'package1', 'package2', ...
+
+   When a package set 'pkg_set' is created, two metapackages are created:
+
+     pkg_set
+     pkg_set.all
+
+   The first one is configurable with default_packages, while the second one
+   always lists all packages directly defined in pkg_set
+
+ * added support for custom source handlers. Custom source handlers are a way to
+   declare shortcuts for importers.
+
+   For instance,
+   
+     Autoproj.gitorious_server_configuration('SPACEGIT', 'spacegit.dfki.uni-bremen.de')
+
+   defines a special 'spacegit' handler, and one can now do, in its source.yml,
+
+     version_control:
+        - my/package:
+          spacegit: imoby/scripts
+
+   The version control is then transparently expanded by autoproj to
+
+        - my/package:
+          type: git
+          url: git://spacegit.dfki.uni-bremen.de/imoby/scripts.git
+          push_to: git@spacegit.dfki.uni-bremen.de:imoby/scripts.git
+
+   These custom handlers can be used everywhere a version control specification
+   is required. They can be defined with Autoproj.add_source_handler (see the
+   API documentation)
+
+ * fix CVS support. This requires autobuild >= 1.5.42. The syntax in source.yml
+   is
+
+      type: cvs
+      url: <URL of the CVSROOT>
+      module: module_name
+      cvsup: ['options', 'for', 'cvsup']
+      cvsco: ['options', 'for', 'cvsco']
+
+   The default options for cvs up and cvs co are resp. -dP and -d.
+
 = Version 1.7.11
  * loads of fixes related to ignore_packages
    - fix ignored packages being built if a package depends on them
