@@ -155,17 +155,21 @@ module Autoproj
         # one.
         #
         # Examples: ['debian', ['sid', 'unstable']] or ['ubuntu', ['lucid lynx', '10.04']]
-        def self.operating_system
-            if !@operating_system.nil?
-                return @operating_system
-            elsif Autoproj.has_config_key?('operating_system')
-                os = Autoproj.user_config('operating_system')
-		if os.respond_to?(:to_ary)
-		    if os[0].respond_to?(:to_ary) && os[0].all? { |s| s.respond_to?(:to_str) } &&
-		       os[1].respond_to?(:to_ary) && os[1].all? { |s| s.respond_to?(:to_str) }
-		       @operating_system = os
-                       return os
-		    end
+        def self.operating_system(options = Hash.new)
+            options = Kernel.validate_options options, :force => false
+
+            if !options[:force]
+                if !@operating_system.nil?
+                    return @operating_system
+                elsif Autoproj.has_config_key?('operating_system')
+                    os = Autoproj.user_config('operating_system')
+                    if os.respond_to?(:to_ary)
+                        if os[0].respond_to?(:to_ary) && os[0].all? { |s| s.respond_to?(:to_str) } &&
+                           os[1].respond_to?(:to_ary) && os[1].all? { |s| s.respond_to?(:to_str) }
+                           @operating_system = os
+                           return os
+                        end
+                    end
                 end
             end
 
