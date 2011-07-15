@@ -94,6 +94,100 @@ module Autoproj
             @type == 'local'
         end
 
+        # Updates the VCS specification +old+ by the information contained in
+        # +new+
+        #
+        # Both +old+ and +new+ are supposed to be in hash form. It is assumed
+        # that +old+ has already been normalized by a call to
+        # Autoproj.vcs_definition_to_hash. +new+ can be in "raw" form.
+        def self.update_raw_vcs_spec(old, new)
+            new = vcs_definition_to_hash(new)
+            if new.has_key?(:type) && (old[:type] != new[:type])
+                # The type changed. We replace the old definition by the new one
+                # completely, and we make sure that the new definition is valid
+                from_raw(new)
+                new
+            else
+                old.merge(new)
+            end
+        end
+
+        # Normalizes a VCS definition contained in a YAML file into a hash
+        #
+        # It handles custom source handler expansion, as well as the bad habit
+        # of forgetting a ':' at the end of a line:
+        #
+        #   - package_name
+        #     branch: value
+        def self.vcs_definition_to_hash(spec)
+            options = Hash.new
+
+            plain = Array.new
+            filtered_spec = Hash.new
+            spec.each do |key, value|
+                keys = key.to_s.split(/\s+/)
+                plain.concat(keys[0..-2])
+                filtered_spec[keys[-1].to_sym] = value
+            end
+            spec = filtered_spec
+
+            if plain.size > 1
+                raise ConfigError.new, "invalid syntax"
+            elsif plain.size == 1
+                short_url = plain.first
+                vcs, *url = short_url.split(':')
+
+                # Check if VCS is a known version control system or source handler
+                # shortcut. If it is not, look for a local directory called
+                # short_url
+                if Autobuild.respond_to?(vcs)
+                    spec.merge!(:type => vcs, :url => url.join(':'))
+                elsif Autoproj.has_source_handler?(vcs)
+                    spec = Autoproj.call_source_handler(vcs, url.join(':'), spec)
+                else
+                    source_dir = File.expand_path(File.join(Autoproj.config_dir, short_url))
+                    if !File.directory?(source_dir)
+                        raise ConfigError.new, "'#{spec.inspect}' is neither a remote source specification, nor a local source definition"
+                    end
+                    spec.merge!(:type => 'local', :url => source_dir)
+                end
+            end
+
+            spec, vcs_options = Kernel.filter_options spec, :type => nil, :url => nil
+            spec.merge!(vcs_options)
+            if !spec[:url]
+                # Verify that none of the keys are source handlers. If it is the
+                # case, convert
+                filtered_spec = Hash.new
+                spec.dup.each do |key, value|
+                    if Autoproj.has_source_handler?(key)
+                        spec.delete(key)
+                        spec = Autoproj.call_source_handler(key, value, spec)
+                        break
+                    end
+                end
+            end
+
+            spec
+        end
+
+        # Autoproj configuration files accept VCS definitions in three forms:
+        #  * as a plain string, which is a relative/absolute path
+        #  * as a plain string, which is a vcs_type:url string
+        #  * as a hash
+        #
+        # This method returns the VCSDefinition object matching one of these
+        # specs. It raises ConfigError if there is no type and/or url
+        def self.from_raw(spec)
+            spec = vcs_definition_to_hash(spec)
+            if !(spec[:type] && (spec[:type] == 'none' || spec[:url]))
+                raise ConfigError.new, "the source specification #{spec.inspect} misses either the VCS type or an URL"
+            end
+
+            spec, vcs_options = Kernel.filter_options spec, :type => nil, :url => nil
+            return VCSDefinition.new(spec[:type], spec[:url], vcs_options)
+        end
+
         def ==(other_vcs)
             return false if !other_vcs.kind_of?(VCSDefinition)
             if local?
@@ -184,74 +278,6 @@ module Autoproj
     # 
     def self.add_source_handler(name, &handler)
         @custom_source_handlers[name.to_s] = lambda(&handler)
-    end
-
-    def self.vcs_definition_to_hash(spec)
-        options = Hash.new
-
-        plain = Array.new
-        filtered_spec = Hash.new
-        spec.each do |key, value|
-            keys = key.to_s.split(/\s+/)
-            plain.concat(keys[0..-2])
-            filtered_spec[keys[-1].to_sym] = value
-        end
-        spec = filtered_spec
-
-        if plain.size > 1
-            raise ConfigError.new, "invalid syntax"
-        elsif plain.size == 1
-            short_url = plain.first
-            vcs, *url = short_url.split(':')
-
-            # Check if VCS is a known version control system or source handler
-            # shortcut. If it is not, look for a local directory called
-            # short_url
-            if Autobuild.respond_to?(vcs)
-                spec.merge!(:type => vcs, :url => url.join(':'))
-            elsif has_source_handler?(vcs)
-                spec = call_source_handler(vcs, url.join(':'), spec)
-            else
-                source_dir = File.expand_path(File.join(Autoproj.config_dir, short_url))
-                if !File.directory?(source_dir)
-                    raise ConfigError.new, "'#{spec.inspect}' is neither a remote source specification, nor a local source definition"
-                end
-                spec.merge!(:type => 'local', :url => source_dir)
-            end
-        end
-
-        spec, vcs_options = Kernel.filter_options spec, :type => nil, :url => nil
-        spec.merge!(vcs_options)
-        if !spec[:url]
-            # Verify that none of the keys are source handlers. If it is the
-            # case, convert
-            filtered_spec = Hash.new
-            spec.dup.each do |key, value|
-                if has_source_handler?(key)
-                    spec.delete(key)
-                    spec = call_source_handler(key, value, spec)
-                    break
-                end
-            end
-        end
-
-        spec
-    end
-
-    # Autoproj configuration files accept VCS definitions in three forms:
-    #  * as a plain string, which is a relative/absolute path
-    #  * as a plain string, which is a vcs_type:url string
-    #  * as a hash
-    #
-    # This method normalizes the three forms into a VCSDefinition object
-    def self.normalize_vcs_definition(spec)
-        spec = vcs_definition_to_hash(spec)
-        if !(spec[:type] && (spec[:type] == 'none' || spec[:url]))
-            raise ConfigError.new, "the source specification #{spec.inspect} misses either the VCS type or an URL"
-        end
-
-        spec, vcs_options = Kernel.filter_options spec, :type => nil, :url => nil
-        return VCSDefinition.new(spec[:type], spec[:url], vcs_options)
     end
 
     def self.single_expansion(data, definitions)
@@ -403,14 +429,14 @@ module Autoproj
         # Create a PackageSet instance from its description as found in YAML
         # configuration files
         def self.from_spec(manifest, spec, load_description)
-            spec = Autoproj.vcs_definition_to_hash(spec)
+            spec = VCSDefinition.vcs_definition_to_hash(spec)
             options, vcs_spec = Kernel.filter_options spec, :auto_imports => true
 
             # Look up for short notation (i.e. not an explicit hash). It is
             # either vcs_type:url or just url. In the latter case, we expect
             # 'url' to be a path to a local directory
             vcs_spec = Autoproj.expand(vcs_spec, manifest.constant_definitions)
-            vcs_def  = Autoproj.normalize_vcs_definition(vcs_spec)
+            vcs_def  = VCSDefinition.from_raw(vcs_spec)
 
             source = PackageSet.new(manifest, vcs_def)
             source.auto_imports = options[:auto_imports]
@@ -669,7 +695,7 @@ module Autoproj
                         name_match = Regexp.new("^" + name_match)
                     end
                     if name_match === package_name
-                        vcs_spec = vcs_spec.merge(spec)
+                        vcs_spec = VCSDefinition.update_raw_vcs_spec(vcs_spec, spec)
                     end
                 end
             end
@@ -682,7 +708,6 @@ module Autoproj
                     "AUTOPROJ_SOURCE_DIR" => local_dir]
 
                 vcs_spec = expand(vcs_spec, expansions)
-                vcs_spec = Autoproj.vcs_definition_to_hash(vcs_spec)
                 vcs_spec.dup.each do |name, value|
                     vcs_spec[name] = expand(value, expansions)
                 end
@@ -690,7 +715,7 @@ module Autoproj
                 # If required, verify that the configuration is a valid VCS
                 # configuration
                 if validate
-                    Autoproj.normalize_vcs_definition(vcs_spec)
+                    VCSDefinition.from_raw(vcs_spec)
                 end
                 vcs_spec
             end
@@ -703,7 +728,7 @@ module Autoproj
         def importer_definition_for(package_name)
             vcs_spec = version_control_field(package_name, 'version_control')
             if vcs_spec
-                Autoproj.normalize_vcs_definition(vcs_spec)
+                VCSDefinition.from_raw(vcs_spec)
             end
         end
 
@@ -733,7 +758,7 @@ module Autoproj
     # Specialization of the PackageSet class for the overrides listed in autoproj/
     class LocalPackageSet < PackageSet
         def initialize(manifest)
-            super(manifest, Autoproj.normalize_vcs_definition(:type => 'local', :url => Autoproj.config_dir))
+            super(manifest, VCSDefinition.from_raw(:type => 'local', :url => Autoproj.config_dir))
         end
 
         def name
@@ -752,7 +777,7 @@ module Autoproj
         # Returns the default importer for this package set
         def default_importer
             importer_definition_for('default') ||
-                Autoproj.normalize_vcs_definition(:type => 'none')
+                VCSDefinition.from_raw(:type => 'none')
         end
 
         def raw_description_file
@@ -935,7 +960,7 @@ module Autoproj
 
             @constant_definitions = Hash.new
             if Autoproj.has_config_key?('manifest_source')
-                @vcs = Autoproj.normalize_vcs_definition(Autoproj.user_config('manifest_source'))
+                @vcs = VCSDefinition.from_raw(Autoproj.user_config('manifest_source'))
             end
 	end
 
@@ -1408,10 +1433,10 @@ module Autoproj
             sources.each do |src|
                 overrides_spec = src.version_control_field(package_name, 'overrides', false)
                 if overrides_spec
-                    vcs_spec.merge!(overrides_spec)
+                    vcs_spec = VCSDefinition.update_raw_vcs_spec(vcs_spec, overrides_spec)
                 end
             end
-            Autoproj.normalize_vcs_definition(vcs_spec)
+            VCSDefinition.from_raw(vcs_spec)
         end
 
         # Sets up the package importers based on the information listed in

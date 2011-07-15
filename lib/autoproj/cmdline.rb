@@ -1187,7 +1187,7 @@ where 'mode' is one of:
         def self.switch_config(*args)
             Autoproj.load_config
             if Autoproj.has_config_key?('manifest_source')
-                vcs = Autoproj.normalize_vcs_definition(Autoproj.user_config('manifest_source'))
+                vcs = VCSDefinition.from_raw(Autoproj.user_config('manifest_source'))
             end
 
             if args.first =~ /^(\w+)=/
@@ -1209,7 +1209,8 @@ where 'mode' is one of:
                     opt_name, opt_value = opt.split('=')
                     vcs_def[opt_name] = opt_value
                 end
-                Autoproj.normalize_vcs_definition(vcs_def)
+                # Validate the VCS definition, but save the hash as-is
+                VCSDefinition.from_raw(vcs_def)
                 Autoproj.change_option "manifest_source", vcs_def.dup, true
                 Autoproj.save_config
                 true
@@ -1238,7 +1239,7 @@ where 'mode' is one of:
                 vcs_def[name] = value
             end
 
-            vcs = Autoproj.normalize_vcs_definition(vcs_def)
+            vcs = VCSDefinition.from_raw(vcs_def)
 
             # Install the OS dependencies required for this VCS
 	    Autoproj::OSDependencies.define_osdeps_mode_option
@@ -1276,7 +1277,7 @@ where 'mode' is one of:
                 vcs_def[opt_name] = opt_val
             end
             # Validate the option hash, just in case
-            Autoproj.normalize_vcs_definition(vcs_def)
+            VCSDefinition.from_raw(vcs_def)
             # Save the new options
             Autoproj.change_option "manifest_source", vcs_def.dup, true
             Autoproj.save_config
