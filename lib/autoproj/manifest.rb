@@ -685,7 +685,7 @@ module Autoproj
                             if spec == "none"
                                 spec = { :type => "none" }
                             else
-                                raise ConfigError.new, "invalid VCS specification '#{name}: #{spec}'"
+                                raise ConfigError.new, "invalid VCS specification in the #{section_name} section '#{name}: #{spec}'"
                             end
                         end
                     end
@@ -695,7 +695,12 @@ module Autoproj
                         name_match = Regexp.new("^" + name_match)
                     end
                     if name_match === package_name
-                        vcs_spec = VCSDefinition.update_raw_vcs_spec(vcs_spec, spec)
+                        vcs_spec =
+                            begin
+                                VCSDefinition.update_raw_vcs_spec(vcs_spec, spec)
+                            rescue ConfigError => e
+                                raise ConfigError.new, "invalid VCS definition in the #{section_name} section for '#{name}': #{e.message}", e.backtrace
+                            end
                     end
                 end
             end
@@ -715,7 +720,11 @@ module Autoproj
                 # If required, verify that the configuration is a valid VCS
                 # configuration
                 if validate
-                    VCSDefinition.from_raw(vcs_spec)
+                    begin
+                        VCSDefinition.from_raw(vcs_spec)
+                    rescue ConfigError => e
+                        raise ConfigError.new, "invalid resulting VCS definition for package #{package_name}: #{e.message}", e.backtrace
+                    end
                 end
                 vcs_spec
             end
@@ -726,9 +735,11 @@ module Autoproj
         #
         # The definition is an instance of VCSDefinition
         def importer_definition_for(package_name)
-            vcs_spec = version_control_field(package_name, 'version_control')
-            if vcs_spec
-                VCSDefinition.from_raw(vcs_spec)
+            Autoproj.in_file source_file do
+                vcs_spec = version_control_field(package_name, 'version_control')
+                if vcs_spec
+                    VCSDefinition.from_raw(vcs_spec)
+                end
             end
         end
 
@@ -1427,13 +1438,21 @@ module Autoproj
 
             # Get the version control information from the package source. There
             # must be one
-            vcs_spec = package_source.version_control_field(package_name, 'version_control')
+            vcs_spec = Autoproj.in_file package_source.source_file do
+                package_source.version_control_field(package_name, 'version_control')
+            end
             return if !vcs_spec
 
             sources.each do |src|
                 overrides_spec = src.version_control_field(package_name, 'overrides', false)
                 if overrides_spec
-                    vcs_spec = VCSDefinition.update_raw_vcs_spec(vcs_spec, overrides_spec)
+                    vcs_spec = Autoproj.in_file src.source_file do
+                        begin
+                            VCSDefinition.update_raw_vcs_spec(vcs_spec, overrides_spec)
+                        rescue ConfigError => e
+                            raise ConfigError.new, "invalid resulting VCS specification in the overrides section for package #{package_name}: #{e.message}"
+                        end
+                    end
                 end
             end
             VCSDefinition.from_raw(vcs_spec)
