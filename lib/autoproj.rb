@@ -7,6 +7,7 @@ require 'autoproj/osdeps'
 require 'autoproj/system'
 require 'autoproj/options'
 require 'autoproj/cmdline'
+require 'autoproj/query'
 require 'logger'
 require 'utilrb/logger'
 

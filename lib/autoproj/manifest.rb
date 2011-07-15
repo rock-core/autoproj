@@ -818,6 +818,7 @@ module Autoproj
         attr_reader :file
         def setup?; !!@setup end
         attr_writer :setup
+        attr_accessor :vcs
 
         def initialize(autobuild, package_set, file)
             @autobuild, @package_set, @file =
@@ -1481,6 +1482,7 @@ module Autoproj
 
                 if vcs
                     Autoproj.add_build_system_dependency vcs.type
+                    pkg.vcs = vcs
                     pkg.autobuild.importer = vcs.create_autobuild_importer
                 else
                     raise ConfigError.new, "source #{pkg.package_set.name} defines #{pkg.autobuild.name}, but does not provide a version control definition for it"
