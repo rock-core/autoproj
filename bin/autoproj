@@ -217,20 +217,6 @@ EOTEXT
         Autoproj::CmdLine.build_packages(command_line_selection, all_enabled_packages)
     elsif Autoproj::CmdLine.build? 
         Autoproj::CmdLine.build_packages(command_line_selection, all_enabled_packages)
-
-        # Now, do some sanity checks on the result
-        prefixes = all_enabled_packages.inject(Set.new) do |set, pkg_name|
-            set << Autobuild::Package[pkg_name].prefix
-        end
-
-        Autoproj.progress
-        Autoproj.progress "checking for undefined symbols in installed libraries", :bold
-        prefixes.each do |prefix|
-            libdir = File.join(prefix, "lib")
-            if File.directory?(libdir)
-                Autoproj.validate_solib_dependencies(libdir)
-            end
-        end
     end
 
     if Autoproj::CmdLine.update_envsh?
