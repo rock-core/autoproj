@@ -1,0 +1,29 @@
+#! /usr/bin/env ruby
+
+require 'autoproj'
+require 'autoproj/cmdline'
+
+Autoproj.silent = true
+root_dir  = Autoproj::CmdLine.initialize_root_directory
+selection = Autoproj::CmdLine.initialize_and_load(ARGV)
+if selection.empty?
+    STDERR.puts Autoproj.console.color("no query given on the command line", :red)
+    exit 1
+elsif selection.size > 1
+    STDERR.puts Autoproj.console.color("more than one query given on the command line", :red)
+    exit 1
+end
+selection = selection.first
+query = Autoproj::Query.parse_query(selection)
+
+matches = Autoproj.manifest.packages.map do |name, pkg_def|
+    next if !Autoproj.manifest.package_enabled?(name)
+    if priority = query.match(pkg_def)
+        [priority, name]
+    end
+end.compact
+
+matches.sort.each do |priority, name|
+    puts "#{priority} #{name}"
+end
+
