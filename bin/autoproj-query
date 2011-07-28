@@ -4,8 +4,33 @@ require 'autoproj'
 require 'autoproj/cmdline'
 
 Autoproj.silent = true
+display_all = false
+display_format = "$NAME"
+search_all = false
+
+parser = OptionParser.new do |opt|
+    opt.banner = "autoproj query <query_string>
+  Finds packages that match query_string and displays information about them (one per line)
+  By default, only the package name is displayed. It can be customized with the --format option
+
+  FORMAT SPECIFICATION
+
+  The format is a string in which special values can be expanded using a $VARNAME format. The following variables are accepted:
+    NAME: the package name
+    SRCDIR: the full path to the package source directory
+    PREFIX: the full path to the package installation directory"
+
+    opt.on('--search-all', "search in all defined packages instead of only in those selected selected in the layout") do
+        search_all = true
+    end
+    opt.on('--format FORMAT', String, "customize what should be displayed. See FORMAT SPECIFICATION above") do |format|
+        display_format = format
+    end
+end
+remaining = parser.parse(ARGV)
+
 root_dir  = Autoproj::CmdLine.initialize_root_directory
-selection = Autoproj::CmdLine.initialize_and_load(ARGV)
+selection = Autoproj::CmdLine.initialize_and_load(remaining)
 if selection.empty?
     STDERR.puts Autoproj.console.color("no query given on the command line", :red)
     exit 1
@@ -16,14 +41,33 @@ end
 selection = selection.first
 query = Autoproj::Query.parse_query(selection)
 
-matches = Autoproj.manifest.packages.map do |name, pkg_def|
-    next if !Autoproj.manifest.package_enabled?(name)
+packages =
+    if search_all
+        Autoproj.manifest.packages.find_all do |name, pkg_def|
+            !Autoproj.manifest.package_selected?(name)
+        end
+    else
+        Autoproj.manifest.all_selected_packages.map do |pkg_name|
+            [pkg_name, Autoproj.manifest.packages[pkg_name]]
+        end
+    end
+
+matches = packages.map do |name, pkg_def|
     if priority = query.match(pkg_def)
         [priority, name]
     end
 end.compact
 
-matches.sort.each do |priority, name|
-    puts "#{priority} #{name}"
+fields = Hash.new
+matches = matches.sort
+matches.each do |priority, name|
+    pkg = Autobuild::Package[name]
+    fields['SRCDIR'] = pkg.srcdir
+    fields['PREFIX'] = pkg.prefix
+    fields['NAME'] = name
+    fields['PRIORITY'] = priority
+
+    value = Autoproj.expand(display_format, fields)
+    puts value
 end
 
