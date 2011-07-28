@@ -1,6 +1,6 @@
 function acd {
     local pkg_path
-    pkg_path=$(autolocate $1)
+    pkg_path=$(autoproj locate $1)
 
     if [ $? != 0 ]; then
       return 1

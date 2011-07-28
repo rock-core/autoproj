@@ -47,6 +47,14 @@ end
 
 Autoproj::OSDependencies.autodetect_ruby
 
+# Check the first element of ARGV. If a tool called autoproj-VALUE exists, just
+# pass the hand to it
+prefix = File.expand_path(__FILE__)
+if File.file?("#{prefix}-#{ARGV.first}")
+    binary = "#{prefix}-#{ARGV.shift}"
+    exec(binary, *ARGV)
+end
+
 # Find the autoproj root dir
 report do
     selected_packages =

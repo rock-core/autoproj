@@ -1,0 +1,84 @@
+#! /usr/bin/env ruby
+
+require 'autoproj'
+require 'autoproj/cmdline'
+
+Autoproj.silent = true
+root_dir  = Autoproj::CmdLine.initialize_root_directory
+selection = Autoproj::CmdLine.initialize_and_load(ARGV)
+if selection.empty?
+    puts root_dir
+    exit 0
+elsif selection.size > 1
+    STDERR.puts Autoproj.console.color("more than one name given on the command line", :red)
+    exit 1
+end
+selection = selection.first
+
+selection_rx = Regexp.new(Regexp.quote(selection))
+candidates = []
+Autoproj.manifest.each_package do |pkg|
+    name = pkg.name
+    next if !Autoproj.manifest.package_enabled?(name)
+
+    srcdir = Autobuild::Package[name].srcdir
+    if name == selection
+        puts srcdir
+        exit(0)
+    elsif name =~ selection_rx
+        candidates << srcdir
+    end
+end
+
+if candidates.empty?
+    # Try harder. Match directory prefixes
+    directories = selection.split('/')
+    rx = directories.
+        map { |d| "#{Regexp.quote(d)}\\w*" }.
+        join("/")
+    rx = Regexp.new(rx)
+
+    rx_strict = directories[0..-2].
+        map { |d| "#{Regexp.quote(d)}\\w*" }.
+        join("/")
+    rx_strict = Regexp.new("#{rx_strict}/#{Regexp.quote(directories.last)}$")
+
+    candidates_strict = []
+    Autoproj.manifest.each_package do |pkg|
+        name = pkg.name
+        next if !Autoproj.manifest.package_enabled?(name)
+
+        srcdir = Autobuild::Package[name].srcdir
+        if name =~ rx
+            candidates << srcdir
+        end
+        if name =~ rx_strict
+            candidates_strict << srcdir
+        end
+    end
+
+    if candidates.size > 1 && candidates_strict.size == 1
+        candidates = candidates_strict
+    end
+end
+
+if candidates.size > 1
+    # If there is more than one candidate, check if there are some that are not
+    # present on disk
+    present = candidates.find_all { |dir| File.directory?(dir) }
+    if present.size == 1
+        candidates = present
+    end
+end
+
+if candidates.empty?
+    STDERR.puts Autoproj.console.color("cannot find #{selection} in the current autoproj installation", :bold, :red)
+    exit 1
+elsif candidates.size > 1
+    STDERR.puts Autoproj.console.color("multiple packages match #{selection} in the current autoproj installation: #{candidates.join(", ")}", :bold, :red)
+    exit 1
+else
+    puts candidates.first
+    exit(0)
+end
+
