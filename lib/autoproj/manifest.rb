@@ -60,24 +60,67 @@ module Autoproj
         @env_inherit |= names
     end
 
-    # Resets the value of the given environment variable to the given
+    # Sets an environment variable
+    #
+    # This sets (or resets) the environment variable +name+ to the given value.
+    # If multiple values are given, they are joined with ':'
+    #
+    # The values can contain configuration parameters using the
+    # $CONF_VARIABLE_NAME syntax.
     def self.env_set(name, *value)
         Autobuild.env_clear(name)
         env_add(name, *value)
     end
+
+    # Adds new values to a given environment variable
+    #
+    # Adds the given value(s) to the environment variable named +name+. The
+    # values are added using the ':' marker.
+    #
+    # The values can contain configuration parameters using the
+    # $CONF_VARIABLE_NAME syntax.
     def self.env_add(name, *value)
         value = value.map { |v| expand_environment(v) }
         Autobuild.env_add(name, *value)
     end
+
+    # Sets an environment variable which is a path search variable (such as
+    # PATH, RUBYLIB, PYTHONPATH)
+    #
+    # This sets (or resets) the environment variable +name+ to the given value.
+    # If multiple values are given, they are joined with ':'. Unlike env_set,
+    # duplicate values will be removed.
+    #
+    # The values can contain configuration parameters using the
+    # $CONF_VARIABLE_NAME syntax.
     def self.env_set_path(name, *value)
         Autobuild.env_clear(name)
         env_add_path(name, *value)
     end
+
+    # Adds new values to a given environment variable, which is a path search
+    # variable (such as PATH, RUBYLIB, PYTHONPATH)
+    #
+    # Adds the given value(s) to the environment variable named +name+. The
+    # values are added using the ':' marker. Unlike env_set, duplicate values
+    # will be removed.
+    #
+    # The values can contain configuration parameters using the
+    # $CONF_VARIABLE_NAME syntax.
+    #
+    # This is usually used in package configuration blocks to add paths
+    # dependent on the place of install, such as
+    #
+    #   cmake_package 'test' do |pkg|
+    #     Autoproj.env_add_path 'RUBYLIB', File.join(pkg.srcdir, 'bindings', 'ruby')
+    #   end
     def self.env_add_path(name, *value)
         value = value.map { |v| expand_environment(v) }
         Autobuild.env_add_path(name, *value)
     end
 
+    # Representation of a VCS definition contained in a source.yml file or in
+    # autoproj/manifest
     class VCSDefinition
         attr_reader :type
         attr_reader :url
@@ -211,6 +254,10 @@ module Autoproj
             url
         end
 
+        # Returns a properly configured instance of a subclass of
+        # Autobuild::Importer that match this VCS definition
+        #
+        # Returns nil if the VCS type is 'none'
         def create_autobuild_importer
             return if type == "none"
 
@@ -218,6 +265,7 @@ module Autoproj
             Autobuild.send(type, url, options)
         end
 
+        # Returns a pretty representation of this VCS definition
         def to_s 
             if type == "none"
                 "none"
@@ -280,6 +328,11 @@ module Autoproj
         @custom_source_handlers[name.to_s] = lambda(&handler)
     end
 
+    # Does a non-recursive expansion in +data+ of configuration variables
+    # ($VAR_NAME) listed in +definitions+
+    #
+    # If the values listed in +definitions+ also contain configuration
+    # variables, they do not get expanded
     def self.single_expansion(data, definitions)
         if !data.respond_to?(:to_str)
             return data
@@ -326,6 +379,10 @@ module Autoproj
         end
     end
 
+    # Resolves all possible variable references from +constants+
+    #
+    # I.e. replaces variables by their values, so that no value in +constants+
+    # refers to variables defined in +constants+
     def self.resolve_constant_definitions(constants)
         constants = constants.dup
         constants['HOME'] = ENV['HOME']
@@ -454,6 +511,12 @@ module Autoproj
             source
         end
 
+        # Returns a string that uniquely represents the version control
+        # information for this package set.
+        #
+        # I.e. for two package sets set1 and set2, if set1.repository_id ==
+        # set2.repository_id, it means that both package sets are checked out
+        # from exactly the same source.
         def repository_id
             if local?
                 local_dir
