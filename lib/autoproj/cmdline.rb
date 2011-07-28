@@ -982,6 +982,10 @@ where 'mode' is one of:
                 @only_config = true
 
             when "switch-config"
+                if Dir.pwd.start_with?(Autoproj.remotes_dir) || Dir.pwd.start_with?(Autoproj.config_dir)
+                    raise ConfigError, "you cannot run autoproj switch-config from autoproj's configuration directory or one of its subdirectories"
+                end
+
                 # We must switch to the root dir first, as it is required by the
                 # configuration switch code. This is acceptable as long as we
                 # quit just after the switch
