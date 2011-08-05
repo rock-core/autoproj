@@ -428,7 +428,7 @@ module Autoproj
                 else
                     Autoproj.progress "   tags: #{pkg.tags.to_a.sort.join(", ")}"
                 end
-                Autoproj.progress "   defined in #{pkg_set}"
+                Autoproj.progress "   defined in package set #{pkg_set}"
                 if File.directory?(pkg.srcdir)
                     Autoproj.progress "   checked out in #{pkg.srcdir}"
                 else
