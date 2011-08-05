@@ -348,6 +348,13 @@ module Autoproj
                     package_sets << pkg_set
                     all_packages[name] = [manifest.package(name).autobuild, pkg_set.name]
                 end
+
+                metapackages = Set.new
+                manifest.metapackages.each_value do |metap|
+                    if package_list.any? { |pkg_name| metap.include?(pkg_name) }
+                        metapackages << metap
+                    end
+                end
             else
                 package_sets = manifest.each_package_set
                 package_sets.each do |pkg_set|
@@ -355,6 +362,8 @@ module Autoproj
                         all_packages[pkg.name] = [pkg, pkg_set.name]
                     end
                 end
+
+                metapackages = manifest.metapackages.values
             end
 
             if package_sets.empty?
@@ -364,7 +373,7 @@ module Autoproj
 
             Autoproj.progress
             Autoproj.progress("autoproj: package sets", :bold)
-            package_sets.each do |pkg_set|
+            package_sets.sort_by(&:name).each do |pkg_set|
                 next if pkg_set.empty?
                 if pkg_set.imported_from
                     Autoproj.progress "#{pkg_set.name} (imported by #{pkg_set.imported_from.name})"
@@ -391,6 +400,13 @@ module Autoproj
 
                 set_packages = pkg_set.each_package.sort_by(&:name)
                 Autoproj.progress "  defines: #{set_packages.map(&:name).join(", ")}"
+            end
+
+            Autoproj.progress
+            Autoproj.progress("autoproj: metapackages", :bold)
+            metapackages.sort_by(&:name).each do |metap|
+                Autoproj.progress "#{metap.name}"
+                Autoproj.progress "  includes: #{metap.packages.map(&:name).sort.join(", ")}"
             end
 
             packages_not_present = []

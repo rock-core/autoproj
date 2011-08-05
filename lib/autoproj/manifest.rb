@@ -1293,7 +1293,7 @@ module Autoproj
             @package_sets = each_package_set(false).to_a
             @package_sets.each do |pkg_set|
                 @metapackages[pkg_set.name] ||= Metapackage.new(pkg_set.name)
-                @metapackages["#{pkg_set.name}.all"] ||= Metapackage.new(pkg_set.name)
+                @metapackages["#{pkg_set.name}.all"] ||= Metapackage.new("#{pkg_set.name}.all")
             end
         end
 
