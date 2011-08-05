@@ -126,11 +126,20 @@ module Autoproj
         attr_reader :url
         attr_reader :options
 
-        def initialize(type, url, options)
+        # The original spec in hash form. Set if this VCSDefinition object has
+        # been created using VCSDefinition.from_raw
+        attr_reader :raw
+
+        def initialize(type, url, options, raw = nil)
+            if raw && !raw.respond_to?(:to_ary)
+                raise ArgumentError, "wrong format for the raw field (#{raw.inspect})"
+            end
+
             @type, @url, @options = type, url, options
             if type != "none" && type != "local" && !Autobuild.respond_to?(type)
                 raise ConfigError.new, "version control #{type} is unknown to autoproj"
             end
+            @raw = raw
         end
 
         def local?
@@ -221,14 +230,14 @@ module Autoproj
         #
         # This method returns the VCSDefinition object matching one of these
         # specs. It raises ConfigError if there is no type and/or url
-        def self.from_raw(spec)
+        def self.from_raw(spec, raw_spec = [[nil, spec]])
             spec = vcs_definition_to_hash(spec)
             if !(spec[:type] && (spec[:type] == 'none' || spec[:url]))
                 raise ConfigError.new, "the source specification #{spec.inspect} misses either the VCS type or an URL"
             end
 
             spec, vcs_options = Kernel.filter_options spec, :type => nil, :url => nil
-            return VCSDefinition.new(spec[:type], spec[:url], vcs_options)
+            return VCSDefinition.new(spec[:type], spec[:url], vcs_options, raw_spec)
         end
 
         def ==(other_vcs)
@@ -485,15 +494,15 @@ module Autoproj
 
         # Create a PackageSet instance from its description as found in YAML
         # configuration files
-        def self.from_spec(manifest, spec, load_description)
-            spec = VCSDefinition.vcs_definition_to_hash(spec)
+        def self.from_spec(manifest, raw_spec, load_description)
+            spec = VCSDefinition.vcs_definition_to_hash(raw_spec)
             options, vcs_spec = Kernel.filter_options spec, :auto_imports => true
 
             # Look up for short notation (i.e. not an explicit hash). It is
             # either vcs_type:url or just url. In the latter case, we expect
             # 'url' to be a path to a local directory
             vcs_spec = Autoproj.expand(vcs_spec, manifest.constant_definitions)
-            vcs_def  = VCSDefinition.from_raw(vcs_spec)
+            vcs_def  = VCSDefinition.from_raw(vcs_spec, [[nil, raw_spec]])
 
             source = PackageSet.new(manifest, vcs_def)
             source.auto_imports = options[:auto_imports]
@@ -710,6 +719,7 @@ module Autoproj
                 end
             end
 
+            raw = []
             vcs_spec = Hash.new
 
             if all_vcs
@@ -758,6 +768,7 @@ module Autoproj
                         name_match = Regexp.new("^" + name_match)
                     end
                     if name_match === package_name
+                        raw << [self.name, spec]
                         vcs_spec =
                             begin
                                 VCSDefinition.update_raw_vcs_spec(vcs_spec, spec)
@@ -789,7 +800,9 @@ module Autoproj
                         raise ConfigError.new, "invalid resulting VCS definition for package #{package_name}: #{e.message}", e.backtrace
                     end
                 end
-                vcs_spec
+                return vcs_spec, raw
+            else
+                return nil, []
             end
         end
 
@@ -799,9 +812,9 @@ module Autoproj
         # The definition is an instance of VCSDefinition
         def importer_definition_for(package_name)
             Autoproj.in_file source_file do
-                vcs_spec = version_control_field(package_name, 'version_control')
+                vcs_spec, raw = version_control_field(package_name, 'version_control')
                 if vcs_spec
-                    VCSDefinition.from_raw(vcs_spec)
+                    VCSDefinition.from_raw(vcs_spec, raw)
                 end
             end
         end
@@ -1502,13 +1515,14 @@ module Autoproj
 
             # Get the version control information from the package source. There
             # must be one
-            vcs_spec = Autoproj.in_file package_source.source_file do
+            vcs_spec, raw = Autoproj.in_file package_source.source_file do
                 package_source.version_control_field(package_name, 'version_control')
             end
             return if !vcs_spec
 
             sources.each do |src|
-                overrides_spec = src.version_control_field(package_name, 'overrides', false)
+                overrides_spec, raw_additional = src.version_control_field(package_name, 'overrides', false)
+                raw = raw.concat(raw_additional)
                 if overrides_spec
                     vcs_spec = Autoproj.in_file src.source_file do
                         begin
@@ -1519,7 +1533,7 @@ module Autoproj
                     end
                 end
             end
-            VCSDefinition.from_raw(vcs_spec)
+            VCSDefinition.from_raw(vcs_spec, raw)
         end
 
         # Sets up the package importers based on the information listed in
