@@ -1559,6 +1559,16 @@ module Autoproj
             each_package_set(false).find { |set| set.name == name }
         end
 
+        # Returns the PackageSet object for the given package set, or raises
+        # ArgumentError if none exists with that name
+        def package_set(name)
+            set = each_package_set(false).find { |set| set.name == name }
+            if !set
+                raise ArgumentError, "no package set called #{name} exists"
+            end
+            set
+        end
+
         # +name+ can either be the name of a source or the name of a package. In
         # the first case, we return all packages defined by that source. In the
         # latter case, we return the singleton array [name]
