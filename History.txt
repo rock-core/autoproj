@@ -3,6 +3,22 @@
  * fixed error if config.yml is empty
  * fixed issues with implicitly selecting ignored or excluded packages on the
    command line
+ * fixed handling of overrides that change the VCS type
+   If a package 'A' is normally under git and has an explicit branch, as e.g.
+     
+     - test:
+        type: git
+        url: my/url.git
+        branch: master
+
+   Then an override of
+
+     - test:
+        type: archive
+        url: http://other/url.tar.bz2
+
+   would fail as the 'branch' git option was passed to the archive importer.
+   This is handled well now.
  * added metapackage support. One can now "group" packages under a certain name,
    said name being used in the manifest' layout, exclude_packgaes and/or
    ignore_packages.

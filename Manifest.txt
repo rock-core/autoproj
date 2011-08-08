@@ -6,6 +6,8 @@ bin/amake
 bin/aup
 bin/autolocate
 bin/autoproj
+bin/autoproj-locate
+bin/autoproj-query
 bin/autoproj_bootstrap
 bin/autoproj_stress_test
 lib/autoproj.rb
@@ -17,6 +19,7 @@ lib/autoproj/gitorious.rb
 lib/autoproj/manifest.rb
 lib/autoproj/options.rb
 lib/autoproj/osdeps.rb
+lib/autoproj/query.rb
 lib/autoproj/system.rb
 lib/autoproj/version.rb
 samples/autoproj/README.txt
