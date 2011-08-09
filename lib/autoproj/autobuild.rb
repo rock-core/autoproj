@@ -300,7 +300,7 @@ module Autoproj
         elsif File.file?(File.join(full_path, "CMakeLists.txt"))
             "cmake_package"
         elsif File.directory?(File.join(full_path, "lib")) &&
-            !Dir.enum_for(:glob, File.join(full_path, "*.rb")).to_a.empty?
+            Find.enum_for(:find, File.join(full_path, "lib")).any? { |path| path =~ /\.rb$/ }
             "ruby_package"
         end
     end
