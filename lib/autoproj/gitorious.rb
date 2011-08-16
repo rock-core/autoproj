@@ -89,7 +89,7 @@ module Autoproj
             end
             base_url = Autoproj.user_config("#{name}_ROOT")
             base_push_url = Autoproj.user_config("#{name}_PUSH_ROOT")
-            return Hash[:type => 'git', :url => "#{base_url}#{url}", :push_to => "#{base_push_url}#{url}"].merge(options)
+            Hash[:type => 'git', :url => "#{base_url}#{url}", :push_to => "#{base_push_url}#{url}"].merge(options)
         end
     end
 end
