@@ -156,7 +156,15 @@ module Autoproj
         #
         # Examples: ['debian', ['sid', 'unstable']] or ['ubuntu', ['lucid lynx', '10.04']]
         def self.operating_system(options = Hash.new)
-            options = Kernel.validate_options options, :force => false
+            # Validate the options. We check on the availability of
+            # validate_options as to not break autoproj_bootstrap (in which
+            # validate_options is not available)
+            options =
+                if Kernel.respond_to?(:validate_options)
+                    Kernel.validate_options options, :force => false
+                else
+                    options.dup
+                end
 
             if !options[:force]
                 if !@operating_system.nil?
