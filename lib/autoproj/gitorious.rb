@@ -87,9 +87,9 @@ module Autoproj
             if url !~ /^\//
                 url = "/#{url}"
             end
-            base_url = Autoproj.user_config("#{name}_ROOT")
-            base_push_url = Autoproj.user_config("#{name}_PUSH_ROOT")
-            Hash[:type => 'git', :url => "#{base_url}#{url}", :push_to => "#{base_push_url}#{url}"].merge(options)
+            pull_base_url = Autoproj.user_config("#{name}_ROOT")
+            push_base_url = Autoproj.user_config("#{name}_PUSH_ROOT")
+            Hash[:type => 'git', :url => "#{pull_base_url}#{url}", :push_to => "#{push_base_url}#{url}"].merge(options)
         end
     end
 end
