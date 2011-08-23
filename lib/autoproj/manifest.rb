@@ -1782,17 +1782,21 @@ module Autoproj
         def load_package_manifest(pkg_name)
             pkg = packages.values.
                 find { |pkg| pkg.autobuild.name == pkg_name }
-            package, source, file = pkg.autobuild, pkg.package_set, pkg.file
+            package, package_set, file = pkg.autobuild, pkg.package_set, pkg.file
 
             if !pkg_name
                 raise ArgumentError, "package #{pkg_name} is not defined"
             end
 
-            manifest_path = File.join(package.srcdir, "manifest.xml")
-            if !File.directory?(package.srcdir)
-                return
-            elsif !File.file?(manifest_path)
-                Autoproj.warn "#{package.name} from #{source.name} does not have a manifest"
+            manifest_paths =
+                [File.join(package_set.local_dir, package.name + ".xml"), File.join(package.srcdir, "manifest.xml")]
+            manifest_path = manifest_paths.find do |path|
+                File.directory?(File.dirname(path)) &&
+                    File.file?(path)
+            end
+
+            if !manifest_path
+                Autoproj.warn "#{package.name} from #{package_set.name} does not have a manifest"
                 return
             end
 
@@ -1809,10 +1813,10 @@ module Autoproj
                     end
                 rescue Autobuild::ConfigException => e
                     raise ConfigError.new(manifest_path),
-                        "manifest #{manifest_path} of #{package.name} from #{source.name} lists '#{name}' as dependency, which is listed in the layout of #{file} but has no autobuild definition", e.backtrace
+                        "manifest #{manifest_path} of #{package.name} from #{package_set.name} lists '#{name}' as dependency, which is listed in the layout of #{file} but has no autobuild definition", e.backtrace
                 rescue ConfigError => e
                     raise ConfigError.new(manifest_path),
-                        "manifest #{manifest_path} of #{package.name} from #{source.name} lists '#{name}' as dependency, but it is neither a normal package nor an osdeps package. osdeps reports: #{e.message}", e.backtrace
+                        "manifest #{manifest_path} of #{package.name} from #{package_set.name} lists '#{name}' as dependency, but it is neither a normal package nor an osdeps package. osdeps reports: #{e.message}", e.backtrace
                 end
             end
         end
