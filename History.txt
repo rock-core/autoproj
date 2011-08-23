@@ -1,3 +1,6 @@
+= Version 1.7.13
+ * bugfix release: fix HTTP fallback mechanism for gitorious servers
+
 = Version 1.7.12
  * improved some error messages
  * fixed error if config.yml is empty
