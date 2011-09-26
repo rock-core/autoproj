@@ -493,7 +493,7 @@ module Autoproj
                         sel = File.expand_path(sel)
                         relative_to_root = Pathname.new(sel).relative_path_from(Pathname.new(Autoproj.root_dir))
                         pkg = Autoproj.in_package_set(manifest.local_package_set, manifest.file) do
-                            send(handler, relative_to_root)
+                            send(handler, relative_to_root.to_s)
                         end
                         setup_package_directories(pkg)
                         selected_packages << pkg.name
