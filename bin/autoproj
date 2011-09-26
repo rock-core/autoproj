@@ -52,7 +52,16 @@ Autoproj::OSDependencies.autodetect_ruby
 prefix = File.expand_path(__FILE__)
 if File.file?("#{prefix}-#{ARGV.first}")
     binary = "#{prefix}-#{ARGV.shift}"
-    exec(binary, *ARGV)
+    # RubyGems have a BIG performance problem when $LOADED_PATH starts to be
+    # big. 
+    #
+    # So, if the sub-script is Ruby-based, just load it and exit
+    if File.readlines(binary).first =~ /ruby/
+        load binary
+        exit
+    else
+        exec(binary, *ARGV)
+    end
 end
 
 # Find the autoproj root dir
