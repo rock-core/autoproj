@@ -3,7 +3,7 @@
 require 'optparse'
 
 build_all = false
-force = false
+mode = "build"
 
 parser = OptionParser.new do |opt|
     opt.banner = "amake [options] [dir_or_package]
@@ -17,7 +17,10 @@ Accepts all options from autoproj build plus the following options:
         build_all = true
     end
     opt.on('--force', 'runs autoproj force-build instead of autoproj build') do
-        force = true
+        mode = "force-build"
+    end
+    opt.on('--rebuild', 'runs autoproj force-build instead of autoproj build') do
+        mode = "rebuild"
     end
     opt.on('--help', 'shows this help message') do
         puts parser
@@ -45,11 +48,7 @@ if remaining.grep(/^-/).size == remaining.size && !build_all
     remaining.push '.'
 end
 
-if force
-    remaining.unshift "force-build"
-else
-    remaining.unshift "build"
-end
+remaining.unshift mode
 ARGV.clear
 ARGV.concat(remaining)
 load File.expand_path('autoproj', File.dirname(__FILE__))
