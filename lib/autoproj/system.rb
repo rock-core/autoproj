@@ -126,37 +126,22 @@ module Autoproj
                        File.join(Autoproj.root_dir, "env.sh")
                    end
 
-        File.open(filename, "w") do |io|
-            variables = []
-            Autobuild.environment.each do |name, value|
-                variables << name
-                shell_line = "#{name}=#{value.join(":")}"
-                if Autoproj.env_inherit?(name)
-                    if value.empty?
-                        next
-                    else
-                        shell_line << ":$#{name}"
-                    end
+        shell_dir = File.expand_path(File.join("..", "..", "shell"), File.dirname(__FILE__))
+        if Autoproj.shell_helpers? && shell = ENV['SHELL']
+            shell_kind = File.basename(shell)
+            if shell_kind =~ /^\w+$/
+                shell_file = File.join(shell_dir, "autoproj_#{shell_kind}")
+                if File.exists?(shell_file)
+                    Autoproj.progress
+                    Autoproj.progress "autodetected the shell to be #{shell_kind}, sourcing autoproj shell helpers"
+                    Autoproj.progress "add \"Autoproj.shell_helpers = false\" in autoproj/init.rb to disable"
+                    Autobuild.env_source_file(shell_file)
                 end
-                io.puts shell_line
             end
-            variables.each do |var|
-                io.puts "export #{var}"
-            end
+        end
 
-            shell_dir = File.expand_path(File.join("..", "..", "shell"), File.dirname(__FILE__))
-            if Autoproj.shell_helpers? && shell = ENV['SHELL']
-                shell_kind = File.basename(shell)
-                if shell_kind =~ /^\w+$/
-                    shell_file = File.join(shell_dir, "autoproj_#{shell_kind}")
-                    if File.exists?(shell_file)
-                        Autoproj.progress
-                        Autoproj.progress "autodetected the shell to be #{shell_kind}, sourcing autoproj shell helpers"
-                        Autoproj.progress "add \"Autoproj.shell_helpers = false\" in autoproj/init.rb to disable"
-                        io.puts "source \"#{shell_file}\""
-                    end
-                end
-            end
+        File.open(filename, "w") do |io|
+            Autobuild.export_env_sh(io)
         end
     end
 
