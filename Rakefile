@@ -1,5 +1,6 @@
 $LOAD_PATH.unshift File.join(Dir.pwd, 'lib')
 
+task 'default'
 begin
     require 'hoe'
     namespace 'dist' do
