@@ -587,7 +587,12 @@ fi
             gems = gems.dup
             gems.delete_if do |name, version|
                 version_requirements = Gem::Requirement.new(version || '>= 0')
-                installed = Gem.source_index.find_name(name, version_requirements)
+                installed =
+                    if Gem.source_index.respond_to?(:find_by_name)
+                        Gem.source_index.find_by_name(name, version_requirements)
+                    else
+                        Gem.source_index.find_name(name, version_requirements)
+                    end
                 if !installed.empty? && Autobuild.do_update
                     # Look if we can update the package ...
                     dep = Gem::Dependency.new(name, version_requirements)
