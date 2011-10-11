@@ -1,0 +1,2 @@
+#! /usr/bin/env ruby
+load File.expand_path('autoproj-locate', File.dirname(__FILE__))
