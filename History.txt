@@ -1,3 +1,23 @@
+= Version 1.7.14
+ * fix support for local package sets, i.e. package sets that are saved in
+   autoproj/directory_name and are part of the main configuration VCS.
+ * fix behavior of autoproj when adding a remote package set in
+   autoproj/manifest and calling amake my/package right away. Until now,
+   autoproj was yelling with a criptic message. It will now behave and check out
+   the new package set.
+ * add support for sourcing shell scripts from env.sh:
+   Autoproj.env_source_file(path)
+ * fix a Ruby 1.9 incompatibility
+ * better performance in e.g. autoproj query and autoproj locate (this speeds up
+   acd)
+ * accept amake --rebuild the same way than amake --force was accepted until now
+ * add support for including manifest.xml files in the package sets. This is
+   meant to be used for external packages that do not provide a manifest.
+   The manifests are listed in the package set's manifests/ subdirectory and
+   must match the package name, as e.g.
+      rock.git/external/yaml-cpp.xml
+   The package set's manifest takes precedence over the package one.
+
 = Version 1.7.13
  * bugfix release: fix HTTP fallback mechanism for gitorious servers
 
