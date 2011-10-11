@@ -1660,9 +1660,7 @@ export PATH=$GEM_HOME/bin:$PATH
 
             Autoproj::CmdLine.update_os_dependencies = false
             Autoproj::CmdLine.initialize
-            if Autobuild.do_update
-                Autoproj::CmdLine.update_configuration
-            end
+            Autoproj::CmdLine.update_configuration
             Autoproj::CmdLine.load_configuration
             Autoproj::CmdLine.setup_all_package_directories
             Autoproj::CmdLine.finalize_package_setup

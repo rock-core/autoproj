@@ -106,6 +106,14 @@ EOTEXT
     if selected_packages.empty?
         Autoproj::CmdLine.update_myself
         Autoproj::CmdLine.update_configuration
+    else
+        begin
+            old_value = Autobuild.do_update
+            Autobuild.do_update = false
+            Autoproj::CmdLine.update_configuration
+        ensure
+            Autobuild.do_update = old_value
+        end
     end
     Autoproj::CmdLine.load_configuration
     manifest = Autoproj.manifest
