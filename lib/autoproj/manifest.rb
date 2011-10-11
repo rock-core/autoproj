@@ -495,6 +495,12 @@ module Autoproj
         # Create a PackageSet instance from its description as found in YAML
         # configuration files
         def self.from_spec(manifest, raw_spec, load_description)
+            if raw_spec.respond_to?(:to_str)
+                local_path = File.join(Autoproj.config_dir, raw_spec)
+                if File.directory?(local_path)
+                    raw_spec = { :type => 'local', :url => local_path }
+                end
+            end
             spec = VCSDefinition.vcs_definition_to_hash(raw_spec)
             options, vcs_spec = Kernel.filter_options spec, :auto_imports => true
 
