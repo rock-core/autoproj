@@ -588,8 +588,12 @@ fi
             gems.delete_if do |name, version|
                 version_requirements = Gem::Requirement.new(version || '>= 0')
                 installed =
-                    if Gem.source_index.respond_to?(:find_by_name)
-                        Gem.source_index.find_by_name(name, version_requirements)
+                    if Gem::Specification.respond_to?(:find_by_name)
+                        begin
+                            [Gem::Specification.find_by_name(name, version_requirements)]
+                        rescue Gem::LoadError
+                            []
+                        end
                     else
                         Gem.source_index.find_name(name, version_requirements)
                     end
