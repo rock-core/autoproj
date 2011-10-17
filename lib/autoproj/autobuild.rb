@@ -98,77 +98,16 @@ module Autobuild
         def depends_on(name)
             if Autoproj::CmdLine.ignore_dependencies?
                 return
-            elsif Autoproj.manifest.ignored?(name)
-                return
             end
 
             @os_packages ||= Set.new
-            @ignored_os_dependencies ||= Set.new
-
-            if @os_packages.include?(name) || @ignored_os_dependencies.include?(name)
-                return
-            end
-
-            explicit_selection  = Autoproj.manifest.explicitly_selected_package?(name)
-	    osdeps_availability = Autoproj.osdeps.availability_of(name)
-            available_as_source = Autobuild::Package[name]
-
-            osdeps_overrides = Autoproj.manifest.osdeps_overrides[name]
-            if osdeps_overrides
-                source_packages = osdeps_overrides[:packages]
-                if source_packages.empty?
-                    source_packages << name
+            Autoproj.manifest.resolve_package_name(name).each do |type, pkg|
+                if type == :osdeps
+                    @os_packages << pkg
+                elsif type == :package
+                    __depends_on__(pkg)
+                else raise Autoproj::InternalError, "expected package type to be either :osdeps or :package, got #{type.inspect}"
                 end
-                force_source_usage = osdeps_overrides[:force]
-                available_as_source = true
-            end
-
-	    # Prefer OS packages to source packages
-            if force_source_usage && !source_packages.any? { |pkg_name| Autoproj.manifest.excluded?(pkg_name) }
-                source_packages.each do |pkg_name|
-                    __depends_on__(pkg_name)
-                end
-            elsif !explicit_selection 
-                if osdeps_availability == Autoproj::OSDependencies::AVAILABLE
-                    @os_packages << name
-                    return
-                elsif osdeps_availability == Autoproj::OSDependencies::IGNORE
-                    return
-                end
-
-                if osdeps_availability == Autoproj::OSDependencies::UNKNOWN_OS
-                    # If we can't handle that OS, but other OSes have a
-                    # definition for it, we assume that it can be installed as
-                    # an external package. However, if it is also available as a
-                    # source package, prompt the user
-                    if !available_as_source || explicit_osdeps_selection(name)
-                        @os_packages << name
-                        return
-                    end
-                end
-
-
-                if !available_as_source
-                    begin
-                        # Call osdeps to get a proper error message
-                        osdeps, gems = Autoproj.osdeps.partition_packages([name].to_set, name => [self.name])
-                        Autoproj.osdeps.resolve_os_dependencies(osdeps)
-                    rescue Autoproj::ConfigError => e
-                        if osdeps_availability != Autoproj::OSDependencies::NO_PACKAGE && !Autoproj.osdeps.installs_os_packages?
-                            Autoproj.warn "in #{File.join(srcdir, 'manifest.xml')}: #{e.message}"
-                            Autoproj.warn "this osdeps dependency is simply ignored as you asked autoproj to not install osdeps packages"
-                            @ignored_os_dependencies << name
-                            # We are not asked to install OS packages, just ignore
-                            return
-                        end
-                        raise
-                    end
-                    # Should never reach further than that
-                end
-                __depends_on__(name) # to get the error message
-            else
-                # Normal dependency
-                __depends_on__(name)
             end
         end
 

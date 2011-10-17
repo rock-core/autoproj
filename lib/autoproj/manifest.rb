@@ -1057,6 +1057,7 @@ module Autoproj
             @moved_packages = Hash.new
             @osdeps_overrides = Hash.new
             @metapackages = Hash.new
+            @ignored_os_dependencies = Set.new
 
             @constant_definitions = Hash.new
             if Autoproj.has_config_key?('manifest_source')
@@ -1593,6 +1594,117 @@ module Autoproj
                 raise ArgumentError, "no package set called #{name} exists"
             end
             set
+        end
+
+        # Exception raised when a caller requires to use an excluded package
+        class ExcludedPackage < ConfigError
+            attr_reader :name
+            def initialize(name)
+                @name = name
+            end
+        end
+
+        # Resolves the given +name+, where +name+ can either be the name of a
+        # source or the name of a package.
+        #
+        # The returned value is a list of pairs:
+        #
+        #   [type, package_name]
+        #
+        # where +type+ can either be :package or :osdeps (as symbols)
+        #
+        # The returned array can be empty if +name+ is an ignored package
+        def resolve_package_name(name)
+            if pkg_set = find_metapackage(name)
+                if !pkg_set
+                    raise ConfigError.new, "#{name} is neither a package nor a package set name. Packages in autoproj must be declared in an autobuild file."
+                end
+                pkg_names = pkg_set.each_package.map(&:name)
+            else
+                pkg_names = [name]
+            end
+
+            result = []
+            pkg_names.each do |pkg|
+                result.concat(resolve_single_package_name(pkg))
+            end
+            result
+        end
+
+        # Resolves a package name, where +name+ cannot be resolved as a
+        # metapackage
+        #
+        # This is a helper method for #resolve_package_name. Do not use
+        # directly
+        def resolve_single_package_name(name) # :nodoc:
+            if ignored?(name)
+                return []
+            end
+
+            explicit_selection  = explicitly_selected_package?(name)
+	    osdeps_availability = Autoproj.osdeps.availability_of(name)
+            available_as_source = Autobuild::Package[name]
+
+            osdeps_overrides = Autoproj.manifest.osdeps_overrides[name]
+            if osdeps_overrides
+                source_packages    = osdeps_overrides[:packages].dup
+                force_source_usage = osdeps_overrides[:force]
+                begin
+                    source_packages = source_packages.inject([]) do |result, src_pkg_name|
+                        result.concat(resolve_package_name(src_pkg_name))
+                    end.uniq
+                    available_as_source = true
+                rescue ExcludedPackage
+                    force_source_usage = false
+                    available_as_source = false
+                end
+
+                if source_packages.empty?
+                    source_packages << [:package, name]
+                end
+            end
+
+            if force_source_usage
+                return source_packages
+            elsif !explicit_selection 
+                if osdeps_availability == Autoproj::OSDependencies::AVAILABLE
+                    return [[:osdeps, name]]
+                elsif osdeps_availability == Autoproj::OSDependencies::IGNORE
+                    return []
+                end
+
+                if osdeps_availability == Autoproj::OSDependencies::UNKNOWN_OS
+                    # If we can't handle that OS, but other OSes have a
+                    # definition for it, we assume that it can be installed as
+                    # an external package. However, if it is also available as a
+                    # source package, prompt the user
+                    if !available_as_source || explicit_osdeps_selection(name)
+                        return [[:osdeps, name]]
+                    end
+                end
+
+                # No source, no osdeps. Call osdeps again, but this time to get
+                # a proper error message.
+                if !available_as_source
+                    begin
+                        osdeps, gems = Autoproj.osdeps.partition_packages([name].to_set, name => [self.name])
+                        Autoproj.osdeps.resolve_os_dependencies(osdeps)
+                    rescue Autoproj::ConfigError => e
+                        if osdeps_availability != Autoproj::OSDependencies::NO_PACKAGE && !Autoproj.osdeps.installs_os_packages?
+                            Autoproj.warn "in #{File.join(srcdir, 'manifest.xml')}: #{e.message}"
+                            Autoproj.warn "this osdeps dependency is simply ignored as you asked autoproj to not install osdeps packages"
+                            @ignored_os_dependencies << name
+                            # We are not asked to install OS packages, just ignore
+                            return []
+                        end
+                        raise
+                    end
+                    # Should never reach further than that
+                end
+            elsif !available_as_source
+                raise ConfigError, "cannot resolve #{name}: it is not a package, not a metapackage and not an osdeps"
+            end
+            return [[:package, name]]
         end
 
         # +name+ can either be the name of a source or the name of a package. In
