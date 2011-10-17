@@ -13,6 +13,14 @@ parser = OptionParser.new do |opt|
   Finds packages that match query_string and displays information about them (one per line)
   By default, only the package name is displayed. It can be customized with the --format option
 
+  QUERY KEYS
+    autobuild.name: the package name
+    autobuild.srcdir: the package source directory
+    autobuild.class.name: the package class
+    vcs.type: the VCS type (as used in the source.yml files)
+    vcs.url: the URL from the VCS. The exact semantic of it depends on the VCS type
+    package_set.name: the name of the package set that defines the package
+
   FORMAT SPECIFICATION
 
   The format is a string in which special values can be expanded using a $VARNAME format. The following variables are accepted:
