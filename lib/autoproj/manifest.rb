@@ -2045,16 +2045,16 @@ module Autoproj
             # First, remove packages that are directly referenced by name or by
             # package set names
             selection.each do |sel|
-                sel = Regexp.new(Regexp.quote(sel))
+                match_pkg_name = Regexp.new(Regexp.quote(sel))
 
                 packages = all_layout_packages.
-                    find_all { |pkg_name| pkg_name =~ sel }.
+                    find_all { |pkg_name| pkg_name =~ match_pkg_name }.
                     to_set
                 matches[sel] = packages
                 expanded_packages |= packages
 
                 each_metapackage do |pkg|
-                    if pkg.name =~ sel
+                    if pkg.name =~ match_pkg_name
                         packages = resolve_package_set(pkg.name).to_set
                         packages = (packages & all_layout_packages)
                         matches[sel] |= packages
