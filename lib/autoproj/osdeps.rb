@@ -375,12 +375,30 @@ fi
 
 	    # If data is a hash, it means we have to check the OS version as well
             if data.kind_of?(Hash)
-                version_entry = data.find do |version_list, _|
-                    version_list.to_s.split(',').
-                        map(&:downcase).
-                        any? do |v|
-                            os_versions.any? { |osv| Regexp.new(v) =~ osv }
+                # Look in +data+ for specific version. We look, in order, in the
+                # os_versions field (detected OS versions), and return the first
+                # matching entry
+                version_entry = nil
+                # First, look for an exact match
+                found = os_versions.find do |os_ver|
+                    version_entry = data.find do |version_list, _|
+                        version_list.to_s.split(',').
+                            map(&:downcase).
+                            any? { |v| v == os_ver }
+                    end
+                end
+                if !found
+                    # Then relax the matching ...
+                    found = os_versions.find do |os_ver|
+                        version_entry = data.find do |version_list, _|
+                            version_list.to_s.split(',').
+                                map(&:downcase).
+                                any? { |v| Regexp.new(v) =~ os_ver }
                         end
+                    end
+                end
+                if Autoproj.verbose
+                    Autoproj.progress "selected OS version #{found} for osdep #{name}: #{version_entry.inspect}"
                 end
 
                 if !version_entry
@@ -400,7 +418,7 @@ fi
 		# Single package
                 return [PACKAGES, [data.to_str]]
             else
-                raise ConfigError.new, "invalid package specificiation #{data} in #{source_of(name)}"
+                raise ConfigError.new, "invalid package specification #{data} in #{source_of(name)}"
             end
         end
 
