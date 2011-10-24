@@ -32,8 +32,6 @@ ruby19:
     gem:
         - rake
 
-rdoc: gem
-
 build-essential:
     debian,ubuntu: build-essential
     gentoo:
