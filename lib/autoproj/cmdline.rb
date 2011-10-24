@@ -745,11 +745,15 @@ module Autoproj
             else true
             end
         end
+        def self.status_exit_code?
+            @status_exit_code
+        end
         def self.list_newest?; @list_newest end
         def self.parse_arguments(args, with_mode = true)
             @only_status = false
             @only_local  = false
             @show_osdeps = false
+            @status_exit_code = false
             @revshow_osdeps = false
             @osdeps_filter_uptodate = true
             @osdeps_forced_mode = nil
@@ -905,6 +909,9 @@ where 'mode' is one of:
                 end
                 opts.on("--local", "for status, do not access the network") do
                     @only_local = true
+                end
+                opts.on('--exit-code', 'in status mode, exit with a code that reflects the status of the installation (see documentation for details)') do
+                    @status_exit_code = true
                 end
                 opts.on('--randomize-layout', 'in build and full-build, generate a random layout') do
                     @randomize_layout = true
@@ -1103,8 +1110,10 @@ where 'mode' is one of:
             nil
         end
 
+        StatusResult = Struct.new :uncommitted, :local, :remote
         def self.display_status(packages)
             last_was_in_sync = false
+            result = StatusResult.new
 
             packages.each do |pkg|
                 lines = []
@@ -1125,6 +1134,7 @@ where 'mode' is one of:
                     status = pkg.importer.status(pkg,@only_local)
                     if status.uncommitted_code
                         lines << Autoproj.color("  contains uncommitted modifications", :red)
+                        result.uncommitted = true
                     end
 
                     case status.status
@@ -1141,16 +1151,20 @@ where 'mode' is one of:
                             lines << Autoproj.color("  local and remote are in sync", :green)
                         end
                     when Autobuild::Importer::Status::ADVANCED
+                        result.local = true
                         lines << Autoproj.color("  local contains #{status.local_commits.size} commit that remote does not have:", :magenta)
                         status.local_commits.each do |line|
                             lines << Autoproj.color("    #{line}", :magenta)
                         end
                     when Autobuild::Importer::Status::SIMPLE_UPDATE
+                        result.remote = true
                         lines << Autoproj.color("  remote contains #{status.remote_commits.size} commit that local does not have:", :magenta)
                         status.remote_commits.each do |line|
                             lines << Autoproj.color("    #{line}", :magenta)
                         end
                     when Autobuild::Importer::Status::NEEDS_MERGE
+                        result.local  = true
+                        result.remote = true
                         lines << Autoproj.color("  local and remote have diverged with respectively #{status.local_commits.size} and #{status.remote_commits.size} commits each", :magenta)
                         lines << "  -- local commits --"
                         status.local_commits.each do |line|
@@ -1180,6 +1194,7 @@ where 'mode' is one of:
             if last_was_in_sync
                 Autoproj.progress(": local and remote are in sync", :green)
             end
+            return result
         end
 
         def self.status(packages)

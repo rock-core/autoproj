@@ -183,8 +183,22 @@ EOTEXT
 
     if Autoproj::CmdLine.only_status?
         all_enabled_packages = Autoproj::CmdLine.import_packages(selected_packages)
-        Autoproj::CmdLine.status(all_enabled_packages)
-        exit(0)
+        result = Autoproj::CmdLine.status(all_enabled_packages)
+        if Autoproj::CmdLine.status_exit_code?
+            code = 0
+            if result.uncommitted
+                code |= 1
+            end
+            if result.local
+                code |= 2
+            end
+            if result.remote
+                code |= 4
+            end
+            exit(code)
+        else
+            exit(0)
+        end
     elsif Autoproj::CmdLine.check?
         all_enabled_packages = Autoproj::CmdLine.import_packages(selected_packages)
         Autoproj::CmdLine.check(all_enabled_packages)
