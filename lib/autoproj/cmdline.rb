@@ -1557,7 +1557,7 @@ export PATH=$GEM_HOME/bin:$PATH
 
             ospkg_to_pkg.each do |pkg_osdep, pkgs|
                 osdeps, gems = Autoproj.osdeps.
-                    partition_packages([pkg_osdep], ospkg_to_pkg)
+                    partition_packages([pkg_osdep])
 
                 gems.each do |gem_name|
                     mapping[gem_name.join(" ")][1] = true
@@ -1620,7 +1620,7 @@ export PATH=$GEM_HOME/bin:$PATH
                 end
 
                 osdeps, gems = Autoproj.osdeps.
-                    partition_packages(pkg_osdeps, ospkg_to_pkg)
+                    partition_packages(pkg_osdeps)
 
                 puts "  #{pkg_name}:"
                 if !gems.empty?

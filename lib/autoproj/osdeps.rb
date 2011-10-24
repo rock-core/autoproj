@@ -517,7 +517,7 @@ fi
         #
         # Raises ConfigError if an error exists in the osdeps files, and returns
         # empty sets if the package can't be found
-        def partition_packages(package_set, package_osdeps = Hash.new)
+        def partition_packages(package_set)
             package_set = package_set.
                 map { |name| OSDependencies.aliases[name] || name }.
                 to_set
@@ -904,7 +904,7 @@ So, what do you want ? (all, ruby, os or none)
             packages -= installed_packages
             return if packages.empty?
 
-            osdeps, gems = partition_packages(packages, package_osdeps)
+            osdeps, gems = partition_packages(packages)
             if handled_os
                 os_names, _ = OSDependencies.operating_system
                 os_packages = resolve_os_dependencies(osdeps)
