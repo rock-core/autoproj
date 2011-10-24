@@ -17,8 +17,10 @@ module Autoproj
             attr_reader :aliases
             attr_accessor :force_osdeps
             attr_accessor :gem_with_prerelease
+            attr_accessor :gem_doc
         end
         @aliases = Hash.new
+        @gem_doc = false
 
         attr_writer :silent
         def silent?; @silent end
@@ -945,6 +947,10 @@ So, what do you want ? (all, ruby, os or none)
                 guess_gem_program
 
                 base_cmdline = [Autobuild.tool('gem'), 'install']
+                if !OSDependencies.gem_doc
+                    base_cmdline << '--no-rdoc' << '--no-ri'
+                end
+
                 if Autoproj::OSDependencies.gem_with_prerelease
                     base_cmdline << "--prerelease"
                 end
