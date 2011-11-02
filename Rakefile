@@ -1,16 +1,16 @@
+require 'utilrb/rake_common'
 $LOAD_PATH.unshift File.join(Dir.pwd, 'lib')
 
 task 'default'
-begin
-    require 'hoe'
+Utilrb::Rake.hoe do
     namespace 'dist' do
-        config = Hoe.spec 'autoproj' do
+        Hoe.spec 'autoproj' do
             self.developer "Sylvain Joyeux", "sylvain.joyeux@dfki.de"
 
-            self.url = ["http://doudou.github.com/autoproj",
+            self.url = ["http://rock-robotics.org/autoproj",
                 "git://github.com/doudou/autoproj.git"]
             self.rubyforge_name = 'autobuild'
-            self.summary = 'Easy installation and management of robotics software'
+            self.summary = 'Easy installation and management of software packages'
             self.description = paragraphs_of('README.txt', 0..1).join("\n\n")
             self.changes     = paragraphs_of('History.txt', 0..1).join("\n\n")
 
@@ -26,13 +26,6 @@ begin
                 ['rdoc', '>= 2.4.0']
         end
     end
-
-rescue LoadError => e
-    STDERR.puts "cannot load the Hoe gem. Distribution is disabled"
-    STDERR.puts "error message is: #{e.message}"
-rescue Exception => e
-    STDERR.puts "cannot load the Hoe gem, or Hoe fails. Distribution is disabled"
-    STDERR.puts "error message is: #{e.message}"
 end
 
 namespace 'dist' do
@@ -68,15 +61,7 @@ namespace 'dist' do
 end
 file 'bin/autoproj_bootstrap' => 'dist:bootstrap'
 
-do_doc = begin
-             require 'rdoc/task'
-             true
-         rescue LoadError => e
-             STDERR.puts "WARN: cannot load RDoc, documentation generation disabled"
-             STDERR.puts "WARN:   #{e.message}"
-         end
-
-if do_doc
+Utilrb::Rake.rdoc do
     task 'doc' => 'doc:all'
     task 'clobber_docs' => 'doc:clobber'
     task 'redocs' do
