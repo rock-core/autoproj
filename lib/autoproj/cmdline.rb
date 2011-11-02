@@ -47,6 +47,15 @@ module Autoproj
             Autoproj.loaded_autobuild_files.clear
             Autoproj.load_config
 
+            if Autoproj.has_config_key?('autobuild')
+                params = Autoproj.user_config('autobuild')
+                if params.kind_of?(Hash)
+                    params.each do |k, v|
+                        Autobuild.send("#{k}=", v)
+                    end
+                end
+            end
+
             if Autoproj.has_config_key?('prefix')
                 Autoproj.prefix = Autoproj.user_config('prefix')
             end
