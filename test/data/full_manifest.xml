@@ -1,0 +1,19 @@
+<package>
+    <description brief="short_doc">
+        full_doc
+    </description>
+    <author>Author1/author1@email,Author2/author2@email</author>
+    <author>Author3</author>
+
+    <license>BSD</license>
+    <url>the_url</url>
+    <logo>the_logo</logo>
+    <depend package="dep1"/> 
+    <depend package="dep2"/>
+    <depend package="opt_dep1" optional="1"/> 
+    <depend_optional package="opt_dep2"/>
+    <rosdep name="osdep1"/>
+
+    <tags>tag1,tag2</tags>
+    <tags>tag3</tags>
+</package>
