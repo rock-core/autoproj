@@ -18,7 +18,6 @@ Utilrb::Rake.hoe do
                 ['autobuild',   '>= 1.5.33'] <<
                 ['rmail',   '>= 1.0.0'] <<
                 ['utilrb', '>= 1.3.3'] <<
-                ['nokogiri', '>= 1.3.3'] <<
                 ['highline', '>= 1.5.0']
 
             extra_dev_deps <<

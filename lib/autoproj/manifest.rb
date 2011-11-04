@@ -1,7 +1,7 @@
 require 'yaml'
 require 'utilrb/kernel/options'
-require 'nokogiri'
 require 'set'
+require 'rexml/document'
 
 module Autoproj
     @build_system_dependencies = Set.new
@@ -2141,11 +2141,19 @@ module Autoproj
         osdeps
     end
 
+    # Access to the information contained in a package's manifest.xml file
+    #
+    # Use PackageManifest.load to create
     class PackageManifest
+        # Load a manifest.xml file and returns the corresponding
+        # PackageManifest object
         def self.load(package, file)
-            doc = Nokogiri::XML(File.read(file)) do |c|
-                c.noblanks
-            end
+            doc =
+                begin REXML::Document.new(File.read(file))
+                rescue REXML::ParseException => e
+                    raise ConfigError, "invalid #{file}: #{e.message}"
+                end
+
             PackageManifest.new(package, doc)
         end
 
@@ -2160,30 +2168,25 @@ module Autoproj
         # contain multiple comma-separated tags 
         def tags
             result = []
-            xml.xpath('//tags').each do |node|
-                result.concat(node.content.strip.split(','))
+            xml.elements.each('package/tags') do |node|
+                result.concat(node.text.strip.split(','))
             end
             result
         end
 
         def documentation
-            xml.xpath('//description').each do |node|
-                doc = node.content.strip
-                if doc.empty?
-                    if doc = short_documentation
-                        return doc
-                    end
-                    return "no documentation available for #{package.name} in its manifest.xml file"
-                else
+            xml.elements.each('package/description') do |node|
+                doc = node.text.strip
+                if !doc.empty?
                     return doc
                 end
             end
-            nil
+            return short_documentation
         end
 
         def short_documentation
-            xml.xpath('//description').each do |node|
-                doc = node['brief']
+            xml.elements.each('package/description') do |node|
+                doc = node.attributes['brief']
                 if doc
                     doc = doc.to_s.strip
                 end
@@ -2191,7 +2194,7 @@ module Autoproj
                     return doc.to_s
                 end
             end
-            nil
+            "no documentation available for #{package.name} in its manifest.xml file"
         end
 
         def initialize(package, doc)
@@ -2210,8 +2213,8 @@ module Autoproj
 
         def each_os_dependency
             if block_given?
-                xml.xpath('//rosdep').each do |node|
-                    yield(node['name'], false)
+                xml.elements.each('package/rosdep') do |node|
+                    yield(node.attributes['name'], false)
                 end
                 package.os_packages.each do |name|
                     yield(name, false)
@@ -2223,12 +2226,12 @@ module Autoproj
 
         def each_package_dependency
             if block_given?
-                depend_nodes = xml.xpath('//depend').to_a +
-                    xml.xpath('//depend_optional').to_a
+                depend_nodes = xml.elements.to_a('package/depend') +
+                    xml.elements.to_a('package/depend_optional')
 
                 depend_nodes.each do |node|
-                    dependency = node['package']
-                    optional = (node['optional'].to_s == '1' || node.name == "depend_optional")
+                    dependency = node.attributes['package']
+                    optional = (node.attributes['optional'].to_s == '1' || node.name == "depend_optional")
 
                     if dependency
                         yield(dependency, optional)
@@ -2239,6 +2242,49 @@ module Autoproj
             else
                 enum_for :each_package_dependency
             end
+        end
+
+        # Enumerates the name and email of each author. If no email is present,
+        # yields (name, nil)
+        def each_author
+            if !block_given?
+                return enum_for(:each_author)
+            end
+
+            xml.elements.each('package/author') do |author|
+                author.text.strip.split(',').each do |str|
+                    name, email = str.split('/').map(&:strip)
+                    email = nil if email && email.empty?
+                    yield(name, email)
+                end
+            end
+        end
+
+        # If +name+ points to a text element in the XML document, returns the
+        # content of that element. If no element matches +name+, or if the
+        # content is empty, returns nil
+        def text_node(name)
+            xml.elements.each(name) do |str|
+                str = str.text.strip
+                if !str.empty?
+                    return str
+                end
+            end
+            nil
+        end
+
+        # The package associated URL, usually meant to direct to a website
+        #
+        # Returns nil if there is none
+        def url
+            return text_node('package/url')
+        end
+
+        # The package license name
+        #
+        # Returns nil if there is none
+        def license
+            return text_node('package/license')
         end
     end
     def self.add_osdeps_overrides(*args, &block)
