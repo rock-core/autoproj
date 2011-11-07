@@ -931,12 +931,23 @@ So, what do you want ? (all, ruby, os or none)
                         Autoproj.progress shell_script
                     end
 
-                    Tempfile.open('osdeps_sh') do |io|
-                        io.puts "#! /bin/bash"
-                        io.puts GAIN_ROOT_ACCESS
-                        io.write shell_script
-                        io.flush
-                        Autobuild::Subprocess.run 'autoproj', 'osdeps', '/bin/bash', io.path
+                    File.open('/tmp/autoproj_osdeps_lock', 'w') do |lock_io|
+                        begin
+                            while !lock_io.flock(File::LOCK_EX | File::LOCK_NB)
+                                Autoproj.progress "  waiting for other autoproj instances to finish their osdeps installation"
+                                sleep 5
+                            end
+
+                            Tempfile.open('osdeps_sh') do |io|
+                                io.puts "#! /bin/bash"
+                                io.puts GAIN_ROOT_ACCESS
+                                io.write shell_script
+                                io.flush
+                                Autobuild::Subprocess.run 'autoproj', 'osdeps', '/bin/bash', io.path
+                            end
+                        ensure
+                            lock_io.flock(File::LOCK_UN)
+                        end
                     end
                     did_something = true
                 end
