@@ -1,3 +1,22 @@
+= Version 1.7.15
+ * remove dependency on nokogiri. This is the first step in an effort to make
+   autoproj as straightforward to bootstrap as possible.
+ * gracefully handle multiple autoproj instances trying to access the OS
+   packaging system concurrently. A message is now issued that one has to wait
+   for the other to finish. This is critical for build servers.
+ * allow conditional loading of osdeps file. The system works by adding suffixes
+   to Autoproj::OSDependencies.suffixes which tune what files to load. As an
+   example, autoproj's handling of Ruby adds either the ruby18 or ruby19 suffix,
+   which leads to either loading
+
+     file.osdeps-ruby18
+
+   or
+
+     file.osdeps-ruby19
+
+   after a file.osdeps "normal" file gets loaded.
+
 = Version 1.7.14
  * fix support for local package sets, i.e. package sets that are saved in
    autoproj/directory_name and are part of the main configuration VCS.
