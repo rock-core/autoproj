@@ -165,7 +165,11 @@ module Autoproj
                 ENV['AUTOPROJ_RESTARTING'] = '1'
                 require 'rbconfig'
                 ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
-                exec(ruby, $0, *ARGV)
+                if defined?(ORIGINAL_ARGV)
+                    exec(ruby, $0, *ORIGINAL_ARGV)
+                else
+                    exec(ruby, $0, *ARGV)
+                end
             end
         end
 

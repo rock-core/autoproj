@@ -49,6 +49,7 @@ if remaining.grep(/^-/).size == remaining.size && !build_all
 end
 
 remaining.unshift mode
+ORIGINAL_ARGV = ARGV.dup # This is used in case autoproj needs to update itself
 ARGV.clear
 ARGV.concat(remaining)
 load File.expand_path('autoproj', File.dirname(__FILE__))
