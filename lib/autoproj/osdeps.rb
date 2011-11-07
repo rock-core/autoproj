@@ -1,16 +1,41 @@
 require 'tempfile'
 module Autoproj
     class OSDependencies
-        def self.load(file)
-            file = File.expand_path(file)
-            begin
-                data = YAML.load(File.read(file)) || Hash.new
-                verify_definitions(data)
-            rescue ArgumentError => e
-                raise ConfigError.new, "error in #{file}: #{e.message}"
-            end
+	class << self
+	    # When requested to load a file called X.Y, the osdeps code will
+	    # also look for files called X-suffix.Y, where 'suffix' is an
+	    # element in +osdeps_suffixes+
+	    #
+	    # A usage of this functionality is to make loading conditional to
+	    # the available version of certain tools, namely Ruby. Autoproj for
+	    # instance adds ruby18 when started on Ruby 1.8 and ruby19 when
+	    # started on Ruby 1.9
+	    attr_reader :suffixes
+	end
+	@suffixes = []
 
-            OSDependencies.new(data, file)
+        def self.load(file)
+	    if !File.file?(file)
+		raise ArgumentError, "no such file or directory #{file}"
+	    end
+
+	    candidates = [file]
+	    candidates.concat(suffixes.map { |s| "#{file}-#{s}" })
+	    
+	    result = OSDependencies.new
+	    candidates.each do |file|
+                next if !File.file?(file)
+                file = File.expand_path(file)
+                begin
+                    data = YAML.load(File.read(file)) || Hash.new
+                    verify_definitions(data)
+                rescue ArgumentError => e
+                    raise ConfigError.new, "error in #{file}: #{e.message}", e.backtrace
+                end
+
+                result.merge(OSDependencies.new(data, file))
+	    end
+	    result
         end
 
         class << self
@@ -29,13 +54,16 @@ module Autoproj
             @aliases[new_name] = old_name
         end
 
-        def self.autodetect_ruby
-            ruby_package =
-                if RUBY_VERSION < "1.9.0" then "ruby18"
-                else "ruby19"
-                end
-            self.alias(ruby_package, "ruby")
+	def self.ruby_version_keyword
+            if RUBY_VERSION < "1.9.0" then "ruby18"
+            else "ruby19"
+            end
         end
+
+        def self.autodetect_ruby
+            self.alias(ruby_version_keyword, "ruby")
+        end
+	self.suffixes << ruby_version_keyword
 
         AUTOPROJ_OSDEPS = File.join(File.expand_path(File.dirname(__FILE__)), 'default.osdeps')
         def self.load_default
