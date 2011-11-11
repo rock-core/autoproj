@@ -2050,8 +2050,10 @@ module Autoproj
                 packages = all_layout_packages.
                     find_all { |pkg_name| pkg_name =~ match_pkg_name }.
                     to_set
-                matches[sel] = packages
-                expanded_packages |= packages
+                if !packages.empty?
+                    matches[sel] = packages
+                    expanded_packages |= packages
+                end
 
                 each_metapackage do |pkg|
                     if pkg.name =~ match_pkg_name
