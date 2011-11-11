@@ -488,11 +488,6 @@ module Autoproj
             if selected_packages.empty?
                 return manifest.default_packages
             end
-            if selected_packages.empty? # no packages, terminate
-                Autoproj.progress
-                Autoproj.progress("autoproj: no packages defined", :red)
-                exit 0
-            end
             selected_packages = selected_packages.to_set
 
             selected_packages, nonresolved = manifest.expand_package_selection(selected_packages)
