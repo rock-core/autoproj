@@ -490,7 +490,8 @@ module Autoproj
             end
             selected_packages = selected_packages.to_set
 
-            selected_packages, nonresolved = manifest.expand_package_selection(selected_packages)
+            selected_packages, nonresolved = manifest.
+                expand_package_selection(selected_packages)
 
             # Try to auto-add stuff if nonresolved
             nonresolved.delete_if do |sel|
