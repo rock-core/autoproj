@@ -1631,6 +1631,24 @@ module Autoproj
             result
         end
 
+        # Resolves all the source-based dependencies of this package (excluding
+        # the OS dependencies). The result is returned as a set of package
+        # names.
+        def resolve_packages_dependencies(*root_names)
+            result = Set.new
+            queue = root_names.dup
+            while pkg_name = queue.shift
+                next if result.include?(pkg_name)
+                result << pkg_name
+
+                pkg = Autobuild::Package[pkg_name]
+                pkg.dependencies.each do |dep_name|
+                    queue << dep_name
+                end
+            end
+            result
+        end
+
         # Resolves a package name, where +name+ cannot be resolved as a
         # metapackage
         #

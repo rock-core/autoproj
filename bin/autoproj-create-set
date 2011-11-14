@@ -1,0 +1,86 @@
+#! /usr/bin/env ruby
+
+require 'autoproj'
+require 'autoproj/cmdline'
+
+pwd = Dir.pwd
+root_dir  = Autoproj::CmdLine.initialize_root_directory
+selection = Autoproj::CmdLine.initialize_and_load(ARGV)
+
+if !(new_set_path = File.expand_path(selection.shift, pwd))
+    Autoproj.progress("missing package set name on the command line", :red)
+    exit 1
+end
+new_set_name = File.basename(new_set_path)
+selection = Autoproj::CmdLine.resolve_user_selection(selection)
+
+# Must re-load the package manifests, as the user selection might have triggered
+# some auto-add
+Autoproj.manifest.packages.each_value do |pkg|
+    if File.directory?(pkg.autobuild.srcdir)
+        Autoproj.manifest.load_package_manifest(pkg.autobuild.name)
+    end
+end
+
+# Extract auto-import and new package information
+new_packages, imported_packages = [], []
+selection.each do |pkg_name|
+    pkgs = Autoproj.manifest.resolve_package_name(pkg_name)
+    pkgs = pkgs.
+        map { |type, name| name if type == :package }.
+        compact
+
+    # We look only at direct dependencies. The rest is not our problem (the
+    # other package set must take care of importing / loading what's needed)
+    deps = Set.new
+    pkgs.each do |pkg_name|
+        Autobuild::Package[pkg_name].dependencies.each do |dep_name|
+            deps << dep_name
+        end
+    end
+    pkgs = pkgs.to_set | deps
+    pkgs.each do |pkg_name|
+        pkg_def = Autoproj.manifest.package(pkg_name)
+
+        if pkg_def.package_set.name == "local"
+            new_packages << pkg_def
+        else
+            imported_packages << pkg_def
+        end
+    end
+end
+
+puts
+puts
+new_packages.each do |pkg|
+    if !pkg.vcs
+        puts "  package #{pkg.autobuild.name} has no version control information"
+        puts "  you will have to provide this in the generated source.yml file"
+    end
+end
+
+TEMPLATE_DIR = File.expand_path(File.join("..", "lib", "autoproj", "templates"), File.dirname(__FILE__))
+def render_template(*args)
+    binding = args.pop
+    template = File.read(File.join(TEMPLATE_DIR, *args))
+    template = ERB.new(template)
+    template.result(binding)
+end
+
+if File.exists?(new_set_path)
+    Autoproj.error("There is already a directory, file or symlink in #{new_set_path}.")
+    Autoproj.error("Delete it or move it before trying again")
+    exit 1
+end
+
+FileUtils.mkdir_p new_set_path
+autobuild = render_template("create-set", "packages.autobuild", binding)
+File.open(File.join(new_set_path, "packages.autobuild"), "w") do |io|
+    io.write autobuild
+end
+
+source_yml = render_template("create-set", "source.yml", binding)
+File.open(File.join(new_set_path, "source.yml"), "w") do |io|
+    io.write source_yml
+end
+

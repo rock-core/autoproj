@@ -1,0 +1,10 @@
+# This file tells autoproj which packages are made available by the package set,
+# and also allows to customize the configuration of the packages themselves
+#
+# See http://rock-robotics.org/documentation/autoproj/advanced/autobuild.html
+
+<%= new_packages.map do |pkg|
+    declname = pkg.autobuild.class.name.gsub(/.*::/, '').downcase
+    "#{declname}_package \"#{pkg.autobuild.name}\""
+end.join("\n") %>
+

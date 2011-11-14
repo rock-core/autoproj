@@ -1,0 +1,51 @@
+# This file gives information about the package (mainly its name) and
+# information about where to get the packages
+#
+# See http://rock-robotics.org/documentation/autoproj/advanced/creating_pkg_set.html
+name: <%= new_set_name %>
+<% def render_vcs(vcs)
+       pkg_import = []
+       pkg_import << "type: #{vcs.type}"
+       pkg_import << "url: #{vcs.url}"
+       vcs.options.each do |k, v|
+           if v.kind_of?(String)
+               pkg_import << "#{k}: \"#{v}\""
+           else
+               pkg_import << "#{k}: #{v}"
+           end
+       end
+       pkg_import
+   end
+
+   imports = imported_packages.map do |pkg|
+       pkg_import = render_vcs(pkg.package_set.vcs)
+       "  # #{pkg.package_set.name}\n  - #{pkg_import.join("\n    ")}"
+   end %>
+<% new_vcs = new_packages.map do |pkg|
+       pkg_import = []
+       if pkg.vcs
+           pkg_import = render_vcs(pkg.vcs)
+       else
+           pkg_import = ["type: git",
+                "url: git://gitorious.org/dummy_project/dummy_package.git",
+                "push_to: git@gitorious.org:dummy_project/dummy_package.git"]
+       end
+       "  - #{pkg.autobuild.name}\n    #{pkg_import.join("\n    ")}"
+   end %>
+# This section allows to make autoproj load some other package sets
+# automatically
+#
+# Example:
+#   - type: git
+#     url: git://gitorious.org/rock/package_set.git
+#
+# See http://rock-robotics.org/documentation/autoproj/advanced/cross_set_dependencies.html
+imports:
+<%= imports.join("\n") %>
+       
+
+# This section declares where the packages can be loaded from
+#
+# See http://rock-robotics.org/documentation/autoproj/advanced/importers.html
+version_control:
+<%= new_vcs.join("\n") %>
