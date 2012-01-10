@@ -15,7 +15,10 @@
 
      file.osdeps-ruby19
 
-   after a file.osdeps "normal" file gets loaded.
+   after a file.osdeps "normal" file gets loaded. It will allow in the long run
+   to use OS packages in version-dependent setup (i.e. different packages for
+   ruby 1.8 and 1.9 for instance)
+ * fix the auto-add feature
 
 = Version 1.7.14
  * fix support for local package sets, i.e. package sets that are saved in
