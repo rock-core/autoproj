@@ -1,10 +1,11 @@
 function acd {
     local pkg_path
-    pkg_path=$(autoproj locate $1 | tail -1)
+    pkg_path=$(autoproj locate $1)
 
     if [ $? != 0 ]; then
       return 1
     else
+      pkg_path=$(echo $pkg_path | tail -1)
       cd $pkg_path
       return 0
     fi
