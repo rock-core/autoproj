@@ -51,9 +51,7 @@ query = Autoproj::Query.parse_query(selection)
 
 packages =
     if search_all
-        Autoproj.manifest.packages.find_all do |name, pkg_def|
-            !Autoproj.manifest.package_selected?(name)
-        end
+        Autoproj.manifest.packages.to_a
     else
         Autoproj.manifest.all_selected_packages.map do |pkg_name|
             [pkg_name, Autoproj.manifest.packages[pkg_name]]
