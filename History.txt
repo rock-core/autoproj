@@ -19,6 +19,9 @@
    to use OS packages in version-dependent setup (i.e. different packages for
    ruby 1.8 and 1.9 for instance)
  * fix the auto-add feature
+ * add the --no-color option for non-console outputs (think build servers)
+ * splitted the "Build failed: reason" line into two lines to allow extraction
+   by Jenkins
 
 = Version 1.7.14
  * fix support for local package sets, i.e. package sets that are saved in
