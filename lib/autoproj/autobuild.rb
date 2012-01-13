@@ -152,7 +152,8 @@ module Autoproj
     class Reporter < Autobuild::Reporter
         def error(error)
             error_lines = error.to_s.split("\n")
-            Autoproj.progress("Build failed: #{error_lines.shift}", :bold, :red)
+            Autoproj.progress("Build failed", :bold, :red)
+            Autoproj.progress("#{error_lines.shift}", :bold, :red)
             error_lines.each do |line|
                 Autoproj.progress line
             end

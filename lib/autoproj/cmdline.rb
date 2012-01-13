@@ -14,14 +14,20 @@ module Autoproj
         if !silent?
             if args.empty?
                 puts
-            else
+            elsif CmdLine.color?
                 STDERR.puts console.color(*args)
+            else
+                STDERR.puts args.first
             end
         end
     end
 
     def self.color(*args)
-        console.color(*args)
+        if CmdLine.color?
+            console.color(*args)
+        else
+            args.first
+        end
     end
 
     # Displays an error message
@@ -744,6 +750,8 @@ module Autoproj
         def self.show_statistics?; !!@show_statistics end
         def self.ignore_dependencies?; @ignore_dependencies end
 
+        def self.color?; @color end
+
         def self.osdeps?; @mode == "osdeps" end
         def self.show_osdeps?; @mode == "osdeps" && @show_osdeps end
         def self.revshow_osdeps?; @mode == "osdeps" && @revshow_osdeps end
@@ -774,6 +782,7 @@ module Autoproj
             force_re_build_with_depends = nil
             @only_config = false
             @partial_build = false
+            @color = true
             Autobuild.doc_errors = false
             Autobuild.do_doc = false
             Autobuild.only_doc = false
@@ -848,6 +857,9 @@ where 'mode' is one of:
     EOBANNER
                 opts.on("--reconfigure", "re-ask all configuration options (build modes only)") do
                     Autoproj.reconfigure = true
+                end
+                opts.on("--[no-]color", "enable or disable color in status messages (enabled by default)") do |flag|
+                    @color = flag
                 end
                 opts.on("--version", "displays the version and then exits") do
                     puts "autoproj v#{Autoproj::VERSION}"
