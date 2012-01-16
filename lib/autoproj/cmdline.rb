@@ -783,6 +783,7 @@ module Autoproj
             @only_config = false
             @partial_build = false
             @color = true
+            Autobuild.color = true
             Autobuild.doc_errors = false
             Autobuild.do_doc = false
             Autobuild.only_doc = false
@@ -860,6 +861,7 @@ where 'mode' is one of:
                 end
                 opts.on("--[no-]color", "enable or disable color in status messages (enabled by default)") do |flag|
                     @color = flag
+                    Autobuild.color = flag
                 end
                 opts.on("--version", "displays the version and then exits") do
                     puts "autoproj v#{Autoproj::VERSION}"
