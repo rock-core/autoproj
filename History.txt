@@ -1,3 +1,9 @@
+= Version 1.7.16
+ * when a manifest.xml is invalid, make sure that the error message pinpoints
+   which package it concerns (mainly for proper reporting in build servers)
+ * stop displaying configuration after bootstrap. It's a lot of text and cannot
+   be read until you know what you are looking for
+
 = Version 1.7.15
  * remove dependency on nokogiri. This is the first step in an effort to make
    autoproj as straightforward to bootstrap as possible.
