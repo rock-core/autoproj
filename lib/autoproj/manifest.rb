@@ -2171,7 +2171,7 @@ module Autoproj
             doc =
                 begin REXML::Document.new(File.read(file))
                 rescue REXML::ParseException => e
-                    raise ConfigError, "invalid #{file}: #{e.message}"
+                    raise Autobuild::PackageException.new(package.name, 'prepare'), "invalid #{file}: #{e.message}"
                 end
 
             PackageManifest.new(package, doc)
