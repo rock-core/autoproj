@@ -15,7 +15,7 @@ Utilrb::Rake.hoe do
             self.changes     = paragraphs_of('History.txt', 0..1).join("\n\n")
 
             extra_deps << 
-                ['autobuild',   '>= 1.5.33'] <<
+                ['autobuild',   '>= 1.5.57'] <<
                 ['utilrb', '>= 1.3.3'] <<
                 ['highline', '>= 1.5.0']
         end

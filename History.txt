@@ -3,6 +3,7 @@
    which package it concerns (mainly for proper reporting in build servers)
  * stop displaying configuration after bootstrap. It's a lot of text and cannot
    be read until you know what you are looking for
+ * setup Autobuild.color to follow the --no-color option
 
 = Version 1.7.15
  * remove dependency on nokogiri. This is the first step in an effort to make

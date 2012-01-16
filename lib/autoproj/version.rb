@@ -1,3 +1,3 @@
 module Autoproj
-    VERSION = "1.7.16.rc2"
+    VERSION = "1.7.16"
 end
