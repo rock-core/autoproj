@@ -15,7 +15,7 @@ include Autoproj
 InputError = Autoproj::InputError
 
 def color(*args)
-    Autoproj.console.color(*args)
+    Autoproj.color(*args)
 end
 
 def report
