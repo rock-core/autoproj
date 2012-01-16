@@ -1019,7 +1019,7 @@ where 'mode' is one of:
                 bootstrap(*remaining_args)
                 remaining_args.clear
 
-                @display_configuration = true
+                @display_configuration = false
                 Autobuild.do_build  = false
                 Autobuild.do_update = false
                 @update_os_dependencies = false
