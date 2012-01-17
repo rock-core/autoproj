@@ -6,6 +6,7 @@ bin/amake
 bin/aup
 bin/autolocate
 bin/autoproj
+bin/autoproj-clean
 bin/autoproj-locate
 bin/autoproj-query
 bin/autoproj_bootstrap
