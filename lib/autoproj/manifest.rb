@@ -2189,14 +2189,14 @@ module Autoproj
         def tags
             result = []
             xml.elements.each('package/tags') do |node|
-                result.concat(node.text.strip.split(','))
+                result.concat((node.text || "").strip.split(','))
             end
             result
         end
 
         def documentation
             xml.elements.each('package/description') do |node|
-                doc = node.text.strip
+                doc = (node.text || "").strip
                 if !doc.empty?
                     return doc
                 end
@@ -2272,7 +2272,7 @@ module Autoproj
             end
 
             xml.elements.each('package/author') do |author|
-                author.text.strip.split(',').each do |str|
+                (author.text || "").strip.split(',').each do |str|
                     name, email = str.split('/').map(&:strip)
                     email = nil if email && email.empty?
                     yield(name, email)
@@ -2285,7 +2285,7 @@ module Autoproj
         # content is empty, returns nil
         def text_node(name)
             xml.elements.each(name) do |str|
-                str = str.text.strip
+                str = (str.text || "").strip
                 if !str.empty?
                     return str
                 end
