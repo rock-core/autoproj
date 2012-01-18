@@ -1,3 +1,8 @@
+= Version 1.7.17
+ * fix some return values in PackageManifest as REXML#text returns nil if no
+   text element is present while nokogiri was returning an empty string
+ * create autoproj clean
+
 = Version 1.7.16
  * when a manifest.xml is invalid, make sure that the error message pinpoints
    which package it concerns (mainly for proper reporting in build servers)
