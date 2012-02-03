@@ -528,7 +528,7 @@ module Autoproj
             selected_packages
         end
 
-        def self.verify_package_availability(pkg_name)
+        def self.verify_package_availability(pkg_name, stack = Array.new)
             if reason = Autoproj.manifest.exclusion_reason(pkg_name)
                 raise ConfigError.new, "#{pkg_name} is excluded from the build: #{reason}"
             end
@@ -536,13 +536,18 @@ module Autoproj
             if !pkg
                 raise ConfigError.new, "#{pkg_name} does not seem to exist"
             end
+            stack << pkg_name
 
             # Verify that its dependencies are there, and add
             # them to the selected_packages set so that they get
             # imported as well
             pkg.dependencies.each do |dep_name|
+                if stack.include?(dep_name)
+                    raise ConfigError.new, "circular dependency #{pkg.name} => #{dep_name}"
+                end
+
                 begin
-                    verify_package_availability(dep_name)
+                    verify_package_availability(dep_name, stack.dup)
                 rescue ConfigError => e
                     raise e, "#{pkg_name} depends on #{dep_name}, but #{e.message}"
                 end
