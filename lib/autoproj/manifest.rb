@@ -914,6 +914,10 @@ module Autoproj
             @user_blocks = []
         end
 
+        def name
+            autobuild.name
+        end
+
         def add_setup_block(block)
             user_blocks << block
             if setup?
