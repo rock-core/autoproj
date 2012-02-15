@@ -513,12 +513,13 @@ fi
         def availability_of(name)
             osdeps, gemdeps = partition_packages([name].to_set)
             if !osdeps.empty?
-                status = resolve_package(name)
-                if status.respond_to?(:to_ary) || status == IGNORE
-                    AVAILABLE
-                else
-                    status
+                osdeps.each do |dep_name|
+                    status = resolve_package(dep_name)
+                    if !status.respond_to?(:to_ary) && status != IGNORE
+                        return status
+                    end
                 end
+                AVAILABLE
             elsif !gemdeps.empty?
                 AVAILABLE
             else
