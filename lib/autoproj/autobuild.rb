@@ -101,14 +101,11 @@ module Autobuild
             end
 
             @os_packages ||= Set.new
-            Autoproj.manifest.resolve_package_name(name).each do |type, pkg|
-                if type == :osdeps
-                    @os_packages << pkg
-                elsif type == :package
-                    __depends_on__(pkg)
-                else raise Autoproj::InternalError, "expected package type to be either :osdeps or :package, got #{type.inspect}"
-                end
+            pkg_autobuild, pkg_os = partition_package(name)
+            pkg_autobuild.each do |pkg|
+                __depends_on__(pkg)
             end
+            @os_packages |= pkg_os.to_set
         end
 
         def depends_on_os_package(name)
@@ -123,16 +120,47 @@ module Autobuild
             optional_dependencies << name
         end
 
-        def resolve_optional_dependencies
-            optional_dependencies.each do |name|
-                if Autobuild::Package[name] && Autoproj.manifest.package_enabled?(name)
-                    if Autoproj.verbose
-                        STDERR.puts "adding optional dependency #{self.name} => #{name}"
-                    end
-                    depends_on(name)
-                elsif Autoproj.verbose
-                    STDERR.puts "NOT adding optional dependency #{self.name} => #{name}"
+        def partition_package(pkg_name)
+            pkg_autobuild, pkg_osdeps = [], []
+            Autoproj.manifest.resolve_package_name(pkg_name).each do |type, dep_name|
+                if type == :osdeps
+                    pkg_osdeps << dep_name
+                elsif type == :package
+                    pkg_autobuild << dep_name
+                else raise Autoproj::InternalError, "expected package type to be either :osdeps or :package, got #{type.inspect}"
                 end
+            end
+            return pkg_autobuild, pkg_osdeps
+        end
+
+        def partition_optional_dependencies
+            packages, osdeps, disabled = [], [], []
+            optional_dependencies.each do |name|
+                if !Autoproj.manifest.package_enabled?(name)
+                    disabled << name
+                    next
+                end
+
+                pkg_autobuild, pkg_osdeps = partition_package(name)
+                valid = pkg_autobuild.any? { |pkg| !Autoproj.manifest.package_enabled?(pkg) } ||
+                    pkg_osdeps.any? { |pkg| !Autoproj.manifest.package_enabled?(pkg) }
+
+                if valid
+                    packages.concat(pkg_autobuild)
+                    osdeps.concat(pkg_osdeps)
+                else
+                    disabled << name
+                end
+            end
+            return packages, osdeps, disabled
+        end
+
+        def resolve_optional_dependencies
+            if !Autoproj::CmdLine.ignore_dependencies?
+                packages, osdeps, disabled = partition_optional_dependencies
+                packages.each { |pkg| depends_on(packages) }
+                @os_packages ||= Set.new
+                @os_packages |= osdeps.to_set
             end
         end
 
