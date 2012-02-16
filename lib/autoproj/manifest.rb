@@ -1845,7 +1845,7 @@ module Autoproj
         # If it is false, the method will simply return false on non-defined
         # packages 
         def package_enabled?(name, validate = true)
-            if !Autobuild::Package[name]
+            if !Autobuild::Package[name] && !Autoproj.osdeps.has?(name)
                 if validate
                     raise ArgumentError, "package #{name} does not exist"
                 end
