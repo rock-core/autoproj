@@ -2047,6 +2047,12 @@ module Autoproj
             @osdeps_overrides[osdeps_name.to_s] = options
         end
 
+        # Remove any OSDeps override that has previously been added with
+        # #add_osdeps_overrides
+        def remove_osdeps_overrides(osdep_name)
+            @osdeps_overrides.delete(osdeps_name.to_s)
+        end
+
         # Package selection can be done in three ways:
         #  * as a subdirectory in the layout
         #  * as a on-disk directory
