@@ -1180,9 +1180,9 @@ where 'mode' is one of:
                         end
                     when Autobuild::Importer::Status::ADVANCED
                         result.local = true
-                        lines << Autoproj.color("  local contains #{status.local_commits.size} commit that remote does not have:", :magenta)
+                        lines << Autoproj.color("  local contains #{status.local_commits.size} commit that remote does not have:", :blue)
                         status.local_commits.each do |line|
-                            lines << Autoproj.color("    #{line}", :magenta)
+                            lines << Autoproj.color("    #{line}", :blue)
                         end
                     when Autobuild::Importer::Status::SIMPLE_UPDATE
                         result.remote = true
