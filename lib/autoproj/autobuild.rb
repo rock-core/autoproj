@@ -142,8 +142,8 @@ module Autobuild
                 end
 
                 pkg_autobuild, pkg_osdeps = partition_package(name)
-                valid = pkg_autobuild.any? { |pkg| !Autoproj.manifest.package_enabled?(pkg) } ||
-                    pkg_osdeps.any? { |pkg| !Autoproj.manifest.package_enabled?(pkg) }
+                valid = pkg_autobuild.all? { |pkg| Autoproj.manifest.package_enabled?(pkg) } &&
+                    pkg_osdeps.all? { |pkg| Autoproj.manifest.package_enabled?(pkg) }
 
                 if valid
                     packages.concat(pkg_autobuild)
@@ -158,7 +158,7 @@ module Autobuild
         def resolve_optional_dependencies
             if !Autoproj::CmdLine.ignore_dependencies?
                 packages, osdeps, disabled = partition_optional_dependencies
-                packages.each { |pkg| depends_on(packages) }
+                packages.each { |pkg| depends_on(pkg) }
                 @os_packages ||= Set.new
                 @os_packages |= osdeps.to_set
             end

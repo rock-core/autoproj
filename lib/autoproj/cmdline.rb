@@ -474,6 +474,10 @@ module Autoproj
                 if !opt_deps.empty?
                     Autoproj.progress "   disabled opt deps: #{opt_deps.join(", ")}"
                 end
+
+                if !pkg.os_packages.empty?
+                    Autoproj.progress "   OSdeps: #{pkg.os_packages.to_a.sort.join(", ")}"
+                end
             end
 
             if !packages_not_present.empty?
