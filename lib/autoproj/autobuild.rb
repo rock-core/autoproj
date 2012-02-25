@@ -136,7 +136,7 @@ module Autobuild
         def partition_optional_dependencies
             packages, osdeps, disabled = [], [], []
             optional_dependencies.each do |name|
-                if !Autoproj.manifest.package_enabled?(name)
+                if !Autoproj.manifest.package_enabled?(name, false)
                     disabled << name
                     next
                 end

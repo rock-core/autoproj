@@ -1,3 +1,9 @@
+= Version 1.7.20
+ * do not generate an error if an unknown package is used as an optional
+   dependency. The rationale is that one can then have optional features that
+   are only present if other package sets are included (as e.g. the presence or
+   not of RTT as a package, i.e. the rock.toolchain package set)
+
 = Version 1.7.19
  * use different colors for remote-only and local-only commits in autoproj
    status
