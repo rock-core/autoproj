@@ -1197,12 +1197,12 @@ where 'mode' is one of:
                     when Autobuild::Importer::Status::NEEDS_MERGE
                         result.local  = true
                         result.remote = true
-                        lines << Autoproj.color("  local and remote have diverged with respectively #{status.local_commits.size} and #{status.remote_commits.size} commits each", :magenta)
-                        lines << "  -- local commits --"
+                        lines << "  local and remote have diverged with respectively #{status.local_commits.size} and #{status.remote_commits.size} commits each"
+                        lines << Autoproj.color("  -- local commits --", :blue)
                         status.local_commits.each do |line|
-                            lines << Autoproj.color("   #{line}", :magenta)
+                            lines << Autoproj.color("   #{line}", :blue)
                         end
-                        lines << "  -- remote commits --"
+                        lines << Autoproj.color("  -- remote commits --", :magenta)
                         status.remote_commits.each do |line|
                             lines << Autoproj.color("   #{line}", :magenta)
                         end
