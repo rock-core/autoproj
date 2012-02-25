@@ -1,3 +1,9 @@
+= Version 1.7.19
+ * use different colors for remote-only and local-only commits in autoproj
+   status
+ * fix some issues with handling of osdeps vs. exclusion/ignore handling
+ * fix handling of optional dependencies that are provided by osdeps
+
 = Version 1.7.18
  * properly detect and report circular dependencies
 
