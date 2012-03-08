@@ -452,18 +452,19 @@ def ruby_package(options)
 
         # Set up code
         pkg.post_install do
-            Autobuild.progress "setting up Ruby package #{pkg.name}"
-            Autobuild.update_environment pkg.srcdir
-            # Add lib/ unconditionally, as we know that it is a ruby package.
-            # Autobuild will add it only if there is a .rb file in the directory
-            libdir = File.join(pkg.srcdir, 'lib')
-            if File.directory?(libdir)
-                Autobuild.env_add_path 'RUBYLIB', libdir
-            end
+            pkg.progress_start "setting up Ruby package %s" do
+                Autobuild.update_environment pkg.srcdir
+                # Add lib/ unconditionally, as we know that it is a ruby package.
+                # Autobuild will add it only if there is a .rb file in the directory
+                libdir = File.join(pkg.srcdir, 'lib')
+                if File.directory?(libdir)
+                    Autobuild.env_add_path 'RUBYLIB', libdir
+                end
 
-            if pkg.rake_setup_task && File.file?(File.join(pkg.srcdir, 'Rakefile'))
-                Autobuild::Subprocess.run pkg, 'post-install',
-                    'rake', pkg.rake_setup_task
+                if pkg.rake_setup_task && File.file?(File.join(pkg.srcdir, 'Rakefile'))
+                    Autobuild::Subprocess.run pkg, 'post-install',
+                        'rake', pkg.rake_setup_task, :working_directory => pkg.srcdir
+                end
             end
         end
 
@@ -474,8 +475,9 @@ def ruby_package(options)
         # rake_doc_task to nil
         if !pkg.has_doc? && pkg.rake_doc_task
             pkg.doc_task do
-                pkg.progress "generating documentation for %s"
-                Autobuild::Subprocess.run pkg, 'doc', 'rake', pkg.rake_doc_task
+                pkg.progress_start "generating documentation for %s" do
+                    Autobuild::Subprocess.run pkg, 'doc', 'rake', pkg.rake_doc_task, :working_directory => pkg.srcdir
+                end
             end
         end
     end
