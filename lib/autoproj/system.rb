@@ -132,9 +132,9 @@ module Autoproj
             if shell_kind =~ /^\w+$/
                 shell_file = File.join(shell_dir, "autoproj_#{shell_kind}")
                 if File.exists?(shell_file)
-                    Autoproj.progress
-                    Autoproj.progress "autodetected the shell to be #{shell_kind}, sourcing autoproj shell helpers"
-                    Autoproj.progress "add \"Autoproj.shell_helpers = false\" in autoproj/init.rb to disable"
+                    Autoproj.message
+                    Autoproj.message "autodetected the shell to be #{shell_kind}, sourcing autoproj shell helpers"
+                    Autoproj.message "add \"Autoproj.shell_helpers = false\" in autoproj/init.rb to disable"
                     Autobuild.env_source_file(shell_file)
                 end
             end
@@ -183,7 +183,7 @@ module Autoproj
 
             output = `ldd -r #{name} 2>&1`
             if output =~ /undefined symbol/
-                Autoproj.progress("  WARN: #{name} has undefined symbols", :magenta)
+                Autoproj.message("  WARN: #{name} has undefined symbols", :magenta)
             end
         end
     end

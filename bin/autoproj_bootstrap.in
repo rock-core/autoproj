@@ -57,7 +57,7 @@ module Autoproj
         string
     end
 
-    def self.progress(str)
+    def self.message(str)
         STDERR.puts "  #{str}"
     end
 end
@@ -66,7 +66,7 @@ module Autobuild
     def self.do_update
         true
     end
-    def self.progress(str)
+    def self.message(str)
         STDERR.puts "  #{str}"
     end
 

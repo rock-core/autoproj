@@ -69,7 +69,7 @@ module Autoproj
         def self.load_default
             file = ENV['AUTOPROJ_DEFAULT_OSDEPS'] || AUTOPROJ_OSDEPS
             if !File.file?(file)
-                Autoproj.progress "WARN: #{file} (from AUTOPROJ_DEFAULT_OSDEPS) is not a file, falling back to #{AUTOPROJ_OSDEPS}"
+                Autoproj.warn "#{file} (from AUTOPROJ_DEFAULT_OSDEPS) is not a file, falling back to #{AUTOPROJ_OSDEPS}"
                 file = AUTOPROJ_OSDEPS
             end
             OSDependencies.load(file)
@@ -89,7 +89,7 @@ module Autoproj
         # install RubyGems packages
         def gem_fetcher
             if !@gem_fetcher
-                Autobuild.progress "looking for RubyGems updates"
+                Autoproj.message "looking for RubyGems updates"
                 @gem_fetcher = Gem::SpecFetcher.fetcher
             end
             @gem_fetcher
@@ -219,7 +219,7 @@ module Autoproj
                     @operating_system = [names.split(','), versions.split(',')]
                 end
             else
-                Autoproj.progress "  autodetecting the operating system"
+                Autoproj.message "  autodetecting the operating system"
                 name, versions = os_from_lsb
                 if name
                     if name != "debian"
@@ -312,7 +312,7 @@ module Autoproj
             if package_name =~ /^(\w[a-z0-9+-.]+)/
                 @dpkg_installed_packages.include?($1)
             else
-                Autoproj.progress "WARN: #{package_name} is not a valid Debian package name"
+                Autoproj.warn "#{package_name} is not a valid Debian package name"
                 false
             end
         end
@@ -428,7 +428,7 @@ fi
                     end
                 end
                 if Autoproj.verbose
-                    Autoproj.progress "selected OS version #{found} for osdep #{name}: #{version_entry.inspect}"
+                    Autoproj.message "selected OS version #{found} for osdep #{name}: #{version_entry.inspect}"
                 end
 
                 if !version_entry
@@ -953,17 +953,17 @@ So, what do you want ? (all, ruby, os or none)
                     user_shell_script = generate_user_os_script(os_names, os_packages)
                 end
                 if osdeps_interaction(osdeps, os_packages, user_shell_script, silent?)
-                    Autoproj.progress "  installing OS packages: #{os_packages.sort.join(", ")}"
+                    Autoproj.message "  installing OS packages: #{os_packages.sort.join(", ")}"
 
                     if Autoproj.verbose
-                        Autoproj.progress "Generating installation script for non-ruby OS dependencies"
-                        Autoproj.progress shell_script
+                        Autoproj.message "Generating installation script for non-ruby OS dependencies"
+                        Autoproj.message shell_script
                     end
 
                     File.open('/tmp/autoproj_osdeps_lock', 'w') do |lock_io|
                         begin
                             while !lock_io.flock(File::LOCK_EX | File::LOCK_NB)
-                                Autoproj.progress "  waiting for other autoproj instances to finish their osdeps installation"
+                                Autoproj.message "  waiting for other autoproj instances to finish their osdeps installation"
                                 sleep 5
                             end
 
@@ -1005,7 +1005,7 @@ So, what do you want ? (all, ruby, os or none)
                 end
 
                 if gems_interaction(gems, cmdlines, silent?)
-                    Autobuild.progress "installing/updating RubyGems dependencies: #{gems.map { |g| g.join(" ") }.sort.join(", ")}"
+                    Autoproj.message "installing/updating RubyGems dependencies: #{gems.map { |g| g.join(" ") }.sort.join(", ")}"
 
                     cmdlines.each do |c|
                         Autobuild::Subprocess.run 'autoproj', 'osdeps', *c

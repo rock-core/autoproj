@@ -1483,7 +1483,7 @@ module Autoproj
                     next if updated_sets.has_key?(pkg_set.repository_id)
 
                     if !pkg_set.explicit?
-                        Autoproj.progress "  #{pkg_set.imported_from.name}: auto-importing #{pkg_set.name}"
+                        Autoproj.message "  #{pkg_set.imported_from.name}: auto-importing #{pkg_set.name}"
                     end
                     known_remotes << update_remote_set(pkg_set, remotes_symlinks_dir)
                     updated_sets[pkg_set.repository_id] = pkg_set
@@ -2014,7 +2014,7 @@ module Autoproj
                 end
                 if ignored?(pkg)
                     if Autoproj.verbose
-                        Autoproj.progress "ignoring osdeps package #{pkg}"
+                        Autoproj.message "ignoring osdeps package #{pkg}"
                     end
                     true
                 end

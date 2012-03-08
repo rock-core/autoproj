@@ -61,12 +61,12 @@ module Autobuild
             post_install do
                 path = File.join(prefix, 'lib', 'pkgconfig')
                 Dir.glob(File.join(path, "#{name}-*.pc")) do |pcfile|
-                    Autoproj.progress "  removing obsolete file #{pcfile}", :bold
+                    Autoproj.message "  removing obsolete file #{pcfile}", :bold
                     FileUtils.rm_f pcfile
                 end
                 pcfile = File.join(path, "orogen-project-#{name}.pc")
                 if File.exists?(pcfile)
-                    Autoproj.progress "  removing obsolete file #{pcfile}", :bold
+                    Autoproj.message "  removing obsolete file #{pcfile}", :bold
                     FileUtils.rm_f pcfile
                 end
             end
@@ -78,7 +78,7 @@ module Autobuild
             post_install do
                 path = File.join(prefix, *path)
                 if File.exists?(path)
-                    Autoproj.progress "  removing obsolete file #{path}", :bold
+                    Autoproj.message "  removing obsolete file #{path}", :bold
                     FileUtils.rm_f path
                 end
             end
@@ -180,16 +180,16 @@ module Autoproj
     class Reporter < Autobuild::Reporter
         def error(error)
             error_lines = error.to_s.split("\n")
-            Autoproj.progress("Build failed", :bold, :red)
-            Autoproj.progress("#{error_lines.shift}", :bold, :red)
+            Autoproj.message("Build failed", :bold, :red)
+            Autoproj.message("#{error_lines.shift}", :bold, :red)
             error_lines.each do |line|
-                Autoproj.progress line
+                Autoproj.message line
             end
         end
         def success
-            Autoproj.progress("Build finished successfully at #{Time.now}", :bold, :green)
+            Autoproj.message("Build finished successfully at #{Time.now}", :bold, :green)
             if Autobuild.post_success_message
-                Autoproj.progress Autobuild.post_success_message
+                Autoproj.message Autobuild.post_success_message
             end
         end
     end

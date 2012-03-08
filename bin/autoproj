@@ -260,21 +260,21 @@ EOTEXT
 
     if Autoproj::CmdLine.update_envsh?
         Autoproj.export_env_sh
-        Autoproj.progress "autoproj: updated #{Autoproj.root_dir}/env.sh", :green
+        Autoproj.message "autoproj: updated #{Autoproj.root_dir}/env.sh", :green
     end
 
     if Autoproj::CmdLine.show_statistics?
         per_phase = Hash.new
         per_type  = Hash.new
 
-        Autoproj.progress
-        Autoproj.progress "statistics about the build", :bold
+        Autoproj.message
+        Autoproj.message "statistics about the build", :bold
 
         Autoproj.manifest.each_package.sort_by(&:name).each do |pkg|
             next if pkg.statistics.empty?
 
             if per_phase.empty?
-                Autoproj.progress "detailed per package"
+                Autoproj.message "detailed per package"
             end
 
             puts "  #{pkg.name}: %.1fs" % [pkg.statistics.values.inject(&:+)]
@@ -289,21 +289,21 @@ EOTEXT
         end
 
         if !per_type.empty?
-            Autoproj.progress
-            Autoproj.progress "detailed per package type"
+            Autoproj.message
+            Autoproj.message "detailed per package type"
             per_type.each do |pkg_type, phases|
-                Autoproj.progress "  #{pkg_type.name}: %.1fs" % [phases.values.inject(&:+)]
+                Autoproj.message "  #{pkg_type.name}: %.1fs" % [phases.values.inject(&:+)]
                 phases.each_key.sort.each do |phase_name|
-                    Autoproj.progress "    #{phase_name}: %.1fs" % [phases[phase_name]]
+                    Autoproj.message "    #{phase_name}: %.1fs" % [phases[phase_name]]
                 end
             end
         end
 
         if !per_phase.empty?
-            Autoproj.progress
-            Autoproj.progress "summary per phase"
+            Autoproj.message
+            Autoproj.message "summary per phase"
             per_phase.keys.sort.each do |phase_name|
-                Autoproj.progress "  #{phase_name}: %.1fs" % [per_phase[phase_name]]
+                Autoproj.message "  #{phase_name}: %.1fs" % [per_phase[phase_name]]
             end
         end
     end

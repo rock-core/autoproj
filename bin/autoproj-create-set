@@ -8,7 +8,7 @@ root_dir  = Autoproj::CmdLine.initialize_root_directory
 selection = Autoproj::CmdLine.initialize_and_load(ARGV)
 
 if !(new_set_path = File.expand_path(selection.shift, pwd))
-    Autoproj.progress("missing package set name on the command line", :red)
+    Autoproj.message("missing package set name on the command line", :red)
     exit 1
 end
 new_set_name = File.basename(new_set_path)

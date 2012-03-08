@@ -10,34 +10,24 @@ module Autoproj
     @verbose = false
     @console = HighLine.new
 
-    def self.progress(*args)
+    def self.message(*args)
         if !silent?
-            if args.empty?
-                puts
-            elsif CmdLine.color?
-                STDERR.puts console.color(*args)
-            else
-                STDERR.puts args.first
-            end
+            Autobuild.message(*args)
         end
     end
 
     def self.color(*args)
-        if CmdLine.color?
-            console.color(*args)
-        else
-            args.first
-        end
+        Autobuild.color(*args)
     end
 
     # Displays an error message
     def self.error(message)
-        Autoproj.progress("  ERROR: #{message}", :red, :bold)
+        Autoproj.message("  ERROR: #{message}", :red, :bold)
     end
 
     # Displays a warning message
     def self.warn(message)
-        Autoproj.progress("  WARN: #{message}", :magenta)
+        Autoproj.message("  WARN: #{message}", :magenta)
     end
 
     module CmdLine
@@ -161,7 +151,7 @@ module Autoproj
             # First things first, see if we need to update ourselves
             if Autoproj.osdeps.install(%w{autobuild autoproj})
                 puts
-                Autoproj.progress 'autoproj and/or autobuild has been updated, restarting autoproj'
+                Autoproj.message 'autoproj and/or autobuild has been updated, restarting autoproj'
                 puts
 
                 # We updated autobuild or autoproj themselves ... Restart !
@@ -197,11 +187,11 @@ module Autoproj
 
             # Load the required autobuild definitions
             if !silent
-                Autoproj.progress("autoproj: loading ...", :bold)
+                Autoproj.message("autoproj: loading ...", :bold)
                 if !Autoproj.reconfigure?
-                    Autoproj.progress("run 'autoproj reconfigure' to change configuration options", :bold)
-                    Autoproj.progress("and use 'autoproj switch-config' to change the remote source for", :bold)
-                    Autoproj.progress("autoproj's main build configuration", :bold)
+                    Autoproj.message("run 'autoproj reconfigure' to change configuration options", :bold)
+                    Autoproj.message("and use 'autoproj switch-config' to change the remote source for", :bold)
+                    Autoproj.message("autoproj's main build configuration", :bold)
                 end
             end
             manifest.each_autobuild_file do |source, name|
@@ -226,7 +216,7 @@ module Autoproj
                 next if !File.directory?(full_path)
 
                 if handler = Autoproj.package_handler_for(full_path)
-                    Autoproj.progress "  auto-adding #{pkg_or_set} #{"in #{layout_level} " if layout_level != "/"}using the #{handler.gsub(/_package/, '')} package handler"
+                    Autoproj.message "  auto-adding #{pkg_or_set} #{"in #{layout_level} " if layout_level != "/"}using the #{handler.gsub(/_package/, '')} package handler"
                     Autoproj.in_package_set(manifest.local_package_set, manifest.file) do
                         send(handler, pkg_or_set)
                     end
@@ -264,7 +254,7 @@ module Autoproj
             # Update the remote sources if there are any
             if manifest.has_remote_sources?
                 if manifest.should_update_remote_sources
-                    Autoproj.progress("autoproj: updating remote definitions of package sets", :bold)
+                    Autoproj.message("autoproj: updating remote definitions of package sets", :bold)
                 end
 
                 # If we need to install some packages to import our remote sources, do it
@@ -275,7 +265,7 @@ module Autoproj
                 if manifest.should_update_remote_sources
                     manifest.update_remote_sources
                 end
-                Autoproj.progress
+                Autoproj.message
             end
         end
 
@@ -386,52 +376,52 @@ module Autoproj
             end
 
             if package_sets.empty?
-                Autoproj.progress("autoproj: no package sets defined in autoproj/manifest", :bold, :red)
+                Autoproj.message("autoproj: no package sets defined in autoproj/manifest", :bold, :red)
                 return
             end
 
-            Autoproj.progress
-            Autoproj.progress("autoproj: package sets", :bold)
+            Autoproj.message
+            Autoproj.message("autoproj: package sets", :bold)
             package_sets.sort_by(&:name).each do |pkg_set|
                 next if pkg_set.empty?
                 if pkg_set.imported_from
-                    Autoproj.progress "#{pkg_set.name} (imported by #{pkg_set.imported_from.name})"
+                    Autoproj.message "#{pkg_set.name} (imported by #{pkg_set.imported_from.name})"
                 else
-                    Autoproj.progress "#{pkg_set.name} (listed in manifest)"
+                    Autoproj.message "#{pkg_set.name} (listed in manifest)"
                 end
                 if pkg_set.local?
-                    Autoproj.progress "  local set in #{pkg_set.local_dir}"
+                    Autoproj.message "  local set in #{pkg_set.local_dir}"
                 else
-                    Autoproj.progress "  from:  #{pkg_set.vcs}"
-                    Autoproj.progress "  local: #{pkg_set.local_dir}"
+                    Autoproj.message "  from:  #{pkg_set.vcs}"
+                    Autoproj.message "  local: #{pkg_set.local_dir}"
                 end
 
                 imports = pkg_set.each_imported_set.to_a
                 if !imports.empty?
-                    Autoproj.progress "  imports #{imports.size} package sets"
+                    Autoproj.message "  imports #{imports.size} package sets"
                     if !pkg_set.auto_imports?
-                        Autoproj.progress "    automatic imports are DISABLED for this set"
+                        Autoproj.message "    automatic imports are DISABLED for this set"
                     end
                     imports.each do |imported_set|
-                        Autoproj.progress "    #{imported_set.name}"
+                        Autoproj.message "    #{imported_set.name}"
                     end
                 end
 
                 set_packages = pkg_set.each_package.sort_by(&:name)
-                Autoproj.progress "  defines: #{set_packages.map(&:name).join(", ")}"
+                Autoproj.message "  defines: #{set_packages.map(&:name).join(", ")}"
             end
 
-            Autoproj.progress
-            Autoproj.progress("autoproj: metapackages", :bold)
+            Autoproj.message
+            Autoproj.message("autoproj: metapackages", :bold)
             metapackages.sort_by(&:name).each do |metap|
-                Autoproj.progress "#{metap.name}"
-                Autoproj.progress "  includes: #{metap.packages.map(&:name).sort.join(", ")}"
+                Autoproj.message "#{metap.name}"
+                Autoproj.message "  includes: #{metap.packages.map(&:name).sort.join(", ")}"
             end
 
             packages_not_present = []
 
-            Autoproj.progress
-            Autoproj.progress("autoproj: packages", :bold)
+            Autoproj.message
+            Autoproj.message("autoproj: packages", :bold)
             all_packages.to_a.sort_by(&:first).map(&:last).each do |pkg, pkg_set|
                 if File.exists?(File.join(pkg.srcdir, "manifest.xml"))
                     manifest.load_package_manifest(pkg.name)
@@ -440,48 +430,48 @@ module Autoproj
 
                 pkg_manifest = pkg.description
                 vcs_def = manifest.importer_definition_for(pkg.name)
-                Autoproj.progress "#{pkg.name}#{": #{pkg_manifest.short_documentation}" if pkg_manifest && pkg_manifest.short_documentation}", :bold
+                Autoproj.message "#{pkg.name}#{": #{pkg_manifest.short_documentation}" if pkg_manifest && pkg_manifest.short_documentation}", :bold
                 tags = pkg.tags.to_a
                 if tags.empty?
-                    Autoproj.progress "   no tags"
+                    Autoproj.message "   no tags"
                 else
-                    Autoproj.progress "   tags: #{pkg.tags.to_a.sort.join(", ")}"
+                    Autoproj.message "   tags: #{pkg.tags.to_a.sort.join(", ")}"
                 end
-                Autoproj.progress "   defined in package set #{pkg_set}"
+                Autoproj.message "   defined in package set #{pkg_set}"
                 if File.directory?(pkg.srcdir)
-                    Autoproj.progress "   checked out in #{pkg.srcdir}"
+                    Autoproj.message "   checked out in #{pkg.srcdir}"
                 else
-                    Autoproj.progress "   will be checked out in #{pkg.srcdir}"
+                    Autoproj.message "   will be checked out in #{pkg.srcdir}"
                 end
-                Autoproj.progress "   #{vcs_def.to_s}"
+                Autoproj.message "   #{vcs_def.to_s}"
 
                 if !File.directory?(pkg.srcdir)
                     packages_not_present << pkg.name
-                    Autoproj.progress "   NOT checked out yet, reported dependencies will be partial"
+                    Autoproj.message "   NOT checked out yet, reported dependencies will be partial"
                 end
 
                 optdeps = pkg.optional_dependencies.to_set
                 real_deps = pkg.dependencies.to_a
                 actual_real_deps = real_deps.find_all { |dep_name| !optdeps.include?(dep_name) }
                 if !actual_real_deps.empty?
-                    Autoproj.progress "   deps: #{actual_real_deps.join(", ")}"
+                    Autoproj.message "   deps: #{actual_real_deps.join(", ")}"
                 end
 
                 selected_opt_deps, opt_deps = optdeps.partition { |dep_name| real_deps.include?(dep_name) }
                 if !selected_opt_deps.empty?
-                    Autoproj.progress "   enabled opt deps: #{selected_opt_deps.join(", ")}"
+                    Autoproj.message "   enabled opt deps: #{selected_opt_deps.join(", ")}"
                 end
                 if !opt_deps.empty?
-                    Autoproj.progress "   disabled opt deps: #{opt_deps.join(", ")}"
+                    Autoproj.message "   disabled opt deps: #{opt_deps.join(", ")}"
                 end
 
                 if !pkg.os_packages.empty?
-                    Autoproj.progress "   OSdeps: #{pkg.os_packages.to_a.sort.join(", ")}"
+                    Autoproj.message "   OSdeps: #{pkg.os_packages.to_a.sort.join(", ")}"
                 end
             end
 
             if !packages_not_present.empty?
-                Autoproj.progress
+                Autoproj.message
                 Autoproj.warn "the following packages are not yet checked out:"
                 packages_not_present.each_slice(4) do |*packages|
                     Autoproj.warn "  #{packages.join(", ")}"
@@ -508,7 +498,7 @@ module Autoproj
                 next if !File.directory?(sel)
                 while sel != '/'
                     if handler = Autoproj.package_handler_for(sel)
-                        Autoproj.progress "  auto-adding #{sel} using the #{handler.gsub(/_package/, '')} package handler"
+                        Autoproj.message "  auto-adding #{sel} using the #{handler.gsub(/_package/, '')} package handler"
                         sel = File.expand_path(sel)
                         relative_to_root = Pathname.new(sel).relative_path_from(Pathname.new(Autoproj.root_dir))
                         pkg = Autoproj.in_package_set(manifest.local_package_set, manifest.file) do
@@ -524,10 +514,10 @@ module Autoproj
             end
 
             if !nonresolved.empty?
-                Autoproj.progress("autoproj: wrong package selection on command line, cannot find a match for #{nonresolved.to_a.join(", ")}", :red)
+                Autoproj.message("autoproj: wrong package selection on command line, cannot find a match for #{nonresolved.to_a.join(", ")}", :red)
                 exit 1
             elsif Autoproj.verbose
-                Autoproj.progress "will install #{selected_packages.to_a.join(", ")}"
+                Autoproj.message "will install #{selected_packages.to_a.join(", ")}"
             end
             selected_packages
         end
@@ -667,7 +657,7 @@ module Autoproj
             end
 
             if Autoproj.verbose
-                Autoproj.progress "autoproj: finished importing packages"
+                Autoproj.message "autoproj: finished importing packages"
             end
             if Autoproj::CmdLine.list_newest?
                 fields = []
@@ -686,7 +676,7 @@ module Autoproj
                 end
                 format = "  %-#{field_sizes[0]}s %-#{field_sizes[1]}s at %-#{field_sizes[2]}s"
                 fields.each do |line|
-                    Autoproj.progress(format % line)
+                    Autoproj.message(format % line)
                 end
             end
 
@@ -696,9 +686,9 @@ module Autoproj
         def self.build_packages(selected_packages, all_enabled_packages)
             if Autoproj::CmdLine.doc?
                 Autobuild.only_doc = true
-                Autoproj.progress("autoproj: building and installing documentation", :bold)
+                Autoproj.message("autoproj: building and installing documentation", :bold)
             else
-                Autoproj.progress("autoproj: building and installing packages", :bold)
+                Autoproj.message("autoproj: building and installing packages", :bold)
             end
 
             if Autoproj::CmdLine.update_os_dependencies?
@@ -1210,21 +1200,21 @@ where 'mode' is one of:
                 end
 
                 if last_was_in_sync
-                    Autoproj.progress(": local and remote are in sync", :green)
+                    Autoproj.message(": local and remote are in sync", :green)
                 end
 
                 last_was_in_sync = false
                 STDERR.print "#{pkg_name}:"
 
                 if lines.size == 1
-                    Autoproj.progress lines.first
+                    Autoproj.message lines.first
                 else
-                    Autoproj.progress
-                    Autoproj.progress lines.join("\n")
+                    Autoproj.message
+                    Autoproj.message lines.join("\n")
                 end
             end
             if last_was_in_sync
-                Autoproj.progress(": local and remote are in sync", :green)
+                Autoproj.message(": local and remote are in sync", :green)
             end
             return result
         end
@@ -1238,13 +1228,13 @@ where 'mode' is one of:
                 end
 
             if !sources.empty?
-                Autoproj.progress("autoproj: displaying status of configuration", :bold)
+                Autoproj.message("autoproj: displaying status of configuration", :bold)
                 display_status(sources)
                 STDERR.puts
             end
 
 
-            Autoproj.progress("autoproj: displaying status of packages", :bold)
+            Autoproj.message("autoproj: displaying status of packages", :bold)
             packages = packages.sort.map do |pkg_name|
                 Autobuild::Package[pkg_name]
             end
@@ -1401,12 +1391,12 @@ where 'mode' is one of:
             if ENV['GEM_HOME'] && Autoproj.in_autoproj_installation?(ENV['GEM_HOME']) &&
                 ENV['GEM_HOME'] != gem_home
                 if !File.exists?(gem_home)
-                    Autoproj.progress "autoproj: reusing bootstrap from #{File.dirname(ENV['GEM_HOME'])}"
+                    Autoproj.message "autoproj: reusing bootstrap from #{File.dirname(ENV['GEM_HOME'])}"
                     FileUtils.cp_r ENV['GEM_HOME'], gem_home
                 end
                 ENV['GEM_HOME'] = gem_home
 
-                Autoproj.progress "restarting bootstrapping from #{Dir.pwd}"
+                Autoproj.message "restarting bootstrapping from #{Dir.pwd}"
 
                 require 'rbconfig'
                 ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
@@ -1422,7 +1412,7 @@ where 'mode' is one of:
 
             if args.size == 1 # the user asks us to download a manifest
                 manifest_url = args.first
-                Autoproj.progress("autoproj: downloading manifest file #{manifest_url}", :bold)
+                Autoproj.message("autoproj: downloading manifest file #{manifest_url}", :bold)
                 manifest_data =
                     begin open(manifest_url) { |file| file.read }
                     rescue
@@ -1495,8 +1485,8 @@ export PATH=$GEM_HOME/bin:$PATH
                 end
 
                 if !result.empty?
-                    Autoproj.progress pkg.name
-                    Autoproj.progress "  #{result.join("\n  ")}"
+                    Autoproj.message pkg.name
+                    Autoproj.message "  #{result.join("\n  ")}"
                 end
             end
         end
@@ -1534,9 +1524,9 @@ export PATH=$GEM_HOME/bin:$PATH
                         io.write xml.to_xml
                     end
                     if !manifest
-                        Autoproj.progress "created #{path}"
+                        Autoproj.message "created #{path}"
                     else
-                        Autoproj.progress "modified #{path}"
+                        Autoproj.message "modified #{path}"
                     end
                 end
             end
@@ -1555,10 +1545,10 @@ export PATH=$GEM_HOME/bin:$PATH
                 package  = Autobuild::Package[package_name]
                 importer = package.importer
                 if !importer
-                    Autoproj.progress "cannot snapshot #{package_name} as it has no importer"
+                    Autoproj.message "cannot snapshot #{package_name} as it has no importer"
                     next
                 elsif !importer.respond_to?(:snapshot)
-                    Autoproj.progress "cannot snapshot #{package_name} as the #{importer.class} importer does not support it"
+                    Autoproj.message "cannot snapshot #{package_name} as the #{importer.class} importer does not support it"
                     next
                 end
 
@@ -1771,8 +1761,8 @@ export PATH=$GEM_HOME/bin:$PATH
 
 
             root = Pathname.new(Autoproj.root_dir)
-            Autoproj.progress
-            Autoproj.progress "The following directories are not part of a package used in the current autoproj installation", :bold
+            Autoproj.message
+            Autoproj.message "The following directories are not part of a package used in the current autoproj installation", :bold
             unused.to_a.sort.each do |dir|
                 puts "  #{Pathname.new(dir).relative_path_from(root)}"
             end

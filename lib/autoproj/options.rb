@@ -61,7 +61,7 @@ module Autoproj
             validate(answer)
 
         rescue InputError => e
-            Autoproj.progress("invalid value: #{e.message}", :red)
+            Autoproj.message("invalid value: #{e.message}", :red)
             retry
         end
 
@@ -129,7 +129,7 @@ module Autoproj
                 if doc[-1, 1] != "?"
                     doc = "#{doc}:"
                 end
-                Autoproj.progress "  #{doc} #{value}"
+                Autoproj.message "  #{doc} #{value}"
                 @user_config[key] = [value, true]
             end
             value
