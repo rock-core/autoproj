@@ -904,6 +904,10 @@ where 'mode' is one of:
                 opts.on("--show", "in osdeps mode, show a per-package listing of the OS dependencies instead of installing them") do
                     @show_osdeps = true
                 end
+                opts.on('--version') do
+                    Autoproj.message "autoproj v#{Autoproj::VERSION}"
+                    Autoproj.message "autobuild v#{Autobuild::VERSION}"
+                end
                 opts.on("--all", "in osdeps mode, install both OS packages and RubyGem packages, regardless of the otherwise selected mode") do
                     @osdeps_forced_mode = 'all'
                 end
