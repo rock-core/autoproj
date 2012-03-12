@@ -2098,7 +2098,7 @@ module Autoproj
                 match_pkg_name = Regexp.new(Regexp.quote(sel))
                 all_packages.each do |pkg_name|
                     pkg = Autobuild::Package[pkg_name]
-                    if pkg_name =~ match_pkg_name || sel =~ Regexp.new("^#{Regexp.quote(pkg.srcdir)}") || pkg.srcdir =~ Regexp.new("^#{Regexp.quote(sel)}")
+                    if pkg_name =~ match_pkg_name || "#{sel}/" =~ Regexp.new("^#{Regexp.quote(pkg.srcdir)}/") || pkg.srcdir =~ Regexp.new("^#{Regexp.quote(sel)}")
                         # Check-out packages that are not in the manifest only
                         # if they are explicitely selected
                         if !all_layout_packages.include?(pkg.name)

@@ -93,7 +93,7 @@ EOTEXT
     root_dir = Autoproj.root_dir
     selected_packages.map! do |name|
         if File.directory?(name)
-            File.expand_path(name)
+            File.expand_path(name) + File::SEPARATOR
         else
             name
         end
