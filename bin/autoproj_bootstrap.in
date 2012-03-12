@@ -168,7 +168,7 @@ end
 # run autoproj bootstrap manually.
 if ARGV.first != "localdev"
     if ARGV.first == "dev"
-        Autoproj::OSDependencies.gem_with_prerelease = true
+        Autoproj::PackageManagers::GemManager.with_prerelease = true
         ARGV.shift
     end
     begin
@@ -178,7 +178,7 @@ if ARGV.first != "localdev"
         STDERR.puts "failed: #{e.message}"
         exit(1)
     end
-    Autoproj::OSDependencies.gem_with_prerelease = false
+    Autoproj::PackageManagers::GemManager.with_prerelease = false
 
     if !system('autoproj', 'bootstrap', *ARGV)
         STDERR.puts "ERROR: failed to run autoproj bootstrap #{ARGV.join(", ")}"

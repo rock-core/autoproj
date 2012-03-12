@@ -1709,8 +1709,7 @@ module Autoproj
                 # a proper error message.
                 if !available_as_source
                     begin
-                        osdeps, gems = Autoproj.osdeps.partition_packages([name].to_set)
-                        Autoproj.osdeps.resolve_os_dependencies(osdeps)
+                        Autoproj.osdeps.resolve_os_dependencies([name].to_set)
                     rescue Autoproj::ConfigError => e
                         if osdeps_availability != Autoproj::OSDependencies::NO_PACKAGE && !Autoproj.osdeps.installs_os_packages?
                             Autoproj.warn "in #{File.join(srcdir, 'manifest.xml')}: #{e.message}"

@@ -1,5 +1,376 @@
 require 'tempfile'
 module Autoproj
+    # Module that contains the package manager implementations for the
+    # OSDependencies class
+    module PackageManagers
+        # Base class for all package managers. Subclasses must add the
+        # #install(packages) method and may add the
+        # #filter_uptodate_packages(packages) method
+        class Manager
+            attr_reader :names
+
+            attr_writer :enabled
+            def enabled?; !!@enabled end
+
+            attr_writer :silent
+            def silent?; !!@silent end
+
+            def initialize(names = [])
+                @names = names.dup
+                @enabled = true
+                @silent = true
+            end
+        end
+
+        # Dummy package manager used for unknown OSes. It simply displays a
+        # message to the user when packages are needed
+        class UnknownOSManager < Manager
+            def osdeps_interaction_unknown_os(osdeps)
+                puts <<-EOMSG
+                #{Autoproj.color("The build process requires some other software packages to be installed on our operating system", :bold)}
+                #{Autoproj.color("If they are already installed, simply ignore this message", :red)}
+
+                #{osdeps.join("\n    ")}
+
+                EOMSG
+                print Autoproj.color("Press ENTER to continue", :bold)
+                STDOUT.flush
+                STDIN.readline
+                puts
+                nil
+            end
+
+
+            def install(osdeps)
+                if silent?
+                    return false
+                else
+                    return osdeps_interaction_unknown_os(osdeps)
+                end
+            end
+        end
+
+        # Base class for all package managers that simply require the call of a
+        # shell script to install packages (e.g. yum, apt, ...)
+        class ShellScriptManager < Manager
+            def self.execute_as_root(script, with_locking)
+                if with_locking
+                    File.open('/tmp/autoproj_osdeps_lock', 'w') do |lock_io|
+                        begin
+                            while !lock_io.flock(File::LOCK_EX | File::LOCK_NB)
+                                Autoproj.message "  waiting for other autoproj instances to finish their osdeps installation"
+                                sleep 5
+                            end
+                            return execute_as_root(script, false)
+                        ensure
+                            lock_io.flock(File::LOCK_UN)
+                        end
+                    end
+                end
+
+
+                Tempfile.open('osdeps_sh') do |io|
+                    io.puts "#! /bin/bash"
+                    io.puts GAIN_ROOT_ACCESS
+                    io.write script
+                    io.flush
+                    Autobuild::Subprocess.run 'autoproj', 'osdeps', '/bin/bash', io.path
+                end
+            end
+
+            GAIN_ROOT_ACCESS = <<-EOSCRIPT
+# Gain root access using sudo
+if test `id -u` != "0"; then
+    exec sudo /bin/bash $0 "$@"
+
+fi
+            EOSCRIPT
+
+            attr_writer :needs_locking
+            def needs_locking?; !!@needs_locking end
+
+            attr_reader :auto_install_cmd
+            attr_reader :user_install_cmd
+
+            def initialize(names, needs_locking, user_install_cmd, auto_install_cmd)
+                super(names)
+                @needs_locking, @user_install_cmd, @auto_install_cmd =
+                    needs_locking, user_install_cmd, auto_install_cmd
+            end
+
+            def generate_user_os_script(os_packages)
+                if user_install_cmd
+                    (user_install_cmd % [os_packages.join("' '")])
+                else generate_auto_os_script(os_packages)
+                end
+            end
+
+            def generate_auto_os_script(os_packages)
+                (auto_install_cmd % [os_packages.join("' '")])
+            end
+
+            def osdeps_interaction(os_packages, shell_script)
+                if OSDependencies.force_osdeps
+                    return true
+                elsif enabled?
+                    return true
+                elsif silent?
+                    return false
+                end
+
+                # We're asked to not install the OS packages but to display them
+                # anyway, do so now
+                puts <<-EOMSG
+
+                #{Autoproj.color("The build process and/or the packages require some other software to be installed", :bold)}
+                #{Autoproj.color("and you required autoproj to not install them itself", :bold)}
+                #{Autoproj.color("\nIf these packages are already installed, simply ignore this message\n", :red) if !respond_to?(:filter_uptodate_packages)}
+    The following packages are available as OS dependencies, i.e. as prebuilt
+    packages provided by your distribution / operating system. You will have to
+    install them manually if they are not already installed
+
+                #{os_packages.sort.join("\n      ")}
+
+    the following command line(s) can be run as root to install them:
+
+                #{shell_script.split("\n").join("\n|   ")}
+
+            EOMSG
+                print "    #{Autoproj.color("Press ENTER to continue ", :bold)}"
+                STDOUT.flush
+                STDIN.readline
+                puts
+                false
+            end
+
+            def install(packages)
+                handled_os = OSDependencies.supported_operating_system?
+                if handled_os
+                    shell_script = generate_auto_os_script(packages)
+                    user_shell_script = generate_user_os_script(packages)
+                end
+                if osdeps_interaction(packages, user_shell_script)
+                    Autoproj.message "  installing OS packages: #{packages.sort.join(", ")}"
+
+                    if Autoproj.verbose
+                        Autoproj.message "Generating installation script for non-ruby OS dependencies"
+                        Autoproj.message shell_script
+                    end
+                    ShellScriptManager.execute_as_root(shell_script, needs_locking?)
+                    return true
+                end
+                false
+            end
+        end
+
+        # Package manager interface for systems that use APT and dpkg for
+        # package management
+        class AptDpkgManager < ShellScriptManager
+            def initialize
+                super(['apt-dpkg'], true,
+                      "apt-get install '%s'",
+                      "export DEBIAN_FRONTEND=noninteractive; apt-get install -y '%s'")
+            end
+
+            # On a dpkg-enabled system, checks if the provided package is installed
+            # and returns true if it is the case
+            def installed?(package_name)
+                if !@installed_packages
+                    @installed_packages = Set.new
+                    dpkg_status = File.readlines('/var/lib/dpkg/status')
+
+                    current_packages = []
+                    is_installed = false
+                    dpkg_status.each do |line|
+                        line = line.chomp
+                        if line == ""
+                            if is_installed
+                                current_packages.each do |pkg|
+                                    @installed_packages << pkg
+                                end
+                                current_packages.clear
+                                is_installed = false
+                            end
+                        elsif line =~ /Package: (.*)$/
+                            current_packages << $1
+                        elsif line =~ /Provides: (.*)$/
+                            current_packages.concat($1.split(',').map(&:strip))
+                        elsif line == "Status: install ok installed"
+                            is_installed = true
+                        end
+                    end
+                end
+                
+                if package_name =~ /^(\w[a-z0-9+-.]+)/
+                    @installed_packages.include?($1)
+                else
+                    Autoproj.warn "#{package_name} is not a valid Debian package name"
+                    false
+                end
+            end
+            
+            def filter_uptodate_packages(packages)
+                packages.find_all do |package_name|
+                    !installed?(package_name)
+                end
+            end
+        end
+
+        # Package manager interface for the RubyGems system
+        class GemManager < Manager
+            class << self
+                attr_accessor :with_prerelease
+                attr_accessor :with_doc
+            end
+            @with_prerelease = false
+            @with_doc = false
+
+            def initialize
+                super(['gem'])
+            end
+
+            # Used to override the Gem::SpecFetcher object used by this gem
+            # manager. Useful mainly for testing
+            attr_writer :gem_fetcher
+
+            def gem_fetcher
+                if !@gem_fetcher
+                    Autoproj.message "  looking for RubyGems updates"
+                    @gem_fetcher = Gem::SpecFetcher.fetcher
+                end
+                @gem_fetcher
+            end
+
+            def guess_gem_program
+                if Autobuild.programs['gem']
+                    return Autobuild.programs['gem']
+                end
+
+                ruby_bin = Config::CONFIG['RUBY_INSTALL_NAME']
+                if ruby_bin =~ /^ruby(.+)$/
+                    Autobuild.programs['gem'] = "gem#{$1}"
+                else
+                    Autobuild.programs['gem'] = "gem"
+                end
+            end
+
+            def install(gems)
+                guess_gem_program
+
+                base_cmdline = [Autobuild.tool('gem'), 'install']
+                if !GemManager.with_doc
+                    base_cmdline << '--no-rdoc' << '--no-ri'
+                end
+
+                if GemManager.with_prerelease
+                    base_cmdline << "--prerelease"
+                end
+                with_version, without_version = gems.partition { |name, v| v }
+
+                cmdlines = []
+                if !without_version.empty?
+                    cmdlines << (base_cmdline + without_version.flatten)
+                end
+                with_version.each do |name, v|
+                    cmdlines << base_cmdline + [name, "-v", v]
+                end
+
+                if gems_interaction(gems, cmdlines)
+                    Autoproj.message "  installing/updating RubyGems dependencies: #{gems.map { |g| g.join(" ") }.sort.join(", ")}"
+
+                    cmdlines.each do |c|
+                        Autobuild::Subprocess.run 'autoproj', 'osdeps', *c
+                    end
+                    did_something = true
+                end
+            end
+
+            # Returns the set of RubyGem packages in +packages+ that are not already
+            # installed, or that can be upgraded
+            def filter_uptodate_packages(gems)
+                # Don't install gems that are already there ...
+                gems = gems.dup
+                gems.delete_if do |name, version|
+                    version_requirements = Gem::Requirement.new(version || '>= 0')
+                    installed =
+                        if Gem::Specification.respond_to?(:find_by_name)
+                            begin
+                                [Gem::Specification.find_by_name(name, version_requirements)]
+                            rescue Gem::LoadError
+                                []
+                            end
+                        else
+                            Gem.source_index.find_name(name, version_requirements)
+                        end
+
+                    if !installed.empty? && Autobuild.do_update
+                        # Look if we can update the package ...
+                        dep = Gem::Dependency.new(name, version_requirements)
+                        available = gem_fetcher.find_matching(dep, true, true, GemManager.with_prerelease)
+                        installed_version = installed.map(&:version).max
+                        available_version = available.map { |(name, v), source| v }.max
+                        if !available_version
+                            if version
+                                raise ConfigError.new, "cannot find any gem with the name '#{name}' and version #{version}"
+                            else
+                                raise ConfigError.new, "cannot find any gem with the name '#{name}'"
+                            end
+                        end
+                        needs_update = (available_version > installed_version)
+                        !needs_update
+                    else
+                        !installed.empty?
+                    end
+                end
+                gems
+            end
+
+            def parse_package_entry(entry)
+                if entry =~ /^([^><=~]*)([><=~]+.*)$/
+                    [$1.strip, $2.strip]
+                else
+                    [entry]
+                end
+            end
+
+            def gems_interaction(gems, cmdlines)
+                if OSDependencies.force_osdeps
+                    return true
+                elsif enabled?
+                    return true
+                elsif silent?
+                    return false
+                end
+
+                # We're not supposed to install rubygem packages but silent is not
+                # set, so display information about them anyway
+                puts <<-EOMSG
+      #{Autoproj.color("The build process and/or the packages require some Ruby Gems to be installed", :bold)}
+      #{Autoproj.color("and you required autoproj to not do it itself", :bold)}
+        You can use the --all or --ruby options to autoproj osdeps to install these
+        packages anyway, and/or change to the osdeps handling mode by running an
+        autoproj operation with the --reconfigure option as for instance
+        autoproj build --reconfigure
+        
+        The following command line can be used to install them manually
+        
+          #{cmdlines.map { |c| c.join(" ") }.join("\n      ")}
+        
+        Autoproj expects these Gems to be installed in #{Autoproj.gem_home} This can
+        be overridden by setting the AUTOPROJ_GEM_HOME environment variable manually
+
+                EOMSG
+                print "    #{Autoproj.color("Press ENTER to continue ", :bold)}"
+
+                STDOUT.flush
+                STDIN.readline
+                puts
+                false
+            end
+        end
+    end
+
+    # Manager for packages provided by external package managers
     class OSDependencies
 	class << self
 	    # When requested to load a file called X.Y, the osdeps code will
@@ -41,11 +412,8 @@ module Autoproj
         class << self
             attr_reader :aliases
             attr_accessor :force_osdeps
-            attr_accessor :gem_with_prerelease
-            attr_accessor :gem_doc
         end
         @aliases = Hash.new
-        @gem_doc = false
 
         attr_writer :silent
         def silent?; @silent end
@@ -64,6 +432,7 @@ module Autoproj
             self.alias(ruby_version_keyword, "ruby")
         end
 	self.suffixes << ruby_version_keyword
+        autodetect_ruby
 
         AUTOPROJ_OSDEPS = File.join(File.expand_path(File.dirname(__FILE__)), 'default.osdeps')
         def self.load_default
@@ -75,6 +444,11 @@ module Autoproj
             OSDependencies.load(file)
         end
 
+        PACKAGE_HANDLERS = [PackageManagers::AptDpkgManager, PackageManagers::GemManager]
+        OS_PACKAGE_HANDLERS = {
+            'debian' => 'apt-dpkg'
+        }
+
         # The information contained in the OSdeps files, as a hash
         attr_reader :definitions
         # All the information contained in all the OSdeps files, as a mapping
@@ -85,22 +459,47 @@ module Autoproj
         # package name to the osdeps file' full path
         attr_reader :sources
 
-        # The Gem::SpecFetcher object that should be used to query RubyGems, and
-        # install RubyGems packages
-        def gem_fetcher
-            if !@gem_fetcher
-                Autoproj.message "looking for RubyGems updates"
-                @gem_fetcher = Gem::SpecFetcher.fetcher
+        # Use to override the autodetected OS-specific package handler
+        attr_writer :os_package_handler
+
+        # Returns the package manager object for the current OS
+        def os_package_handler
+            if @os_package_handler.nil?
+                os_names, _ = OSDependencies.operating_system
+                if os_names && (key = os_names.find { |name| OS_PACKAGE_HANDLERS[name] })
+                    @os_package_handler = package_handlers[OS_PACKAGE_HANDLERS[key]]
+                    if !@os_package_handler
+                        raise ArgumentError, "found #{OS_PACKAGE_HANDLERS[name]} as the required package handler for #{os_names.join(", ")}, but it is not registered"
+                    end
+                else
+                    @os_package_handler = PackageManagers::UnknownOSManager.new
+                end
             end
-            @gem_fetcher
+            return @os_package_handler
         end
 
+        # Returns the set of package managers
+        def package_handlers
+            if !@package_handlers
+                @package_handlers = Hash.new
+                PACKAGE_HANDLERS.each do |klass|
+                    obj = klass.new
+                    obj.names.each do |n|
+                        @package_handlers[n] = obj
+                    end
+                end
+            end
+            @package_handlers
+        end
+
+        # The Gem::SpecFetcher object that should be used to query RubyGems, and
+        # install RubyGems packages
         def initialize(defs = Hash.new, file = nil)
             @definitions = defs.to_hash
             @all_definitions = Hash.new { |h, k| h[k] = Array.new }
 
             @sources     = Hash.new
-            @installed_packages = Array.new
+            @installed_packages = Set.new
             if file
                 defs.each_key do |package_name|
                     sources[package_name] = file
@@ -145,17 +544,20 @@ module Autoproj
         end
 
         # Perform some sanity checks on the given osdeps definitions
-        def self.verify_definitions(hash)
+        def self.verify_definitions(hash, path = [])
             hash.each do |key, value|
-                if !key.kind_of?(String)
-                    raise ArgumentError, "invalid osdeps definition: found an #{key.class}. Don't forget to put quotes around numbers"
+                if value && !key.kind_of?(String)
+                    raise ArgumentError, "invalid osdeps definition: found an #{key.class} as a key in #{path.join("/")}. Don't forget to put quotes around numbers"
+                elsif !value && (key.kind_of?(Hash) || key.kind_of?(Array))
+                    verify_definitions(key)
                 end
                 next if !value
+
                 if value.kind_of?(Array) || value.kind_of?(Hash)
-                    verify_definitions(value)
+                    verify_definitions(value, (path + [key]))
                 else
                     if !value.kind_of?(String)
-                        raise ArgumentError, "invalid osdeps definition: found an #{value.class}. Don't forget to put quotes around numbers"
+                        raise ArgumentError, "invalid osdeps definition: found an #{value.class} as a value in #{path.join("/")}. Don't forget to put quotes around numbers"
                     end
                 end
             end
@@ -169,10 +571,17 @@ module Autoproj
                 @supported_operating_system =
                     if !os_names then false
                     else
-                        os_names.any? { |os_name| OS_AUTO_PACKAGE_INSTALL.has_key?(os_name) }
+                        os_names.any? { |os_name| OS_PACKAGE_HANDLERS.has_key?(os_name) }
                     end
             end
             return @supported_operating_system
+        end
+
+        # Used mainly during testing to bypass the operating system
+        # autodetection
+        def self.operating_system=(values)
+            @supported_operating_system = nil
+            @operating_system = values
         end
 
         # Autodetects the operating system name and version
@@ -280,392 +689,307 @@ module Autoproj
             return [distributor, [codename, version]]
         end
 
-        # On a dpkg-enabled system, checks if the provided package is installed
-        # and returns true if it is the case
-        def self.dpkg_package_installed?(package_name)
-            if !@dpkg_installed_packages
-                @dpkg_installed_packages = Set.new
-                dpkg_status = File.readlines('/var/lib/dpkg/status')
-
-                current_packages = []
-                is_installed = false
-                dpkg_status.each do |line|
-                    line = line.chomp
-                    if line == ""
-                        if is_installed
-                            current_packages.each do |pkg|
-                                @dpkg_installed_packages << pkg
-                            end
-                            current_packages.clear
-                            is_installed = false
-                        end
-                    elsif line =~ /Package: (.*)$/
-                        current_packages << $1
-                    elsif line =~ /Provides: (.*)$/
-                        current_packages.concat($1.split(',').map(&:strip))
-                    elsif line == "Status: install ok installed"
-                        is_installed = true
-                    end
-                end
-            end
-            
-            if package_name =~ /^(\w[a-z0-9+-.]+)/
-                @dpkg_installed_packages.include?($1)
-            else
-                Autoproj.warn "#{package_name} is not a valid Debian package name"
-                false
-            end
-        end
-
-        GAIN_ROOT_ACCESS = <<-EOSCRIPT
-# Gain root access using sudo
-if test `id -u` != "0"; then
-    exec sudo /bin/bash $0 "$@"
-
-fi
-        EOSCRIPT
-
-        OS_PACKAGE_CHECK = {
-            'debian' => method(:dpkg_package_installed?),
-            'ubuntu' => method(:dpkg_package_installed?)
-        }
-        OS_USER_PACKAGE_INSTALL = {
-            'debian' => "apt-get install '%s'",
-            'ubuntu' => "apt-get install '%s'",
-            'gentoo' => "emerge '%s'",
-            'arch' => "pacman '%s'"
-        }
-
-        OS_AUTO_PACKAGE_INSTALL = {
-            'debian' => "export DEBIAN_FRONTEND=noninteractive; apt-get install -y '%s'",
-            'ubuntu' => "export DEBIAN_FRONTEND=noninteractive; apt-get install -y '%s'",
-            'gentoo' => "emerge --noreplace '%s'",
-            'arch' => "pacman -Sy --noconfirm '%s'"
-        }
-
-        NO_PACKAGE       = 0
-        WRONG_OS         = 1
-        WRONG_OS_VERSION = 2
-        IGNORE           = 3
-        PACKAGES         = 4
-        UNKNOWN_OS       = 7
-        AVAILABLE        = 10
-
-        # Check for the definition of +name+ for this operating system
+        # Return the list of packages that should be installed for +name+
         #
-        # It can return
+        # The following two simple return values are possible:
         #
-        # NO_PACKAGE::
-        #   there are no package definition for +name
-        # UNKNOWN_OS::
-        #   this is not an OS autoproj knows how to deal with
-        # WRONG_OS::
-        #   there are a package definition, but not for this OS
-        # WRONG_OS_VERSION::
-        #   there is a package definition for this OS, but not for this
-        #   particular version of the OS
-        # IGNORE::
-        #   there is a package definition that told us to ignore the package
-        # [PACKAGES, definition]::
-        #   +definition+ is an array of package names that this OS's package
-        #   manager can understand
+        # nil:: +name+ has no definition
+        # []:: +name+ has no definition on this OS and/or for this specific OS
+        #      version
+        #
+        # In all other cases, the method returns an array of triples:
+        #
+        #   [package_handler, status, package_list]
+        #
+        # where status is FOUND_PACKAGES if +package_list+ is the list of
+        # packages that should be installed with +package_handler+ for +name+,
+        # and FOUND_NONEXISTENT if the nonexistent keyword is used for this OS
+        # name and version. The package list might be empty even if status ==
+        # FOUND_PACKAGES, for instance if the ignore keyword is used.
         def resolve_package(name)
+            while OSDependencies.aliases.has_key?(name)
+                name = OSDependencies.aliases[name]
+            end
+
             os_names, os_versions = OSDependencies.operating_system
 
             dep_def = definitions[name]
             if !dep_def
-                return NO_PACKAGE
-            elsif dep_def == 'ignore'
-                return IGNORE
-            elsif dep_def == 'nonexistent'
-                return WRONG_OS_VERSION
-            elsif !os_names
-                return UNKNOWN_OS
+                return nil
             end
 
-            # Find a matching entry for the OS name
-            os_entry = nil
-            os_names.find do |os_name|
-                os_entry = dep_def.find do |name_list, _|
-                    name_list.split(',').
-                        map(&:downcase).
-                        any? { |n| n == os_name }
+            # Partition the found definition in all entries that are interesting
+            # for us: toplevel os-independent package managers, os-dependent
+            # package managers and os-independent package managers selected by
+            # OS or version
+            if !os_names
+                os_names = ['default']
+                os_versions = ['default']
+            end
+
+            package_handler_names = package_handlers.keys
+
+            result = []
+            found, pkg = partition_osdep_entry(name, dep_def, nil, (package_handler_names - os_package_handler.names), os_names, os_versions)
+            if found
+                result << [os_package_handler, found, pkg]
+            end
+
+            # NOTE: package_handlers might contain the same handler multiple
+            # times (when a package manager has multiple names). That's why we
+            # do a to_set.each
+            package_handlers.each_value.to_set.each do |handler|
+                found, pkg = partition_osdep_entry(name, dep_def, handler.names, [], os_names, os_versions)
+                if found
+                    result << [handler, found, pkg]
                 end
             end
 
-            if !os_entry
-                return WRONG_OS
+            result.map do |handler, status, entries|
+                if handler.respond_to?(:parse_package_entry)
+                    [handler, status, entries.map { |s| handler.parse_package_entry(s) }]
+                else
+                    [handler, status, entries]
+                end
             end
-            data = os_entry.last
+        end
 
-            # This package does not need to be installed on this operating system (example: build tools on Gentoo)
-            if !data || data == "ignore"
-                return IGNORE
-            end
+        # Value returned by #resolve_package and #partition_osdep_entry in
+        # the status field. See the documentation of these methods for more
+        # information
+        FOUND_PACKAGES = 0
+        # Value returned by #resolve_package and #partition_osdep_entry in
+        # the status field. See the documentation of these methods for more
+        # information
+        FOUND_NONEXISTENT = 1
 
-	    # If data is a hash, it means we have to check the OS version as well
-            if data.kind_of?(Hash)
-                # Look in +data+ for specific version. We look, in order, in the
-                # os_versions field (detected OS versions), and return the first
-                # matching entry
-                version_entry = nil
-                # First, look for an exact match
-                found = os_versions.find do |os_ver|
-                    version_entry = data.find do |version_list, _|
-                        version_list.to_s.split(',').
-                            map(&:downcase).
-                            any? { |v| v == os_ver }
+        # Helper method that parses the osdep definition to split between the
+        # parts needed for this OS and specific package handlers.
+        #
+        # +osdep_name+ is the name of the osdep. It is used to resolve explicit
+        # mentions of a package handler, i.e. so that:
+        #
+        #   pkg: gem
+        #
+        # is resolved as the 'pkg' package to be installed by the 'gem' handler
+        #
+        # +dep_def+ is the content to parse. It can be a string, array or hash
+        #
+        # +handler_names+ is a list of entries that we are looking for. If it is
+        # not nil, only entries that explicitely refer to +handler_names+ will
+        # be browsed, i.e. in:
+        #
+        #   pkg:
+        #       - test: 1
+        #       - [a, list, of, packages]
+        #
+        #   partition_osdep_entry('osdep_name', data, ['test'], [])
+        #
+        # will ignore the toplevel list of packages, while
+        #
+        #   partition_osdep_entry('osdep_name', data, nil, [])
+        #
+        # will return it.
+        #
+        # +excluded+ is a list of branches that should be ignored during
+        # parsing. It is used to e.g. ignore 'gem' when browsing for the main OS
+        # package list. For instance, in
+        #
+        #   pkg:
+        #       - test
+        #       - [a, list, of, packages]
+        #
+        #   partition_osdep_entry('osdep_name', data, nil, ['test'])
+        #
+        # the returned value will only include the list of packages (and not
+        # 'test')
+        #
+        # The rest of the arguments are array of strings that contain list of
+        # keys to browse for (usually, the OS names and version)
+        #
+        # The return value is either nil if no packages were found, or a pair
+        # [status, package_list] where status is FOUND_NONEXISTENT if the
+        # nonexistent keyword was found, and FOUND_PACKAGES if either packages
+        # or the ignore keyword were found.
+        #
+        def partition_osdep_entry(osdep_name, dep_def, handler_names, excluded, *keys)
+            keys, *additional_keys = *keys
+            found = false
+            nonexistent = false
+            result = []
+            found_keys = []
+            Array(dep_def).each do |names, values|
+                if !values
+                    # Raw array of packages. Possible only if we are not at toplevel
+                    # (i.e. if we already have a handler)
+                    if names == 'ignore'
+                        found = true if !handler_names
+                    elsif names == 'nonexistent'
+                        nonexistent = true if !handler_names
+                    elsif !handler_names && names.kind_of?(Array)
+                        result.concat(result)
+                        found = true
+                    elsif names.respond_to?(:to_str)
+                        if excluded.include?(names)
+                        elsif handler_names && handler_names.include?(names)
+                            result << osdep_name
+                            found = true
+                        elsif !handler_names
+                            result << names
+                            found = true
+                        end
+                    elsif names.respond_to?(:to_hash)
+                        rec_found, rec_result = partition_osdep_entry(osdep_name, names, handler_names, excluded, keys, *additional_keys)
+                        if rec_found == FOUND_NONEXISTENT then nonexistent = true
+                        elsif rec_found == FOUND_PACKAGES then found = true
+                        end
+                        result.concat(rec_result)
                     end
-                end
-                if !found
-                    # Then relax the matching ...
-                    found = os_versions.find do |os_ver|
-                        version_entry = data.find do |version_list, _|
-                            version_list.to_s.split(',').
-                                map(&:downcase).
-                                any? { |v| Regexp.new(v) =~ os_ver }
+                elsif keys
+                    if names.respond_to?(:to_str) # names could be an array already
+                        names = names.split(',')
+                    end
+
+                    if handler_names
+                        if matching_name = handler_names.find { |k| names.any? { |name_tag| k == name_tag.downcase } }
+                            rec_found, rec_result = partition_osdep_entry(osdep_name, values, nil, excluded, keys, *additional_keys)
+                            if rec_found == FOUND_NONEXISTENT then nonexistent = true
+                            elsif rec_found == FOUND_PACKAGES then found = true
+                            end
+                            result.concat(rec_result)
+                        end
+                    end
+
+                    matching_name = keys.find { |k| names.any? { |name_tag| k == name_tag.downcase } }
+                    if matching_name
+                        rec_found, rec_result = partition_osdep_entry(osdep_name, values, handler_names, excluded, *additional_keys)
+
+                        if rec_found
+                            idx = keys.index(matching_name)
+                            found_keys[idx] ||= [0, []]
+                            found_keys[idx][0] += rec_found
+                            found_keys[idx][1].concat(rec_result)
                         end
                     end
                 end
-                if Autoproj.verbose
-                    Autoproj.message "selected OS version #{found} for osdep #{name}: #{version_entry.inspect}"
+            end
+            if found_keys = found_keys.compact.first
+                if found_keys[0] > 0
+                    nonexistent = true
+                else
+                    found = true
+                end
+                result.concat(found_keys[1])
+            end
+
+            found =
+                if nonexistent then FOUND_NONEXISTENT
+                elsif found then FOUND_PACKAGES
+                else false
                 end
 
-                if !version_entry
-                    return WRONG_OS_VERSION
-                end
-                data = version_entry.last
-            end
-
-            if data.respond_to?(:to_str) && data.to_str == 'nonexistent'
-                return WRONG_OS_VERSION
-            end
-
-            if data.respond_to?(:to_ary)
-		# List of packages
-                return [PACKAGES, data]
-            elsif data.respond_to?(:to_str)
-		# Single package
-                return [PACKAGES, [data.to_str]]
-            else
-                raise ConfigError.new, "invalid package specification #{data} in #{source_of(name)}"
-            end
+            return found, result
         end
 
         # Resolves the given OS dependencies into the actual packages that need
         # to be installed on this particular OS.
         #
-        # Raises ConfigError if some packages can't be found
+        # Raises ConfigError if some packages can't be found or if the
+        # nonexistent keyword was found for some of them
         def resolve_os_dependencies(dependencies)
-            os_names, _ = OSDependencies.operating_system
-
-            os_packages    = []
+            all_packages = []
             dependencies.each do |name|
                 result = resolve_package(name)
-                if result == NO_PACKAGE
+                if !result
                     raise ConfigError.new, "there is no osdeps definition for #{name}"
-                elsif result == WRONG_OS
-                    raise ConfigError.new, "there is an osdeps definition for #{name}, but not for this operating system"
-                elsif result == WRONG_OS_VERSION
-                    raise ConfigError.new, "there is an osdeps definition for #{name}, but not for this particular operating system version"
-                elsif result == IGNORE
-                    next
-                elsif result[0] == PACKAGES
-                    os_packages.concat(result[1])
+                elsif result.empty?
+                    os_names, os_versions = OSDependencies.operating_system
+                    raise ConfigError.new, "there is an osdeps definition for #{name}, but not for this operating system and version (resp. #{os_names.join(", ")} and #{os_versions.join(", ")})"
+                else
+                    result.each do |handler, status, packages|
+                        if status == FOUND_NONEXISTENT
+                            raise ConfigError.new, "there is an osdep definition for #{name}, and it explicitely states that this package does not exist on your OS"
+                        end
+                        if entry = all_packages.find { |h, _| h == handler }
+                            entry[1].concat(packages)
+                        else
+                            all_packages << [handler, packages]
+                        end
+                    end
                 end
             end
 
-            if !os_names.any? { |os_name| OS_AUTO_PACKAGE_INSTALL.has_key?(os_name) }
-                raise ConfigError.new, "I don't know how to install packages on #{os_names.first}"
+            all_packages.delete_if do |handler, pkg|
+                pkg.empty?
             end
-
-            return os_packages
+            return all_packages
         end
 
-
-        def generate_user_os_script(os_names, os_packages)
-            user_package_install = nil
-            os_names.find do |os_name|
-                user_package_install = OS_USER_PACKAGE_INSTALL[os_name]
-            end
-            if user_package_install
-                (user_package_install % [os_packages.join("' '")])
-            else generate_auto_os_script(os_names, os_packages)
-            end
-        end
-        def generate_auto_os_script(os_names, os_packages)
-            auto_package_install = nil
-            os_names.find do |os_name|
-                auto_package_install = OS_AUTO_PACKAGE_INSTALL[os_name]
-            end
-            (auto_package_install % [os_packages.join("' '")])
-        end
 
         # Returns true if +name+ is an acceptable OS package for this OS and
         # version
         def has?(name)
-            availability_of(name) == AVAILABLE
+            status = availability_of(name)
+            status == AVAILABLE || status == IGNORE
         end
+
+        # Value returned by #availability_of if the required package has no
+        # definition
+        NO_PACKAGE       = 0
+        # Value returned by #availability_of if the required package has
+        # definitions, but not for this OS name or version
+        WRONG_OS         = 1
+        # Value returned by #availability_of if the required package has
+        # definitions, but the local OS is unknown
+        UNKNOWN_OS       = 2
+        # Value returned by #availability_of if the required package has
+        # definitions, but the nonexistent keyword was used for this OS
+        NONEXISTENT      = 3
+        # Value returned by #availability_of if the required package is
+        # available
+        AVAILABLE        = 4
+        # Value returned by #availability_of if the required package is
+        # available, but no package needs to be installed to have it
+        IGNORE           = 5
 
         # If +name+ is an osdeps that is available for this operating system,
-        # returns AVAILABLE. Otherwise, returns the same error code than
-        # resolve_package.
+        # returns AVAILABLE. Otherwise, returns one of:
+        #
+        # NO_PACKAGE:: the package has no definitions
+        # WRONG_OS:: the package has a definition, but not for this OS
+        # UNKNOWN_OS:: the package has a definition, but the local OS is unknown
+        # NONEXISTENT:: the package has a definition, but the 'nonexistent'
+        #               keyword was found for this OS
+        # AVAILABLE:: the package is available for this OS
+        # IGNORE:: the package is available for this OS, but no packages need to
+        #          be installed for it
         def availability_of(name)
-            osdeps, gemdeps = partition_packages([name].to_set)
-            if !osdeps.empty?
-                osdeps.each do |dep_name|
-                    status = resolve_package(dep_name)
-                    if !status.respond_to?(:to_ary) && status != IGNORE
-                        return status
-                    end
+            resolved = resolve_package(name)
+            if !resolved
+                return NO_PACKAGE
+            end
+
+            if resolved.empty?
+                if !OSDependencies.operating_system
+                    return UNKNOWN_OS
+                else
+                    return WRONG_OS
                 end
-                AVAILABLE
-            elsif !gemdeps.empty?
-                AVAILABLE
+            end
+
+            resolved = resolved.delete_if { |_, status, list| status == FOUND_PACKAGES && list.empty? }
+            failed = resolved.find_all do |handler, status, list|
+                status == FOUND_NONEXISTENT
+            end
+            if failed.empty?
+                if resolved.empty?
+                    return IGNORE
+                else
+                    return AVAILABLE
+                end
             else
-                NO_PACKAGE
+                return NONEXISTENT
             end
-        end
-
-        # call-seq:
-        #   partition_packages(package_names) => os_packages, gem_packages
-        #
-        # Resolves the package names listed in +package_set+, and returns a set
-        # of packages that have to be installed using the platform's native
-        # package manager, and the set of packages that have to be installed
-        # using Ruby's package manager, RubyGems.
-        #
-        # The os_packages arrays is a list of names (strings)
-        #
-        # The gem_packages arrays is a list of [name, version] pairs. +version+
-        # is a version string, that is set only if the package has been given
-        # with a =VERSION specification, e.g.
-        #
-        #   gems:
-        #       hoe=1.8.0
-        #
-        # Raises ConfigError if an error exists in the osdeps files, and returns
-        # empty sets if the package can't be found
-        def partition_packages(package_set)
-            package_set = package_set.
-                map { |name| OSDependencies.aliases[name] || name }.
-                to_set
-
-            osdeps, gems = [], []
-            package_set.to_set.each do |name|
-                pkg_def = definitions[name]
-                if !pkg_def
-                    # Error cases are taken care of later, because that is were
-                    # the automatic/manual osdeps logic lies
-                    osdeps << name
-                    next
-                end
-
-                pkg_def = pkg_def.dup
-
-                if pkg_def.respond_to?(:to_str)
-                    case(pkg_def.to_str)
-                    when "ignore" then
-                        osdeps << name
-                    when "gem" then
-                        gems << name
-                    else
-                        # This is *not* handled later, as is the absence of a
-                        # package definition. The reason is that it is a bad
-                        # configuration file, and should be fixed by the user
-                        raise ConfigError.new, "unknown OS-independent package management type #{pkg_def} for #{name}"
-                    end
-                else
-                    pkg_def.delete_if do |distrib_name, defs|
-                        if distrib_name == "gem"
-                            gems.concat([*defs])
-                            true
-                        end
-                    end
-                    if !pkg_def.empty?
-                        osdeps << name
-                    end
-                end
-            end
-            gems.map! do |name|
-                if name =~ /^([^><=~]*)([><=~]+.*)$/
-                    [$1.strip, $2.strip]
-                else
-                    [name]
-                end
-            end
-            return osdeps, gems
-        end
-
-        def guess_gem_program
-            if Autobuild.programs['gem']
-                return Autobuild.programs['gem']
-            end
-
-            ruby_bin = Config::CONFIG['RUBY_INSTALL_NAME']
-            if ruby_bin =~ /^ruby(.+)$/
-                Autobuild.programs['gem'] = "gem#{$1}"
-            else
-                Autobuild.programs['gem'] = "gem"
-            end
-        end
-
-        # Returns true if the osdeps system knows how to remove uptodate
-        # packages from the needs-to-be-installed package list on this OS
-        def can_filter_uptodate_packages?
-            os_names, _ = OSDependencies.operating_system
-            !!os_names.any? { |os_name| OS_PACKAGE_CHECK[os_name] }
-        end
-
-        # Returns the set of packages in +packages+ that are not already
-        # installed on this OS, if it is supported
-        def filter_uptodate_os_packages(packages, os_names)
-            check_method = nil
-            os_names.find do |os_name|
-                check_method = OS_PACKAGE_CHECK[os_name]
-            end
-            return packages.dup if !check_method
-
-            packages.find_all { |pkg| !check_method[pkg] }
-        end
-
-        # Returns the set of RubyGem packages in +packages+ that are not already
-        # installed, or that can be upgraded
-        def filter_uptodate_gems(gems)
-            # Don't install gems that are already there ...
-            gems = gems.dup
-            gems.delete_if do |name, version|
-                version_requirements = Gem::Requirement.new(version || '>= 0')
-                installed =
-                    if Gem::Specification.respond_to?(:find_by_name)
-                        begin
-                            [Gem::Specification.find_by_name(name, version_requirements)]
-                        rescue Gem::LoadError
-                            []
-                        end
-                    else
-                        Gem.source_index.find_name(name, version_requirements)
-                    end
-                if !installed.empty? && Autobuild.do_update
-                    # Look if we can update the package ...
-                    dep = Gem::Dependency.new(name, version_requirements)
-                    available = gem_fetcher.find_matching(dep, true, true, OSDependencies.gem_with_prerelease)
-                    installed_version = installed.map(&:version).max
-                    available_version = available.map { |(name, v), source| v }.max
-                    if !available_version
-                        if version
-                            raise ConfigError.new, "cannot find any gem with the name '#{name}' and version #{version}"
-                        else
-                            raise ConfigError.new, "cannot find any gem with the name '#{name}'"
-                        end
-                    end
-                    needs_update = (available_version > installed_version)
-                    !needs_update
-                else
-                    !installed.empty?
-                end
-            end
-            gems
         end
 
         HANDLE_ALL  = 'all'
@@ -774,7 +1098,15 @@ So, what do you want ? (all, ruby, os or none)
         # If set to true (the default), #install will try to remove the list of
         # already uptodate packages from the installed packages. Set to false to
         # install all packages regardless of their status
-        attr_accessor :filter_uptodate_packages
+        attr_writer :filter_uptodate_packages
+
+        # If set to true (the default), #install will try to remove the list of
+        # already uptodate packages from the installed packages. Use
+        # #filter_uptodate_packages= to set it to false to install all packages
+        # regardless of their status
+        def filter_uptodate_packages?
+            !!@filter_uptodate_packages
+        end
 
         # Override the osdeps mode
         def osdeps_mode=(value)
@@ -828,21 +1160,6 @@ So, what do you want ? (all, ruby, os or none)
         # The set of packages that have already been installed
         attr_reader :installed_packages
 
-        def osdeps_interaction_unknown_os(osdeps)
-            puts <<-EOMSG
-  #{Autoproj.color("The build process requires some other software packages to be installed on our operating system", :bold)}
-  #{Autoproj.color("If they are already installed, simply ignore this message", :red)}
-  
-    #{osdeps.join("\n    ")}
-
-            EOMSG
-            print Autoproj.color("Press ENTER to continue", :bold)
-            STDOUT.flush
-            STDIN.readline
-            puts
-            nil
-        end
-
         def installs_os_packages?
             osdeps_mode == HANDLE_ALL || osdeps_mode == HANDLE_OS
         end
@@ -851,170 +1168,36 @@ So, what do you want ? (all, ruby, os or none)
             osdeps_mode == HANDLE_ALL || osdeps_mode == HANDLE_RUBY
         end
 
-        def osdeps_interaction(osdeps, os_packages, shell_script, silent)
-            if !OSDependencies.supported_operating_system?
-                if silent
-                    return false
-                else
-                    return osdeps_interaction_unknown_os(osdeps)
-                end
-            elsif OSDependencies.force_osdeps
-                return true
-            elsif osdeps_mode == HANDLE_ALL || osdeps_mode == HANDLE_OS
-                return true
-            elsif silent
-                return false
-            end
-
-            # We're asked to not install the OS packages but to display them
-            # anyway, do so now
-            puts <<-EOMSG
-
-  #{Autoproj.color("The build process and/or the packages require some other software to be installed", :bold)}
-  #{Autoproj.color("and you required autoproj to not install them itself", :bold)}
-  #{Autoproj.color("\nIf these packages are already installed, simply ignore this message\n", :red) if !can_filter_uptodate_packages?}
-    The following packages are available as OS dependencies, i.e. as prebuilt
-    packages provided by your distribution / operating system. You will have to
-    install them manually if they are not already installed
-    
-      #{os_packages.sort.join("\n      ")}
-    
-    the following command line(s) can be run as root to install them:
-    
-      #{shell_script.split("\n").join("\n|   ")}
-
-            EOMSG
-            print "    #{Autoproj.color("Press ENTER to continue ", :bold)}"
-            STDOUT.flush
-            STDIN.readline
-            puts
-            false
-        end
-
-        def gems_interaction(gems, cmdlines, silent)
-            if OSDependencies.force_osdeps
-                return true
-            elsif osdeps_mode == HANDLE_ALL || osdeps_mode == HANDLE_RUBY
-                return true
-            elsif silent
-                return false
-            end
-
-            # We're not supposed to install rubygem packages but silent is not
-            # set, so display information about them anyway
-            puts <<-EOMSG
-  #{Autoproj.color("The build process and/or the packages require some Ruby Gems to be installed", :bold)}
-  #{Autoproj.color("and you required autoproj to not do it itself", :bold)}
-    You can use the --all or --ruby options to autoproj osdeps to install these
-    packages anyway, and/or change to the osdeps handling mode by running an
-    autoproj operation with the --reconfigure option as for instance
-    autoproj build --reconfigure
-    
-    The following command line can be used to install them manually
-    
-      #{cmdlines.map { |c| c.join(" ") }.join("\n      ")}
-    
-    Autoproj expects these Gems to be installed in #{Autoproj.gem_home} This can
-    be overridden by setting the AUTOPROJ_GEM_HOME environment variable manually
-
-            EOMSG
-            print "    #{Autoproj.color("Press ENTER to continue ", :bold)}"
-
-            STDOUT.flush
-            STDIN.readline
-            puts
-            false
-        end
 
         # Requests the installation of the given set of packages
         def install(packages, package_osdeps = Hash.new)
-            handled_os = OSDependencies.supported_operating_system?
+            os_package_handler.enabled = installs_os_packages?
+            package_handlers['gem'].enabled = installs_ruby_packages?
+            package_handlers.each_value do |v|
+                v.silent = self.silent?
+            end
+
             # Remove the set of packages that have already been installed 
-            packages -= installed_packages
-            return if packages.empty?
+            packages = packages.to_set - installed_packages
+            return false if packages.empty?
 
-            osdeps, gems = partition_packages(packages)
-            if handled_os
-                os_names, _ = OSDependencies.operating_system
-                os_packages = resolve_os_dependencies(osdeps)
-                if filter_uptodate_packages
-                    os_packages = filter_uptodate_os_packages(os_packages, os_names)
+            packages = resolve_os_dependencies(packages)
+            packages = packages.map do |handler, list|
+                if filter_uptodate_packages? && handler.respond_to?(:filter_uptodate_packages)
+                    list = handler.filter_uptodate_packages(list)
                 end
+
+                if !list.empty?
+                    [handler, list]
+                end
+            end.compact
+            return false if packages.empty?
+
+            packages.each do |handler, list|
+                handler.install(list)
+                @installed_packages |= list.to_set
             end
-            if filter_uptodate_packages
-                gems   = filter_uptodate_gems(gems)
-            end
-
-            did_something = false
-
-            if !osdeps.empty? && (!os_packages || !os_packages.empty?)
-                if handled_os
-                    shell_script = generate_auto_os_script(os_names, os_packages)
-                    user_shell_script = generate_user_os_script(os_names, os_packages)
-                end
-                if osdeps_interaction(osdeps, os_packages, user_shell_script, silent?)
-                    Autoproj.message "  installing OS packages: #{os_packages.sort.join(", ")}"
-
-                    if Autoproj.verbose
-                        Autoproj.message "Generating installation script for non-ruby OS dependencies"
-                        Autoproj.message shell_script
-                    end
-
-                    File.open('/tmp/autoproj_osdeps_lock', 'w') do |lock_io|
-                        begin
-                            while !lock_io.flock(File::LOCK_EX | File::LOCK_NB)
-                                Autoproj.message "  waiting for other autoproj instances to finish their osdeps installation"
-                                sleep 5
-                            end
-
-                            Tempfile.open('osdeps_sh') do |io|
-                                io.puts "#! /bin/bash"
-                                io.puts GAIN_ROOT_ACCESS
-                                io.write shell_script
-                                io.flush
-                                Autobuild::Subprocess.run 'autoproj', 'osdeps', '/bin/bash', io.path
-                            end
-                        ensure
-                            lock_io.flock(File::LOCK_UN)
-                        end
-                    end
-                    did_something = true
-                end
-            end
-
-            # Now install the RubyGems
-            if !gems.empty?
-                guess_gem_program
-
-                base_cmdline = [Autobuild.tool('gem'), 'install']
-                if !OSDependencies.gem_doc
-                    base_cmdline << '--no-rdoc' << '--no-ri'
-                end
-
-                if Autoproj::OSDependencies.gem_with_prerelease
-                    base_cmdline << "--prerelease"
-                end
-                with_version, without_version = gems.partition { |name, v| v }
-
-                cmdlines = []
-                if !without_version.empty?
-                    cmdlines << (base_cmdline + without_version.flatten)
-                end
-                with_version.each do |name, v|
-                    cmdlines << base_cmdline + [name, "-v", v]
-                end
-
-                if gems_interaction(gems, cmdlines, silent?)
-                    Autoproj.message "installing/updating RubyGems dependencies: #{gems.map { |g| g.join(" ") }.sort.join(", ")}"
-
-                    cmdlines.each do |c|
-                        Autobuild::Subprocess.run 'autoproj', 'osdeps', *c
-                    end
-                    did_something = true
-                end
-            end
-
-            did_something
+            true
         end
     end
 end
