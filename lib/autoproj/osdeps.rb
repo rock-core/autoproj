@@ -392,7 +392,11 @@ fi
 
 	    candidates = [file]
 	    candidates.concat(suffixes.map { |s| "#{file}-#{s}" })
-	    
+
+            error_t = if defined? Psych::SyntaxError then [ArgumentError, Psych::SyntaxError]
+                      else ArgumentError
+                      end
+
 	    result = OSDependencies.new
 	    candidates.each do |file|
                 next if !File.file?(file)
@@ -400,7 +404,7 @@ fi
                 begin
                     data = YAML.load(File.read(file)) || Hash.new
                     verify_definitions(data)
-                rescue ArgumentError => e
+                rescue *error_t => e
                     raise ConfigError.new, "error in #{file}: #{e.message}", e.backtrace
                 end
 
