@@ -75,8 +75,8 @@ cmake:
     arch: cmake
 
 autotools:
-    debian,ubuntu: [automake1.9, autoconf]
-    gentoo: [sys-devel/automake:1.9, sys-devel/autoconf]
+    debian,ubuntu: ["automake1.9", autoconf]
+    gentoo: ["sys-devel/automake:1.9", sys-devel/autoconf]
     arch: automake autoconf
 
 lsb_release:
