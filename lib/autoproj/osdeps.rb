@@ -246,7 +246,7 @@ fi
                     return Autobuild.programs['gem']
                 end
 
-                ruby_bin = Config::CONFIG['RUBY_INSTALL_NAME']
+                ruby_bin = RbConfig::CONFIG['RUBY_INSTALL_NAME']
                 if ruby_bin =~ /^ruby(.+)$/
                     Autobuild.programs['gem'] = "gem#{$1}"
                 else
