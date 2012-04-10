@@ -887,6 +887,9 @@ where 'mode' is one of:
                 opts.on('--stats', 'displays statistics about each of the phases in the package building process') do
                     @show_statistics = true
                 end
+                opts.on('-p LEVEL', '--parallel=LEVEL', Integer, "override the Autobuild.parallel_build_level level") do |value|
+                    Autobuild.parallel_build_level = value
+                end
 
                 opts.on("--with-depends", "apply rebuild and force-build to both packages selected on the command line and their dependencies") do
                     force_re_build_with_depends = true
