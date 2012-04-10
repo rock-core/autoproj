@@ -261,15 +261,47 @@ module Autoproj
         @loaded_autobuild_files << path
     end
 
+    def self.find_topmost_directory_containing(dir, glob_pattern = nil)
+        result = nil
+        while dir != "/"
+            match = false
+            if glob_pattern
+                if !Dir.glob(File.join(dir, glob_pattern)).empty?
+                    match = true
+                end
+            end
+
+            if !match && block_given? && yield(dir)
+                match = true
+            end
+            if !match && result
+                return result
+            elsif match
+                result = dir
+            end
+
+            dir = File.dirname(dir)
+        end
+    end
+
     # Tries to find a handler automatically for 'full_path'
     def self.package_handler_for(full_path)
         if !Dir.enum_for(:glob, File.join(full_path, "*.orogen")).to_a.empty?
             "orogen_package"
         elsif File.file?(File.join(full_path, "CMakeLists.txt"))
-            "cmake_package"
-        elsif File.directory?(File.join(full_path, "lib")) &&
-            Find.enum_for(:find, File.join(full_path, "lib")).any? { |path| path =~ /\.rb$/ }
-            "ruby_package"
+            dir = find_topmost_directory_containing(full_path) do |dir|
+                cmakelists = File.join(dir, 'CMakeLists.txt')
+                File.file?(cmakelists) &&
+                    (File.read(cmakelists) =~ /PROJECT/i)
+            end
+            dir ||= find_topmost_directory_containing(full_path, 'CMakeLists.txt')
+
+            return "cmake_package", dir
+        elsif !Dir.glob('*.rb').empty?
+            dir = find_topmost_directory_containing(full_path, "Rakefile") ||
+                find_topmost_directory_containing(full_path, "lib/*.rb")
+
+            return "ruby_package", dir
         end
     end
 end

@@ -215,7 +215,8 @@ module Autoproj
                 full_path = File.expand_path(File.join(Autoproj.root_dir, layout_level, pkg_or_set))
                 next if !File.directory?(full_path)
 
-                if handler = Autoproj.package_handler_for(full_path)
+                handler, srcdir = Autoproj.package_handler_for(full_path)
+                if handler
                     Autoproj.message "  auto-adding #{pkg_or_set} #{"in #{layout_level} " if layout_level != "/"}using the #{handler.gsub(/_package/, '')} package handler"
                     Autoproj.in_package_set(manifest.local_package_set, manifest.file) do
                         send(handler, pkg_or_set)
@@ -497,10 +498,11 @@ module Autoproj
             nonresolved.delete_if do |sel|
                 next if !File.directory?(sel)
                 while sel != '/'
-                    if handler = Autoproj.package_handler_for(sel)
-                        Autoproj.message "  auto-adding #{sel} using the #{handler.gsub(/_package/, '')} package handler"
-                        sel = File.expand_path(sel)
-                        relative_to_root = Pathname.new(sel).relative_path_from(Pathname.new(Autoproj.root_dir))
+                    handler, srcdir = Autoproj.package_handler_for(sel)
+                    if handler
+                        Autoproj.message "  auto-adding #{srcdir} using the #{handler.gsub(/_package/, '')} package handler"
+                        srcdir = File.expand_path(srcdir)
+                        relative_to_root = Pathname.new(srcdir).relative_path_from(Pathname.new(Autoproj.root_dir))
                         pkg = Autoproj.in_package_set(manifest.local_package_set, manifest.file) do
                             send(handler, relative_to_root.to_s)
                         end
