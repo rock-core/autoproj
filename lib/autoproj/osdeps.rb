@@ -163,6 +163,26 @@ fi
             end
         end
 
+        # Package manager interface for systems that use pacman (i.e. arch) as
+        # their package manager
+        class PacmanManager < ShellScriptManager
+            def initialize
+                super(['pacman'], true,
+                        "pacman '%s'",
+                        "pacman -Sy --noconfirm '%s'")
+            end
+        end
+
+        # Package manager interface for systems that use emerge (i.e. gentoo) as
+        # their package manager
+        class EmergeManager < ShellScriptManager
+            def initialize
+                super(['emerge'], true,
+                        "emerge '%s'",
+                        "emerge --noreplace '%s'")
+            end
+        end
+
         # Package manager interface for systems that use APT and dpkg for
         # package management
         class AptDpkgManager < ShellScriptManager
@@ -448,9 +468,14 @@ fi
             OSDependencies.load(file)
         end
 
-        PACKAGE_HANDLERS = [PackageManagers::AptDpkgManager, PackageManagers::GemManager]
+        PACKAGE_HANDLERS = [PackageManagers::AptDpkgManager,
+            PackageManagers::GemManager,
+            PackageManagers::EmergeManager,
+            PackageManagers::PacmanManager]
         OS_PACKAGE_HANDLERS = {
-            'debian' => 'apt-dpkg'
+            'debian' => 'apt-dpkg',
+            'gentoo' => 'emerge',
+            'arch' => 'pacman'
         }
 
         # The information contained in the OSdeps files, as a hash
