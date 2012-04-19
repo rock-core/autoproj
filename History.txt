@@ -1,3 +1,12 @@
+= Version 1.8.0
+ * fix issues with 1.9.3
+ * significantly refactor the osdeps handling. It should make the addition of
+   other OS-independent handlers (along rubygems) easier. Moreover, it is now
+   possible to specify gem dependency on a per-OS basis (was always global
+   before) 
+ * the autoproj command line learned the -p option to control parallelism (i.e.
+   -p1 forces to use only one process)
+
 = Version 1.7.20
  * do not generate an error if an unknown package is used as an optional
    dependency. The rationale is that one can then have optional features that
