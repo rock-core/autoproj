@@ -1599,47 +1599,41 @@ export PATH=$GEM_HOME/bin:$PATH
             # osdeps package
             #
             # +definitions+ is a osdep_name => definition_file mapping
-            mapping = Hash.new { |h, k| h[k] = [false, false, Hash.new, Set.new] }
-
+            mapping = Hash.new { |h, k| h[k] = Array.new }
+            used_by = Hash.new { |h, k| h[k] = Array.new }
             ospkg_to_pkg.each do |pkg_osdep, pkgs|
-                osdeps, gems = Autoproj.osdeps.
-                    partition_packages([pkg_osdep])
-
-                gems.each do |gem_name|
-                    mapping[gem_name.join(" ")][1] = true
-                    mapping[gem_name.join(" ")][2][pkg_osdep] = Autoproj.osdeps.source_of(pkg_osdep)
-                    mapping[gem_name.join(" ")][3] |= pkgs
-                end
-
-                if Autoproj::OSDependencies.supported_operating_system?
-                    osdeps = Autoproj.osdeps.
-                        resolve_os_dependencies(osdeps)
-                end
-                osdeps.each do |ospkg_name|
-                    mapping[ospkg_name][0] = true
-                    mapping[ospkg_name][2][pkg_osdep] = Autoproj.osdeps.source_of(pkg_osdep)
-                    mapping[ospkg_name][3] |= pkgs
+                used_by[pkg_osdep].concat(pkgs)
+                packages = Autoproj.osdeps.resolve_package(pkg_osdep)
+                packages.each do |handler, status, entries|
+                    entries.each do |entry|
+                        if entry.respond_to?(:join)
+                            entry = entry.join(", ")
+                        end
+                        mapping[entry] << [pkg_osdep, handler, Autoproj.osdeps.source_of(pkg_osdep)]
+                    end
                 end
             end
 
             mapping = mapping.sort_by(&:first)
-            mapping.each do |pkg_name, (is_os_pkg, is_gem_pkg, definitions, used_by)|
-                kind = if is_os_pkg && is_gem_pkg
-                           "both a RubyGem and OS package"
-                       elsif is_os_pkg
-                           "an OS package"
-                       else
-                           "a RubyGem package"
-                       end
+            mapping.each do |pkg_name, handlers|
+                puts pkg_name
+                depended_upon = Array.new
+                handlers.each do |osdep_name, handler, source|
+                    install_state = 
+                        if handler.respond_to?(:installed?)
+                            !!handler.installed?(pkg_name)
+                        end
+                    install_state =
+                        if install_state == false
+                            ", currently not installed"
+                        elsif install_state == true
+                            ", currently installed"
+                        end # nil means "don't know"
 
-                puts "#{pkg_name} is #{kind}"
-                definitions.to_a.
-                    sort_by(&:first).
-                    each do |osdep_name, file_name|
-                        puts "  defined as #{osdep_name} in #{file_name}"
-                    end
-
-                puts "  depended-upon by #{used_by.sort.join(", ")}"
+                    puts "  defined as #{osdep_name} (#{handler.name}) in #{source}#{install_state}"
+                    depended_upon.concat(used_by[osdep_name])
+                end
+                puts "  depended-upon by #{depended_upon.sort.join(", ")}"
             end
         end
 

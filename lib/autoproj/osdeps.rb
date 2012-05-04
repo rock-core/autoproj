@@ -20,6 +20,10 @@ module Autoproj
                 @enabled = true
                 @silent = true
             end
+
+            def name
+                names.first
+            end
         end
 
         # Dummy package manager used for unknown OSes. It simply displays a
