@@ -638,7 +638,9 @@ fi
                     options.dup
                 end
 
-            if !options[:force]
+            if options[:force]
+                @operating_system = nil
+            else
                 if !@operating_system.nil?
                     return @operating_system
                 elsif Autoproj.has_config_key?('operating_system')
