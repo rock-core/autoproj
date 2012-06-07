@@ -1713,9 +1713,11 @@ module Autoproj
                         Autoproj.osdeps.resolve_os_dependencies(osdeps)
                     rescue Autoproj::ConfigError => e
                         if osdeps_availability != Autoproj::OSDependencies::NO_PACKAGE && !Autoproj.osdeps.installs_os_packages?
-                            Autoproj.warn "in #{File.join(srcdir, 'manifest.xml')}: #{e.message}"
-                            Autoproj.warn "this osdeps dependency is simply ignored as you asked autoproj to not install osdeps packages"
-                            @ignored_os_dependencies << name
+                            if !@ignored_os_dependencies.include?(name)
+                                Autoproj.warn "some package depends on the #{name} osdep: #{e.message}"
+                                Autoproj.warn "this osdeps dependency is simply ignored as you asked autoproj to not install osdeps packages"
+                                @ignored_os_dependencies << name
+                            end
                             # We are not asked to install OS packages, just ignore
                             return []
                         end
