@@ -7,7 +7,7 @@ Utilrb::Rake.hoe do
         Hoe.spec 'autoproj' do
             self.developer "Sylvain Joyeux", "sylvain.joyeux@dfki.de"
 
-            self.url = ["http://rock-robotics.org/autoproj",
+            self.urls = ["http://rock-robotics.org/autoproj",
                 "git://github.com/doudou/autoproj.git"]
             self.rubyforge_name = 'autobuild'
             self.summary = 'Easy installation and management of software packages'
