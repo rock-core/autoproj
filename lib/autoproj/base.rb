@@ -1,4 +1,12 @@
+require 'yaml'
 module Autoproj
+    YAML_LOAD_ERROR =
+        if defined? Psych::SyntaxError
+            Psych::SyntaxError
+        else
+            ArgumentError
+        end
+            
     class ConfigError < RuntimeError
         attr_accessor :file
         def initialize(file = nil)

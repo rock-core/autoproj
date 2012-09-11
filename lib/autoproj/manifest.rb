@@ -620,7 +620,7 @@ module Autoproj
                 raise ConfigError.new, "source #{vcs.type}:#{vcs.url} should have a source.yml file, but does not"
             end
 
-            source_definition = Autoproj.in_file(source_file, ArgumentError) do
+            source_definition = Autoproj.in_file(source_file, Autoproj::YAML_LOAD_ERROR) do
                 YAML.load(File.read(source_file))
             end
 
@@ -882,7 +882,7 @@ module Autoproj
         def raw_description_file
             path = source_file
             if File.file?(path)
-                data = Autoproj.in_file(path, ArgumentError) do
+                data = Autoproj.in_file(path, Autoproj::YAML_LOAD_ERROR) do
                     YAML.load(File.read(path)) || Hash.new
                 end
                 data['name'] = 'local'
@@ -1006,7 +1006,7 @@ module Autoproj
                 raise ConfigError.new(File.dirname(file)), "expected an autoproj configuration in #{File.dirname(file)}, but #{file} does not exist"
             end
 
-            data = Autoproj.in_file(file, ArgumentError) do
+            data = Autoproj.in_file(file, Autoproj::YAML_LOAD_ERROR) do
                 YAML.load(File.read(file))
             end
 
