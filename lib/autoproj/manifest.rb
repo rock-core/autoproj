@@ -2315,6 +2315,13 @@ module Autoproj
         def license
             return text_node('package/license')
         end
+
+        # The package version number
+        #
+        # Returns 0 if none is declared
+        def version
+            return text_node("version")
+        end
     end
     def self.add_osdeps_overrides(*args, &block)
         manifest.add_osdeps_overrides(*args, &block)
