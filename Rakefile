@@ -8,7 +8,6 @@ Utilrb::Rake.hoe do
             self.developer "Sylvain Joyeux", "sylvain.joyeux@dfki.de"
 
             self.urls = ["http://rock-robotics.org/documentation/autoproj",
-                "git://github.com/doudou/autoproj.git"]
             self.rubyforge_name = 'autobuild'
             self.summary = 'Easy installation and management of software packages'
             self.description = paragraphs_of('README.txt', 0..1).join("\n\n")
