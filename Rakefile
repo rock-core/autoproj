@@ -5,13 +5,13 @@ task 'default'
 Utilrb::Rake.hoe do
     namespace 'dist' do
         Hoe.spec 'autoproj' do
-            self.developer "Sylvain Joyeux", "sylvain.joyeux@dfki.de"
+            self.developer "Rock Core Developers", "rock-dev@dfki.de"
 
-            self.urls = ["http://rock-robotics.org/documentation/autoproj",
+            self.urls = ["http://rock-robotics.org/documentation/autoproj"]
             self.rubyforge_name = 'autobuild'
-            self.summary = 'Easy installation and management of software packages'
-            self.description = paragraphs_of('README.txt', 0..1).join("\n\n")
-            self.changes     = paragraphs_of('History.txt', 0..1).join("\n\n")
+            self.summary = 'Easy installation and management of sets of software packages'
+            self.description = "autoproj is a manager for sets of software packages. It allows the user to import and build packages from source, still using the underlying distribution's native package manager for software that is available on it."
+            self.email = "rock-dev@dfki.de"
 
             extra_deps << 
                 ['autobuild',   '>= 1.6.0.rc1'] <<
