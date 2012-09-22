@@ -1131,7 +1131,6 @@ where 'mode' is one of:
                 @update_os_dependencies = false
                 Autobuild.do_doc    = true
                 Autobuild.only_doc  = true
-                Autobuild.parallel_build_level = 1
             when "list-unused"
                 Autobuild.do_update = false
                 Autobuild.do_build  = false
