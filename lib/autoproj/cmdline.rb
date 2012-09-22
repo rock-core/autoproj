@@ -22,12 +22,12 @@ module Autoproj
 
     # Displays an error message
     def self.error(message)
-        Autoproj.message("  ERROR: #{message}", :red, :bold)
+        Autobuild.error(message)
     end
 
     # Displays a warning message
     def self.warn(message)
-        Autoproj.message("  WARN: #{message}", :magenta)
+        Autobuild.warn(message)
     end
 
     module CmdLine
