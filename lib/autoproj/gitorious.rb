@@ -48,38 +48,6 @@ module Autoproj
         end
         Autoproj.change_option("#{name}_PUSH_ROOT", "git@#{base_url}:")
 
-        # If running on a recent enough autobuild version, register a fallback to
-        # use http when git fails
-        if Autobuild::Importer.respond_to?(:fallback) && options[:fallback_to_http]
-            Autobuild::Importer.fallback do |package, importer|
-                root_rx = /^(?:http:\/\/git\.|git:\/\/|git@)#{Regexp.quote(base_url)}:?/
-                if importer.kind_of?(Autobuild::Git) && importer.repository =~ root_rx && importer.repository !~ /^http/
-                    Autoproj.warn "import from #{importer.repository} failed, falling back to using http for all packages on #{base_url}"
-
-                    base_replace_string = "http://git.#{base_url}"
-                    Autobuild::Package.each do |pkg_name, pkg|
-                        if pkg.importer.kind_of?(Autobuild::Git) && pkg.importer.repository =~ root_rx
-                            if pkg.importer.repository =~ /^git@/
-                                replace_string = "#{base_replace_string}/"
-                            else
-                                replace_string = base_replace_string
-                            end
-                            pkg.importer.repository.gsub!(root_rx, replace_string)
-                        end
-                    end
-
-                    http_importer = importer.dup
-                    if http_importer.repository =~ /^git@/
-                        replace_string = "#{base_replace_string}/"
-                    else
-                        replace_string = base_replace_string
-                    end
-                    http_importer.repository = importer.repository.gsub(root_rx, replace_string)
-                    http_importer
-                end
-            end
-        end
-
         Autoproj.add_source_handler name.downcase do |url, options|
             if url !~ /\.git$/
                 url += ".git"
@@ -89,7 +57,7 @@ module Autoproj
             end
             pull_base_url = Autoproj.user_config("#{name}_ROOT")
             push_base_url = Autoproj.user_config("#{name}_PUSH_ROOT")
-            Hash[:type => 'git', :url => "#{pull_base_url}#{url}", :push_to => "#{push_base_url}#{url}"].merge(options)
+            Hash[:type => 'git', :url => "#{pull_base_url}#{url}", :push_to => "#{push_base_url}#{url}", :retry_count => 10].merge(options)
         end
     end
 end
