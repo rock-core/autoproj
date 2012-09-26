@@ -4,16 +4,18 @@ module Autoproj
     class << self
         attr_accessor :verbose
         attr_reader :console
-        attr_predicate :silent?, true
+        def silent?
+            Autobuild.silent?
+        end
+        def silent=(value)
+            Autobuild.silent = value
+        end
     end
-    @silent  = false
     @verbose = false
     @console = HighLine.new
 
     def self.message(*args)
-        if !silent?
-            Autobuild.message(*args)
-        end
+        Autobuild.message(*args)
     end
 
     def self.color(*args)
