@@ -39,16 +39,6 @@ build-essential:
     gentoo: ignore
     arch: ignore
 
-libxml2:
-    debian,ubuntu: libxml2-dev
-    gentoo: dev-libs/libxml2
-    arch: libxml2
-
-libxslt:
-    debian,ubuntu: libxslt1-dev
-    gentoo: dev-libs/libxslt
-    arch: libxslt
-
 zlib:
     debian,ubuntu: zlib1g-dev
 
