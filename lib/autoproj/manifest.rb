@@ -125,6 +125,18 @@ module Autoproj
         Autobuild.env_source_file(file)
     end
 
+    # Requests that autoproj source the given shell script in its own env.sh
+    # script
+    def self.env_source_after(file)
+        Autobuild.env_source_after(file)
+    end
+
+    # Requests that autoproj source the given shell script in its own env.sh
+    # script
+    def self.env_source_before(file)
+        Autobuild.env_source_before(file)
+    end
+
     # Representation of a VCS definition contained in a source.yml file or in
     # autoproj/manifest
     class VCSDefinition

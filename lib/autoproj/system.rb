@@ -135,7 +135,7 @@ module Autoproj
                     Autoproj.message
                     Autoproj.message "autodetected the shell to be #{shell_kind}, sourcing autoproj shell helpers"
                     Autoproj.message "add \"Autoproj.shell_helpers = false\" in autoproj/init.rb to disable"
-                    Autobuild.env_source_file(shell_file)
+                    Autobuild.env_source_after(shell_file)
                 end
             end
         end
