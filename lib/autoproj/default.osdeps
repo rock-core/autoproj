@@ -19,6 +19,7 @@ ruby19:
         - ruby1.9.1-dev
         - rubygems1.9.1
         - rake
+        - rubygems-integration
 
     ubuntu:
         - ruby1.9.1
