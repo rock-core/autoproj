@@ -1,0 +1,25 @@
+#! /usr/bin/env ruby
+
+require 'autoproj'
+require 'autoproj/cmdline'
+require 'pp'
+
+Autoproj.silent = true
+root_dir  = Autoproj::CmdLine.initialize_root_directory
+selection = Autoproj::CmdLine.initialize_and_load(ARGV)
+
+selection.each do |name|
+    puts "resolved '#{name}' with"
+    resolved = Autoproj.manifest.resolve_package_name(name)
+    resolved.each do |type, pkg_name|
+        if type == :package
+            puts "  the source package #{pkg_name}"
+        elsif type == :osdeps
+            puts "  the osdep '#{pkg_name}'"
+            Autoproj.osdeps.resolve_os_dependencies(pkg_name).each do |manager, packages|
+                puts "    #{manager.names.first}: #{packages.map { |*subnames| subnames.join(" ") }.join(", ")}"
+            end
+        end
+    end
+end
+
