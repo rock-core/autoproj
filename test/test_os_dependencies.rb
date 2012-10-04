@@ -342,6 +342,20 @@ class TC_OSDependencies < Test::Unit::TestCase
         assert_equal expected, osdeps.resolve_package('pkg')
     end
 
+    def test_resolve_mixed_os_and_osindep_dependencies
+        data = { 'pkg' =>
+                 { 'test' => { 'default' => ['ospkg', 'gem' => 'gempkg'] }
+                 }
+               }
+
+        osdeps = create_osdep(data)
+        expected = [
+            [osdeps.os_package_handler, FOUND_PACKAGES, ['ospkg']],
+            [osdeps.package_handlers['gem'], FOUND_PACKAGES, ['gempkg']]
+        ].to_set
+        assert_equal expected, osdeps.resolve_package('pkg').to_set
+    end
+
     def test_availability_of
         osdeps = flexmock(OSDependencies.new)
         osdeps.should_receive(:resolve_package).with('pkg0').once.and_return(

@@ -849,6 +849,7 @@ fi
         #
         def partition_osdep_entry(osdep_name, dep_def, handler_names, excluded, *keys)
             keys, *additional_keys = *keys
+            keys ||= []
             found = false
             nonexistent = false
             result = []
@@ -880,7 +881,7 @@ fi
                         end
                         result.concat(rec_result)
                     end
-                elsif keys
+                else
                     if names.respond_to?(:to_str) # names could be an array already
                         names = names.split(',')
                     end
