@@ -905,6 +905,9 @@ fi
                             found_keys[idx][0] += rec_found
                             found_keys[idx][1].concat(rec_result)
                         end
+
+                        # We only consider the first matching entry
+                        keys = nil
                     end
                 end
             end

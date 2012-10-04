@@ -107,12 +107,13 @@ class TC_OSDependencies < Test::Unit::TestCase
     end
 
     def test_resolve_specific_os_name_and_version_fallback
-        data = { 'pkg' => {
-                'test' => {
-                    'v1.1' => 'pkg1.1',
-                    'default' => 'pkgdef'
-                 }
-        } }
+        data = { 'pkg' =>
+                 { 'test' => 
+                   { 'v1.1' => 'pkg1.1',
+                     'default' => 'pkgdef'
+                   }
+                 }        
+               }
         osdeps = create_osdep(data)
 
         expected = [[osdeps.os_package_handler, FOUND_PACKAGES, ['pkgdef']]]
@@ -318,6 +319,26 @@ class TC_OSDependencies < Test::Unit::TestCase
         data = { 'pkg' => ['gem', { 'test' => { 'gem' => 'gempkg' } } ] }
         osdeps = create_osdep(data)
         expected = [[osdeps.package_handlers['gem'], FOUND_PACKAGES, ['pkg', 'gempkg']]]
+        assert_equal expected, osdeps.resolve_package('pkg')
+    end
+
+    def test_specific_os_version_supersedes_nonspecific_one
+        data = { 'pkg' =>
+                 { 'test' => { 'gem' => 'gempkg' },
+                   'debian' => 'binary_package'
+                 }
+               }
+        osdeps = create_osdep(data)
+        expected = [[osdeps.package_handlers['gem'], FOUND_PACKAGES, ['gempkg']]]
+        assert_equal expected, osdeps.resolve_package('pkg')
+
+        data = { 'pkg' =>
+                 { 'test' => 'binary_package',
+                   'default' => { 'gem' => 'gem_package' }
+                 }
+               }
+        osdeps = create_osdep(data)
+        expected = [[osdeps.os_package_handler, FOUND_PACKAGES, ['binary_package']]]
         assert_equal expected, osdeps.resolve_package('pkg')
     end
 
