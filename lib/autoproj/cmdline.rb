@@ -187,6 +187,9 @@ module Autoproj
                 Autoproj.load_if_present(source, source.local_dir, "init.rb")
             end
 
+            # Loads OS package definitions once and for all
+            Autoproj.load_osdeps_from_package_sets
+
             # Load the required autobuild definitions
             if !silent
                 Autoproj.message("autoproj: loading ...", :bold)
@@ -232,9 +235,6 @@ module Autoproj
             # is done (since we need to process the package setup blocks), but
             # save the current state of the configuration anyway.
             Autoproj.save_config
-
-            # Loads OS package definitions once and for all
-            Autoproj.load_osdeps_from_package_sets
         end
 
         def self.update_configuration
