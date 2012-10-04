@@ -643,7 +643,7 @@ fi
             else
                 if !@operating_system.nil?
                     return @operating_system
-                elsif Autoproj.has_config_key?('operating_system')
+                elsif Autoproj.has_config_key?('operating_system') && !(user_os = ENV['AUTOPROJ_OS'])
                     os = Autoproj.user_config('operating_system')
                     if os.respond_to?(:to_ary)
                         if os[0].respond_to?(:to_ary) && os[0].all? { |s| s.respond_to?(:to_str) } &&
