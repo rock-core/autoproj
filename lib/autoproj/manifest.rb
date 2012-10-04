@@ -574,7 +574,7 @@ module Autoproj
             if local?
                 File.expand_path(vcs.url)
             else
-                File.expand_path(File.join(Autoproj.remotes_dir, vcs.to_s.gsub(/[^\w]/, '_')))
+                File.expand_path(File.join(Autoproj.remotes_dir, vcs.create_autobuild_importer.repository_id.gsub(/[^\w]/, '_')))
             end
         end
 
