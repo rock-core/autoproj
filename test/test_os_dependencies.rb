@@ -25,12 +25,10 @@ class TC_OSDependencies < Test::Unit::TestCase
     def create_osdep(data)
         osdeps = OSDependencies.new(data)
         # Mock the package handlers
-        osdeps.os_package_handler = flexmock(PackageManagers::Manager.new)
-        osdeps.os_package_handler.should_receive('names').and_return(['apt-dpkg'])
+        osdeps.os_package_handler = flexmock(PackageManagers::Manager.new(['apt-dpkg']))
         osdeps.package_handlers.clear
         osdeps.package_handlers['apt-dpkg'] = osdeps.os_package_handler
-        osdeps.package_handlers['gem'] = flexmock(PackageManagers::Manager.new)
-        osdeps.package_handlers['gem'].should_receive('names').and_return(['gem'])
+        osdeps.package_handlers['gem'] = flexmock(PackageManagers::Manager.new(['gem']))
         flexmock(osdeps)
     end
 
