@@ -426,7 +426,7 @@ class TC_OSDependencies < Test::Unit::TestCase
         osdeps.should_receive(:resolve_package).with('pkg0').once.and_return(nil)
         osdeps.should_receive(:resolve_package).with('pkg1').never
         osdeps.should_receive(:resolve_package).with('pkg2').never
-        assert_raises(ConfigError) { osdeps.resolve_os_dependencies(['pkg0', 'pkg1', 'pkg2']) }
+        assert_raises(Autoproj::OSDependencies::MissingOSDep) { osdeps.resolve_os_dependencies(['pkg0', 'pkg1', 'pkg2']) }
 
         osdeps.should_receive(:resolve_package).with('pkg0').once.and_return(
             [[osdeps.os_package_handler, FOUND_PACKAGES, ['pkg0']]])
@@ -437,13 +437,13 @@ class TC_OSDependencies < Test::Unit::TestCase
         expected =
             [[osdeps.os_package_handler, ['pkg0']],
              [osdeps.package_handlers['gem'], ['gempkg1', 'gempkg2']]]
-        assert_raises(ConfigError) { osdeps.resolve_os_dependencies(['pkg0', 'pkg1', 'pkg2']) }
+        assert_raises(Autoproj::OSDependencies::MissingOSDep) { osdeps.resolve_os_dependencies(['pkg0', 'pkg1', 'pkg2']) }
 
         osdeps.should_receive(:resolve_package).with('pkg0').once.and_return(
             [[osdeps.os_package_handler, FOUND_NONEXISTENT, ['pkg0']]])
         osdeps.should_receive(:resolve_package).with('pkg1').never
         osdeps.should_receive(:resolve_package).with('pkg2').never
-        assert_raises(ConfigError) { osdeps.resolve_os_dependencies(['pkg0', 'pkg1', 'pkg2']) }
+        assert_raises(Autoproj::OSDependencies::MissingOSDep) { osdeps.resolve_os_dependencies(['pkg0', 'pkg1', 'pkg2']) }
 
         osdeps.should_receive(:resolve_package).with('pkg0').once.and_return(
             [[osdeps.os_package_handler, FOUND_PACKAGES, ['pkg0']]])
@@ -451,7 +451,7 @@ class TC_OSDependencies < Test::Unit::TestCase
             [[osdeps.os_package_handler, FOUND_PACKAGES, ['pkg1']],
              [osdeps.package_handlers['gem'], FOUND_NONEXISTENT, ['gempkg1']]])
         osdeps.should_receive(:resolve_package).with('pkg2').never
-        assert_raises(ConfigError) { osdeps.resolve_os_dependencies(['pkg0', 'pkg1', 'pkg2']) }
+        assert_raises(Autoproj::OSDependencies::MissingOSDep) { osdeps.resolve_os_dependencies(['pkg0', 'pkg1', 'pkg2']) }
     end
 
     def test_install
