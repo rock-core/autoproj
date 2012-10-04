@@ -1739,7 +1739,11 @@ module Autoproj
             elsif !available_as_source
                 raise ConfigError, "cannot resolve #{name}: it is not a package, not a metapackage and not an osdeps"
             end
-            return [[:package, name]]
+            if source_packages
+                return source_packages
+            else
+                return [[:package, name]]
+            end
         end
 
         # +name+ can either be the name of a source or the name of a package. In
