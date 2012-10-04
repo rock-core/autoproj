@@ -324,8 +324,9 @@ class TC_OSDependencies < Test::Unit::TestCase
 
     def test_specific_os_version_supersedes_nonspecific_one
         data = { 'pkg' =>
-                 { 'test' => { 'gem' => 'gempkg' },
-                   'debian' => 'binary_package'
+                 {
+                   'debian' => 'binary_package',
+                   'test' => { 'gem' => 'gempkg' }
                  }
                }
         osdeps = create_osdep(data)
@@ -333,8 +334,9 @@ class TC_OSDependencies < Test::Unit::TestCase
         assert_equal expected, osdeps.resolve_package('pkg')
 
         data = { 'pkg' =>
-                 { 'test' => 'binary_package',
-                   'default' => { 'gem' => 'gem_package' }
+                 {
+                   'default' => { 'gem' => 'gem_package' },
+                   'test' => 'binary_package'
                  }
                }
         osdeps = create_osdep(data)

@@ -852,7 +852,7 @@ fi
             found = false
             nonexistent = false
             result = []
-            found_keys = []
+            found_keys = Hash.new
             Array(dep_def).each do |names, values|
                 if !values
                     # Raw array of packages. Possible only if we are not at toplevel
@@ -898,20 +898,25 @@ fi
                     matching_name = keys.find { |k| names.any? { |name_tag| k == name_tag.downcase } }
                     if matching_name
                         rec_found, rec_result = partition_osdep_entry(osdep_name, values, handler_names, excluded, *additional_keys)
-
-                        if rec_found
-                            idx = keys.index(matching_name)
+                        # We only consider the first highest-priority entry,
+                        # regardless of whether it has some packages for us or
+                        # not
+                        idx = keys.index(matching_name)
+                        if !rec_found
+                            if !found_keys.has_key?(idx)
+                                found_keys[idx] = nil
+                            end
+                        else
                             found_keys[idx] ||= [0, []]
                             found_keys[idx][0] += rec_found
                             found_keys[idx][1].concat(rec_result)
                         end
-
-                        # We only consider the first matching entry
-                        keys = nil
                     end
                 end
             end
-            if found_keys = found_keys.compact.first
+            first_entry = found_keys.keys.sort.first
+            found_keys = found_keys[first_entry]
+            if found_keys
                 if found_keys[0] > 0
                     nonexistent = true
                 else
