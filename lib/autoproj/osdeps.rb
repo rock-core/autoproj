@@ -929,6 +929,8 @@ fi
             return found, result
         end
 
+        class MissingOSDep < ConfigError; end
+
         # Resolves the given OS dependencies into the actual packages that need
         # to be installed on this particular OS.
         #
@@ -939,14 +941,14 @@ fi
             dependencies.each do |name|
                 result = resolve_package(name)
                 if !result
-                    raise ConfigError.new, "there is no osdeps definition for #{name}"
+                    raise MissingOSDep.new, "there is no osdeps definition for #{name}"
                 elsif result.empty?
                     os_names, os_versions = OSDependencies.operating_system
-                    raise ConfigError.new, "there is an osdeps definition for #{name}, but not for this operating system and version (resp. #{os_names.join(", ")} and #{os_versions.join(", ")})"
+                    raise MissingOSDep.new, "there is an osdeps definition for #{name}, but not for this operating system and version (resp. #{os_names.join(", ")} and #{os_versions.join(", ")})"
                 else
                     result.each do |handler, status, packages|
                         if status == FOUND_NONEXISTENT
-                            raise ConfigError.new, "there is an osdep definition for #{name}, and it explicitely states that this package does not exist on your OS"
+                            raise MissingOSDep.new, "there is an osdep definition for #{name}, and it explicitely states that this package does not exist on your OS"
                         end
                         if entry = all_packages.find { |h, _| h == handler }
                             entry[1].concat(packages)
