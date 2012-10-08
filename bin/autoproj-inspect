@@ -11,14 +11,18 @@ selection = Autoproj::CmdLine.initialize_and_load(ARGV)
 selection.each do |name|
     puts "resolved '#{name}' with"
     resolved = Autoproj.manifest.resolve_package_name(name)
-    resolved.each do |type, pkg_name|
-        if type == :package
-            puts "  the source package #{pkg_name}"
-        elsif type == :osdeps
-            puts "  the osdep '#{pkg_name}'"
-            Autoproj.osdeps.resolve_os_dependencies(pkg_name).each do |manager, packages|
-                puts "    #{manager.names.first}: #{packages.map { |*subnames| subnames.join(" ") }.join(", ")}"
-            end
+
+    packages, osdeps = resolved.partition { |type, name| type == :package }
+    packages = packages.map(&:last)
+    osdeps   = osdeps.map(&:last)
+
+    puts "#{packages.size} source packages"
+    puts "  " + packages.sort.join("\n  ")
+    puts "#{osdeps.size} OS dependencies"
+    osdeps.each do |pkg_name|
+        puts "  the osdep '#{pkg_name}'"
+        Autoproj.osdeps.resolve_os_dependencies(pkg_name).each do |manager, packages|
+            puts "    #{manager.names.first}: #{packages.map { |*subnames| subnames.join(" ") }.join(", ")}"
         end
     end
 end
