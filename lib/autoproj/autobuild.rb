@@ -695,6 +695,5 @@ def remove_from_default(*names)
     Autoproj.manifest.metapackage(pkg_set.name).packages.delete_if do |pkg|
         names.include?(pkg.name)
     end
-    puts Autoproj.manifest.metapackage(pkg_set.name).packages.map(&:name).sort.join(", ")
 end
 
