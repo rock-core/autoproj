@@ -684,3 +684,17 @@ def default_packages(*names)
     metapackage(pkg_set.name, *names)
 end
 
+# This can be used only during the load of a package set
+#
+# It removes the given packages from the set of packages that will be built if
+# 'package_set_name' is used. By default, all of the package set's packages are
+# included. After a call to default_packages, only the packages listed (and
+# their dependencies) are.
+def remove_from_default(*names)
+    pkg_set = Autoproj.current_package_set
+    Autoproj.manifest.metapackage(pkg_set.name).packages.delete_if do |pkg|
+        names.include?(pkg.name)
+    end
+    puts Autoproj.manifest.metapackage(pkg_set.name).packages.map(&:name).sort.join(", ")
+end
+
