@@ -187,6 +187,31 @@ fi
             end
         end
 
+        # Package manager interface for systems that use yum
+        class YumManager < ShellScriptManager
+            def initialize
+                super(['yum'], true,
+                      "yum install '%s'",
+                      "yum install -y '%s'")
+            end
+
+            def filter_uptodate_packages(packages)
+                result = `LANG=C rpm -q '#{packages.join("' '")}'`
+                if $?.exitstatus != 0
+                    Autoproj.warn "cannot run rpm -q #{packages.join(", ")}. I am assuming that no packages are already installed"
+                    return packages
+                else
+                    result = []
+                    result.split("\n").each_with_index do |line, index|
+                        if line =~ /is not installed/
+                            result << packages[index]
+                        end
+                    end
+                    result
+                end
+            end
+        end
+
         # Package manager interface for systems that use APT and dpkg for
         # package management
         class AptDpkgManager < ShellScriptManager
@@ -475,11 +500,13 @@ fi
         PACKAGE_HANDLERS = [PackageManagers::AptDpkgManager,
             PackageManagers::GemManager,
             PackageManagers::EmergeManager,
-            PackageManagers::PacmanManager]
+            PackageManagers::PacmanManager,
+            PackageManagers::YumManager]
         OS_PACKAGE_HANDLERS = {
             'debian' => 'apt-dpkg',
             'gentoo' => 'emerge',
-            'arch' => 'pacman'
+            'arch' => 'pacman',
+            'fedora' => 'yum'
         }
 
         # The information contained in the OSdeps files, as a hash
@@ -685,6 +712,11 @@ fi
                             versions = codenames + ["unstable", "sid"]
                         end
                         [['debian'], versions]
+                    elsif File.exists?('/etc/fedora-release')
+                        release_string = File.read('/etc/fedora-release').strip
+                        release_string =~ /Fedora release (\d+)/
+                        version = $1
+                        [['fedora'], [version]]
                     elsif File.exists?('/etc/gentoo-release')
                         release_string = File.read('/etc/gentoo-release').strip
                         release_string =~ /^.*([^\s]+)$/
