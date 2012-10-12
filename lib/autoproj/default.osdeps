@@ -79,7 +79,7 @@ autotools:
   gentoo:
   - "sys-devel/automake:1.9"
   - sys-devel/autoconf
-    arch: automake autoconf
+  arch: automake autoconf
   fedora:
   - automake
   - autoconf
