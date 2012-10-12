@@ -74,8 +74,8 @@ report do
 
 
 #{color('autoproj bootstrap failed', :red, :bold)}
-To retry, first source the env.sh script with
-  source #{Dir.pwd}/env.sh
+To retry, first source the #{Autoproj::ENV_FILENAME} script with
+  source #{Dir.pwd}/#{Autoproj::ENV_FILENAME}
 and then re-run autoproj bootstrap with
   autoproj bootstrap <vcs_type> <vcs_url> <vcs_options>
 
@@ -178,11 +178,11 @@ EOTEXT
 
 #{color('To further use autoproj and the installed software', :bold)}, you
 must add the following line at the bottom of your .bashrc:
-  source #{Dir.pwd}/env.sh
+  source #{Dir.pwd}/#{Autoproj::ENV_FILENAME}
 
 WARNING: autoproj will not work until your restart all
 your consoles, or run the following in them:
-  $ source #{Dir.pwd}/env.sh
+  $ source #{Dir.pwd}/#{Autoproj::ENV_FILENAME}
 
 #{color('To import and build the packages', :bold)}, you can now run
   autoproj update
@@ -277,7 +277,7 @@ EOTEXT
 
     if Autoproj::CmdLine.update_envsh?
         Autoproj.export_env_sh
-        Autoproj.message "autoproj: updated #{Autoproj.root_dir}/env.sh", :green
+        Autoproj.message "autoproj: updated #{Autoproj.root_dir}/#{Autoproj::ENV_FILENAME}", :green
     end
 
     if Autoproj::CmdLine.show_statistics?

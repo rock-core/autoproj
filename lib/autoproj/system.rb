@@ -18,11 +18,21 @@ module Autoproj
             return @root_dir
         end
 
-        while dir != "/" && !File.directory?(File.join(dir, "autoproj"))
+        root_dir_rx =
+            if Autobuild.windows? then /^[a-zA-Z]:\\\\$/
+            else /^\/$/
+            end
+
+        while root_dir_rx =~ dir && !File.directory?(File.join(dir, "autoproj"))
             dir = File.dirname(dir)
         end
-        if dir == "/"
+        if root_dir_rx =~ dir
             raise UserError, "not in a Autoproj installation"
+        end
+
+        #Preventing backslashed in path, that might be confusing on some path compares
+        if Autobuild.windows?
+            dir = dir.gsub(/\\/,'/')
         end
         dir
     end
@@ -127,10 +137,10 @@ module Autoproj
     # Create the env.sh script in +subdir+. In general, +subdir+ should be nil.
     def self.export_env_sh(subdir = nil)
         filename = if subdir
-                       File.join(Autoproj.root_dir, subdir, "env.sh")
-                   else
-                       File.join(Autoproj.root_dir, "env.sh")
-                   end
+               File.join(Autoproj.root_dir, subdir, ENV_FILENAME)
+           else
+               File.join(Autoproj.root_dir, ENV_FILENAME)
+           end
 
         shell_dir = File.expand_path(File.join("..", "..", "shell"), File.dirname(__FILE__))
         if Autoproj.shell_helpers? && shell = ENV['SHELL']

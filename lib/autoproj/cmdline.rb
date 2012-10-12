@@ -10,9 +10,16 @@ module Autoproj
         def silent=(value)
             Autobuild.silent = value
         end
+
+        attr_predicate :silent?, true
     end
     @verbose = false
     @console = HighLine.new
+    ENV_FILENAME =
+        if Autobuild.windows? then "env.bat"
+        else "env.sh"
+        end
+	
 
     def self.silent(&block)
         Autobuild.silent(&block)
@@ -77,8 +84,9 @@ module Autoproj
 
             # If we are under rubygems, check that the GEM_HOME is right ...
             if $LOADED_FEATURES.any? { |l| l =~ /rubygems/ }
+				
                 if ENV['GEM_HOME'] != Autoproj.gem_home
-                    raise ConfigError.new, "RubyGems is already loaded with a different GEM_HOME, make sure you are loading the right env.sh script !"
+                    raise ConfigError.new, "RubyGems is already loaded with a different GEM_HOME, make sure you are loading the right #{ENV_FILENAME} script !"
                 end
             end
 
@@ -820,7 +828,7 @@ where 'mode' is one of:
   doc:    generate and install documentation for packages that have some
 
 -- Status & Update
-  envsh:         update the env.sh script
+  envsh:         update the #{ENV_FILENAME} script
   osdeps:        install the OS-provided packages
   status:        displays the state of the packages w.r.t. their source VCS
   list-config:   list all available packages
@@ -1387,7 +1395,7 @@ where 'mode' is one of:
             end
 
             require 'set'
-            curdir_entries = Dir.entries('.').to_set - [".", "..", "autoproj_bootstrap", ".gems", 'env.sh'].to_set
+            curdir_entries = Dir.entries('.').to_set - [".", "..", "autoproj_bootstrap", ".gems", @env].to_set
             if !curdir_entries.empty? && ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] != '1'
                 while true
                     print "The current directory is not empty, continue bootstrapping anyway ? [yes] "
@@ -1461,14 +1469,13 @@ where 'mode' is one of:
 
             Autoproj.save_config
 
-            # Finally, generate an env.sh script
-            File.open('env.sh', 'w') do |io|
-                io.write <<-EOSHELL
-export RUBYOPT=-rubygems
-export GEM_HOME=#{Autoproj.gem_home}
-export PATH=$GEM_HOME/bin:$PATH
-                EOSHELL
-            end
+            Autobuild.env_set 'RUBYOPT', '-rubygems'
+            Autobuild.env_set 'GEM_HOME', Autoproj.gem_home
+            Autobuild.env_add_path 'PATH', File.join(Autoproj.gem_home, 'bin')
+            Autobuild.env_inherit 'PATH'
+            Autobuild.env_add_path 'GEM_PATH', Autoproj.gem_home
+            Autobuild.env_inherit 'GEM_PATH'
+            Autoproj.export_env_sh
         end
 
         def self.missing_dependencies(pkg)

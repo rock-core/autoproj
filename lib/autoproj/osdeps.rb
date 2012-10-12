@@ -774,6 +774,8 @@ fi
                     elseif `uname`.chomp == "Darwin"
                         version=`sw_vers | head -2 | tail -1`.split(":")[1]
                         [['darwin'], [version.strip]]
+                    elsif Autobuild.windows?
+                        [['windows'], []]
                     end
             end
 
@@ -795,8 +797,14 @@ fi
         end
 
         def self.os_from_lsb
-            has_lsb_release = `which lsb_release`
-            return unless $?.success?
+            has_lsb_release = nil
+            begin
+                has_lsb_release = `which lsb_release`
+                return unless $?.success?
+            rescue Exception => e
+                #seems which is not installes (e.g. on windows)
+                return
+            end
 
             distributor = `lsb_release -i -s`
             distributor = distributor.strip.downcase
@@ -1313,6 +1321,12 @@ So, what do you want ? (all, ruby, os or none)
 
         # Requests the installation of the given set of packages
         def install(packages, package_osdeps = Hash.new)
+            #not sure here, simply show that it is installed even we dont install anything,
+            #because this functions seems to called sometimes even --no-osdeps is given or the installs_os_packages? return false
+            #it seems its not checked everywhere, so add this sainty check here
+            return true if not installs_os_packages?
+			
+			
             os_package_handler.enabled = installs_os_packages?
             os_package_handler.silent = self.silent?
             package_handlers['gem'].enabled = installs_ruby_packages?
