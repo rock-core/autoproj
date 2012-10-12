@@ -196,19 +196,27 @@ fi
             end
 
             def filter_uptodate_packages(packages)
-                result = `LANG=C rpm -q '#{packages.join("' '")}'`
-                if $?.exitstatus != 0
-                    Autoproj.warn "cannot run rpm -q #{packages.join(", ")}. I am assuming that no packages are already installed"
-                    return packages
-                else
-                    result = []
-                    result.split("\n").each_with_index do |line, index|
-                        if line =~ /is not installed/
-                            result << packages[index]
-                        end
+                result = `LANG=C rpm -q --queryformat "%{NAME}\n" '#{packages.join("' '")}'`
+
+                installed_packages = []
+		new_packages = []
+                result.split("\n").each_with_index do |line, index|
+		    line = line.strip
+                    if line =~ /package (.*) is not installed/
+			package_name = $1
+			if !packages.include?(package_name) # something is wrong, fallback to installing everything
+			    return packages
+			end
+                        new_packages << package_name
+		    else 
+			package_name = line.strip
+			if !packages.include?(package_name) # something is wrong, fallback to installing everything
+			    return packages
+			end
+		        installed_packages << package_name
                     end
-                    result
                 end
+                new_packages
             end
         end
 
