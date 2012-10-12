@@ -12,7 +12,11 @@ ruby18:
     gentoo:
         - dev-lang/ruby:1.8
         - rake
-
+    fedora:
+      "15,16":
+        - ruby
+        - rubygems
+      default: nonexistent
 ruby19:
     debian:
         - ruby1.9.1
@@ -34,54 +38,74 @@ ruby19:
     arch:
         - ruby
         - rake
+    fedora:
+      "17":
+      - ruby
+      - rubygems
+      default: nonexistent
 
 build-essential:
-    debian,ubuntu: build-essential
-    gentoo: ignore
-    arch: ignore
-
-zlib:
-    debian,ubuntu: zlib1g-dev
-
+  debian,ubuntu: build-essential
+  gentoo: ignore
+  arch: ignore
+  fedora: ignore
 
 autobuild: gem
 autoproj: gem
 
 # The following definitions are for the VCS and build systems
 git:
-    debian:
-        lenny:
-            git
-        default: git-core
-    ubuntu: git-core
-    gentoo: dev-vcs/git
-    arch: git
+  debian:
+    lenny: git
+    default: git-core
+  ubuntu: git-core
+  gentoo: dev-vcs/git
+  arch: git
+  fedora: git
 svn:
-    debian,ubuntu: subversion
-    gentoo: dev-util/subversion
-    arch: subversion
+  debian,ubuntu: subversion
+  gentoo: dev-util/subversion
+  arch: subversion
+  fedora: subversion
 cmake:
-    debian,ubuntu: cmake
-    gentoo: dev-util/cmake
-    arch: cmake
-
+  debian,ubuntu: cmake
+  gentoo: dev-util/cmake
+  arch: cmake
+  fedora: cmake
 autotools:
-    debian,ubuntu: ["automake1.9", autoconf]
-    gentoo: ["sys-devel/automake:1.9", sys-devel/autoconf]
+  debian,ubuntu:
+  - "automake1.9"
+  - autoconf
+  gentoo:
+  - "sys-devel/automake:1.9"
+  - sys-devel/autoconf
     arch: automake autoconf
+  fedora:
+  - automake
+  - autoconf
 
 lsb_release:
-    debian,ubuntu: lsb-release
-    gentoo: sys-apps/lsb-release
-    arch: ignore
+  debian,ubuntu: lsb-release
+  gentoo: sys-apps/lsb-release
+  arch: ignore
+  fedora: redhat-lsb
     
 archive:
-    debian,ubuntu: [tar, unzip]
-    gentoo: [app-arch/tar, app-arch/unzip]
-    arch: [tar, unzip]
-
+  debian,ubuntu:
+  - tar
+  - unzip
+  gentoo:
+  - app-arch/tar
+  - app-arch/unzip
+  arch:
+  - tar
+  - unzip
+  fedora:
+  - tar
+  - unzip
 cvs:
-    debian,ubuntu: cvs
+  debian,ubuntu: cvs
+  fedora: cvs
 
 # vim: expandtab
 
