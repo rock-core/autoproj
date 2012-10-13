@@ -339,7 +339,7 @@ def package_common(package_type, spec, &block) # :nodoc:
         old_file     = Autoproj.manifest.definition_file(package_name)
         Autoproj.warn "#{package_name} from #{current_file} is overridden by the definition in #{old_file}"
 
-        return
+        return Autobuild::Package[package_name]
     end
 
     # Check if this package is ignored
