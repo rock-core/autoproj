@@ -14,6 +14,10 @@ module Autoproj
     # If the current directory is not in an autoproj installation,
     # raises UserError.
     def self.root_dir(dir = Dir.pwd)
+        if @root_dir
+            return @root_dir
+        end
+
         while dir != "/" && !File.directory?(File.join(dir, "autoproj"))
             dir = File.dirname(dir)
         end
