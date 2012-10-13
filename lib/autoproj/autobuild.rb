@@ -289,7 +289,7 @@ module Autoproj
     # Tries to find a handler automatically for 'full_path'
     def self.package_handler_for(full_path)
         if !Dir.enum_for(:glob, File.join(full_path, "*.orogen")).to_a.empty?
-            "orogen_package"
+            return "orogen_package", full_path
         elsif File.file?(File.join(full_path, "CMakeLists.txt"))
             dir = find_topmost_directory_containing(full_path) do |dir|
                 cmakelists = File.join(dir, 'CMakeLists.txt')
