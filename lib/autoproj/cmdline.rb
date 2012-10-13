@@ -509,7 +509,7 @@ module Autoproj
                             send(handler, relative_to_root.to_s)
                         end
                         setup_package_directories(pkg)
-                        selected_packages << pkg.name
+                        selected_packages.select(sel, pkg.name)
                         break(true)
                     end
 
@@ -521,40 +521,38 @@ module Autoproj
                 Autoproj.message("autoproj: wrong package selection on command line, cannot find a match for #{nonresolved.to_a.join(", ")}", :red)
                 exit 1
             elsif Autoproj.verbose
-                Autoproj.message "will install #{selected_packages.to_a.join(", ")}"
+                Autoproj.message "will install #{selected_packages.packages.keys.to_a.sort.join(", ")}"
             end
             selected_packages
         end
 
-        def self.verify_package_availability(pkg_name, stack = Array.new)
-            if reason = Autoproj.manifest.exclusion_reason(pkg_name)
-                raise ConfigError.new, "#{pkg_name} is excluded from the build: #{reason}"
-            end
-            pkg = Autobuild::Package[pkg_name]
-            if !pkg
-                raise ConfigError.new, "#{pkg_name} does not seem to exist"
-            end
-            stack << pkg_name
-
-            # Verify that its dependencies are there, and add
-            # them to the selected_packages set so that they get
-            # imported as well
-            pkg.dependencies.each do |dep_name|
-                if stack.include?(dep_name)
-                    raise ConfigError.new, "circular dependency #{pkg.name} => #{dep_name}"
+        def self.mark_exclusion_along_revdeps(pkg_name, revdeps, chain = [], reason = nil)
+            root = !reason
+            chain.unshift pkg_name
+            if root
+                reason = Autoproj.manifest.exclusion_reason(pkg_name)
+            else
+                if chain.size == 1
+                    Autoproj.manifest.add_exclusion(pkg_name, "its dependency #{reason}")
+                else
+                    Autoproj.manifest.add_exclusion(pkg_name, "#{reason} (dependency chain: #{chain.join(">")}")
                 end
+            end
 
-                begin
-                    verify_package_availability(dep_name, stack.dup)
-                rescue ConfigError => e
-                    raise e, "#{pkg_name} depends on #{dep_name}, but #{e.message}"
+            return if !revdeps.has_key?(pkg_name)
+            revdeps[pkg_name].each do |dep_name|
+                if !Autoproj.manifest.excluded?(dep_name)
+                    mark_exclusion_along_revdeps(dep_name, revdeps, chain.dup, reason)
                 end
             end
         end
 
-        def self.import_packages(selected_packages)
-            selected_packages = selected_packages.dup.
+        def self.import_packages(selection)
+            selected_packages = selection.packages.
                 map do |pkg_name|
+                    if Autoproj.manifest.excluded?(pkg_name)
+                        raise
+                    end
                     pkg = Autobuild::Package[pkg_name]
                     if !pkg
                         raise ConfigError.new, "selected package #{pkg_name} does not exist"
@@ -562,107 +560,92 @@ module Autoproj
                     pkg
                 end.to_set
 
-            # First, import all packages that are already there to make
-            # automatic dependency discovery possible
-            old_update_flag = Autobuild.do_update
-            begin
-                Autobuild.do_update = false
-                packages = Autobuild::Package.each.
-                    find_all { |pkg_name, pkg| File.directory?(pkg.srcdir) }.
-                    delete_if { |pkg_name, pkg| Autoproj.manifest.excluded?(pkg_name) || Autoproj.manifest.ignored?(pkg_name) }
-
-                packages.each do |_, pkg|
-                    pkg.isolate_errors do
-                        pkg.import
-                    end
-                end
-
-            ensure
-                Autobuild.do_update = old_update_flag
-            end
-
-            known_available_packages = Set.new
+            # The set of all packages that are currently selected by +selection+
             all_enabled_packages = Set.new
+            # The reverse dependencies for the package tree. It is discovered as
+            # we go on with the import
+            #
+            # It only contains strong dependencies. Optional dependencies are
+            # not included, as we will use this only to take into account
+            # package exclusion (and that does not affect optional dependencies)
+            reverse_dependencies = Hash.new { |h, k| h[k] = Set.new }
 
-            package_queue = selected_packages.dup
+            package_queue = selected_packages.to_a.sort_by(&:name)
             while !package_queue.empty?
-                current_packages, package_queue = package_queue, Set.new
-                current_packages = current_packages.sort_by(&:name)
+                pkg = package_queue.shift
+                # Remove packages that have already been processed
+                next if all_enabled_packages.include?(pkg.name)
+                all_enabled_packages << pkg.name
 
-                current_packages.
-                    delete_if { |pkg| all_enabled_packages.include?(pkg.name) }.
-                    delete_if { |pkg| Autoproj.manifest.ignored?(pkg.name) }
-                all_enabled_packages |= current_packages.map(&:name).to_set
-
-                # Recursively check that no package in the selection depend on
-                # excluded packages
-                current_packages.each do |pkg|
-                    verify_package_availability(pkg.name)
+                # If the package has no importer, the source directory must
+                # be there
+                if !pkg.importer && !File.directory?(pkg.srcdir)
+                    raise ConfigError.new, "#{pkg.name} has no VCS, but is not checked out in #{pkg.srcdir}"
                 end
 
-                # We import first so that all packages can export the
-                # additional targets they provide.
-                current_packages.each do |pkg|
-                    # If the package has no importer, the source directory must
-                    # be there
-                    if !pkg.importer && !File.directory?(pkg.srcdir)
-                        raise ConfigError.new, "#{pkg.name} has no VCS, but is not checked out in #{pkg.srcdir}"
-                    end
+                ## COMPLETELY BYPASS RAKE HERE
+                # The reason is that the ordering of import/prepare between
+                # packages is not important BUT the ordering of import vs.
+                # prepare in one package IS important: prepare is the method
+                # that takes into account dependencies.
+                pkg.import
+                Rake::Task["#{pkg.name}-import"].instance_variable_set(:@already_invoked, true)
+                manifest.load_package_manifest(pkg.name)
 
-                    ## COMPLETELY BYPASS RAKE HERE
-                    # The reason is that the ordering of import/prepare between
-                    # packages is not important BUT the ordering of import vs.
-                    # prepare in one package IS important: prepare is the method
-                    # that takes into account dependencies.
-                    pkg.import
-                    Rake::Task["#{pkg.name}-import"].instance_variable_set(:@already_invoked, true)
-                    manifest.load_package_manifest(pkg.name)
-                    pkg.resolve_optional_dependencies
-                    verify_package_availability(pkg.name)
+                # The package setup mechanisms might have added an exclusion
+                # on this package. Handle this.
+                if Autoproj.manifest.excluded?(pkg.name)
+                    mark_exclusion_along_revdeps(pkg.name, reverse_dependencies)
+                    # Run a filter now, to have errors as early as possible
+                    selection.filter_excluded_and_ignored_packages(Autoproj.manifest)
+                    all_enabled_packages.delete(pkg.name)
+                    # Delete this package from the current_packages set
+                    true
                 end
 
-                current_packages.each do |pkg|
-                    verify_package_availability(pkg.name)
-                    Autoproj.each_post_import_block(pkg) do |block|
-                        block.call(pkg)
-                    end
+                Autoproj.each_post_import_block(pkg) do |block|
+                    block.call(pkg)
+                end
 
-                    pkg.prepare
-                    Rake::Task["#{pkg.name}-prepare"].instance_variable_set(:@already_invoked, true)
+                pkg.prepare
+                Rake::Task["#{pkg.name}-prepare"].instance_variable_set(:@already_invoked, true)
 
-                    # Verify that its dependencies are there, and add
-                    # them to the selected_packages set so that they get
-                    # imported as well
-                    pkg.dependencies.each do |dep_name|
-                        package_queue << Autobuild::Package[dep_name]
+                # Verify that its dependencies are there, and add
+                # them to the selected_packages set so that they get
+                # imported as well
+                new_packages = []
+                pkg.dependencies.each do |dep_name|
+                    reverse_dependencies[dep_name] << pkg.name
+                    new_packages << Autobuild::Package[dep_name]
+                end
+                pkg_opt_deps, _ = pkg.partition_optional_dependencies
+                pkg_opt_deps.each do |dep_name|
+                    new_packages << Autobuild::Package[dep_name]
+                end
+
+                new_packages.delete_if do |pkg|
+                    if Autoproj.manifest.excluded?(pkg.name)
+                        mark_exclusion_along_revdeps(pkg.name, reverse_dependencies)
+                        true
                     end
                 end
+                package_queue.concat(new_packages.sort_by(&:name))
+
+                # Verify that everything is still OK with the new
+                # exclusions/ignores
+                selection.filter_excluded_and_ignored_packages(Autoproj.manifest)
             end
 
-            begin
-                Autobuild.do_update = false
-                packages = Autobuild::Package.each.
-                    find_all { |pkg_name, pkg| File.directory?(pkg.srcdir) }.
-                    delete_if { |pkg_name, pkg| all_enabled_packages.include?(pkg_name) || Autoproj.manifest.excluded?(pkg_name) || Autoproj.manifest.ignored?(pkg_name) }
-
-                packages.each do |_, pkg|
-                    pkg.isolate_errors do
-                        manifest.load_package_manifest(pkg.name)
-                        pkg.prepare
-
-                        Autoproj.each_post_import_block(pkg) do |block|
-                            block.call(pkg)
-                        end
-                    end
-                end
-
-            ensure
-                Autobuild.do_update = old_update_flag
+            # We finally resolve optional dependencies at the very end, as the
+            # list of exclusions may have changed
+            all_enabled_packages.each do |pkg_name|
+                Autobuild::Package[pkg_name].resolve_optional_dependencies
             end
 
             if Autoproj.verbose
                 Autoproj.message "autoproj: finished importing packages"
             end
+
             if Autoproj::CmdLine.list_newest?
                 fields = []
                 Rake::Task.tasks.each do |task|

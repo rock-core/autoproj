@@ -1144,11 +1144,11 @@ module Autoproj
         # tells why. Otherwise, returns nil
         #
         # Packages can either be excluded because their name is listed in the
-        # excluded_packages section of the manifest, or because they are
+        # exclude_packages section of the manifest, or because they are
         # disabled on this particular operating system.
         def exclusion_reason(package_name)
             if manifest_exclusions.any? { |l| Regexp.new(l) =~ package_name }
-                "#{package_name} is listed in the excluded_packages section of the manifest"
+                "#{package_name} is listed in the exclude_packages section of the manifest"
             else
                 automatic_exclusions[package_name]
             end
@@ -1805,20 +1805,18 @@ module Autoproj
         #
         # If recursive is false, yields only the packages at this level.
         # Otherwise, return all packages.
-        def layout_packages(result, validate)
+        def layout_packages(validate)
+            result = PackageSelection.new
             Autoproj.in_file(self.file) do
                 normalized_layout.each_key do |pkg_or_set|
-                    begin
-                        resolve_package_set(pkg_or_set).each do |pkg_name|
-                            if !excluded?(pkg_name) && !ignored?(pkg_name)
-                                result << pkg_name
-                            end
-                            Autobuild::Package[pkg_name].all_dependencies(result)
-                        end
-                    rescue ConfigError
-                        raise if validate
-                    end
+                    result.select(pkg_or_set, resolve_package_set(pkg_or_set))
                 end
+            end
+            
+            begin
+                result.filter_excluded_and_ignored_packages(self)
+            rescue ConfigError
+                raise if validate
             end
             result
         end
@@ -1898,15 +1896,18 @@ module Autoproj
         # Returns the set of packages that should be built if the user does not
         # specify any on the command line
         def default_packages(validate = true)
-            names = if layout = data['layout']
-                        layout_packages(Set.new, validate)
-                    else
-                        # No layout, all packages are selected
-                        all_packages
-                    end
-
-            names.delete_if { |pkg_name| excluded?(pkg_name) || ignored?(pkg_name) }
-            names.to_set
+            if layout = data['layout']
+                return layout_packages(validate)
+            else
+                result = PackageSelection.new
+                # No layout, all packages are selected
+                names = all_packages
+                names.delete_if { |pkg_name| excluded?(pkg_name) || ignored?(pkg_name) }
+                names.each do |pkg_name|
+                    result.select(pkg_name, pkg_name)
+                end
+                result
+            end
         end
 
         def normalized_layout(result = Hash.new, layout_level = '/', layout_data = (data['layout'] || Hash.new))
@@ -2070,6 +2071,101 @@ module Autoproj
             @osdeps_overrides.delete(osdeps_name.to_s)
         end
 
+        # Class holding information about which packages have been selected, and
+        # why. It is used to decide whether some non-availability of packages
+        # are errors or simply warnings (i.e. if the user really wants a given
+        # package, or merely might be adding it by accident)
+        class PackageSelection
+            # The set of matches, i.e. a mapping from a user-provided string to
+            # the set of packages it selected
+            attr_reader :matches
+            # The set of selected packages, as a hash of the package name to the
+            # set of user-provided strings that caused that package to be
+            # selected
+            attr_reader :selection
+
+            # The set of packages that have been selected
+            def packages
+                selection.keys
+            end
+
+            def include?(pkg_name)
+                selection.has_key?(pkg_name)
+            end
+
+            def initialize
+                @selection = Hash.new { |h, k| h[k] = Set.new }
+                @matches = Hash.new { |h, k| h[k] = Set.new }
+            end
+
+            def select(sel, packages)
+                if !packages.respond_to?(:each)
+                    matches[sel] << packages
+                    selection[packages] << sel
+                else
+                    matches[sel] |= packages.to_set
+                    packages.each do |pkg_name|
+                        selection[pkg_name] << sel
+                    end
+                end
+            end
+
+            def initialize_copy(old)
+                old.selection.each do |pkg_name, set|
+                    @selection[pkg_name] = set.dup
+                end
+                old.matches.each do |sel, set|
+                    @matches[sel] = set.dup
+                end
+            end
+
+            # Remove packages that are explicitely excluded and/or ignored
+            #
+            # Raise an error if an explicit selection expands only to an
+            # excluded package, and display a warning for ignored packages
+            def filter_excluded_and_ignored_packages(manifest)
+                matches.each do |sel, expansion|
+                    excluded, other = expansion.partition { |pkg_name| manifest.excluded?(pkg_name) }
+                    ignored,  ok    = other.partition { |pkg_name| manifest.ignored?(pkg_name) }
+
+                    if ok.empty? && ignored.empty?
+                        exclusions = excluded.map do |pkg_name|
+                            [pkg_name, manifest.exclusion_reason(pkg_name)]
+                        end
+                        if exclusions.size == 1
+                            reason = exclusions[0][1]
+                            if sel == exclusions[0][0]
+                                raise ConfigError.new, "#{sel} is excluded from the build: #{reason}"
+                            else
+                                raise ConfigError.new, "#{sel} expands to #{exclusions.map(&:first).join(", ")}, which is excluded from the build: #{reason}"
+                            end
+                        else
+                            raise ConfigError.new, "#{sel} expands to #{exclusions.map(&:first).join(", ")}, and all these packages are excluded from the build:\n  #{exclusions.map { |name, reason| "#{name}: #{reason}" }.join("\n  ")}"
+                        end
+                    elsif !ignored.empty?
+                        ignored.each do |pkg_name|
+                            Autoproj.warn "#{pkg_name} was selected for #{sel}, but is explicitely ignored in the manifest"
+                        end
+                    end
+
+                    excluded = excluded.to_set
+                    expansion.delete_if do |pkg_name|
+                        excluded.include?(pkg_name)
+                    end
+                end
+
+                selection.keys.sort.each do |pkg_name|
+                    if manifest.excluded?(pkg_name)
+                        Autoproj.warn "#{pkg_name} was selected for #{selection[pkg_name].to_a.sort.join(", ")}, but it is excluded from the build: #{Autoproj.manifest.exclusion_reason(pkg_name)}"
+                        selection.delete(pkg_name)
+                    elsif manifest.ignored?(pkg_name)
+                        Autoproj.warn "#{pkg_name} was selected for #{selection[pkg_name].to_a.sort.join(", ")}, but it is ignored in this build"
+                        selection.delete(pkg_name)
+                    end
+                end
+            end
+        end
+
         # Package selection can be done in three ways:
         #  * as a subdirectory in the layout
         #  * as a on-disk directory
@@ -2079,13 +2175,9 @@ module Autoproj
         def expand_package_selection(selection)
             base_dir = Autoproj.root_dir
 
-            # The expanded selection
-            expanded_packages = Set.new
+            result = PackageSelection.new
             # All the packages that are available on this installation
             all_layout_packages = self.all_selected_packages
-
-            # A selection to packages map that represents the matches found
-            matches = Hash.new { |h, k| h[k] = Set.new }
 
             # First, remove packages that are directly referenced by name or by
             # package set names
@@ -2096,16 +2188,14 @@ module Autoproj
                     find_all { |pkg_name| pkg_name =~ match_pkg_name }.
                     to_set
                 if !packages.empty?
-                    matches[sel] = packages
-                    expanded_packages |= packages
+                    result.select(sel, packages)
                 end
 
                 each_metapackage do |pkg|
                     if pkg.name =~ match_pkg_name
                         packages = resolve_package_set(pkg.name).to_set
                         packages = (packages & all_layout_packages)
-                        matches[sel] |= packages
-                        expanded_packages |= packages
+                        result.select(sel, packages)
                     end
                 end
             end
@@ -2125,37 +2215,13 @@ module Autoproj
                             end
                         end
 
-                        matches[sel] << pkg_name
-                        expanded_packages << pkg_name
+                        result.select(sel, pkg_name)
                     end
                 end
             end
 
-            # Remove packages that are explicitely excluded and/or ignored
-            #
-            # Raise an error if an explicit selection expands only to an
-            # excluded package, and display a warning for ignored packages
-            matches.each do |sel, expansion|
-                next if expansion.empty?
-                excluded, other = expansion.partition { |pkg_name| excluded?(pkg_name) }
-                ignored,  ok    = other.partition { |pkg_name| ignored?(pkg_name) }
-
-                if ok.empty? && ignored.empty?
-                    packages = excluded.map do |pkg_name|
-                        [pkg_name, Autoproj.manifest.exclusion_reason(pkg_name)]
-                    end
-                    raise ConfigError.new, "selection #{sel} expands to #{packages.map(&:first).join(", ")} which are excluded from the build:\n  #{packages.map { |name, reason| "#{name}: #{reason}" }.join("\n  ")}"
-                elsif !ignored.empty?
-                    ignored.each do |pkg_name|
-                        Autoproj.warn "#{pkg_name} was selected for #{sel}, but is explicitely ignored in the manifest"
-                    end
-                end
-            end
-
-            expanded_packages.delete_if do |pkg_name|
-                excluded?(pkg_name) || ignored?(pkg_name)
-            end
-            return expanded_packages.to_set, (selection - matches.keys)
+            result.filter_excluded_and_ignored_packages(self)
+            return result, (selection - matches.keys)
         end
 
         attr_reader :moved_packages
