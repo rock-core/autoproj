@@ -266,6 +266,14 @@ fi
                 end
             end
             
+            def install(packages)
+                if super
+                    # Invalidate caching of installed packages, as we just
+                    # installed new packages !
+                    @installed_packages = nil
+                end
+            end
+            
             def filter_uptodate_packages(packages)
                 packages.find_all do |package_name|
                     !installed?(package_name)
@@ -284,11 +292,15 @@ fi
 
             def initialize
                 super(['gem'])
+                @installed_gems = Set.new
             end
 
             # Used to override the Gem::SpecFetcher object used by this gem
             # manager. Useful mainly for testing
             attr_writer :gem_fetcher
+
+            # The set of gems installed during this autoproj session
+            attr_reader :installed_gems
 
             def gem_fetcher
                 if !@gem_fetcher
@@ -338,6 +350,9 @@ fi
                     cmdlines.each do |c|
                         Autobuild::Subprocess.run 'autoproj', 'osdeps', *c
                     end
+                    gems.each do |name, v|
+                        installed_gems << name
+                    end
                     did_something = true
                 end
             end
@@ -348,6 +363,8 @@ fi
                 # Don't install gems that are already there ...
                 gems = gems.dup
                 gems.delete_if do |name, version|
+                    next(true) if installed_gems.include?(name)
+
                     version_requirements = Gem::Requirement.new(version || '>= 0')
                     installed =
                         if Gem::Specification.respond_to?(:find_by_name)
