@@ -1886,7 +1886,7 @@ module Autoproj
 
         # Returns the set of packages that are selected by the layout
         def all_selected_packages
-            result = default_packages.to_set
+            result = default_packages.packages.to_set
             result.each do |pkg_name|
                 Autobuild::Package[pkg_name].all_dependencies(result)
             end
@@ -2221,7 +2221,7 @@ module Autoproj
             end
 
             result.filter_excluded_and_ignored_packages(self)
-            return result, (selection - matches.keys)
+            return result, (selection - result.matches.keys)
         end
 
         attr_reader :moved_packages
