@@ -2214,7 +2214,7 @@ module Autoproj
                         # Check-out packages that are not in the manifest only
                         # if they are explicitely selected
                         if !all_layout_packages.include?(pkg.name)
-                            if !File.directory?(pkg.srcdir) && pkg_name != sel && pkg.srcdir != sel
+                            if pkg_name != sel && pkg.srcdir != sel
                                 next
                             end
                         end
