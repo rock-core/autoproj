@@ -370,10 +370,10 @@ def cmake_package(options, &block)
     package_common(:cmake, options) do |pkg|
         Autoproj.add_build_system_dependency 'cmake'
         yield(pkg) if block_given?
-        unless pkg.has_doc?
+        unless pkg.has_doc? && pkg.doc_dir
             pkg.with_doc do
-                doc_html = File.join('doc', 'html')
-                if File.directory? doc_html
+                doc_html = File.join(pkg.builddir, 'doc', 'html')
+                if File.directory?(doc_html)
                     pkg.doc_dir = doc_html
                 end
             end
@@ -394,9 +394,9 @@ def autotools_package(options, &block)
     package_common(:autotools, options) do |pkg|
         Autoproj.add_build_system_dependency 'autotools'
         yield(pkg) if block_given?
-        unless pkg.has_doc?
+        unless pkg.has_doc? && pkg.doc_dir
             pkg.with_doc do
-                doc_html = File.join('doc', 'html')
+                doc_html = File.join(pkg.builddir, 'doc', 'html')
                 if File.directory? doc_html
                     pkg.doc_dir = doc_html
                 end
