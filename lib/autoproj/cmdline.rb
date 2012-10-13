@@ -550,9 +550,6 @@ module Autoproj
         def self.import_packages(selection)
             selected_packages = selection.packages.
                 map do |pkg_name|
-                    if Autoproj.manifest.excluded?(pkg_name)
-                        raise
-                    end
                     pkg = Autobuild::Package[pkg_name]
                     if !pkg
                         raise ConfigError.new, "selected package #{pkg_name} does not exist"
@@ -561,7 +558,7 @@ module Autoproj
                 end.to_set
 
             # The set of all packages that are currently selected by +selection+
-            all_enabled_packages = Set.new
+            all_processed_packages = Set.new
             # The reverse dependencies for the package tree. It is discovered as
             # we go on with the import
             #
@@ -574,8 +571,8 @@ module Autoproj
             while !package_queue.empty?
                 pkg = package_queue.shift
                 # Remove packages that have already been processed
-                next if all_enabled_packages.include?(pkg.name)
-                all_enabled_packages << pkg.name
+                next if all_processed_packages.include?(pkg.name)
+                all_processed_packages << pkg.name
 
                 # If the package has no importer, the source directory must
                 # be there
@@ -598,7 +595,6 @@ module Autoproj
                     mark_exclusion_along_revdeps(pkg.name, reverse_dependencies)
                     # Run a filter now, to have errors as early as possible
                     selection.filter_excluded_and_ignored_packages(Autoproj.manifest)
-                    all_enabled_packages.delete(pkg.name)
                     # Delete this package from the current_packages set
                     true
                 end
@@ -636,10 +632,17 @@ module Autoproj
                 selection.filter_excluded_and_ignored_packages(Autoproj.manifest)
             end
 
-            # We finally resolve optional dependencies at the very end, as the
-            # list of exclusions may have changed
-            all_enabled_packages.each do |pkg_name|
-                Autobuild::Package[pkg_name].resolve_optional_dependencies
+	    all_enabled_packages = Set.new
+	    package_queue = selection.packages.dup
+	    # Run optional dependency resolution until we have a fixed point
+	    while !package_queue.empty?
+		pkg_name = package_queue.shift
+		next if all_enabled_packages.include?(pkg_name)
+		all_enabled_packages << pkg_name
+
+		pkg = Autobuild::Package[pkg_name]
+		pkg.resolve_optional_dependencies
+		package_queue.concat(pkg.dependencies)
             end
 
             if Autoproj.verbose
