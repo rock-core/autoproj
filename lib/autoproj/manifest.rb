@@ -2093,6 +2093,10 @@ module Autoproj
                 selection.has_key?(pkg_name)
             end
 
+            def empty?
+                selection.empty?
+            end
+
             def initialize
                 @selection = Hash.new { |h, k| h[k] = Set.new }
                 @matches = Hash.new { |h, k| h[k] = Set.new }
