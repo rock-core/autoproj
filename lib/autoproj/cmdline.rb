@@ -1072,6 +1072,9 @@ where 'mode' is one of:
                 @update_os_dependencies = true
             when "snapshot"
                 @snapshot_dir = remaining_args.shift
+                if !snapshot_dir
+                    raise ConfigError.new, "target directory missing\nusage: autoproj snapshot target_dir"
+                end
                 Autobuild.do_update = false
                 Autobuild.do_build  = false
                 @update_os_dependencies = false
