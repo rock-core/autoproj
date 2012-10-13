@@ -603,9 +603,6 @@ module Autoproj
                     block.call(pkg)
                 end
 
-                pkg.prepare
-                Rake::Task["#{pkg.name}-prepare"].instance_variable_set(:@already_invoked, true)
-
                 # Verify that its dependencies are there, and add
                 # them to the selected_packages set so that they get
                 # imported as well
@@ -642,6 +639,10 @@ module Autoproj
 
 		pkg = Autobuild::Package[pkg_name]
 		pkg.resolve_optional_dependencies
+
+                pkg.prepare
+                Rake::Task["#{pkg.name}-prepare"].instance_variable_set(:@already_invoked, true)
+
 		package_queue.concat(pkg.dependencies)
             end
 
