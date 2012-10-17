@@ -2241,6 +2241,23 @@ module Autoproj
         def move_package(package_name, new_dir)
             moved_packages[package_name] = File.join(new_dir, File.basename(package_name))
         end
+
+        # Compute the reverse dependencies of all the packages
+        #
+        # The return value is a hash of the form
+        # 
+        #   package_name => [list_of_packages_that_depend_on_package_name]
+        #
+        # Where the list is given as a list of package names as well
+        def compute_revdeps
+            result = Hash.new { |h, k| h[k] = Set.new }
+            each_autobuild_package do |pkg|
+                pkg.dependencies.each do |pkg_name|
+                    result[pkg_name] << pkg.name
+                end
+            end
+            result
+        end
     end
 
     class << self
