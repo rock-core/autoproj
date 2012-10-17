@@ -14,6 +14,10 @@ module Autoproj
     @verbose = false
     @console = HighLine.new
 
+    def self.silent(&block)
+        Autobuild.silent(&block)
+    end
+
     def self.message(*args)
         Autobuild.message(*args)
     end
