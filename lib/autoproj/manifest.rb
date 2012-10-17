@@ -1886,11 +1886,12 @@ module Autoproj
 
         # Returns the set of packages that are selected by the layout
         def all_selected_packages
-            result = default_packages.packages.to_set
-            result.each do |pkg_name|
+            result = Set.new
+            root = default_packages.packages.to_set
+            root.each do |pkg_name|
                 Autobuild::Package[pkg_name].all_dependencies(result)
             end
-            result
+            result | root
         end
 
         # Returns the set of packages that should be built if the user does not
