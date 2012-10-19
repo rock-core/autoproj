@@ -366,8 +366,17 @@ module Autoproj
         end
         definitions = { 'HOME' => ENV['HOME'] }.merge(definitions)
 
-        data = data.gsub /\$(\w+)/ do |constant_name|
-            constant_name = constant_name[1..-1]
+        data = data.gsub /(.|^)\$(\w+)/ do |constant_name|
+            prefix = constant_name[0, 1]
+            if prefix == "\\"
+                next(constant_name[1..-1])
+            end
+            if prefix == "$"
+                prefix, constant_name = "", constant_name[1..-1]
+            else
+                constant_name = constant_name[2..-1]
+            end
+
             if !(value = definitions[constant_name])
                 if !(value = Autoproj.user_config(constant_name))
                     if !block_given? || !(value = yield(constant_name))
@@ -375,11 +384,15 @@ module Autoproj
                     end
                 end
             end
-            value
+            "#{prefix}#{value}"
         end
         data
     end
 
+    # Expand constants within +value+
+    #
+    # The list of constants is given in +definitions+. It raises ConfigError if
+    # some values are not found
     def self.expand(value, definitions = Hash.new)
         if value.respond_to?(:to_hash)
             value.dup.each do |name, definition|

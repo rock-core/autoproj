@@ -1,6 +1,7 @@
 $LOAD_PATH.unshift File.expand_path('../lib', File.dirname(__FILE__))
 require 'test/unit'
 require 'autoproj'
+require 'flexmock/test_unit'
 require 'set'
 
 class TC_Manifest < Test::Unit::TestCase
@@ -34,7 +35,22 @@ class TC_Manifest < Test::Unit::TestCase
         end
     end
 
-    def test_update_sources
+    def test_single_expansion_uses_provided_definitions
+        flexmock(Autoproj).should_receive(:user_config).never
+        assert_equal "a_variable=val", Autoproj.single_expansion("a_variable=$CONST", 'CONST' => 'val')
+        assert_equal "val", Autoproj.single_expansion("$CONST", 'CONST' => 'val')
+    end
+
+    def test_single_expansion_uses_user_config
+        flexmock(Autoproj).should_receive(:user_config).with("CONST").and_return("val")
+        assert_equal "a_variable=val", Autoproj.single_expansion("a_variable=$CONST", Hash.new)
+        assert_equal "val", Autoproj.single_expansion("$CONST", Hash.new)
+    end
+
+    def test_single_expansion_handle_quoted_dollar_sign
+        flexmock(Autoproj).should_receive(:user_config).with("CONST").and_return("val")
+        assert_equal "a_variable=$CONST", Autoproj.single_expansion("a_variable=\\$CONST", Hash.new)
+        assert_equal "$CONST", Autoproj.single_expansion("\\$CONST", Hash.new)
     end
 end
 
