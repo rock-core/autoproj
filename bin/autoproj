@@ -99,11 +99,24 @@ EOTEXT
         end
     end
 
+    needs_update_config = false
+    selected_packages.delete_if do |name|
+        if name =~ /^#{Regexp.quote(Autoproj.config_dir + File::SEPARATOR)}/ ||
+            name =~ /^#{Regexp.quote(Autoproj.remotes_dir + File::SEPARATOR)}/
+            needs_update_config = true
+        end
+    end
+
     Dir.chdir(root_dir)
 
     # Basic initialization
     Autoproj::CmdLine.initialize
-    if selected_packages.empty?
+    if needs_update_config
+        Autoproj::CmdLine.update_configuration
+        if selected_packages.empty?
+            exit 0
+        end
+    elsif selected_packages.empty?
         Autoproj::CmdLine.update_myself
         Autoproj::CmdLine.update_configuration
     else
