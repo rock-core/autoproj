@@ -28,6 +28,9 @@ end
 
 module Autobuild
     class Package
+        # [Autobuild::Package] If this is a part of another package, this contains the
+        # parent package
+        attr_accessor :parent_package
         # The Autoproj::PackageManifest object that describes this package
         attr_accessor :description
         # The set of tags for this package. This is an union of the tags
@@ -349,6 +352,17 @@ def package_common(package_type, spec, &block) # :nodoc:
 
     pkg = Autoproj.define(package_type, spec, &block)
     pkg.srcdir = pkg.name
+    # Check if this package is a subpackage. If it is the case, set importdir
+    # accordingly
+    all_package_names = Autoproj.manifest.each_autobuild_package.
+        map { |p| "#{p.name + File::SEPARATOR}" }
+
+    parent = all_package_names.find_all { |p| pkg.name[0, p.size] == p }.
+        min_by { |p| p.size }
+    if parent
+        pkg.importdir = Pathname.new(parent).relative_path_from(Pathname.new(pkg.name)).to_s
+        pkg.parent_package = Autobuild::Package[parent[0, parent.size - 1]]
+    end
     pkg
 end
 

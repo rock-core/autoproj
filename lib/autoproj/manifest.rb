@@ -1596,6 +1596,8 @@ module Autoproj
         #    by S1
         def load_importers
             packages.each_value do |pkg|
+                next if pkg.autobuild.importdir != pkg.autobuild.srcdir
+
                 vcs = importer_definition_for(pkg.autobuild.name, pkg.package_set) ||
                     pkg.package_set.default_importer
 
@@ -1605,6 +1607,13 @@ module Autoproj
                     pkg.autobuild.importer = vcs.create_autobuild_importer
                 else
                     raise ConfigError.new, "source #{pkg.package_set.name} defines #{pkg.autobuild.name}, but does not provide a version control definition for it"
+                end
+            end
+
+            # Now resolve subpackages
+            packages.each_value do |pkg|
+                if pkg.autobuild.importdir != pkg.autobuild.srcdir
+                    pkg.autobuild.importer = pkg.autobuild.parent_package.importer
                 end
             end
         end
