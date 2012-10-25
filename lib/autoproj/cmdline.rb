@@ -1298,6 +1298,10 @@ where 'mode' is one of:
             vcs_def[:url]  = VCSDefinition.to_absolute_url(url)
             options.each do |opt|
                 name, value = opt.split("=")
+                if value =~ /^\d+$/
+                    value = Integer(value)
+                end
+
                 vcs_def[name] = value
             end
 
