@@ -43,7 +43,8 @@ Each package definition includes:
 * on what the package depends. This can be either another package built by
   autoproj, or an operating system package.
 
-See this page[http://rock-robotics.org/writing_manifest.html] for more information.
+See this
+page[http://www.rock-robotics.org/stable/documentation/autoproj/writing_manifest.html] for more information.
 
 
 Software packages in Autoproj
@@ -60,5 +61,5 @@ using pkg-config.
 
 To describe the package, and more importantly to setup cross-package
 dependencies, an optional manifest file can be
-added[http://rock-robotics.org/package_sets/manifest-xml.html].
+added[http://www.rock-robotics.org/stable/documentation/autoproj/advanced/manifest-xml.html].
 
