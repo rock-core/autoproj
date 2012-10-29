@@ -2169,17 +2169,16 @@ module Autoproj
                     end
 
                     excluded = excluded.to_set
+                    ignored = ignored.to_set
                     expansion.delete_if do |pkg_name|
-                        excluded.include?(pkg_name)
+                        ignored.include?(pkg_name) || excluded.include?(pkg_name)
                     end
                 end
 
                 selection.keys.sort.each do |pkg_name|
                     if manifest.excluded?(pkg_name)
-                        Autoproj.warn "#{pkg_name} was selected for #{selection[pkg_name].to_a.sort.join(", ")}, but it is excluded from the build: #{Autoproj.manifest.exclusion_reason(pkg_name)}"
                         selection.delete(pkg_name)
                     elsif manifest.ignored?(pkg_name)
-                        Autoproj.warn "#{pkg_name} was selected for #{selection[pkg_name].to_a.sort.join(", ")}, but it is ignored in this build"
                         selection.delete(pkg_name)
                     end
                 end
