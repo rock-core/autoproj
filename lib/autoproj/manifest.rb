@@ -1973,12 +1973,14 @@ module Autoproj
                     File.file?(path)
             end
 
-            if !manifest_path
-                Autoproj.warn "#{package.name} from #{package_set.name} does not have a manifest"
-                return
-            end
+            manifest =
+                if !manifest_path
+                    Autoproj.warn "#{package.name} from #{package_set.name} does not have a manifest"
+                    PackageManifest.new(package)
+                else
+                    PackageManifest.load(package, manifest_path)
+                end
 
-            manifest = PackageManifest.load(package, manifest_path)
             pkg.autobuild.description = manifest
             package_manifests[package.name] = manifest
 
@@ -2345,7 +2347,7 @@ module Autoproj
             "no documentation available for #{package.name} in its manifest.xml file"
         end
 
-        def initialize(package, doc)
+        def initialize(package, doc = REXML::Document.new)
             @package = package
             @xml = doc
         end
