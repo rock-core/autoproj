@@ -837,6 +837,14 @@ fi
                 end
             end
 
+            # Recursive resolutions
+            found, pkg = partition_osdep_entry(name, dep_def, ['osdep'], [], os_names, os_versions)
+            if found
+                pkg.each do |pkg_name|
+                    result.concat(resolve_package(pkg_name))
+                end
+            end
+
             result.map do |handler, status, entries|
                 if handler.respond_to?(:parse_package_entry)
                     [handler, status, entries.map { |s| handler.parse_package_entry(s) }]
