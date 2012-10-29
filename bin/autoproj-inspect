@@ -25,29 +25,17 @@ selected_packages.selection.each_key do |name|
     osdeps   = osdeps.map(&:last)
 
     packages.each do |pkg_name|
-        pkg = Autobuild::Package[pkg_name]
         puts "source package #{pkg_name}"
-        puts "  of type #{pkg.class}"
-        if pkg.importdir != pkg.srcdir
-            checkout_info = ", package source in #{pkg.srcdir}"
-        end
-        if File.directory?(pkg.importdir)
-            puts "  is checked out in #{pkg.importdir}#{checkout_info}"
-        else
-            puts "  would be checked out in #{pkg.importdir}#{checkout_info}"
-        end
-
-        puts "  imported by: #{Autoproj.manifest.package(pkg_name).vcs}"
         if default_packages.include?(pkg_name)
             selection = default_packages.selection[pkg_name]
             selection.delete(pkg_name)
             if selection.empty?
-                puts "  is directly selected in autoproj/manifest"
+                puts "  is directly selected by the manifest"
             else
-                puts "  is directly selected in autoproj/manifest via #{selection.to_a.join(", ")}"
+                puts "  is directly selected by the manifest via #{selection.to_a.join(", ")}"
             end
         else
-            puts " is not directly selected in autoproj/manifest"
+            puts " is not directly selected by the manifest"
         end
 
         all_reverse_dependencies = Set.new
