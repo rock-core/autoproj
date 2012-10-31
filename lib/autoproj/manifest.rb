@@ -44,22 +44,6 @@ module Autoproj
         value
     end
 
-    @env_inherit = Set.new
-    # Returns true if the given environment variable must not be reset by the
-    # env.sh script, but that new values should simply be prepended to it.
-    #
-    # See Autoproj.env_inherit
-    def self.env_inherit?(name)
-        @env_inherit.include?(name)
-    end
-    # Declare that the given environment variable must not be reset by the
-    # env.sh script, but that new values should simply be prepended to it.
-    #
-    # See Autoproj.env_inherit?
-    def self.env_inherit(*names)
-        @env_inherit |= names
-    end
-
     # Sets an environment variable
     #
     # This sets (or resets) the environment variable +name+ to the given value.

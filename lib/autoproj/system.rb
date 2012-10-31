@@ -93,6 +93,10 @@ module Autoproj
         ENV['AUTOPROJ_GEM_HOME'] || File.join(root_dir, ".gems")
     end
 
+    def self.env_inherit(*names)
+        Autobuild.env_inherit(*names)
+    end
+
     # Find the given program in PATH. It raises ArgumentError if the program
     # can't be found
     def self.find_in_path(name)
