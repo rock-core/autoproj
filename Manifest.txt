@@ -2,11 +2,13 @@ History.txt
 Manifest.txt
 README.txt
 Rakefile
+bin/alocate
 bin/amake
 bin/aup
 bin/autolocate
 bin/autoproj
 bin/autoproj-clean
+bin/autoproj-create-set
 bin/autoproj-inspect
 bin/autoproj-locate
 bin/autoproj-query
@@ -23,6 +25,8 @@ lib/autoproj/options.rb
 lib/autoproj/osdeps.rb
 lib/autoproj/query.rb
 lib/autoproj/system.rb
+lib/autoproj/templates/create-set/packages.autobuild
+lib/autoproj/templates/create-set/source.yml
 lib/autoproj/version.rb
 samples/autoproj/README.txt
 samples/autoproj/init.rb
@@ -33,7 +37,13 @@ samples/manifest.xml
 samples/osdeps.yml
 shell/autoproj_bash
 shell/autoproj_zsh
+test/data/empty_manifest.xml
+test/data/full_manifest.xml
+test/data/invalid_manifest.xml
 test/data/test_manifest/autoproj/local/local.autobuild
 test/data/test_manifest/autoproj/manifest
+test/package_managers/test_gem.rb
 test/test_debian.rb
 test/test_manifest.rb
+test/test_os_dependencies.rb
+test/test_package_manifest.rb

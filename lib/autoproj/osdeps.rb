@@ -1304,9 +1304,14 @@ So, what do you want ? (all, ruby, os or none)
             end.compact
             return false if packages.empty?
 
-            packages.each do |handler, list|
-                handler.install(list)
-                @installed_packages |= list.to_set
+            # Install OS packages first, as the other package handlers might
+            # depend on OS packages
+            os_packages, other_packages = packages.partition { |handler, list| handler == os_package_handler }
+            [os_packages, other_packages].each do |packages|
+                packages.each do |handler, list|
+                    handler.install(list)
+                    @installed_packages |= list.to_set
+                end
             end
             true
         end
