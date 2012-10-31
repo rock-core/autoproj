@@ -2117,6 +2117,10 @@ module Autoproj
                 @selection = Hash.new { |h, k| h[k] = Set.new }
                 @matches = Hash.new { |h, k| h[k] = Set.new }
             end
+            
+            def each(&block)
+                selection.each_key(&block)
+            end
 
             def select(sel, packages)
                 if !packages.respond_to?(:each)
