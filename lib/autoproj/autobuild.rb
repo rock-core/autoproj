@@ -486,7 +486,7 @@ def ruby_package(options)
 
         # Set up code
         pkg.post_install do
-            pkg.progress_start "setting up Ruby package %s" do
+            pkg.progress_start "setting up Ruby package %s", :done_message => 'set up Ruby package %s' do
                 Autobuild.update_environment pkg.srcdir
                 # Add lib/ unconditionally, as we know that it is a ruby package.
                 # Autobuild will add it only if there is a .rb file in the directory
@@ -509,7 +509,7 @@ def ruby_package(options)
         # rake_doc_task to nil
         if !pkg.has_doc? && pkg.rake_doc_task
             pkg.doc_task do
-                pkg.progress_start "generating documentation for %s" do
+                pkg.progress_start "generating documentation for %s", :done_message => 'generated documentation for %s' do
                     Autobuild::Subprocess.run pkg, 'doc', 'rake', pkg.rake_doc_task, :working_directory => pkg.srcdir
                 end
             end
