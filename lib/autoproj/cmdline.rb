@@ -49,6 +49,15 @@ module Autoproj
             Autoproj.loaded_autobuild_files.clear
             Autoproj.load_config
 
+            ruby_executable = Autoproj.find_in_path(RbConfig::CONFIG['RUBY_INSTALL_NAME'])
+            if Autoproj.has_config_key?('ruby_executable')
+                expected = Autoproj.user_config('ruby_executable')
+                if expected != ruby_executable
+                    raise ConfigError.new, "this autoproj installation was bootstrapped using #{expected}, but you are currently running under #{ruby_executable}. This is usually caused by calling a wrong gem program (for instance, gem1.8 instead of gem1.9.1)"
+                end
+            end
+            Autoproj.change_option('ruby_executable', ruby_executable, true)
+
             if Autoproj.has_config_key?('autobuild')
                 params = Autoproj.user_config('autobuild')
                 if params.kind_of?(Hash)
