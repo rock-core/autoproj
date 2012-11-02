@@ -29,12 +29,17 @@ module Autoproj
         # Dummy package manager used for unknown OSes. It simply displays a
         # message to the user when packages are needed
         class UnknownOSManager < Manager
+            def initialize
+                super(['unknown'])
+                @installed_osdeps = Set.new
+            end
+
             def osdeps_interaction_unknown_os(osdeps)
                 puts <<-EOMSG
-                #{Autoproj.color("The build process requires some other software packages to be installed on our operating system", :bold)}
-                #{Autoproj.color("If they are already installed, simply ignore this message", :red)}
+  #{Autoproj.color("The build process requires some other software packages to be installed on our operating system", :bold)}
+  #{Autoproj.color("If they are already installed, simply ignore this message", :red)}
 
-                #{osdeps.join("\n    ")}
+    #{osdeps.to_a.sort.join("\n    ")}
 
                 EOMSG
                 print Autoproj.color("Press ENTER to continue", :bold)
@@ -44,12 +49,17 @@ module Autoproj
                 nil
             end
 
-
             def install(osdeps)
                 if silent?
                     return false
                 else
-                    return osdeps_interaction_unknown_os(osdeps)
+                    osdeps = osdeps.to_set
+                    osdeps -= @installed_osdeps
+                    if !osdeps.empty?
+                        result = osdeps_interaction_unknown_os(osdeps)
+                    end
+                    @installed_osdeps |= osdeps
+                    return result
                 end
             end
         end
@@ -1013,22 +1023,24 @@ fi
                 result = resolve_package(name)
                 if !result
                     raise MissingOSDep.new, "there is no osdeps definition for #{name}"
-                elsif result.empty?
-                    if !OSDependencies.supported_operating_system?
-                        return [[os_package_handler, dependencies.dup]]
+                end
+
+                if result.empty?
+                    if OSDependencies.supported_operating_system?
+                        os_names, os_versions = OSDependencies.operating_system
+                        raise MissingOSDep.new, "there is an osdeps definition for #{name}, but not for this operating system and version (resp. #{os_names.join(", ")} and #{os_versions.join(", ")})"
                     end
-                    os_names, os_versions = OSDependencies.operating_system
-                    raise MissingOSDep.new, "there is an osdeps definition for #{name}, but not for this operating system and version (resp. #{os_names.join(", ")} and #{os_versions.join(", ")})"
-                else
-                    result.each do |handler, status, packages|
-                        if status == FOUND_NONEXISTENT
-                            raise MissingOSDep.new, "there is an osdep definition for #{name}, and it explicitely states that this package does not exist on your OS"
-                        end
-                        if entry = all_packages.find { |h, _| h == handler }
-                            entry[1].concat(packages)
-                        else
-                            all_packages << [handler, packages]
-                        end
+                    result = [[os_package_handler, FOUND_PACKAGES, [name]]]
+                end
+
+                result.each do |handler, status, packages|
+                    if status == FOUND_NONEXISTENT
+                        raise MissingOSDep.new, "there is an osdep definition for #{name}, and it explicitely states that this package does not exist on your OS"
+                    end
+                    if entry = all_packages.find { |h, _| h == handler }
+                        entry[1].concat(packages)
+                    else
+                        all_packages << [handler, packages]
                     end
                 end
             end
@@ -1287,6 +1299,7 @@ So, what do you want ? (all, ruby, os or none)
         # Requests the installation of the given set of packages
         def install(packages, package_osdeps = Hash.new)
             os_package_handler.enabled = installs_os_packages?
+            os_package_handler.silent = self.silent?
             package_handlers['gem'].enabled = installs_ruby_packages?
             package_handlers.each_value do |v|
                 v.silent = self.silent?
