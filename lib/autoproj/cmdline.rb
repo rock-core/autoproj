@@ -1152,6 +1152,7 @@ where 'mode' is one of:
             last_was_in_sync = false
             result = StatusResult.new
 
+            sync_packages = ""
             packages.each do |pkg|
                 lines = []
 
@@ -1177,12 +1178,17 @@ where 'mode' is one of:
                     case status.status
                     when Autobuild::Importer::Status::UP_TO_DATE
                         if !status.uncommitted_code
-                            if last_was_in_sync
-                                STDERR.print ", #{pkg_name}"
-                            else
-                                STDERR.print pkg_name
+                            if sync_packages.size > 80
+                                Autoproj.message "#{sync_packages},"
+                                sync_packages.clear
                             end
-                            last_was_in_sync = true
+                            msg = if sync_packages.empty?
+                                      pkg_name
+                                  else
+                                      ", #{pkg_name}"
+                                  end
+                            STDERR.print msg
+                            sync_packages = "#{sync_packages}#{msg}"
                             next
                         else
                             lines << Autoproj.color("  local and remote are in sync", :green)
@@ -1214,22 +1220,25 @@ where 'mode' is one of:
                     end
                 end
 
-                if last_was_in_sync
-                    Autoproj.message(": local and remote are in sync", :green)
+                if !sync_packages.empty?
+                    Autoproj.message("#{sync_packages}: #{color("local and remote are in sync", :green)}")
+                    sync_packages.clear
                 end
 
-                last_was_in_sync = false
-                STDERR.print "#{pkg_name}:"
+                STDERR.print 
 
                 if lines.size == 1
-                    Autoproj.message lines.first
+                    Autoproj.message "#{pkg_name}: #{lines.first}"
                 else
-                    Autoproj.message
-                    Autoproj.message lines.join("\n")
+                    Autoproj.message "#{pkg_name}:"
+                    lines.each do |l|
+                        Autoproj.message l
+                    end
                 end
             end
-            if last_was_in_sync
-                Autoproj.message(": local and remote are in sync", :green)
+            if !sync_packages.empty?
+                Autoproj.message("#{sync_packages}: #{color("local and remote are in sync", :green)}")
+                sync_packages.clear
             end
             return result
         end
