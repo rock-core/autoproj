@@ -1014,6 +1014,9 @@ fi
                 if !result
                     raise MissingOSDep.new, "there is no osdeps definition for #{name}"
                 elsif result.empty?
+                    if !OSDependencies.supported_operating_system?
+                        return [[os_package_handler, dependencies.dup]]
+                    end
                     os_names, os_versions = OSDependencies.operating_system
                     raise MissingOSDep.new, "there is an osdeps definition for #{name}, but not for this operating system and version (resp. #{os_names.join(", ")} and #{os_versions.join(", ")})"
                 else
@@ -1083,8 +1086,9 @@ fi
             if resolved.empty?
                 if !OSDependencies.operating_system
                     return UNKNOWN_OS
-                else
-                    return WRONG_OS
+                elsif !OSDependencies.supported_operating_system?
+                    return AVAILABLE
+                else return WRONG_OS
                 end
             end
 

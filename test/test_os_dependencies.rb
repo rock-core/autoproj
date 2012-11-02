@@ -486,5 +486,29 @@ class TC_OSDependencies < Test::Unit::TestCase
         osdeps.osdeps_mode = 'all'
         osdeps.install(['pkg0', 'pkg1', 'pkg2'])
     end
+
+    def test_resolve_os_dependencies_unsupported_os_non_existent_dependency
+        osdeps = create_osdep(Hash.new)
+        flexmock(OSDependencies).should_receive(:supported_operating_system?).and_return(false)
+        assert_raises(OSDependencies::MissingOSDep) { osdeps.resolve_os_dependencies(['a_package']) }
+    end
+
+    def test_resolve_package_availability_unsupported_os_non_existent_dependency
+        osdeps = create_osdep(Hash.new)
+        flexmock(OSDependencies).should_receive(:supported_operating_system?).and_return(false)
+        assert_equal OSDependencies::NO_PACKAGE, osdeps.availability_of('a_package')
+    end
+
+    def test_resolve_package_availability_unsupported_os_existent_dependency
+        osdeps = create_osdep({ 'a_package' => { 'an_os' => 'bla' }})
+        flexmock(OSDependencies).should_receive(:supported_operating_system?).and_return(false)
+        assert_equal OSDependencies::AVAILABLE, osdeps.availability_of('a_package')
+    end
+
+    def test_resolve_os_dependencies_unsupported_os_existent_dependency
+        osdeps = create_osdep({ 'a_package' => { 'an_os' => 'bla' }})
+        flexmock(OSDependencies).should_receive(:supported_operating_system?).and_return(false)
+        assert_equal [[osdeps.os_package_handler, ['a_package']]], osdeps.resolve_os_dependencies(['a_package'])
+    end
 end
 
