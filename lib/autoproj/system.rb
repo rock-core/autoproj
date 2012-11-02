@@ -114,9 +114,8 @@ module Autoproj
     def self.set_initial_env
         Autobuild.env_inherit = false
         Autoproj.env_set 'RUBYOPT', "-rubygems"
-        Autoproj.env_set 'GEM_HOME', Autoproj.gem_home
-        Autoproj.env_set_path 'GEM_PATH', Autoproj.gem_home
-        Autoproj.env_set_path 'PATH', "#{Autoproj.gem_home}/bin", "/usr/local/bin", "/usr/bin", "/bin"
+        Autobuild.env_push_path 'GEM_PATH', Autoproj.gem_home
+        Autobuild.env_push_path 'PATH', "#{Autoproj.gem_home}/bin", "/usr/local/bin", "/usr/bin", "/bin"
     end
 
     class << self
