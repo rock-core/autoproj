@@ -177,6 +177,16 @@ fi
             end
         end
 
+        # Package manager interface for systems that use port (i.e. MacPorts/Darwin) as
+        # their package manager
+        class PortManager < ShellScriptManager
+            def initialize
+                super(['port'], true,
+                        "port '%s'",
+                        "port '%s'")
+            end
+        end
+
         # Package manager interface for systems that use pacman (i.e. arch) as
         # their package manager
         class PacmanManager < ShellScriptManager
@@ -536,12 +546,14 @@ fi
             PackageManagers::GemManager,
             PackageManagers::EmergeManager,
             PackageManagers::PacmanManager,
-            PackageManagers::YumManager]
+            PackageManagers::YumManager,
+            PackageManagers::PortManager]
         OS_PACKAGE_HANDLERS = {
             'debian' => 'apt-dpkg',
             'gentoo' => 'emerge',
             'arch' => 'pacman',
-            'fedora' => 'yum'
+            'fedora' => 'yum',
+            'darwin' => 'port'
         }
 
         # The information contained in the OSdeps files, as a hash
@@ -759,6 +771,9 @@ fi
                         [['gentoo'], [version]]
                     elsif File.exists?('/etc/arch-release')
                         [['arch'], []]
+                    elseif `uname`.chomp == "Darwin"
+                        version=`sw_vers | head -2 | tail -1`.split(":")[1]
+                        [['darwin'], [version.strip]]
                     end
             end
 

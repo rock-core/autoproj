@@ -16,7 +16,11 @@ ruby18:
       "15,16":
         - ruby
         - rubygems
-      default: nonexistent
+    darwin:
+        - ruby
+        - rb-rake
+    default: nonexistent
+    
 ruby19:
     debian:
         - ruby1.9.1
@@ -42,13 +46,17 @@ ruby19:
       "17":
       - ruby
       - rubygems
-      default: nonexistent
+    darwin:
+        - ruby19
+        - rake
+    default: nonexistent
 
 build-essential:
   debian,ubuntu: build-essential
   gentoo: ignore
   arch: ignore
   fedora: ignore
+  darwin: ignore
 
 autobuild: gem
 autoproj: gem
@@ -62,16 +70,22 @@ git:
   gentoo: dev-vcs/git
   arch: git
   fedora: git
+  darwin: git-core
+
 svn:
   debian,ubuntu: subversion
   gentoo: dev-util/subversion
   arch: subversion
   fedora: subversion
+  darwin: subversion
+
 cmake:
   debian,ubuntu: cmake
   gentoo: dev-util/cmake
   arch: cmake
   fedora: cmake
+  darwin: cmake
+
 autotools:
   debian,ubuntu:
   - "automake1.9"
@@ -83,12 +97,16 @@ autotools:
   fedora:
   - automake
   - autoconf
+  darwin:
+  - automake
+  - autoconf
 
 lsb_release:
   debian,ubuntu: lsb-release
   gentoo: sys-apps/lsb-release
   arch: ignore
   fedora: redhat-lsb
+  darwin: ignore
     
 archive:
   debian,ubuntu:
@@ -103,9 +121,14 @@ archive:
   fedora:
   - tar
   - unzip
+  darwin:
+  - gnutar
+  - unzip
+
 cvs:
   debian,ubuntu: cvs
   fedora: cvs
+  darwin: cvs
 
 # vim: expandtab
 
