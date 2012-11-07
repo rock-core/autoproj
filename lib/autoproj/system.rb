@@ -23,7 +23,7 @@ module Autoproj
             else /^\/$/
             end
 
-        while root_dir_rx =~ dir && !File.directory?(File.join(dir, "autoproj"))
+        while root_dir_rx !~ dir && !File.directory?(File.join(dir, "autoproj"))
             dir = File.dirname(dir)
         end
         if root_dir_rx =~ dir
