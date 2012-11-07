@@ -84,14 +84,13 @@ module Autoproj
 
             # If we are under rubygems, check that the GEM_HOME is right ...
             if $LOADED_FEATURES.any? { |l| l =~ /rubygems/ }
-				
                 if ENV['GEM_HOME'] != Autoproj.gem_home
                     raise ConfigError.new, "RubyGems is already loaded with a different GEM_HOME, make sure you are loading the right #{ENV_FILENAME} script !"
                 end
             end
 
             # Set up some important autobuild parameters
-            Autoproj.env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB', 'LD_LIBRARY_PATH', 'GEM_PATH'
+            Autoproj.env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB', 'LD_LIBRARY_PATH', 'GEM_PATH', 'CMAKE_PREFIX_PATH', 'PYTHONPATH'
             Autoproj.env_set 'GEM_HOME', Autoproj.gem_home
             Autoproj.env_add 'GEM_PATH', Autoproj.gem_home
             Autoproj.env_add 'PATH', File.join(Autoproj.gem_home, 'bin')
