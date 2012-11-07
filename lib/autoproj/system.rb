@@ -112,7 +112,7 @@ module Autoproj
     def self.find_in_path(name)
         result = ENV['PATH'].split(':').find { |dir| File.file?(File.join(dir, name)) }
         if !result
-            raise ArgumentError, "#{name} can not be found in PATH"
+            raise ArgumentError, "#{name} can not be found in PATH (#{ENV['PATH']})"
         end
         File.join(result, name)
     end
