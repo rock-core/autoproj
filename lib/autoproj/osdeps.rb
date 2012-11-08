@@ -1235,7 +1235,7 @@ So, what do you want ? (all, ruby, os or none)
         end
 
         def self.osdeps_mode_string_to_value(string)
-            string = string.downcase
+            string = string.to_s.downcase
             case string
             when 'all'  then HANDLE_ALL
             when 'ruby' then HANDLE_RUBY
