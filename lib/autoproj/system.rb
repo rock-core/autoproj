@@ -1,6 +1,16 @@
 module Autoproj
     class UserError < RuntimeError; end
 
+    # OS-independent creation of symbolic links. Note that on windows, it only
+    # works for directories
+    def create_symlink(from, to)
+        if Autobuild.windows?
+            Dir.create_junction(to, from)
+        else
+            FileUtils.ln_sf from, to
+        end
+    end
+
     # Returns true if +path+ is part of an autoproj installation
     def self.in_autoproj_installation?(path)
         root_dir(File.expand_path(path))

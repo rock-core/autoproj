@@ -1454,19 +1454,11 @@ module Autoproj
                     dest = File.readlink(symlink_dest)
                     if dest != pkg_set.raw_local_dir
                         FileUtils.rm_f symlink_dest
-                        if !RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)! 
-                            FileUtils.ln_sf pkg_set.raw_local_dir, symlink_dest
-                        else
-                            Dir.create_junction(symlink_dest, pkg_set.raw_local_dir)
-                        end
+                        Autoproj.create_symlink(pkg_set.raw_local_dir, symlink_dest)
                     end
                 else
-                FileUtils.rm_f symlink_dest
-                    if !RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)! 
-                        FileUtils.ln_sf pkg_set.raw_local_dir, symlink_dest
-                    else
-                        Dir.create_junction(symlink_dest, pkg_set.raw_local_dir)
-                    end
+                    FileUtils.rm_f symlink_dest
+                    Autoproj.create_symlink(pkg_set.raw_local_dir, symlink_dest)
                 end
 
                 symlink_dest
