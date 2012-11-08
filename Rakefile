@@ -41,6 +41,11 @@ namespace 'dist' do
             end
         end
         osdeps_defaults = YAML.dump(osdeps)
+        # Since we are using gsub to replace the content in the bootstrap file,
+        # we have to quote all \
+        [osdeps_code, options_code, system_code, osdeps_defaults].each do |text|
+            text.gsub! /\\/, '\\\\\\\\'
+        end
 
         bootstrap_code = File.read(File.join(Dir.pwd, 'bin', 'autoproj_bootstrap.in')).
             gsub('OSDEPS_CODE', osdeps_code).
