@@ -2190,6 +2190,9 @@ module Autoproj
                         selection.delete(pkg_name)
                     end
                 end
+                matches.delete_if do |key, sel|
+                    sel.empty?
+                end
             end
         end
 
