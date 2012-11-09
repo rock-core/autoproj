@@ -39,6 +39,12 @@ packages.each do |name|
         else
             puts " is not directly selected by the manifest"
         end
+        if Autoproj.manifest.ignored?(pkg_name)
+            puts " is ignored"
+        end
+        if Autoproj.manifest.excluded?(pkg_name)
+            puts " is excluded: #{Autoproj.manifest.exclusion_reason(pkg_name)}"
+        end
 
         all_reverse_dependencies = Set.new
         pkg_revdeps = revdeps[pkg_name].dup.to_a
