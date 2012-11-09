@@ -1642,7 +1642,7 @@ module Autoproj
         # where +type+ can either be :package or :osdeps (as symbols)
         #
         # The returned array can be empty if +name+ is an ignored package
-        def resolve_package_name(name)
+        def resolve_package_name(name, options = Hash.new)
             if pkg_set = find_metapackage(name)
                 if !pkg_set
                     raise ConfigError.new, "#{name} is neither a package nor a package set name. Packages in autoproj must be declared in an autobuild file."
@@ -1654,7 +1654,7 @@ module Autoproj
 
             result = []
             pkg_names.each do |pkg|
-                result.concat(resolve_single_package_name(pkg))
+                result.concat(resolve_single_package_name(pkg, options))
             end
             result
         end
@@ -1682,8 +1682,9 @@ module Autoproj
         #
         # This is a helper method for #resolve_package_name. Do not use
         # directly
-        def resolve_single_package_name(name) # :nodoc:
-            if ignored?(name)
+        def resolve_single_package_name(name, options = Hash.new) # :nodoc:
+            options = Kernel.validate_options options, :filter => true
+            if ignored?(name) && options[:filter]
                 return []
             end
 
@@ -2142,6 +2143,10 @@ module Autoproj
                 end
             end
 
+            def has_match_for?(sel)
+                matches.has_key?(sel)
+            end
+
             # Remove packages that are explicitely excluded and/or ignored
             #
             # Raise an error if an explicit selection expands only to an
@@ -2194,7 +2199,8 @@ module Autoproj
         #  * as a package name
         #
         # This method converts the first two directories into the third one
-        def expand_package_selection(selection)
+        def expand_package_selection(selection, options = Hash.new)
+            options = Kernel.validate_options options, :filter => true
             base_dir = Autoproj.root_dir
 
             result = PackageSelection.new
@@ -2242,7 +2248,9 @@ module Autoproj
                 end
             end
 
-            result.filter_excluded_and_ignored_packages(self)
+            if options[:filter]
+                result.filter_excluded_and_ignored_packages(self)
+            end
             return result, (selection - result.matches.keys)
         end
 

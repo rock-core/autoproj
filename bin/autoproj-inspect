@@ -10,16 +10,17 @@ require 'pp'
 default_packages = Autoproj.manifest.default_packages
 revdeps = Autoproj.manifest.compute_revdeps
 
-selected_packages = ARGV.map do |arg|
+user_selection = ARGV.map do |arg|
     if File.directory?(arg)
         File.expand_path(arg)
     else arg
     end
 end
-selected_packages = Autoproj::CmdLine.resolve_user_selection(selected_packages)
+resolved_selection = Autoproj::CmdLine.resolve_user_selection(user_selection, :filter => false)
+packages = resolved_selection.selection.keys
 
-selected_packages.selection.each_key do |name|
-    result = Autoproj.manifest.resolve_package_name(name)
+packages.each do |name|
+    result = Autoproj.manifest.resolve_package_name(name, :filter => false)
     packages, osdeps = result.partition { |type, name| type == :package }
     packages = packages.map(&:last)
     osdeps   = osdeps.map(&:last)

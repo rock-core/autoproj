@@ -12,7 +12,8 @@ if !(new_set_path = File.expand_path(selection.shift, pwd))
     exit 1
 end
 new_set_name = File.basename(new_set_path)
-selection = Autoproj::CmdLine.resolve_user_selection(selection)
+selection = Autoproj::CmdLine.resolve_user_selection(user_selection)
+Autoproj::CmdLine.validate_user_selection(user_selection, selection)
 
 # Must re-load the package manifests, as the user selection might have triggered
 # some auto-add
