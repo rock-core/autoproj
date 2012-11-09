@@ -352,6 +352,11 @@ module Autoproj
             # Resolve optional dependencies
             manifest.resolve_optional_dependencies
 
+            # And, finally, disable all ignored packages on the autobuild side
+            manifest.each_ignored_package do |pkg_name|
+                Autobuild::Package[pkg_name].disable
+            end
+
             # We now have processed the process setup blocks. All configuration
             # should be done and we can save the configuration data.
             Autoproj.save_config

@@ -342,11 +342,6 @@ def package_common(package_type, spec, &block) # :nodoc:
         return Autobuild::Package[package_name]
     end
 
-    # Check if this package is ignored
-    if Autoproj.manifest.ignored?(package_name) || Autoproj.manifest.ignored?(Autoproj.current_file[0].name)
-        return Autoproj.define(:dummy, spec)
-    end
-
     pkg = Autoproj.define(package_type, spec, &block)
     pkg.srcdir = pkg.name
     pkg

@@ -1108,6 +1108,19 @@ module Autoproj
             end
         end
 
+        # Enumerates the package names of all ignored packages
+        def each_ignored_package
+            data['ignore_packages'].each do |l|
+                if pkg_set = metapackages[l]
+                    pkg_set.each_package do |pkg|
+                        yield(pkg.name)
+                    end
+                else
+                    yield(l)
+                end
+            end
+        end
+
         # Removes all registered exclusions
         def clear_exclusions
             automatic_exclusions.clear
