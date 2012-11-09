@@ -10,8 +10,6 @@ module Autoproj
         def silent=(value)
             Autobuild.silent = value
         end
-
-        attr_predicate :silent?, true
     end
     @verbose = false
     @console = HighLine.new
