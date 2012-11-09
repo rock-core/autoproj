@@ -29,10 +29,11 @@ packages.each do |name|
         puts "source package #{pkg_name}"
         if default_packages.include?(pkg_name)
             selection = default_packages.selection[pkg_name]
-            selection.delete(pkg_name)
-            if selection.empty?
+            if selection.include?(pkg_name) && selection.size == 1
                 puts "  is directly selected by the manifest"
             else
+                selection = selection.dup
+                selection.delete(pkg_name)
                 puts "  is directly selected by the manifest via #{selection.to_a.join(", ")}"
             end
         else
