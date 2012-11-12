@@ -771,7 +771,7 @@ fi
                         [['gentoo'], [version]]
                     elsif File.exists?('/etc/arch-release')
                         [['arch'], []]
-                    elseif `uname`.chomp == "Darwin"
+                    elsif Autobuild.macos? 
                         version=`sw_vers | head -2 | tail -1`.split(":")[1]
                         [['darwin'], [version.strip]]
                     elsif Autobuild.windows?
