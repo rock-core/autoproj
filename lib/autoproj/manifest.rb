@@ -1107,7 +1107,6 @@ module Autoproj
 
         # Enumerates the package names of all ignored packages
         def each_ignored_package
-            return if !data['ignore_packages']
             data['ignore_packages'].each do |l|
                 if pkg_set = metapackages[l]
                     pkg_set.each_package do |pkg|
