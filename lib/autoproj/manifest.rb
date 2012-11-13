@@ -1023,6 +1023,8 @@ module Autoproj
 
             @file = file
             @data = data
+            data['ignore_packages'] ||= Set.new
+            data['exclude_packages'] ||= Set.new
 
             if data['constants']
                 @constant_definitions = Autoproj.resolve_constant_definitions(data['constants'])
@@ -1084,8 +1086,7 @@ module Autoproj
         # Call this method to ignore a specific package. It must not be used in
         # init.rb, as the manifest is not yet loaded then
         def ignore_package(package_name)
-            list = (data['ignore_packages'] ||= Array.new)
-            list << package_name
+            data['ignore_packages'] << package_name
         end
 
         # True if the given package should not be built, with the packages that
@@ -1093,18 +1094,14 @@ module Autoproj
         #
         # This is useful if the packages are already installed on this system.
         def ignored?(package_name)
-            if data['ignore_packages']
-                data['ignore_packages'].any? do |l|
-                    if package_name == l
-                        true
-                    elsif (pkg_set = metapackages[l]) && pkg_set.include?(package_name)
-                        true
-                    else
-                        false
-                    end
+            data['ignore_packages'].any? do |l|
+                if package_name == l
+                    true
+                elsif (pkg_set = metapackages[l]) && pkg_set.include?(package_name)
+                    true
+                else
+                    false
                 end
-            else
-                false
             end
         end
 
@@ -1124,22 +1121,18 @@ module Autoproj
         # Removes all registered exclusions
         def clear_exclusions
             automatic_exclusions.clear
-            if excl = data['exclude_packages']
-                excl.clear
-            end
+            data['exclude_packages'].clear
         end
 
         # Removes all registered ignored packages
         def clear_ignored
-            if ignored = data['ignore_packages']
-                ignored.clear
-            end
+            data['ignore_packages'].clear
         end
 
         # The set of package names that are listed in the excluded_packages
         # section of the manifest
         def manifest_exclusions
-            data['exclude_packages'] || Set.new
+            data['exclude_packages']
         end
 
         # A package_name => reason map of the exclusions added with #add_exclusion.
