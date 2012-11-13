@@ -146,6 +146,11 @@ module Autoproj
 
     # Create the env.sh script in +subdir+. In general, +subdir+ should be nil.
     def self.export_env_sh(subdir = nil)
+        # Make sure that we have the environment of all selected packages
+        Autoproj.manifest.all_selected_packages.each do |pkg_name|
+            Autobuild::Package[pkg_name].update_environment
+        end
+
         filename = if subdir
                File.join(Autoproj.root_dir, subdir, ENV_FILENAME)
            else
