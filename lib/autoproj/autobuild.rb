@@ -437,9 +437,7 @@ module Autoproj::RubyPackage
         end
     end
 
-    def import
-        super
-
+    def update_environment
         Autobuild.update_environment srcdir
         libdir = File.join(srcdir, 'lib')
         if File.directory?(libdir)
