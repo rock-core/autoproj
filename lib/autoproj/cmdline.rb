@@ -335,6 +335,11 @@ module Autoproj
             # Resolve optional dependencies
             manifest.resolve_optional_dependencies
 
+            # Make sure that we have the environment of all selected packages
+            manifest.all_selected_packages.each do |pkg_name|
+                Autobuild::Package[pkg_name].update_environment
+            end
+
             # We now have processed the process setup blocks. All configuration
             # should be done and we can save the configuration data.
             Autoproj.save_config
