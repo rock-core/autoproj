@@ -1677,9 +1677,6 @@ module Autoproj
         # directly
         def resolve_single_package_name(name, options = Hash.new) # :nodoc:
             options = Kernel.validate_options options, :filter => true
-            if ignored?(name) && options[:filter]
-                return []
-            end
 
             explicit_selection  = explicitly_selected_package?(name)
 	    osdeps_availability = Autoproj.osdeps.availability_of(name)
@@ -1723,9 +1720,15 @@ module Autoproj
                     end
                 end
 
-                # No source, no osdeps. Call osdeps again, but this time to get
+                # No source, no osdeps.
+                # If the package is ignored by the manifest, just return empty.
+                # Otherwise, generate a proper error message
+                # Call osdeps again, but this time to get
                 # a proper error message.
                 if !available_as_source
+                    if ignored?(name)
+                        return []
+                    end
                     begin
                         Autoproj.osdeps.resolve_os_dependencies([name].to_set)
                     rescue Autoproj::ConfigError => e
