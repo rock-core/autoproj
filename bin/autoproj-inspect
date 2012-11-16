@@ -65,6 +65,7 @@ packages.each do |name|
         if !selections.empty?
             puts "  selected by way of #{selections.to_a.join(", ")}"
         end
+        puts "  directly depends on: #{Autobuild::Package[pkg_name].dependencies.sort.join(", ")}"
     end
 
     osdeps.each do |pkg_name|
