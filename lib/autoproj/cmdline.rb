@@ -655,6 +655,8 @@ module Autoproj
                     if Autoproj.manifest.excluded?(pkg.name)
                         mark_exclusion_along_revdeps(pkg.name, reverse_dependencies)
                         true
+                    elsif Autoproj.manifest.ignored?(pkg.name)
+                        true
                     end
                 end
                 package_queue.concat(new_packages.sort_by(&:name))
@@ -675,7 +677,7 @@ module Autoproj
 		pkg = Autobuild::Package[pkg_name]
 		pkg.resolve_optional_dependencies
 
-                pkg.prepare
+                pkg.prepare if !pkg.disabled?
                 Rake::Task["#{pkg.name}-prepare"].instance_variable_set(:@already_invoked, true)
 
 		package_queue.concat(pkg.dependencies)
