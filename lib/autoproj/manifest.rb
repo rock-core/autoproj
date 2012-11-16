@@ -2227,6 +2227,8 @@ module Autoproj
                 end
             end
 
+            pending_selections = Hash.new
+
             # Finally, check for package source directories
             all_packages = self.all_package_names
             selection.each do |sel|
@@ -2235,9 +2237,13 @@ module Autoproj
                     pkg = Autobuild::Package[pkg_name]
                     if pkg_name =~ match_pkg_name || "#{sel}/" =~ Regexp.new("^#{Regexp.quote(pkg.srcdir)}/") || pkg.srcdir =~ Regexp.new("^#{Regexp.quote(sel)}")
                         # Check-out packages that are not in the manifest only
-                        # if they are explicitely selected
+                        # if they are explicitely selected. However, we do store
+                        # them as "possible resolutions" for the user selection,
+                        # and add them if -- at the end of the method -- nothing
+                        # has been found for this particular selection
                         if !all_layout_packages.include?(pkg.name)
                             if pkg_name != sel && pkg.srcdir != sel
+                                pending_selections[sel] = pkg_name
                                 next
                             end
                         end
@@ -2250,7 +2256,15 @@ module Autoproj
             if options[:filter]
                 result.filter_excluded_and_ignored_packages(self)
             end
-            return result, (selection - result.matches.keys)
+            nonresolved = selection - result.matches.keys
+            nonresolved.delete_if do |sel|
+                if pkg_name = pending_selections[sel]
+                    result.select(sel, pkg_name)
+                    true
+                end
+            end
+
+            return result, nonresolved
         end
 
         attr_reader :moved_packages
