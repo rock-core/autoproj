@@ -173,6 +173,7 @@ if ARGV.first != "localdev"
         ARGV.shift
     end
     begin
+        osdeps_management.install(['build-essential'])
         osdeps_management.install(['autobuild'])
         osdeps_management.install(['autoproj'])
     rescue Autoproj::ConfigError => e
