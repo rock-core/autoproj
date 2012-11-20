@@ -1,3 +1,6 @@
+= Version 1.8.3
+ * fix broken env.sh when amake <package> or aup <package> are called
+
 = Version 1.8.0
  * fix issues with 1.9.3
  * significantly refactor the osdeps handling. It should make the addition of
