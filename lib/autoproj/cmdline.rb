@@ -1203,7 +1203,7 @@ where 'mode' is one of:
                         if !status.uncommitted_code
                             if sync_packages.size > 80
                                 Autoproj.message "#{sync_packages},"
-                                sync_packages.clear
+                                sync_packages = ""
                             end
                             msg = if sync_packages.empty?
                                       pkg_name
@@ -1245,7 +1245,7 @@ where 'mode' is one of:
 
                 if !sync_packages.empty?
                     Autoproj.message("#{sync_packages}: #{color("local and remote are in sync", :green)}")
-                    sync_packages.clear
+                    sync_packages = ""
                 end
 
                 STDERR.print 
@@ -1261,7 +1261,7 @@ where 'mode' is one of:
             end
             if !sync_packages.empty?
                 Autoproj.message("#{sync_packages}: #{color("local and remote are in sync", :green)}")
-                sync_packages.clear
+                sync_packages = ""
             end
             return result
         end
