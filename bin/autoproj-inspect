@@ -54,6 +54,11 @@ packages.each do |name|
             all_reverse_dependencies << parent_name
             pkg_revdeps.concat(revdeps[parent_name].to_a)
         end
+        if pkg_revdeps.empty?
+            puts "  no reverse dependencies"
+        else
+            puts "  reverse dependencies: #{pkg_revdeps.map(&:name).sort.join(", ")}"
+        end
 
         selections = Set.new
         all_reverse_dependencies = all_reverse_dependencies.to_a.sort
