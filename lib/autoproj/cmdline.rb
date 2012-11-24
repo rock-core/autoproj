@@ -328,7 +328,7 @@ module Autoproj
             # Load the package's override files. each_source must not load the
             # source.yml file, as init.rb may define configuration options that are used
             # there
-            manifest.each_source(false).to_a.reverse.each do |source|
+            manifest.each_source(false).to_a.each do |source|
                 Autoproj.load_if_present(source, source.local_dir, "overrides.rb")
             end
 
