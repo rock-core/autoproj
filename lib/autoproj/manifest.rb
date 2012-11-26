@@ -1652,9 +1652,12 @@ module Autoproj
             result
         end
 
-        # Resolves all the source-based dependencies of this package (excluding
-        # the OS dependencies). The result is returned as a set of package
-        # names.
+        # Resolves all the source package dependencies for given packages
+        #
+        # @param [Set<String>] the set of package names of which we want to
+        #   discover the dependencies
+        # @return [Set<String>] the set of all package names that the packages designed
+        #   by root_names depend on
         def resolve_packages_dependencies(*root_names)
             result = Set.new
             queue = root_names.dup

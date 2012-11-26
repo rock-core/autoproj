@@ -1,3 +1,15 @@
+= Version 1.8.5
+ * osdeps: the apt-dpkg was interpreting removed-but-not-purged as installed.
+   Fix.
+ * osdeps: fix autoproj osdeps --show
+
+= Version 1.8.4
+ * fix wrong order for application of overrides.rb (was: most specific to more
+   general).
+
+= Version 1.8.3
+ * fix broken env.sh when amake <package> or aup <package> are called
+
 = Version 1.8.0
  * fix issues with 1.9.3
  * significantly refactor the osdeps handling. It should make the addition of

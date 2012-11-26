@@ -343,7 +343,7 @@ module Autoproj
             # Load the package's override files. each_source must not load the
             # source.yml file, as init.rb may define configuration options that are used
             # there
-            manifest.each_source(false).to_a.reverse.each do |source|
+            manifest.each_source(false).to_a.each do |source|
                 Autoproj.load_if_present(source, source.local_dir, "overrides.rb")
             end
 
@@ -1700,26 +1700,17 @@ where 'mode' is one of:
                     next
                 end
 
-                osdeps, gems = Autoproj.osdeps.
-                    partition_packages(pkg_osdeps)
-
-                puts "  #{pkg_name}:"
-                if !gems.empty?
-                    puts "    RubyGem packages: #{gems.to_a.sort.join(", ")}"
-                end
-
-                # If we are on a supported OS, convert the osdeps name to plain
-                # package name
-                if Autoproj::OSDependencies.supported_operating_system?
-                    pkg_osdeps = Autoproj.osdeps.
-                        resolve_os_dependencies(osdeps)
-
-                    if !pkg_osdeps.empty?
-                        puts "    OS packages:      #{pkg_osdeps.to_a.sort.join(", ")}"
-                    end
-                else
-                    if !os_packages.empty?
-                        puts "    OS dependencies:  #{os_packages.to_a.sort.join(", ")}"
+                packages = Autoproj.osdeps.resolve_os_dependencies(pkg_osdeps)
+                puts pkg_name
+                packages.each do |handler, packages|
+                    puts "  #{handler.name}: #{packages.sort.join(", ")}"
+                    needs_update = handler.filter_uptodate_packages(packages)
+                    if needs_update.to_set != packages.to_set
+                        if needs_update.empty?
+                            puts "    all packages are up to date"
+                        else
+                            puts "    needs updating: #{needs_update.sort.join(", ")}"
+                        end
                     end
                 end
             end
