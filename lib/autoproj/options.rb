@@ -47,7 +47,7 @@ module Autoproj
 
         def ask(current_value, doc = nil)
             default_value =
-		if current_value then current_value.to_s
+		if !current_value.nil? then current_value.to_s
 		elsif options[:default] then options[:default].to_str
 		else ''
 		end

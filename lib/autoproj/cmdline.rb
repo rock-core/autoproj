@@ -723,7 +723,16 @@ module Autoproj
                 manifest.install_os_dependencies(all_enabled_packages)
             end
 
-            if !selected_packages.empty? && !force_re_build_with_depends?
+            if selected_packages.empty? && Autobuild.do_rebuild
+                # If we don't have an explicit package selection, the handling
+                # of #prepare_for_rebuild is passed to Autobuild.apply. However,
+                # we want to make sure that the user really wants this
+                opt = BuildOption.new("", "boolean", {:doc => 'this is going to trigger a rebuild of all packages. Is that really what you want ?'}, nil)
+                if !opt.ask(false)
+                    raise Interrupt
+                end
+
+            elsif !selected_packages.empty? && !force_re_build_with_depends?
                 if Autobuild.do_rebuild
                     selected_packages.each do |pkg_name|
                         Autobuild::Package[pkg_name].prepare_for_rebuild
