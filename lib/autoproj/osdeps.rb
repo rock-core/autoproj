@@ -245,9 +245,9 @@ fi
                                 current_packages.each do |pkg|
                                     @installed_packages << pkg
                                 end
-                                current_packages.clear
                                 is_installed = false
                             end
+                            current_packages.clear
                         elsif line =~ /Package: (.*)$/
                             current_packages << $1
                         elsif line =~ /Provides: (.*)$/
