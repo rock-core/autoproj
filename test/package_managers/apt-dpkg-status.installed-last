@@ -1,0 +1,27 @@
+Package: installed-package
+Status: install ok installed
+Priority: optional
+Section: x11
+Installed-Size: 114
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: amd64
+Version: 1:12.9.0-0ubuntu0.1
+Provides: xorg-driver-input
+Depends: libc6 (>= 2.7), xorg-input-abi-16, xserver-xorg-core (>= 2:1.10.99.901), xserver-xorg-input-mouse, udev
+Description: X.Org X server -- VMMouse input driver to use with VMWare
+ This package provides the driver for the X11 vmmouse input device.
+ .
+ The VMMouse driver enables support for the special VMMouse protocol
+ that is provided by VMware virtual machines to give absolute pointer
+ positioning.
+ .
+ The vmmouse driver is capable of falling back to the standard "mouse"
+ driver if a VMware virtual machine is not detected. This allows for
+ dual-booting of an operating system from a virtual machine to real hardware
+ without having to edit xorg.conf every time.
+ .
+ More information about X.Org can be found at:
+ <URL:http://www.X.org>
+ .
+ This package is built from the X.org xf86-input-vmmouse driver module.
+Original-Maintainer: Debian X Strike Force <debian-x@lists.debian.org>

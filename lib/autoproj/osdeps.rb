@@ -223,7 +223,10 @@ fi
         # Package manager interface for systems that use APT and dpkg for
         # package management
         class AptDpkgManager < ShellScriptManager
-            def initialize
+            attr_accessor :status_file
+
+            def initialize(status_file = "/var/lib/dpkg/status")
+                @status_file = status_file
                 super(['apt-dpkg'], true,
                       "apt-get install '%s'",
                       "export DEBIAN_FRONTEND=noninteractive; apt-get install -y '%s'")
@@ -234,7 +237,8 @@ fi
             def installed?(package_name)
                 if !@installed_packages
                     @installed_packages = Set.new
-                    dpkg_status = File.readlines('/var/lib/dpkg/status')
+                    dpkg_status = File.readlines(status_file)
+                    dpkg_status << ""
 
                     current_packages = []
                     is_installed = false

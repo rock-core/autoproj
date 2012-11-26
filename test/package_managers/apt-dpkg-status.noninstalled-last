@@ -1,0 +1,12 @@
+Package: noninstalled-package
+Status: bla
+Priority: optional
+Section: unknown
+Installed-Size: 17480
+Maintainer: Ruben Smits
+Architecture: amd64
+Version: 0.2.3-s1336530597~oneiric
+Depends: ros-electric-ros (= 1.6.9-s1336528271~oneiric), ros-electric-common-rosdeps (= 1.0.2-s1336530376~oneiric), build-essential, python-yaml, cmake, subversion, python-sip-dev, libc6, libeigen3-dev, libcppunit-dev, pkg-config
+Description: orocos_kinematics_dynamics
+ orocos_kinematics_dynamics
+Wg-Rosdistro: electric
