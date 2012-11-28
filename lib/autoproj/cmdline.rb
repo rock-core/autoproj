@@ -899,6 +899,9 @@ where 'mode' is one of:
                     @color = flag
                     Autobuild.color = flag
                 end
+                opts.on("--[no-]progress", "enable or disable progress display (enabled by default)") do |flag|
+                    Autobuild.progress_display_enabled = flag
+                end
                 opts.on("--version", "displays the version and then exits") do
                     puts "autoproj v#{Autoproj::VERSION}"
                     exit(0)
