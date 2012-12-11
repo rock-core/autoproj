@@ -1325,12 +1325,6 @@ So, what do you want ? (all, ruby, os or none)
 
         # Requests the installation of the given set of packages
         def install(packages, package_osdeps = Hash.new)
-            #not sure here, simply show that it is installed even we dont install anything,
-            #because this functions seems to called sometimes even --no-osdeps is given or the installs_os_packages? return false
-            #it seems its not checked everywhere, so add this sainty check here
-            return true if not installs_os_packages?
-			
-			
             os_package_handler.enabled = installs_os_packages?
             os_package_handler.silent = self.silent?
             package_handlers['gem'].enabled = installs_ruby_packages?
