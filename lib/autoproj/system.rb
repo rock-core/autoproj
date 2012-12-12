@@ -175,6 +175,9 @@ module Autoproj
 
         File.open(filename, "w") do |io|
             Autobuild.export_env_sh(io)
+            if Autobuild.environment.has_key?('GEM_PATH')
+                io.puts "export GEM_PATH=$GEM_PATH:#{Gem.default_path.join(":")}"
+            end
         end
     end
 
