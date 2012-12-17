@@ -19,6 +19,20 @@ end
 resolved_selection = Autoproj::CmdLine.resolve_user_selection(user_selection, :filter => false)
 packages = resolved_selection.selection.keys
 
+def find_selection_path(from, to)
+    path = [from]
+    if from == to
+        return path
+    end
+
+    Autobuild::Package[from].dependencies.each do |dep_pkg_name|
+        if result = find_selection_path(dep_pkg_name, to)
+            return path + result
+        end
+    end
+    nil
+end
+
 packages.each do |name|
     result = Autoproj.manifest.resolve_package_name(name, :filter => false)
     packages, osdeps = result.partition { |type, name| type == :package }
@@ -37,13 +51,13 @@ packages.each do |name|
                 puts "  is directly selected by the manifest via #{selection.to_a.join(", ")}"
             end
         else
-            puts " is not directly selected by the manifest"
+            puts "  is not directly selected by the manifest"
         end
         if Autoproj.manifest.ignored?(pkg_name)
-            puts " is ignored"
+            puts "  is ignored"
         end
         if Autoproj.manifest.excluded?(pkg_name)
-            puts " is excluded: #{Autoproj.manifest.exclusion_reason(pkg_name)}"
+            puts "  is excluded: #{Autoproj.manifest.exclusion_reason(pkg_name)}"
         end
 
         all_reverse_dependencies = Set.new
@@ -54,10 +68,10 @@ packages.each do |name|
             all_reverse_dependencies << parent_name
             pkg_revdeps.concat(revdeps[parent_name].to_a)
         end
-        if pkg_revdeps.empty?
+        if all_reverse_dependencies.empty?
             puts "  no reverse dependencies"
         else
-            puts "  reverse dependencies: #{pkg_revdeps.map(&:name).sort.join(", ")}"
+            puts "  reverse dependencies: #{all_reverse_dependencies.sort.join(", ")}"
         end
 
         selections = Set.new
@@ -67,8 +81,13 @@ packages.each do |name|
                 selections |= default_packages.selection[parent_name]
             end
         end
+
         if !selections.empty?
-            puts "  selected by way of #{selections.to_a.join(", ")}"
+            puts "  selected by way of"
+            selections.each do |root_pkg|
+                path = find_selection_path(root_pkg, pkg_name)
+                puts "    #{path.join(">")}"
+            end
         end
         puts "  directly depends on: #{Autobuild::Package[pkg_name].dependencies.sort.join(", ")}"
     end
