@@ -114,8 +114,15 @@ module Autoproj
 
             local_source = LocalPackageSet.new(Autoproj.manifest)
 
+            home_dir =
+                if Dir.respond_to?(:home) # 1.9 specific
+                    Dir.home
+                else ENV['HOME']
+                end
             # Load the user-wide autoproj RC file
-            Autoproj.load_if_present(local_source, Dir.home, ".autoprojrc")
+            if home_dir
+                Autoproj.load_if_present(local_source, home_dir, ".autoprojrc")
+            end
 
             # We load the local init.rb first so that the manifest loading
             # process can use options defined there for the autoproj version
