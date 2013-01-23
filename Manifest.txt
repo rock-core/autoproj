@@ -9,10 +9,13 @@ bin/autolocate
 bin/autoproj
 bin/autoproj-clean
 bin/autoproj-create-set
-bin/autoproj-inspect
+bin/autoproj-envsh
+bin/autoproj-list
 bin/autoproj-locate
 bin/autoproj-query
+bin/autoproj-show
 bin/autoproj_bootstrap
+bin/autoproj_bootstrap.in
 bin/autoproj_stress_test
 lib/autoproj.rb
 lib/autoproj/autobuild.rb
@@ -42,6 +45,10 @@ test/data/full_manifest.xml
 test/data/invalid_manifest.xml
 test/data/test_manifest/autoproj/local/local.autobuild
 test/data/test_manifest/autoproj/manifest
+test/package_managers/apt-dpkg-status
+test/package_managers/apt-dpkg-status.installed-last
+test/package_managers/apt-dpkg-status.noninstalled-last
+test/package_managers/test_apt_dpkg_manager.rb
 test/package_managers/test_gem.rb
 test/test_debian.rb
 test/test_manifest.rb
