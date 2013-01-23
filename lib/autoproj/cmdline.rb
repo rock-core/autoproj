@@ -112,10 +112,14 @@ module Autoproj
 
             Autoproj.manifest = Manifest.new
 
+            local_source = LocalPackageSet.new(Autoproj.manifest)
+
+            # Load the user-wide autoproj RC file
+            Autoproj.load_if_present(local_source, Dir.home, ".autoprojrc")
+
             # We load the local init.rb first so that the manifest loading
             # process can use options defined there for the autoproj version
             # control information (for instance)
-            local_source = LocalPackageSet.new(Autoproj.manifest)
             Autoproj.load_if_present(local_source, local_source.local_dir, "init.rb")
 
             manifest_path = File.join(Autoproj.config_dir, 'manifest')
