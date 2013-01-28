@@ -43,6 +43,11 @@ module Autoproj
 
     module CmdLine
         def self.initialize
+            if defined? Encoding # This is a 1.9-only thing
+                Encoding.default_internal = Encoding::UTF_8
+                Encoding.default_external = Encoding::UTF_8
+            end
+
             Autobuild::Reporting << Autoproj::Reporter.new
             if mail_config[:to]
                 Autobuild::Reporting << Autobuild::MailReporter.new(mail_config)
