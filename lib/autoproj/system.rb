@@ -148,7 +148,7 @@ module Autoproj
     def self.export_env_sh(subdir = nil)
         # Make sure that we have the environment of all selected packages
         if Autoproj.manifest # we don't have a manifest if we are bootstrapping
-            Autoproj.manifest.all_selected_packages.each do |pkg_name|
+            Autoproj.manifest.all_selected_packages(false).each do |pkg_name|
                 Autobuild::Package[pkg_name].update_environment
             end
         end

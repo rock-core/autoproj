@@ -1897,9 +1897,9 @@ module Autoproj
         end
 
         # Returns the set of packages that are selected by the layout
-        def all_selected_packages
+        def all_selected_packages(validate = true)
             result = Set.new
-            root = default_packages.packages.to_set
+            root = default_packages(validate).packages.to_set
             root.each do |pkg_name|
                 Autobuild::Package[pkg_name].all_dependencies(result)
             end

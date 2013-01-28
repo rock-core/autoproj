@@ -381,6 +381,23 @@ module Autoproj
             Autoproj.save_config
         end
 
+        # This is a bit of a killer. It loads all available package manifests,
+        # but simply warns in case of errors. The reasons for that is that the
+        # only packages that should really block the current processing are the
+        # ones that are selected on the command line
+        def self.load_all_available_package_manifests
+            # Load the manifest for packages that are already present on the
+            # file system
+            manifest.packages.each_value do |pkg|
+                if File.directory?(pkg.autobuild.srcdir)
+                    begin
+                        manifest.load_package_manifest(pkg.autobuild.name)
+                    rescue Exception => e
+                        Autoproj.warn "cannot load package manifest for #{pkg.autobuild.name}: #{e.message}"
+                    end
+                end
+            end
+        end
 
         def self.display_configuration(manifest, package_list = nil)
             # Load the manifest for packages that are already present on the
@@ -1765,13 +1782,7 @@ where 'mode' is one of:
             Autoproj::CmdLine.setup_all_package_directories
             Autoproj::CmdLine.finalize_package_setup
 
-            # Load the manifest for packages that are already present on the
-            # file system
-            manifest.packages.each_value do |pkg|
-                if File.directory?(pkg.autobuild.srcdir)
-                    manifest.load_package_manifest(pkg.autobuild.name)
-                end
-            end
+            load_all_available_package_manifests
             remaining_arguments
         end
 

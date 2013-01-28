@@ -107,7 +107,7 @@ module Autobuild
             end
             @os_packages |= pkg_os.to_set
         rescue Autoproj::OSDependencies::MissingOSDep
-            Autoproj.manifest.add_exclusion(self.name, "the #{name} osdep is not available on this operating system")
+            Autoproj.manifest.add_exclusion(self.name, "it depends on #{name}, which is neither the name of a source package, nor an osdep that is available on this operating system")
         end
 
         def depends_on_os_package(name)
