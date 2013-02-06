@@ -14,7 +14,7 @@ Utilrb::Rake.hoe do
             self.email = "rock-dev@dfki.de"
 
             extra_deps << 
-                ['autobuild',   '>= 1.6.0.rc1'] <<
+                ['autobuild',   '>= 1.7.0'] <<
                 ['utilrb', '>= 1.6.0'] <<
                 ['highline', '>= 1.5.0']
         end
