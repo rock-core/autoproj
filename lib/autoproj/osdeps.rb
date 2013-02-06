@@ -758,9 +758,9 @@ fi
                 # Need to do some heuristics unfortunately
                 @operating_system =
                     if File.exists?('/etc/debian_version')
-                        codenames = [File.read('/etc/debian_version').strip]
-                        if codenames.first =~ /sid/
-                            versions = codenames + ["unstable", "sid"]
+                        versions = [File.read('/etc/debian_version').strip]
+                        if versions.first =~ /sid/
+                            versions = ["unstable", "sid"]
                         end
                         [['debian'], versions]
                     elsif File.exists?('/etc/fedora-release')
