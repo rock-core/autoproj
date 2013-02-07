@@ -1827,8 +1827,10 @@ module Autoproj
             
             begin
                 result.filter_excluded_and_ignored_packages(self)
-            rescue ConfigError
-                raise if validate
+            rescue ExcludedSelection => e
+                if validate
+                    raise e, "#{e.sel}, which is selected in the layout, cannot be built: #{e.message}", e.backtrace
+                end
             end
             result
         end
@@ -2086,6 +2088,16 @@ module Autoproj
             @osdeps_overrides.delete(osdeps_name.to_s)
         end
 
+        # Exception raised by
+        # PackageSelection#filter_excluded_and_ignored_packages when a given
+        # selection is completely excluded
+        class ExcludedSelection < ConfigError
+            attr_reader :selection
+            def initialize(selection)
+                @selection = selection
+            end
+        end
+
         # Class holding information about which packages have been selected, and
         # why. It is used to decide whether some non-availability of packages
         # are errors or simply warnings (i.e. if the user really wants a given
@@ -2162,12 +2174,12 @@ module Autoproj
                         if exclusions.size == 1
                             reason = exclusions[0][1]
                             if sel == exclusions[0][0]
-                                raise ConfigError.new, "#{sel} is excluded from the build: #{reason}"
+                                raise ExcludedSelection.new(sel), "it is excluded from the build: #{reason}"
                             else
-                                raise ConfigError.new, "#{sel} expands to #{exclusions.map(&:first).join(", ")}, which is excluded from the build: #{reason}"
+                                raise ExcludedSelection.new(sel), "it expands to #{exclusions.map(&:first).join(", ")}, which is excluded from the build: #{reason}"
                             end
                         else
-                            raise ConfigError.new, "#{sel} expands to #{exclusions.map(&:first).join(", ")}, and all these packages are excluded from the build:\n  #{exclusions.map { |name, reason| "#{name}: #{reason}" }.join("\n  ")}"
+                            raise ExcludedSelection.new(sel), "it expands to #{exclusions.map(&:first).join(", ")}, and all these packages are excluded from the build:\n  #{exclusions.map { |name, reason| "#{name}: #{reason}" }.join("\n  ")}"
                         end
                     elsif !ignored.empty?
                         ignored.each do |pkg_name|
