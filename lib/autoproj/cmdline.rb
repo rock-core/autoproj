@@ -42,6 +42,46 @@ module Autoproj
     end
 
     module CmdLine
+        def self.handle_ruby_version
+            ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
+            ruby_bindir = RbConfig::CONFIG['bindir']
+
+            ruby_executable = File.join(ruby_bindir, ruby)
+            if Autoproj.has_config_key?('ruby_executable')
+                expected = Autoproj.user_config('ruby_executable')
+                if expected != ruby_executable
+                    raise ConfigError.new, "this autoproj installation was bootstrapped using #{expected}, but you are currently running under #{ruby_executable}. This is usually caused by calling a wrong gem program (for instance, gem1.8 instead of gem1.9.1)"
+                end
+            end
+            Autoproj.change_option('ruby_executable', ruby_executable, true)
+
+            install_suffix = ""
+            if match = /ruby(.*)$/.match(ruby)
+                install_suffix = match[1]
+            end
+
+            bindir = File.join(Autoproj.build_dir, 'bin')
+            FileUtils.mkdir_p bindir
+            Autoproj.env_add 'PATH', bindir
+
+            File.open(File.join(bindir, 'ruby'), 'w') do |io|
+                io.puts "#! /bin/sh"
+                io.puts "exec #{File.join(ruby_bindir, ruby)} \"$@\""
+            end
+            FileUtils.chmod 0755, File.join(bindir, 'ruby')
+
+            subprograms = ['gem', 'irb'].each do |name|
+                # Look for the corresponding gem program
+                prg_name = "#{name}#{install_suffix}"
+                if File.file?(prg_path = File.join(ruby_bindir, prg_name))
+                    File.open(File.join(bindir, name), 'w') do |io|
+                        io.puts "#! /bin/sh"
+                        io.puts "exec #{prg_path} \"$@\""
+                    end
+                end
+            end
+        end
+
         def self.initialize
             if defined? Encoding # This is a 1.9-only thing
                 Encoding.default_internal = Encoding::UTF_8
@@ -59,14 +99,7 @@ module Autoproj
             Autoproj.loaded_autobuild_files.clear
             Autoproj.load_config
 
-            ruby_executable = Autoproj.find_in_path(RbConfig::CONFIG['RUBY_INSTALL_NAME'])
-            if Autoproj.has_config_key?('ruby_executable')
-                expected = Autoproj.user_config('ruby_executable')
-                if expected != ruby_executable
-                    raise ConfigError.new, "this autoproj installation was bootstrapped using #{expected}, but you are currently running under #{ruby_executable}. This is usually caused by calling a wrong gem program (for instance, gem1.8 instead of gem1.9.1)"
-                end
-            end
-            Autoproj.change_option('ruby_executable', ruby_executable, true)
+            handle_ruby_version
 
             if Autoproj.has_config_key?('autobuild')
                 params = Autoproj.user_config('autobuild')
@@ -101,19 +134,6 @@ module Autoproj
             Autobuild.prefix  = Autoproj.build_dir
             Autobuild.srcdir  = Autoproj.root_dir
             Autobuild.logdir = File.join(Autobuild.prefix, 'log')
-
-            ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
-            if ruby != 'ruby'
-                bindir = File.join(Autoproj.build_dir, 'bin')
-                FileUtils.mkdir_p bindir
-                File.open(File.join(bindir, 'ruby'), 'w') do |io|
-                    io.puts "#! /bin/sh"
-                    io.puts "exec #{ruby} \"$@\""
-                end
-                FileUtils.chmod 0755, File.join(bindir, 'ruby')
-
-                Autoproj.env_add 'PATH', bindir
-            end
 
             Autoproj.manifest = Manifest.new
 
@@ -1527,6 +1547,7 @@ where 'mode' is one of:
                 do_switch_config(false, type, url, *options)
             end
 
+            handle_ruby_version
             Autoproj.save_config
 
             Autobuild.env_set 'RUBYOPT', '-rubygems'
