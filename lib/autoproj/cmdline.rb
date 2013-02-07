@@ -42,11 +42,15 @@ module Autoproj
     end
 
     module CmdLine
+        class << self
+            attr_reader :ruby_executable
+        end
+
         def self.handle_ruby_version
             ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
             ruby_bindir = RbConfig::CONFIG['bindir']
 
-            ruby_executable = File.join(ruby_bindir, ruby)
+            @ruby_executable = File.join(ruby_bindir, ruby)
             if Autoproj.has_config_key?('ruby_executable')
                 expected = Autoproj.user_config('ruby_executable')
                 if expected != ruby_executable
