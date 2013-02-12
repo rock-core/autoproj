@@ -352,16 +352,20 @@ module Autoproj
 
 
         def self.setup_all_package_directories
-            manifest = Autoproj.manifest
+            # Override the package directories from our reused installations
+            imported_packages = Set.new
+            Autoproj.manifest.reused_installations.each do |manifest|
+                manifest.each do |pkg|
+                    imported_packages << pkg.name
+                    Autobuild::Package[pkg.name].srcdir = pkg.srcdir
+                    Autobuild::Package[pkg.name].prefix = pkg.prefix
+                end
+            end
 
-            # Now starts a different stage of the whole build. Until now, we were
-            # working on the whole package set. Starting from now, we need to build the
-            # package sets based on the layout file
-            #
-            # First, we allow to user to specify packages based on disk paths, so
-            # resolve those
+            manifest = Autoproj.manifest
             manifest.packages.each_value do |pkg_def|
                 pkg = pkg_def.autobuild
+                next if imported_packages.include?(pkg_def.name)
                 setup_package_directories(pkg)
             end
         end
@@ -391,10 +395,7 @@ module Autoproj
                 Autobuild::Package[pkg_name].disable
             end
 
-            # Make sure that we have the environment of all selected packages
-            manifest.all_selected_packages.each do |pkg_name|
-                Autobuild::Package[pkg_name].update_environment
-            end
+            update_environment
 
             # We now have processed the process setup blocks. All configuration
             # should be done and we can save the configuration data.
@@ -416,6 +417,19 @@ module Autoproj
                         Autoproj.warn "cannot load package manifest for #{pkg.autobuild.name}: #{e.message}"
                     end
                 end
+            end
+        end
+
+        def self.update_environment
+            Autoproj.manifest.reused_installations.each do |manifest|
+                manifest.each do |pkg|
+                    Autobuild::Package[pkg.name].update_environment
+                end
+            end
+
+            # Make sure that we have the environment of all selected packages
+            manifest.all_selected_packages(false).each do |pkg_name|
+                Autobuild::Package[pkg_name].update_environment
             end
         end
 
@@ -690,6 +704,7 @@ module Autoproj
                 Autoproj.each_post_import_block(pkg) do |block|
                     block.call(pkg)
                 end
+                pkg.update_environment
 
                 # Verify that its dependencies are there, and add
                 # them to the selected_packages set so that they get
@@ -1804,6 +1819,7 @@ where 'mode' is one of:
             Autoproj::CmdLine.finalize_package_setup
 
             load_all_available_package_manifests
+            update_environment
             remaining_arguments
         end
 
@@ -1862,6 +1878,16 @@ where 'mode' is one of:
                 puts "  #{Pathname.new(dir).relative_path_from(root)}"
             end
         end
+
+        def self.export_installation_manifest
+            File.open(File.join(Autoproj.root_dir, ".autoproj-installation-manifest"), 'w') do |io|
+                Autoproj.manifest.all_selected_packages.each do |pkg_name|
+                    pkg = Autobuild::Package[pkg_name]
+                    io.puts "#{pkg_name},#{pkg.srcdir},#{pkg.prefix}"
+                end
+            end
+        end
+
         def self.report
             Autobuild::Reporting.report do
                 yield

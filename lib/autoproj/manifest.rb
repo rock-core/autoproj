@@ -1,4 +1,5 @@
 require 'yaml'
+require 'csv'
 require 'utilrb/kernel/options'
 require 'set'
 require 'rexml/document'
@@ -966,7 +967,6 @@ module Autoproj
     # The Manifest class represents the information included in the main
     # manifest file, and allows to manipulate it
     class Manifest
-
         # Data structure used to use autobuild importers without a package, to
         # import configuration data.
         #
@@ -1023,7 +1023,7 @@ module Autoproj
 
             @file = file
             @data = data
-            data['ignore_packages'] ||= Set.new
+            @ignored_packages |= (data['ignored_packages'] || Set.new)
             data['exclude_packages'] ||= Set.new
 
             if data['constants']
@@ -1043,6 +1043,12 @@ module Autoproj
 
         # The path to the manifest file that has been loaded
         attr_reader :file
+
+        # The set of package names for packages that should be ignored
+        attr_reader :ignored_packages
+
+        # A set of other autoproj installations that are being reused
+        attr_reader :reused_installations
 
         # True if osdeps should be handled in update and build, or left to the
         # osdeps command
@@ -1075,6 +1081,8 @@ module Autoproj
             @osdeps_overrides = Hash.new
             @metapackages = Hash.new
             @ignored_os_dependencies = Set.new
+            @reused_installations = Array.new
+            @ignored_packages = Set.new
 
             @constant_definitions = Hash.new
             if Autoproj.has_config_key?('manifest_source')
@@ -1086,7 +1094,7 @@ module Autoproj
         # Call this method to ignore a specific package. It must not be used in
         # init.rb, as the manifest is not yet loaded then
         def ignore_package(package_name)
-            data['ignore_packages'] << package_name
+            @ignored_packages << package_name
         end
 
         # True if the given package should not be built, with the packages that
@@ -1094,7 +1102,7 @@ module Autoproj
         #
         # This is useful if the packages are already installed on this system.
         def ignored?(package_name)
-            data['ignore_packages'].any? do |l|
+            ignored_packages.any? do |l|
                 if package_name == l
                     true
                 elsif (pkg_set = metapackages[l]) && pkg_set.include?(package_name)
@@ -1107,7 +1115,7 @@ module Autoproj
 
         # Enumerates the package names of all ignored packages
         def each_ignored_package
-            data['ignore_packages'].each do |l|
+            ignored_packages.each do |l|
                 if pkg_set = metapackages[l]
                     pkg_set.each_package do |pkg|
                         yield(pkg.name)
@@ -1126,7 +1134,7 @@ module Autoproj
 
         # Removes all registered ignored packages
         def clear_ignored
-            data['ignore_packages'].clear
+            ignored_packages.clear
         end
 
         # The set of package names that are listed in the excluded_packages
@@ -2312,6 +2320,21 @@ module Autoproj
             end
             result
         end
+
+        def reuse(*dir)
+            dir = File.expand_path(File.join(*dir), Autoproj.root_dir)
+            if reused_installations.any? { |mnf| mnf.path == dir }
+                return
+            end
+
+            manifest = InstallationManifest.new(dir)
+            manifest.load(File.join(dir,  ".autoproj-installation-manifest"))
+            @reused_installations << manifest
+            manifest.each do |pkg|
+                puts pkg.name
+                ignore_package pkg.name
+            end
+        end
     end
 
     class << self
@@ -2327,6 +2350,27 @@ module Autoproj
             osdeps.merge(source.load_osdeps(file))
         end
         osdeps
+    end
+
+    # Manifest of installed packages imported from another autoproj installation
+    class InstallationManifest
+        Package = Struct.new :name, :srcdir, :prefix
+
+        attr_reader :path
+        attr_reader :packages
+        def initialize(path)
+            @path = path
+        end
+
+        def load(path)
+            @packages = CSV.read(path).map do |row|
+                Package.new(*row)
+            end
+        end
+
+        def each(&block)
+            packages.each(&block)
+        end
     end
 
     # Access to the information contained in a package's manifest.xml file
