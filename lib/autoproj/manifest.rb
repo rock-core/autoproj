@@ -1775,7 +1775,7 @@ module Autoproj
             else
                 pkg_set = find_metapackage(name)
                 if !pkg_set
-                    raise ConfigError.new, "#{name} is neither a package nor a package set name. Packages in autoproj must be declared in an autobuild file."
+                    raise UnknownPackage.new(name), "#{name} is neither a package nor a package set name. Packages in autoproj must be declared in an autobuild file."
                 end
                 pkg_set.each_package.
                     map(&:name).
@@ -1821,15 +1821,18 @@ module Autoproj
             metapackages.each_value(&block)
         end
 
-        # Returns the packages contained in the provided layout definition
+        # Returns the packages selected in this manifest's layout
         #
-        # If recursive is false, yields only the packages at this level.
-        # Otherwise, return all packages.
+        # @return [PackageSelection]
         def layout_packages(validate)
             result = PackageSelection.new
             Autoproj.in_file(self.file) do
                 normalized_layout.each_key do |pkg_or_set|
-                    result.select(pkg_or_set, resolve_package_set(pkg_or_set))
+                    begin
+                        result.select(pkg_or_set, resolve_package_set(pkg_or_set))
+                    rescue UnknownPackage => e
+                        raise e, "#{e.name}, which is selected in the layout, is unknown: #{e.message}", e.backtrace
+                    end
                 end
             end
             
@@ -2103,6 +2106,14 @@ module Autoproj
             attr_reader :selection
             def initialize(selection)
                 @selection = selection
+            end
+        end
+
+        # Exception raised when an unknown package is encountered
+        class UnknownPackage < ConfigError
+            attr_reader :name
+            def initialize(name)
+                @name = name
             end
         end
 
