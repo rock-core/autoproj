@@ -413,6 +413,8 @@ module Autoproj
                 if File.directory?(pkg.autobuild.srcdir)
                     begin
                         manifest.load_package_manifest(pkg.autobuild.name)
+                    rescue Interrupt
+                        raise
                     rescue Exception => e
                         Autoproj.warn "cannot load package manifest for #{pkg.autobuild.name}: #{e.message}"
                     end
