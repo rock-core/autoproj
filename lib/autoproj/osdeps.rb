@@ -742,13 +742,13 @@ fi
                 end
             else
                 Autoproj.message "  autodetecting the operating system"
-                name, versions = os_from_lsb
-                if name
-                    if name != "debian"
+                lsb_name, lsb_versions = os_from_lsb
+                if lsb_name
+                    if lsb_name != "debian"
                         if File.exists?("/etc/debian_version")
-                            @operating_system = [[name, "debian"], versions]
+                            @operating_system = [[lsb_name, "debian"], lsb_versions]
                         else
-                            @operating_system = [[name], versions]
+                            @operating_system = [[lsb_name], lsb_versions]
                         end
                     end
                 end
@@ -761,6 +761,9 @@ fi
                         versions = [File.read('/etc/debian_version').strip]
                         if versions.first =~ /sid/
                             versions = ["unstable", "sid"]
+                        end
+                        if lsb_versions
+                            lsb_versions.each { |v| versions << v if !versions.include?(v) }
                         end
                         [['debian'], versions]
                     elsif File.exists?('/etc/fedora-release')
