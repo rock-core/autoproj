@@ -299,9 +299,8 @@ module Autoproj
             dir ||= find_topmost_directory_containing(full_path, 'CMakeLists.txt')
 
             return "cmake_package", dir
-        elsif !Dir.glob('*.rb').empty?
-            dir = find_topmost_directory_containing(full_path, "Rakefile") ||
-                find_topmost_directory_containing(full_path, "lib/*.rb")
+        elsif dir = find_topmost_directory_containing(full_path, "Rakefile") ||
+            find_topmost_directory_containing(full_path, "lib/*.rb")
 
             return "ruby_package", dir
         end
