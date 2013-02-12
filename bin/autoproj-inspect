@@ -25,9 +25,11 @@ def find_selection_path(from, to)
         return path
     end
 
-    Autobuild::Package[from].dependencies.each do |dep_pkg_name|
-        if result = find_selection_path(dep_pkg_name, to)
-            return path + result
+    Autoproj.manifest.resolve_package_set(from).each do |pkg_name|
+        Autobuild::Package[pkg_name].dependencies.each do |dep_pkg_name|
+            if result = find_selection_path(dep_pkg_name, to)
+                return path + result
+            end
         end
     end
     nil
