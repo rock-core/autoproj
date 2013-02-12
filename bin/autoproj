@@ -18,33 +18,6 @@ def color(*args)
     Autoproj.color(*args)
 end
 
-def report
-    Autobuild::Reporting.report do
-        yield
-    end
-    Autobuild::Reporting.success
-
-rescue ConfigError => e
-    STDERR.puts
-    STDERR.puts color(e.message, :red, :bold)
-    if Autoproj.in_autoproj_installation?(Dir.pwd)
-        root_dir = /^#{Regexp.quote(Autoproj.root_dir)}(?!\/\.gems)/
-        e.backtrace.find_all { |path| path =~ root_dir }.
-            each do |path|
-                STDERR.puts color("  in #{path}", :red, :bold)
-            end
-    end
-    if Autobuild.debug then raise
-    else exit 1
-    end
-rescue Interrupt
-    STDERR.puts
-    STDERR.puts color("Interrupted by user", :red, :bold)
-    if Autobuild.debug then raise
-    else exit 1
-    end
-end
-
 Autoproj::OSDependencies.autodetect_ruby
 
 # Check the first element of ARGV. If a tool called autoproj-VALUE exists, just
@@ -65,7 +38,7 @@ if File.file?("#{prefix}-#{ARGV.first}")
 end
 
 # Find the autoproj root dir
-report do
+Autoproj::CmdLine.report do
     selected_packages =
         begin Autoproj::CmdLine.parse_arguments(ARGV.dup)
         rescue RuntimeError => e

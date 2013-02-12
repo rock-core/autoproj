@@ -1862,6 +1862,32 @@ where 'mode' is one of:
                 puts "  #{Pathname.new(dir).relative_path_from(root)}"
             end
         end
+        def self.report
+            Autobuild::Reporting.report do
+                yield
+            end
+            Autobuild::Reporting.success
+
+        rescue ConfigError => e
+            STDERR.puts
+            STDERR.puts color(e.message, :red, :bold)
+            if Autoproj.in_autoproj_installation?(Dir.pwd)
+                root_dir = /^#{Regexp.quote(Autoproj.root_dir)}(?!\/\.gems)/
+                e.backtrace.find_all { |path| path =~ root_dir }.
+                    each do |path|
+                        STDERR.puts color("  in #{path}", :red, :bold)
+                    end
+            end
+            if Autobuild.debug then raise
+            else exit 1
+            end
+        rescue Interrupt
+            STDERR.puts
+            STDERR.puts color("Interrupted by user", :red, :bold)
+            if Autobuild.debug then raise
+            else exit 1
+            end
+        end
     end
 end
 
