@@ -10,6 +10,19 @@ if defined? Encoding # This is a 1.9-only thing
     Encoding.default_external = Encoding::UTF_8
 end
 
+require 'rbconfig'
+module Autobuild
+    @windows = RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)!
+    def self.windows?
+        @windows
+    end
+
+    @macos =  RbConfig::CONFIG["host_os"] = ~%r!([Dd]arwin)!
+    def self.macos?
+        @macos
+    end
+end
+
 require 'set'
 curdir_entries = Dir.entries('.').to_set - [".", "..", "autoproj_bootstrap", ".gems", 'env.sh'].to_set
 if !curdir_entries.empty? && ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] != '1'
