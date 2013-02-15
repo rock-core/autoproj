@@ -626,7 +626,7 @@ module Autoproj
                 !resolved_selection.has_match_for?(pkg_name)
             end
             if !not_matched.empty?
-                Autoproj.message("autoproj: wrong package selection on command line, cannot find a match for #{not_matched.to_a.sort.join(", ")}", :red)
+                raise ConfigError.new, "autoproj: wrong package selection on command line, cannot find a match for #{not_matched.to_a.sort.join(", ")}"
             end
         end
 
