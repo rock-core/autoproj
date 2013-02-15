@@ -19,6 +19,10 @@ def color(*args)
 end
 
 Autoproj::OSDependencies.autodetect_ruby
+if defined? Encoding # This is a 1.9-only thing
+    Encoding.default_internal = Encoding::UTF_8
+    Encoding.default_external = Encoding::UTF_8
+end
 
 # Check the first element of ARGV. If a tool called autoproj-VALUE exists, just
 # pass the hand to it
