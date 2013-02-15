@@ -1,0 +1,68 @@
+#! /usr/bin/env ruby
+
+require 'autoproj'
+require 'autoproj/cmdline'
+
+Autoproj.silent do
+    Autoproj::CmdLine.initialize_root_directory
+    Autoproj::CmdLine.initialize_and_load(ARGV)
+end
+manifest = Autoproj.manifest
+
+# Load the manifest for packages that are already present on the
+# file system
+manifest.packages.each_value do |pkg|
+    if File.directory?(pkg.autobuild.srcdir)
+        manifest.load_package_manifest(pkg.autobuild.name)
+    end
+end
+
+all_packages = Hash.new
+package_sets = manifest.each_package_set.to_a
+package_sets.each do |pkg_set|
+    pkg_set.each_package.each do |pkg|
+        all_packages[pkg.name] = [pkg, pkg_set.name]
+    end
+end
+
+metapackages = manifest.metapackages.values
+
+if package_sets.empty?
+    Autoproj.message("autoproj: no package sets defined in autoproj/manifest", :bold, :red)
+    exit(0)
+end
+
+Autoproj.message
+Autoproj.message("autoproj: package sets", :bold)
+package_sets.sort_by(&:name).each do |pkg_set|
+    next if pkg_set.empty?
+    if pkg_set.imported_from
+        Autoproj.message "  #{pkg_set.name} (imported by #{pkg_set.imported_from.name})"
+    else
+        Autoproj.message "  #{pkg_set.name} (listed in manifest)"
+    end
+end
+
+Autoproj.message
+Autoproj.message("autoproj: metapackages", :bold)
+metapackages.sort_by(&:name).each do |metap|
+    Autoproj.message "  #{metap.name}"
+end
+
+packages_not_present = []
+
+Autoproj.message
+Autoproj.message("autoproj: packages", :bold)
+all_packages.to_a.sort_by(&:first).map(&:last).each do |pkg, pkg_set|
+    if File.exists?(File.join(pkg.srcdir, "manifest.xml"))
+        manifest.load_package_manifest(pkg.name)
+        manifest.resolve_optional_dependencies
+    end
+
+    pkg_manifest = pkg.description
+    if File.directory?(pkg.srcdir)
+        Autoproj.message "  #{pkg.name}#{": #{pkg_manifest.short_documentation}" if pkg_manifest && pkg_manifest.short_documentation}"
+    else
+        Autoproj.message "  #{pkg.name}: not yet checked out", :magenta
+    end
+end

@@ -1,0 +1,102 @@
+#! /usr/bin/env ruby
+
+require 'autoproj'
+require 'autoproj/cmdline'
+Autoproj.silent = true
+Autoproj::CmdLine.initialize_root_directory
+Autoproj::CmdLine.initialize_and_load(ARGV)
+
+require 'pp'
+default_packages = Autoproj.manifest.default_packages
+revdeps = Autoproj.manifest.compute_revdeps
+
+user_selection = ARGV.map do |arg|
+    if File.directory?(arg)
+        File.expand_path(arg)
+    else arg
+    end
+end
+resolved_selection = Autoproj::CmdLine.resolve_user_selection(user_selection, :filter => false)
+packages = resolved_selection.selection.keys
+
+def find_selection_path(from, to)
+    path = [from]
+    if from == to
+        return path
+    end
+
+    Autobuild::Package[from].dependencies.each do |dep_pkg_name|
+        if result = find_selection_path(dep_pkg_name, to)
+            return path + result
+        end
+    end
+    nil
+end
+
+packages.each do |name|
+    result = Autoproj.manifest.resolve_package_name(name, :filter => false)
+    packages, osdeps = result.partition { |type, name| type == :package }
+    packages = packages.map(&:last)
+    osdeps   = osdeps.map(&:last)
+
+    packages.each do |pkg_name|
+        puts "source package #{pkg_name}"
+        if default_packages.include?(pkg_name)
+            selection = default_packages.selection[pkg_name]
+            if selection.include?(pkg_name) && selection.size == 1
+                puts "  is directly selected by the manifest"
+            else
+                selection = selection.dup
+                selection.delete(pkg_name)
+                puts "  is directly selected by the manifest via #{selection.to_a.join(", ")}"
+            end
+        else
+            puts " is not directly selected by the manifest"
+        end
+        if Autoproj.manifest.ignored?(pkg_name)
+            puts " is ignored"
+        end
+        if Autoproj.manifest.excluded?(pkg_name)
+            puts " is excluded: #{Autoproj.manifest.exclusion_reason(pkg_name)}"
+        end
+
+        all_reverse_dependencies = Set.new
+        pkg_revdeps = revdeps[pkg_name].dup.to_a
+        while !pkg_revdeps.empty?
+            parent_name = pkg_revdeps.shift
+            next if all_reverse_dependencies.include?(parent_name)
+            all_reverse_dependencies << parent_name
+            pkg_revdeps.concat(revdeps[parent_name].to_a)
+        end
+        if all_reverse_dependencies.empty?
+            puts "  no reverse dependencies"
+        else
+            puts "  reverse dependencies: #{all_reverse_dependencies.sort.join(", ")}"
+        end
+
+        selections = Set.new
+        all_reverse_dependencies = all_reverse_dependencies.to_a.sort
+        all_reverse_dependencies.each do |parent_name|
+            if default_packages.include?(parent_name)
+                selections |= default_packages.selection[parent_name]
+            end
+        end
+
+        if !selections.empty?
+            puts "  selected by way of"
+            selections.each do |root_pkg|
+                path = find_selection_path(root_pkg, pkg_name)
+                puts "    #{path.join(">")}"
+            end
+        end
+        puts "  directly depends on: #{Autobuild::Package[pkg_name].dependencies.sort.join(", ")}"
+    end
+
+    osdeps.each do |pkg_name|
+        puts "the osdep '#{pkg_name}'"
+        Autoproj.osdeps.resolve_os_dependencies(pkg_name).each do |manager, packages|
+            puts "  #{manager.names.first}: #{packages.map { |*subnames| subnames.join(" ") }.join(", ")}"
+        end
+    end
+end
+

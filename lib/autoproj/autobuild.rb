@@ -489,7 +489,7 @@ def ruby_package(options)
 
                 if pkg.rake_setup_task && File.file?(File.join(pkg.srcdir, 'Rakefile'))
                     Autobuild::Subprocess.run pkg, 'post-install',
-                        'rake', pkg.rake_setup_task, :working_directory => pkg.srcdir
+                        Autoproj::CmdLine.ruby_executable, Autoproj.find_in_path('rake'), pkg.rake_setup_task, :working_directory => pkg.srcdir
                 end
             end
         end
@@ -502,7 +502,7 @@ def ruby_package(options)
         if !pkg.has_doc? && pkg.rake_doc_task
             pkg.doc_task do
                 pkg.progress_start "generating documentation for %s", :done_message => 'generated documentation for %s' do
-                    Autobuild::Subprocess.run pkg, 'doc', 'rake', pkg.rake_doc_task, :working_directory => pkg.srcdir
+                    Autobuild::Subprocess.run pkg, 'doc', Autoproj::CmdLine.ruby_executable, Autoproj.find_in_path('rake'), pkg.rake_doc_task, :working_directory => pkg.srcdir
                 end
             end
         end
