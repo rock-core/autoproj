@@ -153,6 +153,13 @@ module Autoproj
                 Autoproj.load_if_present(local_source, home_dir, ".autoprojrc")
             end
 
+            if Autoproj.has_config_key?('reused_autoproj_installations')
+                reused = Autoproj.user_config('reused_autoproj_installations')
+                reused.each do |path|
+                    Autoproj.manifest.reuse(path)
+                end
+            end
+
             # We load the local init.rb first so that the manifest loading
             # process can use options defined there for the autoproj version
             # control information (for instance)
@@ -1548,6 +1555,18 @@ where 'mode' is one of:
                 exec ruby, $0, 'bootstrap', *ARGV
             end
 
+            reuse = []
+            parser = OptionParser.new do |opt|
+                opt.on '--reuse DIR', 'reuse the given autoproj installation (can be given multiple times)' do |path|
+                    path = File.expand_path(path)
+                    if !File.directory?(path) || !File.directory?(File.join(path, 'autoproj'))
+                        raise ConfigError.new, "#{path} does not look like an autoproj installation"
+                    end
+                    reuse << path
+                end
+            end
+            args = parser.parse(args)
+            Autoproj.change_option 'reused_autoproj_installations', reuse, true
 
             # If we are not getting the installation setup from a VCS, copy the template
             # files

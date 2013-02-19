@@ -2339,10 +2339,13 @@ module Autoproj
             end
 
             manifest = InstallationManifest.new(dir)
-            manifest.load(File.join(dir,  ".autoproj-installation-manifest"))
+            manifest_file = File.join(dir,  ".autoproj-installation-manifest")
+            if !File.file?(manifest_file)
+                raise ConfigError.new, "while setting up reuse of #{dir}, the .autoproj-installation-manifest file does not exist. You should probably rerun autoproj envsh in that folder first"
+            end
+            manifest.load(manifest_file)
             @reused_installations << manifest
             manifest.each do |pkg|
-                puts pkg.name
                 ignore_package pkg.name
             end
         end
