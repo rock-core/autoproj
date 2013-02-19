@@ -1,0 +1,24 @@
+#! /usr/bin/env ruby
+require 'autoproj'
+
+Autoproj::CmdLine.report do
+    begin
+        Autoproj::CmdLine.bootstrap(*ARGV)
+
+    rescue RuntimeError => e
+        STDERR.puts <<-EOTEXT
+#{color('autoproj bootstrap failed', :red, :bold)}
+To retry, first source the #{Autoproj::ENV_FILENAME} script with
+  source #{Dir.pwd}/#{Autoproj::ENV_FILENAME}
+and then re-run autoproj bootstrap with
+  autoproj bootstrap <vcs_type> <vcs_url> <vcs_options>
+
+where
+  'vcs_type' is git, svn, darcs, cvs
+  'vcs_url' is the vcs-specific URL to the repository, and
+  'vcs_options' are optional values that can be given to the chosen VCS
+    EOTEXT
+
+        raise
+    end
+end

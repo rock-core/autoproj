@@ -1516,29 +1516,38 @@ where 'mode' is one of:
                 end
             end
 
+            Autoproj.root_dir = Dir.pwd
             Autobuild.logdir = File.join(Autoproj.prefix, 'log')
 
             # Check if GEM_HOME is set. If it is the case, assume that we are
-            # bootstrapping from another installation directory and start by
-            # copying the .gems directory
+            # bootstrapping from another autoproj directory. We start by
+            # forcefully installing autoproj/autobuild so that the installation
+            # is self-contained.
             #
             # We don't use Autoproj.gem_home there as we might not be in an
             # autoproj directory at all
             gem_home = ENV['AUTOPROJ_GEM_HOME'] || File.join(Dir.pwd, ".gems")
-            if ENV['GEM_HOME'] && Autoproj.in_autoproj_installation?(ENV['GEM_HOME']) &&
-                ENV['GEM_HOME'] != gem_home
-                if !File.exists?(gem_home)
-                    Autoproj.message "autoproj: reusing bootstrap from #{File.dirname(ENV['GEM_HOME'])}"
-                    FileUtils.cp_r ENV['GEM_HOME'], gem_home
+            if ENV['GEM_HOME'] && Autoproj.in_autoproj_installation?(ENV['GEM_HOME']) && ENV['GEM_HOME'] != gem_home
+                Autoproj::OSDependencies.define_osdeps_mode_option
+                osdeps = Autoproj::OSDependencies.load_default
+                if osdeps_forced_mode
+                    osdeps.osdeps_mode = osdeps_forced_mode
                 end
-                ENV['GEM_HOME'] = gem_home
+                osdeps.osdeps_mode
 
+                Autoproj.message "autoproj: bootstrapping using another installation's autoproj gem"
+                ENV['GEM_HOME'] = gem_home
+                ENV.delete('GEM_PATH')
+                Autoproj.message "installing autoproj in #{ENV['GEM_HOME']} and restarting"
+                osdeps.install ['autoproj']
                 Autoproj.message "restarting bootstrapping from #{Dir.pwd}"
 
                 require 'rbconfig'
                 ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
-                exec ruby, $0, *ARGV
+                ENV['AUTOPROJ_OSDEPS_MODE'] = osdeps.osdeps_mode
+                exec ruby, $0, 'bootstrap', *ARGV
             end
+
 
             # If we are not getting the installation setup from a VCS, copy the template
             # files
@@ -1546,6 +1555,16 @@ where 'mode' is one of:
                 sample_dir = File.expand_path(File.join("..", "..", "samples"), File.dirname(__FILE__))
                 FileUtils.cp_r File.join(sample_dir, "autoproj"), "autoproj"
             end
+
+            handle_ruby_version
+
+            Autobuild.env_set 'RUBYOPT', '-rubygems'
+            Autobuild.env_set 'GEM_HOME', Autoproj.gem_home
+            Autobuild.env_add_path 'PATH', File.join(Autoproj.gem_home, 'bin')
+            Autobuild.env_inherit 'PATH'
+            Autobuild.env_add_path 'GEM_PATH', Autoproj.gem_home
+            Autobuild.env_inherit 'GEM_PATH'
+            Autoproj.export_env_sh
 
             if args.size == 1 # the user asks us to download a manifest
                 manifest_url = args.first
@@ -1555,7 +1574,7 @@ where 'mode' is one of:
                     rescue
                         # Delete the autoproj directory
                         FileUtils.rm_rf 'autoproj'
-                        raise ConfigError.new, "cannot read #{manifest_url}, did you mean 'autoproj bootstrap VCSTYPE #{manifest_url}' ?"
+                        raise ConfigError.new, "cannot read file / URL #{manifest_url}, did you mean 'autoproj bootstrap VCSTYPE #{manifest_url}' ?"
                     end
 
                 File.open(File.join(Autoproj.config_dir, "manifest"), "w") do |io|
@@ -1567,17 +1586,7 @@ where 'mode' is one of:
                 url = VCSDefinition.to_absolute_url(url, Dir.pwd)
                 do_switch_config(false, type, url, *options)
             end
-
-            handle_ruby_version
             Autoproj.save_config
-
-            Autobuild.env_set 'RUBYOPT', '-rubygems'
-            Autobuild.env_set 'GEM_HOME', Autoproj.gem_home
-            Autobuild.env_add_path 'PATH', File.join(Autoproj.gem_home, 'bin')
-            Autobuild.env_inherit 'PATH'
-            Autobuild.env_add_path 'GEM_PATH', Autoproj.gem_home
-            Autobuild.env_inherit 'GEM_PATH'
-            Autoproj.export_env_sh
         end
 
         def self.missing_dependencies(pkg)
@@ -1904,7 +1913,7 @@ where 'mode' is one of:
             STDERR.puts
             STDERR.puts color(e.message, :red, :bold)
             if Autoproj.in_autoproj_installation?(Dir.pwd)
-                root_dir = /^#{Regexp.quote(Autoproj.root_dir)}(?!\/\.gems)/
+                root_dir = /#{Regexp.quote(Autoproj.root_dir)}(?!\/\.gems)/
                 e.backtrace.find_all { |path| path =~ root_dir }.
                     each do |path|
                         STDERR.puts color("  in #{path}", :red, :bold)

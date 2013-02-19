@@ -19,6 +19,14 @@ module Autoproj
         false
     end
 
+    # Forcefully sets the root directory
+    #
+    # This is mostly useful during bootstrapping (i.e. when the search would
+    # fail)
+    def self.root_dir=(dir)
+        @root_dir = dir
+    end
+
     # Returns the root directory of the current autoproj installation.
     #
     # If the current directory is not in an autoproj installation,
