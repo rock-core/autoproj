@@ -182,8 +182,8 @@ fi
         class PortManager < ShellScriptManager
             def initialize
                 super(['port'], true,
-                        "port '%s'",
-                        "port '%s'")
+                        "port install '%s'",
+                        "port install '%s'")
             end
         end
 
