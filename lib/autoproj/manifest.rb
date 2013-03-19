@@ -944,10 +944,19 @@ module Autoproj
         attr_reader :name
         # The packages listed in this metapackage
         attr_reader :packages
+        # The normal dependency handling behaviour is to generate an error if a
+        # metapackage is selected for the build but some of its dependencies
+        # cannot be built. This modifies the behaviour to simply ignore the
+        # problematic packages.
+        attr_writer :weak_dependencies
+        def weak_dependencies?
+            !!@weak_dependencies
+        end
 
         def initialize(name)
             @name = name
             @packages = []
+            @weak_dependencies = false
         end
         # Adds a package to this metapackage
         def add(pkg)
@@ -1829,7 +1838,12 @@ module Autoproj
             Autoproj.in_file(self.file) do
                 normalized_layout.each_key do |pkg_or_set|
                     begin
-                        result.select(pkg_or_set, resolve_package_set(pkg_or_set))
+                        weak = if meta = metapackages[pkg_or_set]
+                                   meta.weak_dependencies?
+                               end
+
+
+                        result.select(pkg_or_set, resolve_package_set(pkg_or_set), weak)
                     rescue UnknownPackage => e
                         raise e, "#{e.name}, which is selected in the layout, is unknown: #{e.message}", e.backtrace
                     end
@@ -2129,6 +2143,28 @@ module Autoproj
             # set of user-provided strings that caused that package to be
             # selected
             attr_reader :selection
+            # A flag that tells #filter_excluded_and_ignored_packages whether
+            # the a given package selection is weak or not.
+            #
+            # If true, a selection that have some excluded packages will not
+            # generate an error. Otherwise (the default), an error is generated
+            attr_reader :weak_dependencies
+            # After a call to #filter_excluded_and_ignored_packages, this
+            # contains the set of package exclusions that have been ignored
+            # because the corresponding metapackage has a weak dependency policy
+            attr_reader :exclusions
+            # After a call to #filter_excluded_and_ignored_packages, this
+            # contains the set of package ignores that have been ignored because
+            # the corresponding metapackage has a weak dependency policy
+            attr_reader :ignores
+
+            def initialize
+                @selection = Hash.new { |h, k| h[k] = Set.new }
+                @matches = Hash.new { |h, k| h[k] = Set.new }
+                @weak_dependencies = Hash.new
+                @ignores = Hash.new
+                @exclusions = Hash.new
+            end
 
             # The set of packages that have been selected
             def packages
@@ -2143,25 +2179,17 @@ module Autoproj
                 selection.empty?
             end
 
-            def initialize
-                @selection = Hash.new { |h, k| h[k] = Set.new }
-                @matches = Hash.new { |h, k| h[k] = Set.new }
-            end
-            
             def each(&block)
                 selection.each_key(&block)
             end
 
-            def select(sel, packages)
-                if !packages.respond_to?(:each)
-                    matches[sel] << packages
-                    selection[packages] << sel
-                else
-                    matches[sel] |= packages.to_set
-                    packages.each do |pkg_name|
-                        selection[pkg_name] << sel
-                    end
+            def select(sel, packages, weak = false)
+                packages = Array(packages)
+                matches[sel] |= packages.to_set
+                packages.each do |pkg_name|
+                    selection[pkg_name] << sel
                 end
+                weak_dependencies[sel] = weak
             end
 
             def initialize_copy(old)
@@ -2182,11 +2210,14 @@ module Autoproj
             # Raise an error if an explicit selection expands only to an
             # excluded package, and display a warning for ignored packages
             def filter_excluded_and_ignored_packages(manifest)
+                exclusions.clear
+                ignores.clear
+
                 matches.each do |sel, expansion|
                     excluded, other = expansion.partition { |pkg_name| manifest.excluded?(pkg_name) }
                     ignored,  ok    = other.partition { |pkg_name| manifest.ignored?(pkg_name) }
 
-                    if ok.empty? && ignored.empty?
+                    if !excluded.empty? && (!weak_dependencies[sel] || (ok.empty? && ignored.empty?))
                         exclusions = excluded.map do |pkg_name|
                             [pkg_name, manifest.exclusion_reason(pkg_name)]
                         end
@@ -2194,16 +2225,22 @@ module Autoproj
                             reason = exclusions[0][1]
                             if sel == exclusions[0][0]
                                 raise ExcludedSelection.new(sel), "it is excluded from the build: #{reason}"
-                            else
+                            elsif weak_dependencies[sel]
                                 raise ExcludedSelection.new(sel), "it expands to #{exclusions.map(&:first).join(", ")}, which is excluded from the build: #{reason}"
+                            else
+                                raise ExcludedSelection.new(sel), "it requires #{exclusions.map(&:first).join(", ")}, which is excluded from the build: #{reason}"
                             end
-                        else
+                        elsif weak_dependencies[sel]
                             raise ExcludedSelection.new(sel), "it expands to #{exclusions.map(&:first).join(", ")}, and all these packages are excluded from the build:\n  #{exclusions.map { |name, reason| "#{name}: #{reason}" }.join("\n  ")}"
+                        else
+                            raise ExcludedSelection.new(sel), "it requires #{exclusions.map(&:first).join(", ")}, and all these packages are excluded from the build:\n  #{exclusions.map { |name, reason| "#{name}: #{reason}" }.join("\n  ")}"
                         end
-                    elsif !ignored.empty?
-                        ignored.each do |pkg_name|
-                            Autoproj.warn "#{pkg_name} was selected for #{sel}, but is explicitely ignored in the manifest"
+                    else
+                        if !excluded.empty?
+                            puts sel
                         end
+                        self.exclusions[sel] = excluded.dup
+                        self.ignores[sel] = ignored.dup
                     end
 
                     excluded = excluded.to_set
@@ -2256,7 +2293,7 @@ module Autoproj
                     if pkg.name =~ match_pkg_name
                         packages = resolve_package_set(pkg.name).to_set
                         packages = (packages & all_layout_packages)
-                        result.select(sel, packages)
+                        result.select(sel, packages, pkg.weak_dependencies?)
                     end
                 end
             end
