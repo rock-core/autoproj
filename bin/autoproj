@@ -144,7 +144,7 @@ EOTEXT
         begin
             Autoproj::CmdLine.resolve_user_selection(selected_packages)
         rescue Autoproj::Manifest::ExcludedSelection => e
-            raise e, "#{e.sel}, which is selected on the command line, cannot be built: #{e.message}"
+            raise e, "#{e.selection}, which is selected on the command line, cannot be built: #{e.message}"
         end
     Autoproj::CmdLine.validate_user_selection(selected_packages, resolved_selected_packages)
 
