@@ -130,12 +130,10 @@ EOTEXT
     #
     # First do the resolution to get auto-add, finalize the package
     # configuration, and then re-resolve
-    Autoproj.silent do
-        begin
-            Autoproj::CmdLine.resolve_user_selection(selected_packages)
-        rescue Autoproj::Manifest::ExcludedSelection => e
-            raise e, "#{e.selection}, which is selected on the command line, cannot be built: #{e.message}"
-        end
+    begin
+        Autoproj::CmdLine.resolve_user_selection(selected_packages)
+    rescue Autoproj::Manifest::ExcludedSelection => e
+        raise e, "#{e.selection}, which is selected on the command line, cannot be built: #{e.message}"
     end
     # Now load the rest of the configuration
     Autoproj::CmdLine.finalize_package_setup
@@ -147,16 +145,6 @@ EOTEXT
             raise e, "#{e.selection}, which is selected on the command line, cannot be built: #{e.message}"
         end
     Autoproj::CmdLine.validate_user_selection(selected_packages, resolved_selected_packages)
-    resolved_selected_packages.exclusions.each do |sel, pkg_names|
-        pkg_names.sort.each do |pkg_name|
-            Autoproj.warn "#{pkg_name}, which was selected for #{sel}, cannot be built: #{Autoproj.manifest.exclusion_reason(pkg_name)}"
-        end
-    end
-    resolved_selected_packages.ignores.each do |sel, pkg_names|
-        pkg_names.sort.each do |pkg_name|
-            Autoproj.warn "#{pkg_name}, which was selected for #{sel}, is ignored"
-        end
-    end
 
     if !selected_packages.empty?
         command_line_selection = resolved_selected_packages.dup

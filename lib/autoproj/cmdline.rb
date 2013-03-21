@@ -37,8 +37,8 @@ module Autoproj
     end
 
     # Displays a warning message
-    def self.warn(message)
-        Autobuild.warn(message)
+    def self.warn(message, *style)
+        Autobuild.warn(message, *style)
     end
 
     module CmdLine
@@ -786,6 +786,17 @@ module Autoproj
                 format = "  %-#{field_sizes[0]}s %-#{field_sizes[1]}s at %-#{field_sizes[2]}s"
                 fields.each do |line|
                     Autoproj.message(format % line)
+                end
+            end
+
+            selection.exclusions.each do |sel, pkg_names|
+                pkg_names.sort.each do |pkg_name|
+                    Autoproj.warn "#{pkg_name}, which was selected for #{sel}, cannot be built: #{Autoproj.manifest.exclusion_reason(pkg_name)}", :bold
+                end
+            end
+            selection.ignores.each do |sel, pkg_names|
+                pkg_names.sort.each do |pkg_name|
+                    Autoproj.warn "#{pkg_name}, which was selected for #{sel}, is ignored", :orange
                 end
             end
 

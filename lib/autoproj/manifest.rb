@@ -2162,8 +2162,8 @@ module Autoproj
                 @selection = Hash.new { |h, k| h[k] = Set.new }
                 @matches = Hash.new { |h, k| h[k] = Set.new }
                 @weak_dependencies = Hash.new
-                @ignores = Hash.new
-                @exclusions = Hash.new
+                @ignores = Hash.new { |h, k| h[k] = Set.new }
+                @exclusions = Hash.new { |h, k| h[k] = Set.new }
             end
 
             # The set of packages that have been selected
@@ -2185,7 +2185,7 @@ module Autoproj
 
             def select(sel, packages, weak = false)
                 packages = Array(packages)
-                matches[sel] |= packages.to_set
+                matches[sel] |= packages.to_set.dup
                 packages.each do |pkg_name|
                     selection[pkg_name] << sel
                 end
@@ -2210,9 +2210,6 @@ module Autoproj
             # Raise an error if an explicit selection expands only to an
             # excluded package, and display a warning for ignored packages
             def filter_excluded_and_ignored_packages(manifest)
-                exclusions.clear
-                ignores.clear
-
                 matches.each do |sel, expansion|
                     excluded, other = expansion.partition { |pkg_name| manifest.excluded?(pkg_name) }
                     ignored,  ok    = other.partition { |pkg_name| manifest.ignored?(pkg_name) }
@@ -2236,11 +2233,8 @@ module Autoproj
                             raise ExcludedSelection.new(sel), "it requires #{exclusions.map(&:first).join(", ")}, and all these packages are excluded from the build:\n  #{exclusions.map { |name, reason| "#{name}: #{reason}" }.join("\n  ")}"
                         end
                     else
-                        if !excluded.empty?
-                            puts sel
-                        end
-                        self.exclusions[sel] = excluded.dup
-                        self.ignores[sel] = ignored.dup
+                        self.exclusions[sel] |= excluded.to_set.dup
+                        self.ignores[sel] |= ignored.to_set.dup
                     end
 
                     excluded = excluded.to_set
