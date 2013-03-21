@@ -2001,8 +2001,12 @@ module Autoproj
 
             manifest =
                 if !manifest_path
-                    Autoproj.warn "#{package.name} from #{package_set.name} does not have a manifest"
-                    PackageManifest.new(package)
+                    if !pkg.autobuild.description
+                        Autoproj.warn "#{package.name} from #{package_set.name} does not have a manifest"
+                        PackageManifest.new(package)
+                    else
+                        pkg.autobuild.description
+                    end
                 else
                     PackageManifest.load(package, manifest_path)
                 end
