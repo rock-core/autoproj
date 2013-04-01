@@ -404,9 +404,20 @@ fi
                     if !installed.empty? && Autobuild.do_update
                         # Look if we can update the package ...
                         dep = Gem::Dependency.new(name, version_requirements)
-                        available = gem_fetcher.find_matching(dep, true, true, GemManager.with_prerelease)
+                        available =
+                            if gem_fetcher.respond_to?(:find_matching)
+                                gem_fetcher.find_matching(dep).map(&:first)
+                            else # Post RubyGems-2.0
+                                type = if GemManager.with_prerelease then :prerelease
+                                       else :complete
+                                       end
+
+                                gem_fetcher.detect(type) do |tuple|
+                                    tuple.name == name && dep.match?(tuple)
+                                end.map { |tuple, _| [tuple.name, tuple.version] }
+                            end
                         installed_version = installed.map(&:version).max
-                        available_version = available.map { |(name, v), source| v }.max
+                        available_version = available.map { |name, v| v }.max
                         if !available_version
                             if version
                                 raise ConfigError.new, "cannot find any gem with the name '#{name}' and version #{version}"
