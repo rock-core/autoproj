@@ -82,6 +82,7 @@ module Autoproj
                         io.puts "#! /bin/sh"
                         io.puts "exec #{prg_path} \"$@\""
                     end
+                    FileUtils.chmod 0755, File.join(bindir, name)
                 end
             end
         end
