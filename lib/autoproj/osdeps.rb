@@ -853,6 +853,8 @@ fi
             end
 
             os_names, os_versions = OSDependencies.operating_system
+            os_names = os_names.dup
+            os_names << 'default'
 
             dep_def = definitions[name]
             if !dep_def
