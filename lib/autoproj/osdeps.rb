@@ -536,9 +536,7 @@ fi
         end
 
 	def self.ruby_version_keyword
-            if RUBY_VERSION < "1.9.0" then "ruby18"
-            else "ruby19"
-            end
+            "ruby#{RUBY_VERSION.split('.')[0, 2].join("")}"
         end
 
         def self.autodetect_ruby

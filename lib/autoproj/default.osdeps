@@ -51,6 +51,8 @@ ruby19:
         - rake
     default: nonexistent
 
+ruby20: ignore
+
 build-essential:
   debian,ubuntu: build-essential
   gentoo: ignore
