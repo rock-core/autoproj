@@ -2222,8 +2222,8 @@ module Autoproj
                         exclusions = excluded.map do |pkg_name|
                             [pkg_name, manifest.exclusion_reason(pkg_name)]
                         end
+                        base_msg = "#{sel} is selected in the manifest or on the command line, but it is excluded from the build"
                         if exclusions.size == 1
-                            base_msg = "#{sel} is selected in the manifest or on the command line, but it is excluded from the build"
                             reason = exclusions[0][1]
                             if sel == exclusions[0][0]
                                 raise ExcludedSelection.new(sel), "#{base_msg}: #{reason}"
