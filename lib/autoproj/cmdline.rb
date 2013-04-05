@@ -1538,35 +1538,6 @@ where 'mode' is one of:
             Autoproj.root_dir = Dir.pwd
             Autobuild.logdir = File.join(Autoproj.prefix, 'log')
 
-            # Check if GEM_HOME is set. If it is the case, assume that we are
-            # bootstrapping from another autoproj directory. We start by
-            # forcefully installing autoproj/autobuild so that the installation
-            # is self-contained.
-            #
-            # We don't use Autoproj.gem_home there as we might not be in an
-            # autoproj directory at all
-            gem_home = ENV['AUTOPROJ_GEM_HOME'] || File.join(Dir.pwd, ".gems")
-            if ENV['GEM_HOME'] && Autoproj.in_autoproj_installation?(ENV['GEM_HOME']) && ENV['GEM_HOME'] != gem_home
-                Autoproj::OSDependencies.define_osdeps_mode_option
-                osdeps = Autoproj::OSDependencies.load_default
-                if osdeps_forced_mode
-                    osdeps.osdeps_mode = osdeps_forced_mode
-                end
-                osdeps.osdeps_mode
-
-                Autoproj.message "autoproj: bootstrapping using another installation's autoproj gem"
-                ENV['GEM_HOME'] = gem_home
-                ENV.delete('GEM_PATH')
-                Autoproj.message "installing autoproj in #{ENV['GEM_HOME']} and restarting"
-                osdeps.install ['autoproj']
-                Autoproj.message "restarting bootstrapping from #{Dir.pwd}"
-
-                require 'rbconfig'
-                ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
-                ENV['AUTOPROJ_OSDEPS_MODE'] = osdeps.osdeps_mode
-                exec ruby, $0, 'bootstrap', *ARGV
-            end
-
             reuse = []
             parser = OptionParser.new do |opt|
                 opt.on '--reuse DIR', 'reuse the given autoproj installation (can be given multiple times)' do |path|
