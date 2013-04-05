@@ -651,7 +651,7 @@ module Autoproj
                 if chain.size == 1
                     Autoproj.manifest.add_exclusion(pkg_name, "its dependency #{reason}")
                 else
-                    Autoproj.manifest.add_exclusion(pkg_name, "#{reason} (dependency chain: #{chain.join(">")}")
+                    Autoproj.manifest.add_exclusion(pkg_name, "#{reason} (dependency chain: #{chain.join(">")})")
                 end
             end
 

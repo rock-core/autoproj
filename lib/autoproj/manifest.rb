@@ -2222,20 +2222,20 @@ module Autoproj
                         exclusions = excluded.map do |pkg_name|
                             [pkg_name, manifest.exclusion_reason(pkg_name)]
                         end
-                        base_msg = "#{sel} is selected in the manifest or on the command line, but it is excluded from the build"
+                        base_msg = "#{sel} is selected in the manifest or on the command line"
                         if exclusions.size == 1
                             reason = exclusions[0][1]
                             if sel == exclusions[0][0]
-                                raise ExcludedSelection.new(sel), "#{base_msg}: #{reason}"
+                                raise ExcludedSelection.new(sel), "#{base_msg}, but it is excluded from the build: #{reason}"
                             elsif weak_dependencies[sel]
-                                raise ExcludedSelection.new(sel), "#{base_msg}: it expands to #{exclusions.map(&:first).join(", ")}, which is excluded from the build: #{reason}"
+                                raise ExcludedSelection.new(sel), "#{base_msg}, but it expands to #{exclusions.map(&:first).join(", ")}, which is excluded from the build: #{reason}"
                             else
-                                raise ExcludedSelection.new(sel), "#{base_msg}: it requires #{exclusions.map(&:first).join(", ")}, which is excluded from the build: #{reason}"
+                                raise ExcludedSelection.new(sel), "#{base_msg}, but its dependency #{exclusions.map(&:first).join(", ")} is excluded from the build: #{reason}"
                             end
                         elsif weak_dependencies[sel]
-                            raise ExcludedSelection.new(sel), "#{base_msg}: it expands to #{exclusions.map(&:first).join(", ")}, and all these packages are excluded from the build:\n  #{exclusions.map { |name, reason| "#{name}: #{reason}" }.join("\n  ")}"
+                            raise ExcludedSelection.new(sel), "#{base_msg}, but expands to #{exclusions.map(&:first).join(", ")}, and all these packages are excluded from the build:\n  #{exclusions.map { |name, reason| "#{name}: #{reason}" }.join("\n  ")}"
                         else
-                            raise ExcludedSelection.new(sel), "#{base_msg}: it requires #{exclusions.map(&:first).join(", ")}, and all these packages are excluded from the build:\n  #{exclusions.map { |name, reason| "#{name}: #{reason}" }.join("\n  ")}"
+                            raise ExcludedSelection.new(sel), "#{base_msg}, but it requires #{exclusions.map(&:first).join(", ")}, and all these packages are excluded from the build:\n  #{exclusions.map { |name, reason| "#{name}: #{reason}" }.join("\n  ")}"
                         end
                     else
                         self.exclusions[sel] |= excluded.to_set.dup
