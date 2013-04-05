@@ -54,6 +54,7 @@ if $LOADED_FEATURES.find { |str| str =~ /bygems/ }
         RUBY = RbConfig::CONFIG['RUBY_INSTALL_NAME']
 
         ENV['GEM_HOME'] = needed_gem_home
+        ENV.delete 'GEM_PATH'
         exec RUBY, __FILE__, *ARGV
     end
 end
