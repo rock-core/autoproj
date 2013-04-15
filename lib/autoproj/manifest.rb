@@ -2186,7 +2186,7 @@ module Autoproj
                     excluded, other = expansion.partition { |pkg_name| manifest.excluded?(pkg_name) }
                     ignored,  ok    = other.partition { |pkg_name| manifest.ignored?(pkg_name) }
 
-                    if ok.empty? && ignored.empty?
+                    if ok.empty? && ignored.empty? && !excluded.empty?
                         exclusions = excluded.map do |pkg_name|
                             [pkg_name, manifest.exclusion_reason(pkg_name)]
                         end
