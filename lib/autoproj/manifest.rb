@@ -1840,7 +1840,7 @@ module Autoproj
                 result.filter_excluded_and_ignored_packages(self)
             rescue ExcludedSelection => e
                 if validate
-                    raise e, "#{e.sel}, which is selected in the layout, cannot be built: #{e.message}", e.backtrace
+                    raise e, "#{e.selection}, which is selected in the layout, cannot be built: #{e.message}", e.backtrace
                 end
             end
             result
