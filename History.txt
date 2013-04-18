@@ -1,3 +1,58 @@
+= Version 1.9.3
+ * close #245: wrong local variable name
+ * close #218: fix error generated when a metapackage is empty
+ * close #239: metapackages are now back to having "hard" dependencies, i.e. the 
+   build will fail if any of the metapackage's dependencies (or their
+   dependencies) cannot be built for any reason. Individual metapackages (e.g. the
+   rock metapackage) can be marked as using "weak" dependencies to retain the
+   behaviour of "build as much as you can"
+ * Ruby 2.0 / RubyGems 2.0 compatibility fix
+ * re-add 'default' in the osdep OS names. This allows to fall back to
+   os-independent handlers (e.g. 'gem') when not on a known OS
+ * fixes for the MacPort OSdep handler
+
+= Version 1.9.2
+ * quickfix release for issues on systems where the system-wide encoding cannot
+   be resolved by libc
+= Version 1.9.1
+ * fix issues with bootstrapping and building on MacOS
+ * better error messages w.r.t. exclusions
+ * don't rescue interrupts even if -k is given
+ * fix some corner-cases in the debian osdep handler
+ * fix some Ruby autodetection problems
+
+= Version 1.9.0
+ * fixed bad generation of env.sh. The (very annoying) problem of having
+    a partial env.sh file generated should now be fixed for good.
+ * much improved progress output for heavily parallel builds
+ * autoproj update and aup properly update the configuration if given
+     the autoproj/ folder. I.e.,
+        autoproj update autoproj/
+     is equivalent to autoproj update-config
+ * experimental support for Windows
+ * experimental support for MacOSX. The osdep system is using MacPorts
+ * autoproj now validates that you are using always the same ruby
+     version. It avoids potential issues in cases where both ruby 1.9 and
+     1.8 are used on the same system
+ * fix some issue with auto-adding packages. Autoproj would always
+     auto-add package X if e.g. amake is used, which works fine in most
+     but not all cases.
+ * host of fixes related to ignore_packages. In general, this should
+     really work well now
+ * fix Autoproj.set_initial_env. The details of this forgotten feature
+     is going to be in a blog post.
+ * fixed supurious log/ directory created in new bootstrapped
+     installations
+ * the osdep: keyword can be used to trigger recursive resolution. I.e.,
+    one can do the following to avoid repeating a complete osdep
+    definition:
+
+      nokogiri:
+    gem: nokogiri
+          osdep: libxslt-dev
+      libxslt-dev:
+    ubuntu: libxslt-dev
+
 = Version 1.8.5
  * osdeps: the apt-dpkg was interpreting removed-but-not-purged as installed.
    Fix.
