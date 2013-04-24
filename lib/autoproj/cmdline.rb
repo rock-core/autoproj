@@ -79,8 +79,8 @@ module Autoproj
                 prg_name = "#{name}#{install_suffix}"
                 if File.file?(prg_path = File.join(ruby_bindir, prg_name))
                     File.open(File.join(bindir, name), 'w') do |io|
-                        io.puts "#! /bin/sh"
-                        io.puts "exec #{prg_path} \"$@\""
+                        io.puts "#! #{File.join(ruby_bindir, ruby)}"
+                        io.puts "load \"#{prg_path}\""
                     end
                     FileUtils.chmod 0755, File.join(bindir, name)
                 end
