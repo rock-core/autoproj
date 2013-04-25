@@ -895,7 +895,7 @@ module Autoproj
             @status_exit_code
         end
         def self.list_newest?; @list_newest end
-        def self.parse_arguments(args, with_mode = true)
+        def self.parse_arguments(args, with_mode = true, &additional_options)
             @only_status = false
             @only_local  = false
             @show_osdeps = false
@@ -1116,9 +1116,10 @@ where 'mode' is one of:
                 opts.on("--mail-only-errors", "send mail only on errors") do
                     mail_config[:only_errors] = true
                 end
+                opts.instance_eval(&additional_options) if block_given?
             end
 
-            parser.parse!(args)
+            ars = parser.parse(args)
             @mail_config = mail_config
 
             if with_mode
@@ -1568,7 +1569,7 @@ where 'mode' is one of:
             end
 
             reuse = []
-            parser = OptionParser.new do |opt|
+            parser = lambda do |opt|
                 opt.on '--reuse DIR', 'reuse the given autoproj installation (can be given multiple times)' do |path|
                     path = File.expand_path(path)
                     if !File.directory?(path) || !File.directory?(File.join(path, 'autoproj'))
@@ -1577,7 +1578,7 @@ where 'mode' is one of:
                     reuse << path
                 end
             end
-            args = parser.parse(args)
+            args = parse_arguments(args, false, &parser)
             Autoproj.change_option 'reused_autoproj_installations', reuse, true
 
             # If we are not getting the installation setup from a VCS, copy the template
