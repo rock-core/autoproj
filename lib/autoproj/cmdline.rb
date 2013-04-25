@@ -1119,7 +1119,7 @@ where 'mode' is one of:
                 opts.instance_eval(&additional_options) if block_given?
             end
 
-            ars = parser.parse(args)
+            args = parser.parse(args)
             @mail_config = mail_config
 
             if with_mode
