@@ -10,6 +10,13 @@
  * re-add 'default' in the osdep OS names. This allows to fall back to
    os-independent handlers (e.g. 'gem') when not on a known OS
  * fixes for the MacPort OSdep handler
+ * fix issues with the Ruby shims (gem, irb, ...) being shell scripts
+ * archives are now gracefully updated by asking the user whether he wants
+   the folder to be deleted
+ * early support for having importdir != srcdir. This allows to import and build
+   packages that are somewhere within another repository. It is still not very
+   well integrated, though.
+ * fix issue with autotools packages being rebuilt unnecessarily
 
 = Version 1.9.2
  * quickfix release for issues on systems where the system-wide encoding cannot
