@@ -3,7 +3,7 @@ module Autoproj
 
     # OS-independent creation of symbolic links. Note that on windows, it only
     # works for directories
-    def create_symlink(from, to)
+    def self.create_symlink(from, to)
         if Autobuild.windows?
             Dir.create_junction(to, from)
         else
