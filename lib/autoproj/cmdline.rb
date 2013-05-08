@@ -80,7 +80,7 @@ module Autoproj
                 if File.file?(prg_path = File.join(ruby_bindir, prg_name))
                     File.open(File.join(bindir, name), 'w') do |io|
                         io.puts "#! #{File.join(ruby_bindir, ruby)}"
-                        io.puts "load \"#{prg_path}\""
+                        io.puts "exec \"#{prg_path}\", *ARGV"
                     end
                     FileUtils.chmod 0755, File.join(bindir, name)
                 end
