@@ -29,4 +29,14 @@ class TC_OSDependencies_Pip < Test::Unit::TestCase
             with(any, any, 'mypip', 'install', '--user', 'pkg0', 'pkg1','pkg2').once
         pip_manager.install(packages)
     end
+
+    def test_install_packaes_disabled_and_not_silent
+        subprocess = flexmock(Autobuild::Subprocess)
+
+        pip_manager.enabled = false
+        pip_manager.silent = false
+        subprocess.should_receive(:run).never
+        flexmock(STDIN).should_receive(:readline).once.and_return
+        pip_manager.install([['pkg0']])
+    end
 end

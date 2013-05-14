@@ -136,6 +136,7 @@ module Autoproj
             Autoproj.env_add 'GEM_PATH', Autoproj.gem_home
             Autoproj.env_add 'PATH', File.join(Autoproj.gem_home, 'bin')
             Autoproj.env_set 'RUBYOPT', "-rubygems"
+            Autoproj.env_set 'PYTHONUSERBASE', Autoproj.pip_home
             Autobuild.prefix  = Autoproj.build_dir
             Autobuild.srcdir  = Autoproj.root_dir
             Autobuild.logdir = File.join(Autobuild.prefix, 'log')

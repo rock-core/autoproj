@@ -498,6 +498,9 @@ fi
 
             def install(pips)
                 guess_pip_program
+                if pips.is_a?(String)
+                    pips = [pips]
+                end
 
                 base_cmdline = [Autobuild.tool('pip'), 'install','--user']
 
@@ -505,7 +508,7 @@ fi
 
                 if pips_interaction(pips, cmdlines)
                     Autoproj.message "  installing/updating Python dependencies: "+
-                        "#{pips.map { |g| g.join(" ") }.sort.join(", ")}"
+                        "#{pips.sort.join(", ")}"
 
                     cmdlines.each do |c|
                         Autobuild::Subprocess.run 'autoproj', 'osdeps', *c
@@ -531,17 +534,12 @@ fi
                 puts <<-EOMSG
       #{Autoproj.color("The build process and/or the packages require some Python packages to be installed", :bold)}
       #{Autoproj.color("and you required autoproj to not do it itself", :bold)}
-        You can use the --all or --python options to autoproj osdeps to install these
-        packages anyway, and/or change to the osdeps handling mode by running an
-        autoproj operation with the --reconfigure option as for instance
-        autoproj build --reconfigure
-        
         The following command line can be used to install them manually
         
           #{cmdlines.map { |c| c.join(" ") }.join("\n      ")}
         
-        Autoproj expects these Gems to be installed in #{Autoproj.pips_home} This can
-        be overridden by setting the AUTOPROJ_GEM_HOME environment variable manually
+        Autoproj expects these Python packages to be installed in #{Autoproj.pip_home} This can
+        be overridden by setting the AUTOPROJ_PYTHONUSERBASE environment variable manually
 
                 EOMSG
                 print "    #{Autoproj.color("Press ENTER to continue ", :bold)}"
