@@ -479,6 +479,45 @@ fi
         end
     end
 
+    # Using pip to install python packages
+    class PipManager < Manager
+
+        attr_reader :installed_gems
+
+        def initialize
+            super(['pip'])
+            @installed_pips = Set.new
+        end
+
+        def guess_pip_program
+            if Autobuild.programs['pip']
+                return Autobuild.programs['pip']
+            end
+
+            Autobuild.programs['pip'] = "pip"
+        end
+
+        def install(pips)
+            guess_pip_program
+
+            base_cmdline = [Autobuild.tool('pip'), 'install','--user']
+
+            cmdlines = []
+            pips.each do |name|
+                cmdlines << base_cmdline + [name]
+            end
+
+            cmdlines.each do |c|
+                Autoproj::Subprocess.run 'autoproj', 'osdeps', *c
+            end
+
+            pips.each |p|
+                @installed_pips << p
+            end
+        end
+
+    end
+
     # Manager for packages provided by external package managers
     class OSDependencies
 	class << self
