@@ -350,7 +350,7 @@ class TC_OSDependencies < Test::Unit::TestCase
 
     def test_resolve_mixed_os_and_osindep_dependencies
         data = { 'pkg' =>
-                 { 'test' => { 'default' => ['ospkg', 'gem' => 'gempkg'] }
+                 { 'test' => { 'default' => 'ospkg', 'gem' => 'gempkg' }
                  }
                }
 
