@@ -1,0 +1,32 @@
+$LOAD_PATH.unshift File.expand_path('../lib', File.dirname(__FILE__))
+require 'test/unit'
+require 'autoproj'
+require 'flexmock/test_unit'
+
+class TC_OSDependencies_Pip < Test::Unit::TestCase
+    include Autoproj
+
+    attr_reader :pip_manager
+
+    def setup
+        Autoproj::OSDependencies.operating_system = [['test', 'debian', 'default'], ['v1.0', 'v1', 'default']]
+
+        @pip_manager = PackageManagers::PipManager.new
+        Autobuild.programs['pip'] = 'mypip'
+        super
+    end
+
+    def teardown
+        super
+        Autobuild.programs['pip'] = nil
+    end
+
+    def test_install_packages
+        subprocess = flexmock(Autobuild::Subprocess)
+
+        packages = [['pkg0'], ['pkg1'], ['pkg2']]
+        subprocess.should_receive(:run).
+            with(any, any, 'mypip', 'install', '--user', 'pkg0', 'pkg1','pkg2').once
+        pip_manager.install(packages)
+    end
+end
