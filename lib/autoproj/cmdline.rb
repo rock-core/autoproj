@@ -1597,6 +1597,7 @@ where 'mode' is one of:
             Autobuild.env_inherit 'PATH'
             Autobuild.env_add_path 'GEM_PATH', Autoproj.gem_home
             Autobuild.env_inherit 'GEM_PATH'
+            Autobuild.env_set 'PYTHONUSERBASE', Autoproj.pip_home
             Autoproj.export_env_sh
 
             if args.size == 1 # the user asks us to download a manifest

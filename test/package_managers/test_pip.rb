@@ -24,7 +24,7 @@ class TC_OSDependencies_Pip < Test::Unit::TestCase
     def test_install_packages
         subprocess = flexmock(Autobuild::Subprocess)
 
-        packages = [['pkg0'], ['pkg1'], ['pkg2']]
+        packages = ['pkg0', 'pkg1', 'pkg2']
         subprocess.should_receive(:run).
             with(any, any, 'mypip', 'install', '--user', 'pkg0', 'pkg1','pkg2').once
         pip_manager.install(packages)

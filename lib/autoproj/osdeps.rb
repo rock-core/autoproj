@@ -504,7 +504,7 @@ fi
 
                 base_cmdline = [Autobuild.tool('pip'), 'install','--user']
 
-                cmdlines = [base_cmdline + pips.each.map {|e| e.first}]
+                cmdlines = [base_cmdline + pips]
 
                 if pips_interaction(pips, cmdlines)
                     Autoproj.message "  installing/updating Python dependencies: "+
