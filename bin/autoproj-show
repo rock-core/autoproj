@@ -25,12 +25,19 @@ def find_selection_path(from, to)
         return path
     end
 
-    Autobuild::Package[from].dependencies.each do |dep_pkg_name|
-        if result = find_selection_path(dep_pkg_name, to)
-            return path + result
+    Autoproj.manifest.resolve_package_set(from).each do |pkg_name|
+        Autobuild::Package[pkg_name].dependencies.each do |dep_pkg_name|
+            if result = find_selection_path(dep_pkg_name, to)
+                return path + result
+            end
         end
     end
     nil
+end
+
+if packages.empty?
+    puts "no packages or OS packages match #{user_selection.join(" ")}"
+    exit 1
 end
 
 packages.each do |name|
@@ -51,13 +58,13 @@ packages.each do |name|
                 puts "  is directly selected by the manifest via #{selection.to_a.join(", ")}"
             end
         else
-            puts " is not directly selected by the manifest"
+            puts "  is not directly selected by the manifest"
         end
         if Autoproj.manifest.ignored?(pkg_name)
-            puts " is ignored"
+            puts "  is ignored"
         end
         if Autoproj.manifest.excluded?(pkg_name)
-            puts " is excluded: #{Autoproj.manifest.exclusion_reason(pkg_name)}"
+            puts "  is excluded: #{Autoproj.manifest.exclusion_reason(pkg_name)}"
         end
 
         all_reverse_dependencies = Set.new

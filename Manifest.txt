@@ -11,7 +11,6 @@ bin/autoproj-bootstrap
 bin/autoproj-clean
 bin/autoproj-create-set
 bin/autoproj-envsh
-bin/autoproj-inspect
 bin/autoproj-list
 bin/autoproj-locate
 bin/autoproj-query
