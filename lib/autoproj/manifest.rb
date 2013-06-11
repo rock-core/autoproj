@@ -1450,6 +1450,26 @@ module Autoproj
         # See create_autobuild_package for informations about the arguments.
         def self.update_package_set(vcs, text_name, into)
             fake_package = create_autobuild_package(vcs, text_name, into)
+            if other_root = CmdLine.update_from
+                # Define a package in the installation manifest that points to
+                # the desired folder in other_root
+                relative_path = Pathname.new(into).
+                    relative_path_from(Pathname.new(Autoproj.root_dir)).to_s
+                other_dir = File.join(other_root.path, relative_path)
+                if File.directory?(other_dir)
+                    other_root.packages.unshift(
+                        InstallationManifest::Package.new(fake_package.name, other_dir, File.join(other_dir, 'install')))
+                end
+
+                # Then move the importer there if possible
+                if fake_package.importer.respond_to?(:pick_from_autoproj_root)
+                    if !fake_package.importer.pick_from_autoproj_root(fake_package, other_root)
+                        fake_package.update = false
+                    end
+                else
+                    fake_package.update = false
+                end
+            end
             fake_package.import
 
         rescue Autobuild::ConfigException => e
@@ -2420,6 +2440,20 @@ module Autoproj
 
         def each(&block)
             packages.each(&block)
+        end
+
+        def [](name)
+            packages.find { |pkg| pkg.name == name }
+        end
+
+        def self.from_root(root_dir)
+            manifest = InstallationManifest.new(root_dir)
+            manifest_file = File.join(root_dir,  ".autoproj-installation-manifest")
+            if !File.file?(manifest_file)
+                raise ConfigError.new, "no .autoproj-installation-manifest file exists in #{root_dir}. You should probably rerun autoproj envsh in that folder first"
+            end
+            manifest.load(manifest_file)
+            manifest
         end
     end
 

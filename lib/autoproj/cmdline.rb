@@ -881,6 +881,9 @@ module Autoproj
 
         def self.color?; @color end
 
+        class << self
+            attr_accessor :update_from
+        end
         def self.osdeps?; @mode == "osdeps" end
         def self.show_osdeps?; @mode == "osdeps" && @show_osdeps end
         def self.revshow_osdeps?; @mode == "osdeps" && @revshow_osdeps end
@@ -987,6 +990,9 @@ where 'mode' is one of:
     EOBANNER
                 opts.on("--reconfigure", "re-ask all configuration options (build modes only)") do
                     Autoproj.reconfigure = true
+                end
+                opts.on('--from PATH', 'in update mode, use this existing autoproj installation to check out the packages (for importers that support this)') do |path|
+                    self.update_from = Autoproj::InstallationManifest.from_root(File.expand_path(path))
                 end
                 opts.on("--[no-]color", "enable or disable color in status messages (enabled by default)") do |flag|
                     @color = flag
