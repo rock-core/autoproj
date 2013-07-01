@@ -174,6 +174,42 @@ module Autobuild
             @os_packages ||= Set.new
         end
     end
+
+    class Git
+        # Reconfigures this importer to use an already existing checkout located
+        # in the given autoproj root
+        #
+        # @param [Autobuild::Package] the package we are dealing with
+        # @param [Autoproj::InstallationManifest] the other root's installation
+        #   manifest
+        def pick_from_autoproj_root(package, installation_manifest)
+            other_pkg = installation_manifest[package.name]
+            return if !other_pkg
+            self.relocate(other_pkg.srcdir)
+            true
+        end
+    end
+
+    class ArchiveImporter
+        # Reconfigures this importer to use an already existing checkout located
+        # in the given autoproj root
+        #
+        # @param [Autobuild::Package] the package we are dealing with
+        # @param [Autoproj::InstallationManifest] the other root's installation
+        #   manifest
+        def pick_from_autoproj_root(package, installation_manifest)
+            # Get the cachefile w.r.t. the autoproj root
+            cachefile = Pathname.new(self.cachefile).
+                relative_path_from(Pathname.new(Autoproj.root_dir)).to_s
+
+            # The cachefile in the other autoproj installation
+            other_cachefile = File.join(installation_manifest.path, cachefile)
+            if File.file?(other_cachefile)
+                self.relocate("file://" + other_cachefile)
+                true
+            end
+        end
+    end
 end
 
 module Autoproj

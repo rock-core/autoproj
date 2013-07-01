@@ -881,6 +881,9 @@ module Autoproj
 
         def self.color?; @color end
 
+        class << self
+            attr_accessor :update_from
+        end
         def self.osdeps?; @mode == "osdeps" end
         def self.show_osdeps?; @mode == "osdeps" && @show_osdeps end
         def self.revshow_osdeps?; @mode == "osdeps" && @revshow_osdeps end
@@ -987,6 +990,9 @@ where 'mode' is one of:
     EOBANNER
                 opts.on("--reconfigure", "re-ask all configuration options (build modes only)") do
                     Autoproj.reconfigure = true
+                end
+                opts.on('--from PATH', 'in update mode, use this existing autoproj installation to check out the packages (for importers that support this)') do |path|
+                    self.update_from = Autoproj::InstallationManifest.from_root(File.expand_path(path))
                 end
                 opts.on("--[no-]color", "enable or disable color in status messages (enabled by default)") do |flag|
                     @color = flag
@@ -1298,53 +1304,62 @@ where 'mode' is one of:
                 elsif !File.directory?(pkg.srcdir)
                     lines << Autoproj.color("  is not imported yet", :magenta)
                 else
-                    status = pkg.importer.status(pkg,@only_local)
-                    if status.uncommitted_code
-                        lines << Autoproj.color("  contains uncommitted modifications", :red)
-                        result.uncommitted = true
-                    end
+                    status = begin pkg.importer.status(pkg,@only_local)
+                             rescue Interrupt
+                                 raise
+                             rescue Exception => e
+                                 lines << Autoproj.color("  failed to fetch status information", :red)
+                                 nil
+                             end
 
-                    case status.status
-                    when Autobuild::Importer::Status::UP_TO_DATE
-                        if !status.uncommitted_code
-                            if sync_packages.size > 80
-                                Autoproj.message "#{sync_packages},"
-                                sync_packages = ""
+                    if status
+                        if status.uncommitted_code
+                            lines << Autoproj.color("  contains uncommitted modifications", :red)
+                            result.uncommitted = true
+                        end
+
+                        case status.status
+                        when Autobuild::Importer::Status::UP_TO_DATE
+                            if !status.uncommitted_code
+                                if sync_packages.size > 80
+                                    Autoproj.message "#{sync_packages},"
+                                    sync_packages = ""
+                                end
+                                msg = if sync_packages.empty?
+                                          pkg_name
+                                      else
+                                          ", #{pkg_name}"
+                                      end
+                                STDERR.print msg
+                                sync_packages = "#{sync_packages}#{msg}"
+                                next
+                            else
+                                lines << Autoproj.color("  local and remote are in sync", :green)
                             end
-                            msg = if sync_packages.empty?
-                                      pkg_name
-                                  else
-                                      ", #{pkg_name}"
-                                  end
-                            STDERR.print msg
-                            sync_packages = "#{sync_packages}#{msg}"
-                            next
-                        else
-                            lines << Autoproj.color("  local and remote are in sync", :green)
-                        end
-                    when Autobuild::Importer::Status::ADVANCED
-                        result.local = true
-                        lines << Autoproj.color("  local contains #{status.local_commits.size} commit that remote does not have:", :blue)
-                        status.local_commits.each do |line|
-                            lines << Autoproj.color("    #{line}", :blue)
-                        end
-                    when Autobuild::Importer::Status::SIMPLE_UPDATE
-                        result.remote = true
-                        lines << Autoproj.color("  remote contains #{status.remote_commits.size} commit that local does not have:", :magenta)
-                        status.remote_commits.each do |line|
-                            lines << Autoproj.color("    #{line}", :magenta)
-                        end
-                    when Autobuild::Importer::Status::NEEDS_MERGE
-                        result.local  = true
-                        result.remote = true
-                        lines << "  local and remote have diverged with respectively #{status.local_commits.size} and #{status.remote_commits.size} commits each"
-                        lines << Autoproj.color("  -- local commits --", :blue)
-                        status.local_commits.each do |line|
-                            lines << Autoproj.color("   #{line}", :blue)
-                        end
-                        lines << Autoproj.color("  -- remote commits --", :magenta)
-                        status.remote_commits.each do |line|
-                            lines << Autoproj.color("   #{line}", :magenta)
+                        when Autobuild::Importer::Status::ADVANCED
+                            result.local = true
+                            lines << Autoproj.color("  local contains #{status.local_commits.size} commit that remote does not have:", :blue)
+                            status.local_commits.each do |line|
+                                lines << Autoproj.color("    #{line}", :blue)
+                            end
+                        when Autobuild::Importer::Status::SIMPLE_UPDATE
+                            result.remote = true
+                            lines << Autoproj.color("  remote contains #{status.remote_commits.size} commit that local does not have:", :magenta)
+                            status.remote_commits.each do |line|
+                                lines << Autoproj.color("    #{line}", :magenta)
+                            end
+                        when Autobuild::Importer::Status::NEEDS_MERGE
+                            result.local  = true
+                            result.remote = true
+                            lines << "  local and remote have diverged with respectively #{status.local_commits.size} and #{status.remote_commits.size} commits each"
+                            lines << Autoproj.color("  -- local commits --", :blue)
+                            status.local_commits.each do |line|
+                                lines << Autoproj.color("   #{line}", :blue)
+                            end
+                            lines << Autoproj.color("  -- remote commits --", :magenta)
+                            status.remote_commits.each do |line|
+                                lines << Autoproj.color("   #{line}", :magenta)
+                            end
                         end
                     end
                 end
