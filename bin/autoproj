@@ -85,6 +85,9 @@ EOTEXT
         if name =~ /^#{Regexp.quote(Autoproj.config_dir + File::SEPARATOR)}/ ||
             name =~ /^#{Regexp.quote(Autoproj.remotes_dir + File::SEPARATOR)}/
             needs_update_config = true
+        elsif (Autoproj.config_dir + File::SEPARATOR) =~ /^#{Regexp.quote(name)}/
+            needs_update_config = true
+            false
         end
     end
 
