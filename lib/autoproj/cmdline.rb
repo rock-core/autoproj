@@ -797,7 +797,7 @@ module Autoproj
             end
             selection.ignores.each do |sel, pkg_names|
                 pkg_names.sort.each do |pkg_name|
-                    Autoproj.warn "#{pkg_name}, which was selected for #{sel}, is ignored", :orange
+                    Autoproj.warn "#{pkg_name}, which was selected for #{sel}, is ignored", :bold
                 end
             end
 
