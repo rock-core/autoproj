@@ -132,5 +132,8 @@ cvs:
   fedora: cvs
   darwin: cvs
 
+pip:
+  debian,ubuntu: python-pip
+
 # vim: expandtab
 

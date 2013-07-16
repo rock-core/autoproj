@@ -136,6 +136,7 @@ module Autoproj
             Autoproj.env_add 'GEM_PATH', Autoproj.gem_home
             Autoproj.env_add 'PATH', File.join(Autoproj.gem_home, 'bin')
             Autoproj.env_set 'RUBYOPT', "-rubygems"
+            Autoproj.env_set 'PYTHONUSERBASE', Autoproj.pip_home
             Autobuild.prefix  = Autoproj.build_dir
             Autobuild.srcdir  = Autoproj.root_dir
             Autobuild.logdir = File.join(Autobuild.prefix, 'log')
@@ -1611,6 +1612,7 @@ where 'mode' is one of:
             Autobuild.env_inherit 'PATH'
             Autobuild.env_add_path 'GEM_PATH', Autoproj.gem_home
             Autobuild.env_inherit 'GEM_PATH'
+            Autobuild.env_set 'PYTHONUSERBASE', Autoproj.pip_home
             Autoproj.export_env_sh
 
             if args.size == 1 # the user asks us to download a manifest

@@ -121,6 +121,12 @@ module Autoproj
         ENV['AUTOPROJ_GEM_HOME'] || File.join(root_dir, ".gems")
     end
 
+    # Return the directory where python packages are installed to.
+    # The actual path is pip_home/lib/pythonx.y/site-packages.
+    def self.pip_home
+        ENV['AUTOPROJ_PYTHONUSERBASE'] || File.join(root_dir,".pip")
+    end
+
     def self.env_inherit(*names)
         Autobuild.env_inherit(*names)
     end

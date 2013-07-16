@@ -29,6 +29,7 @@ class TC_OSDependencies < Test::Unit::TestCase
         osdeps.package_handlers.clear
         osdeps.package_handlers['apt-dpkg'] = osdeps.os_package_handler
         osdeps.package_handlers['gem'] = flexmock(PackageManagers::Manager.new(['gem']))
+        osdeps.package_handlers['pip'] = flexmock(PackageManagers::Manager.new(['pip']))
         flexmock(osdeps)
     end
 
@@ -311,6 +312,11 @@ class TC_OSDependencies < Test::Unit::TestCase
         osdeps = create_osdep(data)
         expected = [[osdeps.package_handlers['gem'], FOUND_PACKAGES, ['gempkg', 'gempkg1']]]
         assert_equal expected, osdeps.resolve_package('pkg')
+
+        data = { 'pkg' => 'pip' }
+        osdeps = create_osdep(data)
+        expected = [[osdeps.package_handlers['pip'], FOUND_PACKAGES, ['pkg']]]
+        assert_equal expected, osdeps.resolve_package('pkg')
     end
 
     def test_resolve_osindep_packages_specific
@@ -344,7 +350,7 @@ class TC_OSDependencies < Test::Unit::TestCase
 
     def test_resolve_mixed_os_and_osindep_dependencies
         data = { 'pkg' =>
-                 { 'test' => { 'default' => ['ospkg', 'gem' => 'gempkg'] }
+                 { 'test' => { 'default' => 'ospkg', 'gem' => 'gempkg' }
                  }
                }
 
