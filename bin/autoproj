@@ -149,6 +149,18 @@ EOTEXT
     Autoproj.manifest.explicit_selection = resolved_selected_packages
     selected_packages = resolved_selected_packages
 
+    if other_root = Autoproj::CmdLine.update_from
+        Autobuild::Package.each do |_, pkg|
+            if pkg.importer.respond_to?(:pick_from_autoproj_root)
+                if !pkg.importer.pick_from_autoproj_root(pkg, other_root)
+                    pkg.update = false
+                end
+            else
+                pkg.update = false
+            end
+        end
+    end
+
     # If in verbose mode, or if we only update sources, list the sources
     if Autoproj.verbose || Autoproj::CmdLine.display_configuration?
         Autoproj::CmdLine.display_configuration(manifest, selected_packages.packages)
