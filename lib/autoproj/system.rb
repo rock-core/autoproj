@@ -116,16 +116,6 @@ module Autoproj
         File.join(root_dir, ".remotes")
     end
 
-    # Return the directory in which RubyGems package should be installed
-    def self.gem_home
-        ENV['AUTOPROJ_GEM_HOME'] || File.join(root_dir, ".gems")
-    end
-
-    # Return the directory where python packages are installed to.
-    # The actual path is pip_home/lib/pythonx.y/site-packages.
-    def self.pip_home
-        ENV['AUTOPROJ_PYTHONUSERBASE'] || File.join(root_dir,".pip")
-    end
 
     def self.env_inherit(*names)
         Autobuild.env_inherit(*names)
@@ -141,15 +131,30 @@ module Autoproj
         File.join(result, name)
     end
 
+    # @deprecated use isolate_environment instead
+    def self.set_initial_env
+        isolate_environment
+    end
+
     # Initializes the environment variables to a "sane default"
     #
     # Use this in autoproj/init.rb to make sure that the environment will not
     # get polluted during the build.
-    def self.set_initial_env
+    def self.isolate_environment
         Autobuild.env_inherit = false
-        Autoproj.env_set 'RUBYOPT', "-rubygems"
-        Autobuild.env_push_path 'GEM_PATH', Autoproj.gem_home
-        Autobuild.env_push_path 'PATH', "#{Autoproj.gem_home}/bin", "/usr/local/bin", "/usr/bin", "/bin"
+        Autobuild.env_push_path 'PATH', "/usr/local/bin", "/usr/bin", "/bin"
+    end
+
+    def self.prepare_environment
+        # Set up some important autobuild parameters
+        env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB', \
+            'LD_LIBRARY_PATH', 'CMAKE_PREFIX_PATH', 'PYTHONPATH'
+        
+        env_set 'AUTOPROJ_CURRENT_ROOT', Autoproj.root_dir
+        env_set 'RUBYOPT', "-rubygems"
+        Autoproj::OSDependencies::PACKAGE_HANDLERS.each do |pkg_mng|
+            pkg_mng.initialize_environment
+        end
     end
 
     class << self

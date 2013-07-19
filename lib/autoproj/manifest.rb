@@ -2388,6 +2388,12 @@ module Autoproj
             result
         end
 
+        def each_reused_autoproj_installation
+            if Autoproj.has_config_key?('reused_autoproj_installations')
+                Autoproj.user_config('reused_autoproj_installations').each(&proc)
+            end
+        end
+
         def reuse(*dir)
             dir = File.expand_path(File.join(*dir), Autoproj.root_dir)
             if reused_installations.any? { |mnf| mnf.path == dir }

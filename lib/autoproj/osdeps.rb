@@ -24,6 +24,13 @@ module Autoproj
             def name
                 names.first
             end
+
+            # Overload to perform initialization of environment variables in
+            # order to have a properly functioning package manager
+            #
+            # This is e.g. needed for python pip or rubygems
+            def self.initialize_environment
+            end
         end
 
         # Dummy package manager used for unknown OSes. It simply displays a
@@ -314,6 +321,37 @@ fi
             @with_prerelease = false
             @with_doc = false
 
+            # Filters all paths that come from other autoproj installations out
+            # of GEM_PATH
+            def self.initialize_environment
+                Autobuild::ORIGINAL_ENV['GEM_PATH'] =
+                    (ENV['GEM_PATH'] || "").split(":").find_all do |p|
+                        !Autoproj.in_autoproj_installation?(p)
+                    end.join(":")
+                Autobuild.env_inherit 'GEM_PATH'
+                Autobuild.env_init_from_env 'GEM_PATH'
+
+                Autoproj.manifest.each_reused_autoproj_installation do |p|
+                    p_gems = File.join(Autoproj.root_dir, '.gems')
+                    if File.directory?(p_gems)
+                        Autobuild.env_add_path 'GEM_PATH', p_gems
+                    end
+                end
+                Autobuild.env_add_path 'GEM_PATH', gem_home
+                Autobuild.env_set 'GEM_HOME', gem_home
+                Autobuild.env_add_path 'PATH', "#{gem_home}/bin"
+
+                # Now, reset the directories in our own RubyGems instance
+                if Gem::Specification.respond_to?(:dirs=)
+                    Gem::Specification.dirs = ENV['GEM_PATH'].split(':')
+                end
+            end
+
+            # Return the directory in which RubyGems package should be installed
+            def self.gem_home
+                ENV['AUTOPROJ_GEM_HOME'] || File.join(Autoproj.root_dir, ".gems")
+            end
+
             def initialize
                 super(['gem'])
                 @installed_gems = Set.new
@@ -482,6 +520,17 @@ fi
         class PipManager < Manager
 
             attr_reader :installed_gems
+
+            def self.initialize_environment
+                Autoproj.env_set 'PYTHONUSERBASE', pip_home
+            end
+
+            # Return the directory where python packages are installed to.
+            # The actual path is pip_home/lib/pythonx.y/site-packages.
+            def self.pip_home
+                ENV['AUTOPROJ_PYTHONUSERBASE'] || File.join(Autoproj.root_dir,".pip")
+            end
+
 
             def initialize
                 super(['pip'])

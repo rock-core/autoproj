@@ -123,43 +123,22 @@ module Autoproj
                 @randomize_layout = Autoproj.user_config('randomize_layout')
             end
 
-            # If we are under rubygems, check that the GEM_HOME is right ...
-            if $LOADED_FEATURES.any? { |l| l =~ /rubygems/ }
-                if ENV['GEM_HOME'] != Autoproj.gem_home
-                    raise ConfigError.new, "RubyGems is already loaded with a different GEM_HOME, make sure you are loading the right #{ENV_FILENAME} script !"
-                end
+            # Make sure that the currently loaded env.sh is actually us
+            if ENV['AUTOPROJ_CURRENT_ROOT'] && (ENV['AUTOPROJ_CURRENT_ROOT'] != Autoproj.root_dir)
+                raise ConfigError.new, "the current environment is for #{ENV['AUTOPROJ_ROOT_DIR']}, but you are in #{Autoproj.root_dir}, make sure you are loading the right #{ENV_FILENAME} script !"
             end
 
-            # Set up some important autobuild parameters
-            Autoproj.env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB', 'LD_LIBRARY_PATH', 'GEM_PATH', 'CMAKE_PREFIX_PATH', 'PYTHONPATH'
-            Autoproj.env_set 'GEM_HOME', Autoproj.gem_home
-            Autoproj.env_add 'GEM_PATH', Autoproj.gem_home
-            Autoproj.env_add 'PATH', File.join(Autoproj.gem_home, 'bin')
-            Autoproj.env_set 'RUBYOPT', "-rubygems"
-            Autoproj.env_set 'PYTHONUSERBASE', Autoproj.pip_home
+            Autoproj.manifest = Manifest.new
+            Autoproj.prepare_environment
             Autobuild.prefix  = Autoproj.build_dir
             Autobuild.srcdir  = Autoproj.root_dir
             Autobuild.logdir = File.join(Autobuild.prefix, 'log')
 
-            Autoproj.manifest = Manifest.new
-
             local_source = LocalPackageSet.new(Autoproj.manifest)
+            load_autoprojrc
 
-            home_dir =
-                if Dir.respond_to?(:home) # 1.9 specific
-                    Dir.home
-                else ENV['HOME']
-                end
-            # Load the user-wide autoproj RC file
-            if home_dir
-                Autoproj.load_if_present(local_source, home_dir, ".autoprojrc")
-            end
-
-            if Autoproj.has_config_key?('reused_autoproj_installations')
-                reused = Autoproj.user_config('reused_autoproj_installations')
-                reused.each do |path|
-                    Autoproj.manifest.reuse(path)
-                end
+            Autoproj.manifest.each_reused_autoproj_installation do |p|
+                Autoproj.manifest.reuse(path)
             end
 
             # We load the local init.rb first so that the manifest loading
@@ -206,6 +185,26 @@ module Autoproj
             # unnecessarily redetecting the operating system
             if update_os_dependencies? || osdeps?
                 Autoproj.change_option('operating_system', Autoproj::OSDependencies.operating_system(:force => true), true)
+            end
+        end
+
+        def self.load_autoprojrc
+            home_dir =
+                if Dir.respond_to?(:home) # 1.9 specific
+                    Dir.home
+                else ENV['HOME']
+                end
+
+            # Load the user-wide autoproj RC file
+            if home_dir
+                rcfile = File.join(home_dir, '.autoprojrc')
+                if File.file?(rcfile)
+                    begin
+                        Kernel.load rcfile
+                    rescue Interrupt
+                        raise
+                    end
+                end
             end
         end
 
@@ -1555,34 +1554,18 @@ where 'mode' is one of:
             Autoproj.root_dir = Dir.pwd
             Autobuild.logdir = File.join(Autoproj.prefix, 'log')
 
-            # Check if GEM_HOME is set. If it is the case, assume that we are
-            # bootstrapping from another autoproj directory. We start by
-            # forcefully installing autoproj/autobuild so that the installation
-            # is self-contained.
-            #
-            # We don't use Autoproj.gem_home there as we might not be in an
-            # autoproj directory at all
-            gem_home = ENV['AUTOPROJ_GEM_HOME'] || File.join(Dir.pwd, ".gems")
-            if ENV['GEM_HOME'] && Autoproj.in_autoproj_installation?(ENV['GEM_HOME']) && ENV['GEM_HOME'] != gem_home
-                Autoproj::OSDependencies.define_osdeps_mode_option
-                osdeps = Autoproj::OSDependencies.load_default
-                if osdeps_forced_mode
-                    osdeps.osdeps_mode = osdeps_forced_mode
-                end
-                osdeps.osdeps_mode
+            Autoproj.manifest = Manifest.new
+            load_autoprojrc
+            Autoproj.prepare_environment
 
-                Autoproj.message "autoproj: bootstrapping using another installation's autoproj gem"
-                ENV['GEM_HOME'] = gem_home
-                ENV.delete('GEM_PATH')
-                Autoproj.message "installing autoproj in #{ENV['GEM_HOME']} and restarting"
-                osdeps.install ['autoproj']
-                Autoproj.message "restarting bootstrapping from #{Dir.pwd}"
-
-                require 'rbconfig'
-                ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
-                ENV['AUTOPROJ_OSDEPS_MODE'] = osdeps.osdeps_mode
-                exec ruby, $0, 'bootstrap', *ARGV
+            Autoproj::OSDependencies.define_osdeps_mode_option
+            osdeps = Autoproj::OSDependencies.load_default
+            if osdeps_forced_mode
+                osdeps.osdeps_mode = osdeps_forced_mode
             end
+            osdeps.osdeps_mode
+
+            osdeps.install ['autoproj']
 
             reuse = []
             parser = lambda do |opt|
@@ -1606,13 +1589,6 @@ where 'mode' is one of:
 
             handle_ruby_version
 
-            Autobuild.env_set 'RUBYOPT', '-rubygems'
-            Autobuild.env_set 'GEM_HOME', Autoproj.gem_home
-            Autobuild.env_add_path 'PATH', File.join(Autoproj.gem_home, 'bin')
-            Autobuild.env_inherit 'PATH'
-            Autobuild.env_add_path 'GEM_PATH', Autoproj.gem_home
-            Autobuild.env_inherit 'GEM_PATH'
-            Autobuild.env_set 'PYTHONUSERBASE', Autoproj.pip_home
             Autoproj.export_env_sh
 
             if args.size == 1 # the user asks us to download a manifest
@@ -1890,8 +1866,8 @@ where 'mode' is one of:
         def self.initialize_root_directory
             Autoproj.root_dir
         rescue Autoproj::UserError => error
-            if ENV['GEM_HOME']
-                Dir.chdir(File.join(ENV['GEM_HOME'], '..'))
+            if ENV['AUTOPROJ_CURRENT_ROOT']
+                Dir.chdir(ENV['AUTOPROJ_CURRENT_ROOT'])
                 begin Autoproj.root_dir
                 rescue Autoproj::UserError
                     raise error
