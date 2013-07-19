@@ -1306,27 +1306,22 @@ packages)
 This option is meant to allow you to control autoproj's behaviour while handling
 OS dependencies.
 
-* if you say "ruby", the RubyGem packages will be installed.
+* if you say "gem", the RubyGem packages will be installed.
 * if you say "none", autoproj will not do anything related to the OS
   dependencies.
 
 As any configuration value, the mode can be changed anytime by calling
-an autoproj operation with the --reconfigure option (e.g. autoproj update
---reconfigure).
+  autoproj reconfigure
 
-Finally, OS dependencies can be installed by calling "autoproj osdeps"
-with the corresponding option (--all, --ruby, --os or --none). Calling
-"autoproj osdeps" without arguments will also give you information as
-to what you should install to compile the software successfully.
+Finally, the "autoproj osdeps" command will give you the necessary information about the OS packages that you will need to install manually.
 
-So, what do you want ? (ruby or none)
+So, what do you want ? (either 'all', 'none', or a comma-separated list of 'gem' and 'pip' -- without the quotes)
             EOT
-            message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (ruby, none) ?", long_doc.strip ]
+            message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically ('all', 'none', or a comma-separated list of 'gem' and 'pip' -- without the quotes) ?", long_doc.strip ]
 
 	    Autoproj.configuration_option 'osdeps_mode', 'string',
 		:default => 'ruby',
 		:doc => message,
-                :possible_values => %w{ruby none},
                 :lowercase => true
         end
 
@@ -1344,7 +1339,9 @@ while handling OS dependencies.
 
 * if you say "all", it will install all packages automatically.
   This requires root access thru 'sudo'
-* if you say "ruby", only the Ruby packages will be installed.
+* if you say "pip", only the Ruby packages will be installed.
+  Installing these packages does not require root access.
+* if you say "gem", only the Ruby packages will be installed.
   Installing these packages does not require root access.
 * if you say "os", only the OS-provided packages will be installed.
   Installing these packages requires root access.
@@ -1352,20 +1349,17 @@ while handling OS dependencies.
   OS dependencies.
 
 As any configuration value, the mode can be changed anytime by calling
-an autoproj operation with the --reconfigure option (e.g. autoproj update
---reconfigure).
+  autoproj reconfigure
 
-Finally, OS dependencies can be installed by calling "autoproj osdeps"
-with the corresponding option (--all, --ruby, --os or --none).
+Finally, the "autoproj osdeps" command 
 
-So, what do you want ? (all, ruby, os or none)
+So, what do you want ? (either 'all', 'none', or a comma-separated list of 'os', 'gem' and 'pip' -- without the quotes)
             EOT
-            message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (all, ruby, os, none) ?", long_doc.strip ]
+            message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically ('all', 'none', or a comma-separated list of 'os', 'gem' and 'pip' -- without the quotes) ?", long_doc.strip ]
 
 	    Autoproj.configuration_option 'osdeps_mode', 'string',
 		:default => 'all',
 		:doc => message,
-                :possible_values => %w{all ruby os none},
                 :lowercase => true
         end
 
@@ -1380,11 +1374,11 @@ So, what do you want ? (all, ruby, os or none)
         def self.osdeps_mode_string_to_value(string)
             string = string.to_s.downcase
             case string
-            when 'all'  then HANDLE_ALL
-            when 'ruby' then HANDLE_RUBY
-            when 'os'   then HANDLE_OS
-            when 'none' then HANDLE_NONE
-            else raise ArgumentError, "invalid osdeps mode string '#{string}'"
+            when 'all'  then ['os', 'gem', 'pip']
+            when 'ruby' then ['gem']
+            when 'os'   then ['os']
+            when 'none' then ['none']
+            else string.split(',')
             end
         end
 
@@ -1453,20 +1447,23 @@ So, what do you want ? (all, ruby, os or none)
         # The set of packages that have already been installed
         attr_reader :installed_packages
 
-        def installs_os_packages?
-            osdeps_mode == HANDLE_ALL || osdeps_mode == HANDLE_OS
-        end
-
-        def installs_ruby_packages?
-            osdeps_mode == HANDLE_ALL || osdeps_mode == HANDLE_RUBY
-        end
-
-
         # Requests the installation of the given set of packages
-        def install(packages, package_osdeps = Hash.new)
-            os_package_handler.enabled = installs_os_packages?
+        def install(packages, options = Hash.new)
+            options = Kernel.validate_options options,
+                :osdeps_mode => osdeps_mode
+
+            os_package_handler.enabled = false
+            package_handlers.each_value do |handler|
+                handler.enabled = false
+            end
+            osdeps_mode.each do |m|
+                if m == 'os'
+                    os_package_handler.enabled = true
+                else
+                    package_handlers[m].enabled = true
+                end
+            end
             os_package_handler.silent = self.silent?
-            package_handlers['gem'].enabled = installs_ruby_packages?
             package_handlers.each_value do |v|
                 v.silent = self.silent?
             end
