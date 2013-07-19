@@ -331,6 +331,13 @@ fi
                 Autobuild.env_inherit 'GEM_PATH'
                 Autobuild.env_init_from_env 'GEM_PATH'
 
+                orig_gem_path = Autobuild::ORIGINAL_ENV['GEM_PATH'].split(':')
+                Gem.default_path.each do |p|
+                    if !orig_gem_path.include?(p)
+                        orig_gem_path << ":#{p}"
+                    end
+                end
+
                 Autoproj.manifest.each_reused_autoproj_installation do |p|
                     p_gems = File.join(Autoproj.root_dir, '.gems')
                     if File.directory?(p_gems)
