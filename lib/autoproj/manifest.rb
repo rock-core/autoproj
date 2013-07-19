@@ -1080,7 +1080,7 @@ module Autoproj
 
 	def initialize
             @file = nil
-	    @data = nil
+	    @data = Hash.new
             @packages = Hash.new
             @package_manifests = Hash.new
             @automatic_exclusions = Hash.new
