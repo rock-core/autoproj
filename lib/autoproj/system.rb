@@ -165,10 +165,8 @@ module Autoproj
 
     # Create the env.sh script in +subdir+. In general, +subdir+ should be nil.
     def self.export_env_sh(subdir = nil)
-        # Make sure that we have the environment of all selected packages
-        if Autoproj.manifest # we don't have a manifest if we are bootstrapping
-            Autoproj::CmdLine.update_environment
-        end
+        # Make sure that we have as much environment as possible
+        Autoproj::CmdLine.update_environment
 
         filename = if subdir
                File.join(Autoproj.root_dir, subdir, ENV_FILENAME)
@@ -191,6 +189,12 @@ module Autoproj
         end
 
         File.open(filename, "w") do |io|
+            io.write <<-EOF
+            if test -n "$AUTOPROJ_CURRENT_ROOT" && test "$AUTOPROJ_CURRENT_ROOT" != "#{Autoproj.root_dir}"; then
+                echo "the env.sh from $AUTOPROJ_CURRENT_ROOT is already loaded. Start a new shell before sourcing this one"
+                return
+            fi
+            EOF
             Autobuild.export_env_sh(io)
         end
     end
