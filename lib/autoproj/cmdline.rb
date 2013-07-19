@@ -712,7 +712,7 @@ module Autoproj
                     # Run a filter now, to have errors as early as possible
                     selection.filter_excluded_and_ignored_packages(Autoproj.manifest)
                     # Delete this package from the current_packages set
-                    true
+                    next
                 end
 
                 Autoproj.each_post_import_block(pkg) do |block|
