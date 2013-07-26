@@ -1456,8 +1456,11 @@ So, what do you want ? (either 'all', 'none', or a comma-separated list of 'os',
 
         # Requests the installation of the given set of packages
         def install(packages, options = Hash.new)
-            options = Kernel.validate_options options,
-                :osdeps_mode => osdeps_mode
+            options =
+                if Kernel.respond_to?(:validate_options)
+                    Kernel.validate_options options, :osdeps_mode => osdeps_mode
+                else options.dup
+                end
 
             os_package_handler.enabled = false
             package_handlers.each_value do |handler|
