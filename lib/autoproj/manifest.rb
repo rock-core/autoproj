@@ -2103,7 +2103,7 @@ module Autoproj
                     true
                 end
             end
-            Autoproj.osdeps.install(required_os_packages, package_os_deps)
+            Autoproj.osdeps.install(required_os_packages)
         end
 
         # The set of overrides added with #add_osdeps_overrides
