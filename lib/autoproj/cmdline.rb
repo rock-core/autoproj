@@ -124,8 +124,8 @@ module Autoproj
             end
 
             # Make sure that the currently loaded env.sh is actually us
-            if ENV['AUTOPROJ_CURRENT_ROOT'] && (ENV['AUTOPROJ_CURRENT_ROOT'] != Autoproj.root_dir)
-                raise ConfigError.new, "the current environment is for #{ENV['AUTOPROJ_ROOT_DIR']}, but you are in #{Autoproj.root_dir}, make sure you are loading the right #{ENV_FILENAME} script !"
+            if ENV['AUTOPROJ_CURRENT_ROOT'] && !ENV['AUTOPROJ_CURRENT_ROOT'].empty? && (ENV['AUTOPROJ_CURRENT_ROOT'] != Autoproj.root_dir)
+                raise ConfigError.new, "the current environment is for #{ENV['AUTOPROJ_CURRENT_ROOT']}, but you are in #{Autoproj.root_dir}, make sure you are loading the right #{ENV_FILENAME} script !"
             end
 
             Autoproj.manifest = Manifest.new
