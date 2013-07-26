@@ -133,7 +133,7 @@ OSDEPS_DEFAULTS
 EODEFS
 
 Autoproj::OSDependencies.define_osdeps_mode_option
-osdeps_mode = Autoproj::OSDependencies.osdeps_mode
+osdeps_mode = Autoproj::OSDependencies.osdeps_mode.join(",")
 ENV['AUTOPROJ_OSDEPS_MODE'] = osdeps_mode
 
 # First thing we do is install a proper ruby environment. We make sure that we
