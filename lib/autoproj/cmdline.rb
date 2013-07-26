@@ -1552,7 +1552,9 @@ where 'mode' is one of:
             end
 
             Autoproj.root_dir = Dir.pwd
-            Autobuild.logdir = File.join(Autoproj.prefix, 'log')
+            Autobuild.prefix  = Autoproj.build_dir
+            Autobuild.srcdir  = Autoproj.root_dir
+            Autobuild.logdir = File.join(Autobuild.prefix, 'log')
 
             Autoproj.manifest = Manifest.new
             load_autoprojrc
