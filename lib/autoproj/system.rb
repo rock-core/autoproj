@@ -189,12 +189,14 @@ module Autoproj
         end
 
         File.open(filename, "w") do |io|
-            io.write <<-EOF
-            if test -n "$AUTOPROJ_CURRENT_ROOT" && test "$AUTOPROJ_CURRENT_ROOT" != "#{Autoproj.root_dir}"; then
-                echo "the env.sh from $AUTOPROJ_CURRENT_ROOT is already loaded. Start a new shell before sourcing this one"
-                return
-            fi
-            EOF
+            if Autobuild.env_inherit
+                io.write <<-EOF
+                if test -n "$AUTOPROJ_CURRENT_ROOT" && test "$AUTOPROJ_CURRENT_ROOT" != "#{Autoproj.root_dir}"; then
+                    echo "the env.sh from $AUTOPROJ_CURRENT_ROOT is already loaded. Start a new shell before sourcing this one"
+                    return
+                fi
+                EOF
+            end
             Autobuild.export_env_sh(io)
         end
     end

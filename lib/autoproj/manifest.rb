@@ -949,6 +949,10 @@ module Autoproj
         # cannot be built. This modifies the behaviour to simply ignore the
         # problematic packages.
         attr_writer :weak_dependencies
+
+        # @return [Boolean] whether the dependencies from this metapackage are
+        #   weak or not
+        # @see #weak_dependencies
         def weak_dependencies?
             !!@weak_dependencies
         end
@@ -958,13 +962,24 @@ module Autoproj
             @packages = []
             @weak_dependencies = false
         end
+
         # Adds a package to this metapackage
+        #
+        # @param [Autobuild::Package] pkg
         def add(pkg)
             @packages << pkg
         end
+
+        # Lists the packages contained in this metapackage
+        #
+        # @yieldparam [Autobuild::Package] pkg
         def each_package(&block)
             @packages.each(&block)
         end
+
+        # Tests if the given package is included in this metapackage
+        #
+        # @param [String,#name] pkg the package or package name
         def include?(pkg)
             if !pkg.respond_to?(:to_str)
                 pkg = pkg.name
