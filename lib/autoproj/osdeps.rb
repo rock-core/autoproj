@@ -1306,25 +1306,27 @@ usually able to install those automatically, but unfortunately your operating
 system is not (yet) supported by autoproj's osdeps mechanism, it can only offer
 you some limited support.
 
-RubyGem packages are a cross-platform mechanism, and are therefore supported.
-However, you will have to install the kind of OS dependencies (so-called OS
-packages)
+Some package handlers are cross-platform, and are therefore supported.  However,
+you will have to install the kind of OS dependencies (so-called OS packages)
 
 This option is meant to allow you to control autoproj's behaviour while handling
 OS dependencies.
 
+* if you say "all", all OS-independent packages are going to be installed.
 * if you say "gem", the RubyGem packages will be installed.
+* if you say "pip", the Pythin PIP packages will be installed.
 * if you say "none", autoproj will not do anything related to the OS
   dependencies.
 
 As any configuration value, the mode can be changed anytime by calling
   autoproj reconfigure
 
-Finally, the "autoproj osdeps" command will give you the necessary information about the OS packages that you will need to install manually.
+Finally, the "autoproj osdeps" command will give you the necessary information
+about the OS packages that you will need to install manually.
 
-So, what do you want ? (either 'all', 'none', or a comma-separated list of 'gem' and 'pip' -- without the quotes)
+So, what do you want ? (all, none or a comma-separated list of: gem pip)
             EOT
-            message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically ('all', 'none', or a comma-separated list of 'gem' and 'pip' -- without the quotes) ?", long_doc.strip ]
+            message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (all, none or a comma-separated list of: gem pip) ?", long_doc.strip ]
 
 	    Autoproj.configuration_option 'osdeps_mode', 'string',
 		:default => 'ruby',
@@ -1355,14 +1357,17 @@ while handling OS dependencies.
 * if you say "none", autoproj will not do anything related to the
   OS dependencies.
 
+Finally, you can provide a comma-separated list of pip gem and os.
+
 As any configuration value, the mode can be changed anytime by calling
   autoproj reconfigure
 
-Finally, the "autoproj osdeps" command 
+Finally, the "autoproj osdeps" command will give you the necessary information
+about the OS packages that you will need to install manually.
 
-So, what do you want ? (either 'all', 'none', or a comma-separated list of 'os', 'gem' and 'pip' -- without the quotes)
+So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             EOT
-            message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically ('all', 'none', or a comma-separated list of 'os', 'gem' and 'pip' -- without the quotes) ?", long_doc.strip ]
+            message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (all, none or a comma-separated list of: os gem pip) ?", long_doc.strip ]
 
 	    Autoproj.configuration_option 'osdeps_mode', 'string',
 		:default => 'all',
@@ -1379,14 +1384,20 @@ So, what do you want ? (either 'all', 'none', or a comma-separated list of 'os',
         end
 
         def self.osdeps_mode_string_to_value(string)
-            string = string.to_s.downcase
-            case string
-            when 'all'  then ['os', 'gem', 'pip']
-            when 'ruby' then ['gem']
-            when 'os'   then ['os']
-            when 'none' then ['none']
-            else string.split(',')
+            string = string.to_s.downcase.split(',')
+            modes = []
+            string.map do |str|
+                case str
+                when 'all'  then modes.concat(['os', 'gem', 'pip'])
+                when 'ruby' then modes << 'gem'
+                when 'gem'  then modes << 'gem'
+                when 'pip'  then modes << 'pip'
+                when 'os'   then modes << 'os'
+                when 'none' then modes << 'none'
+                else raise ArgumentError, "#{str} is not a known package handler"
+                end
             end
+            modes
         end
 
         # If set to true (the default), #install will try to remove the list of
@@ -1466,7 +1477,7 @@ So, what do you want ? (either 'all', 'none', or a comma-separated list of 'os',
             package_handlers.each_value do |handler|
                 handler.enabled = false
             end
-            osdeps_mode.each do |m|
+            options[:osdeps_mode].each do |m|
                 if m == 'os'
                     os_package_handler.enabled = true
                 else
