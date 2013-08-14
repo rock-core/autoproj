@@ -1787,7 +1787,7 @@ module Autoproj
                     begin
                         Autoproj.osdeps.resolve_os_dependencies([name].to_set)
                     rescue Autoproj::ConfigError => e
-                        if osdeps_availability != Autoproj::OSDependencies::NO_PACKAGE && !Autoproj.osdeps.installs_os_packages?
+                        if osdeps_availability != Autoproj::OSDependencies::NO_PACKAGE && !Autoproj.osdeps.os_package_handler.enabled?
                             if !@ignored_os_dependencies.include?(name)
                                 Autoproj.warn "some package depends on the #{name} osdep: #{e.message}"
                                 Autoproj.warn "this osdeps dependency is simply ignored as you asked autoproj to not install osdeps packages"
