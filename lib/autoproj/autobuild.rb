@@ -658,7 +658,7 @@ class Autobuild::ArchiveImporter
         FileUtils.mkdir_p archive_dir
         FileUtils.cp @cachefile, archive_dir
 
-        { 'url' =>  File.join('$AUTOPROJ_SOURCE_DIR', File.basename(@cachefile)) }
+        { 'url' =>  "file://$AUTOPROJ_SOURCE_DIR/archives/#{File.basename(@cachefile)}" }
     end
 end
 
