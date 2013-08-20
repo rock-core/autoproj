@@ -12,12 +12,12 @@ end
 
 require 'rbconfig'
 module Autobuild
-    @windows = RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)!
+    @windows = RbConfig::CONFIG["host_os"] =~ %r!(msdos|mswin|djgpp|mingw|[Ww]indows)!
     def self.windows?
         @windows
     end
 
-    @macos =  RbConfig::CONFIG["host_os"] = ~%r!([Dd]arwin)!
+    @macos =  RbConfig::CONFIG["host_os"] =~ %r!([Dd]arwin)!
     def self.macos?
         @macos
     end
