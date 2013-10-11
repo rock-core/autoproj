@@ -366,7 +366,7 @@ def setup_package(package_name, &block)
 end
 
 # Common setup for packages
-def package_common(package_type, spec, &block) # :nodoc:
+def package_common(package_type, spec, &block)
     package_name = Autoproj.package_name_from_options(spec)
 
     if Autobuild::Package[package_name]
