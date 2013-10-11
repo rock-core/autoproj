@@ -404,7 +404,12 @@ module Autoproj
 
             # And, finally, disable all ignored packages on the autobuild side
             manifest.each_ignored_package do |pkg_name|
-                Autobuild::Package[pkg_name].disable
+                pkg = Autobuild::Package[pkg_name]
+                if !pkg
+                    Autoproj.warn "ignore line #{pkg_name} does not match anything"
+                else
+                    pkg.disable
+                end
             end
 
             update_environment
