@@ -334,9 +334,10 @@ fi
                 orig_gem_path = Autobuild::ORIGINAL_ENV['GEM_PATH'].split(':')
                 Gem.default_path.each do |p|
                     if !orig_gem_path.include?(p)
-                        orig_gem_path << ":#{p}"
+                        Autoproj.env_add_path 'GEM_PATH', p
                     end
                 end
+                Autobuild::ORIGINAL_ENV['GEM_PATH'] = orig_gem_path.join(":")
 
                 Autoproj.manifest.each_reused_autoproj_installation do |p|
                     p_gems = File.join(Autoproj.root_dir, '.gems')
