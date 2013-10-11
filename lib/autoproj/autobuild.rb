@@ -507,6 +507,7 @@ def ruby_package(options)
         pkg.exclude << /Makefile$/
         pkg.exclude << /mkmf.log$/
         pkg.exclude << /\.o$/
+        pkg.exclude << /doc$/
 
         pkg.extend Autoproj::RubyPackage
         pkg.rake_setup_task = "default"
