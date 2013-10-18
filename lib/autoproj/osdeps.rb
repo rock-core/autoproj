@@ -691,13 +691,15 @@ fi
             PackageManagers::GemManager,
             PackageManagers::EmergeManager,
             PackageManagers::PacmanManager,
+            PackageManagers::PacmanManager,
             PackageManagers::YumManager,
             PackageManagers::PortManager,
             PackageManagers::PipManager]
         OS_PACKAGE_HANDLERS = {
             'debian' => 'apt-dpkg',
             'gentoo' => 'emerge',
-            'arch' => 'pacman',
+            'archlinux' => 'pacman',
+            'manjarolinux' => 'pacman',
             'fedora' => 'yum',
             'darwin' => 'port'
         }
