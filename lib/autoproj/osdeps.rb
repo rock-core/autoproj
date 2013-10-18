@@ -454,8 +454,8 @@ fi
                             if gem_fetcher.respond_to?(:find_matching)
                                 gem_fetcher.find_matching(dep, true, true, GemManager.with_prerelease).map(&:first)
                             else # Post RubyGems-2.0
-                                type = if GemManager.with_prerelease then :prerelease
-                                       else :complete
+                                type = if GemManager.with_prerelease then :complete
+                                       else :released
                                        end
 
                                 gem_fetcher.detect(type) do |tuple|
