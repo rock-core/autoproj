@@ -39,7 +39,7 @@ ruby19:
     gentoo:
         - dev-lang/ruby:1.9
         - rake
-    archlinux,manjarolinux:
+    arch,manjarolinux:
         - ruby
     fedora:
       "17":
@@ -55,7 +55,7 @@ ruby20: ignore
 build-essential:
   debian,ubuntu: build-essential
   gentoo: ignore
-  archlinux,manjarolinux: base-dev
+  arch,manjarolinux: base-dev
   fedora: ignore
   darwin: ignore
 
@@ -69,21 +69,21 @@ git:
     default: git-core
   ubuntu: git-core
   gentoo: dev-vcs/git
-  archlinux,manjarolinux: git
+  arch,manjarolinux: git
   fedora: git
   darwin: git-core
 
 svn:
   debian,ubuntu: subversion
   gentoo: dev-util/subversion
-  archlinux,manjarolinux: subversion
+  arch,manjarolinux: subversion
   fedora: subversion
   darwin: subversion
 
 cmake:
   debian,ubuntu: cmake
   gentoo: dev-util/cmake
-  archlinux,manjarolinux: cmake
+  arch,manjarolinux: cmake
   fedora: cmake
   darwin: cmake
 
@@ -94,7 +94,9 @@ autotools:
   gentoo:
   - "sys-devel/automake:1.9"
   - sys-devel/autoconf
-  archlinux,manjarolinux: automake autoconf
+  arch,manjarolinux: 
+  - automake 
+  - autoconf
   fedora:
   - automake
   - autoconf
@@ -105,7 +107,7 @@ autotools:
 lsb_release:
   debian,ubuntu: lsb-release
   gentoo: sys-apps/lsb-release
-  archlinux,manjarolinux: lsb-release
+  arch,manjarolinux: lsb-release
   fedora: redhat-lsb
   darwin: ignore
     
@@ -116,7 +118,7 @@ archive:
   gentoo:
   - app-arch/tar
   - app-arch/unzip
-  archlinux,manjarolinux:
+  arch,manjarolinux:
   - tar
   - unzip
   fedora:
@@ -130,11 +132,11 @@ cvs:
   debian,ubuntu: cvs
   fedora: cvs
   darwin: cvs
-  archlinux,manjarolinux: cvs
+  arch,manjarolinux: cvs
 
 pip:
   debian,ubuntu: python-pip
-  archlinux,manjarolinux: python2-pip
+  arch,manjarolinux: python2-pip
 
 # vim: expandtab
 

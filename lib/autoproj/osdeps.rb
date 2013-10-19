@@ -698,7 +698,7 @@ fi
         OS_PACKAGE_HANDLERS = {
             'debian' => 'apt-dpkg',
             'gentoo' => 'emerge',
-            'archlinux' => 'pacman',
+            'arch' => 'pacman',
             'manjarolinux' => 'pacman',
             'fedora' => 'yum',
             'darwin' => 'port'
