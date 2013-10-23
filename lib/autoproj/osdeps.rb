@@ -888,12 +888,14 @@ fi
                 Autoproj.message "  autodetecting the operating system"
                 lsb_name, lsb_versions = os_from_lsb
                 if lsb_name
-                    if lsb_name != "debian"
-                        if File.exists?("/etc/debian_version")
-                            @operating_system = [[lsb_name, "debian"], lsb_versions]
-                        else
-                            @operating_system = [[lsb_name], lsb_versions]
-                        end
+                    if lsb_name != 'debian' && File.exists?("/etc/debian_version")
+                        @operating_system = [[lsb_name, "debian"], lsb_versions]
+                    elsif lsb_name != 'arch' && File.exists?("/etc/arch-release")
+                        @operating_system = [[lsb_name, "arch"], lsb_versions]
+                    elsif lsb_name != 'debian'
+                        # Debian unstable cannot be detected with lsb_release,
+                        # so debian has its own detection logic
+                        @operating_system = [[lsb_name], lsb_versions]
                     end
                 end
             end
