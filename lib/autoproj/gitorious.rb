@@ -42,7 +42,7 @@ module Autoproj
         if access_mode == "git"
             Autoproj.change_option("#{name}_ROOT", "git://#{base_url}")
         elsif access_mode == "http"
-            Autoproj.change_option("#{name}_ROOT", "http://git.#{base_url}")
+            Autoproj.change_option("#{name}_ROOT", "https://git.#{base_url}")
         elsif access_mode == "ssh"
             Autoproj.change_option("#{name}_ROOT", "git@#{base_url}:")
         end
