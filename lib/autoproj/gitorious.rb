@@ -21,6 +21,9 @@ module Autoproj
     # as import failed
     def self.gitorious_server_configuration(name, base_url, options = Hash.new)
         options = Kernel.validate_options options,
+            :git_url  => "git://#{base_url}",
+            :http_url => "https://git.#{base_url}",
+            :ssh_url  => "git@#{base_url}:",
             :fallback_to_http => true
 
         gitorious_long_doc = [
@@ -40,15 +43,17 @@ module Autoproj
 
         access_mode = Autoproj.user_config(name)
         if access_mode == "git"
-            Autoproj.change_option("#{name}_ROOT", "git://#{base_url}")
+            Autoproj.change_option("#{name}_ROOT", options[:git_url])
+            Autoproj.change_option("#{name}_PUSH_ROOT", options[:ssh_url])
         elsif access_mode == "http"
-            Autoproj.change_option("#{name}_ROOT", "https://git.#{base_url}")
+            Autoproj.change_option("#{name}_ROOT", options[:http_url])
+            Autoproj.change_option("#{name}_PUSH_ROOT", options[:http_url])
         elsif access_mode == "ssh"
-            Autoproj.change_option("#{name}_ROOT", "git@#{base_url}:")
+            Autoproj.change_option("#{name}_ROOT", options[:ssh_url])
+            Autoproj.change_option("#{name}_PUSH_ROOT", options[:ssh_url])
         end
-        Autoproj.change_option("#{name}_PUSH_ROOT", "git@#{base_url}:")
 
-        Autoproj.add_source_handler name.downcase do |url, options|
+        Autoproj.add_source_handler name.downcase do |url, vcs_options|
             if url !~ /\.git$/
                 url += ".git"
             end
@@ -57,7 +62,7 @@ module Autoproj
             end
             pull_base_url = Autoproj.user_config("#{name}_ROOT")
             push_base_url = Autoproj.user_config("#{name}_PUSH_ROOT")
-            Hash[:type => 'git', :url => "#{pull_base_url}#{url}", :push_to => "#{push_base_url}#{url}", :retry_count => 10].merge(options)
+            Hash[:type => 'git', :url => "#{pull_base_url}#{url}", :push_to => "#{push_base_url}#{url}", :retry_count => 10].merge(vcs_options)
         end
     end
 end
