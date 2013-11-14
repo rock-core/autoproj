@@ -184,7 +184,7 @@ module Autobuild
         #   manifest
         def pick_from_autoproj_root(package, installation_manifest)
             other_pkg = installation_manifest[package.name]
-            return if !other_pkg
+            return if !other_pkg || !File.directory?(other_pkg.srcdir)
             self.relocate(other_pkg.srcdir)
             true
         end
