@@ -73,6 +73,13 @@ git:
   fedora: git
   darwin: git-core
 
+hg:
+  debian,ubuntu: mercurial
+  gentoo: dev-vcs/mercurial
+  arch,manjarolinux: mercurial
+  fedora: mercurial
+  darwin: mercurial
+
 svn:
   debian,ubuntu: subversion
   gentoo: dev-util/subversion
