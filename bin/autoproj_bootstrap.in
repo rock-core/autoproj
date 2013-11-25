@@ -10,6 +10,12 @@ if defined? Encoding # This is a 1.9-only thing
     Encoding.default_external = Encoding::UTF_8
 end
 
+if ENV['AUTOPROJ_CURRENT_ROOT'] && ENV['AUTOPROJ_CURRENT_ROOT'] != Dir.pwd
+    STDERR.puts "the env.sh from #{ENV['AUTOPROJ_CURRENT_ROOT']} seem to already be sourced"
+    STDERR.puts "start a new shell and try to bootstrap again"
+    exit 1
+end
+
 require 'rbconfig'
 module Autobuild
     @windows = RbConfig::CONFIG["host_os"] =~ %r!(msdos|mswin|djgpp|mingw|[Ww]indows)!
