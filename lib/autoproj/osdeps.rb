@@ -1471,7 +1471,10 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             options =
                 if Kernel.respond_to?(:validate_options)
                     Kernel.validate_options options, :osdeps_mode => osdeps_mode
-                else options.dup
+                else
+                    options = options.dup
+                    options[:osdeps_mode] ||= osdeps_mode
+                    options
                 end
 
             os_package_handler.enabled = false
