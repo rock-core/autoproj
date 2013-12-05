@@ -1394,7 +1394,7 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
                 when 'gem'  then modes << 'gem'
                 when 'pip'  then modes << 'pip'
                 when 'os'   then modes << 'os'
-                when 'none' then modes << 'none'
+                when 'none' then
                 else raise ArgumentError, "#{str} is not a known package handler"
                 end
             end
