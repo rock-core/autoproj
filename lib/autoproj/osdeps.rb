@@ -1484,8 +1484,10 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             options[:osdeps_mode].each do |m|
                 if m == 'os'
                     os_package_handler.enabled = true
+                elsif pkg = package_handlers[m]
+                    pkg.enabled = true
                 else
-                    package_handlers[m].enabled = true
+                    Autoproj.warn "osdep handler #{m.inspect} has no handler, available handlers are #{package_handlers.keys.map(&:inspect).sort.join(", ")}"
                 end
             end
             os_package_handler.silent = self.silent?
