@@ -921,7 +921,7 @@ module Autoproj
             @partial_build = false
             @color = true
             Autobuild.color = true
-            Autobuild.doc_errors = false
+            Autobuild.pass_doc_errors = false
             Autobuild.do_doc = false
             Autobuild.only_doc = false
             Autobuild.do_update = nil
