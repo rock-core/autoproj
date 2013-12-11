@@ -1716,6 +1716,9 @@ where 'mode' is one of:
                 raise ArgumentError, "#{target_dir} already exists"
             end
             FileUtils.cp_r Autoproj.config_dir, target_dir
+            # Finally, remove the remotes/ directory from the generated
+            # buildconf, it is obsolete now
+            FileUtils.rm_rf File.join(target_dir, 'remotes')
 
             # Now, create snapshot information for each of the packages
             version_control = []
