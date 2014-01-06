@@ -51,6 +51,7 @@ ruby19:
     default: nonexistent
 
 ruby20: ignore
+ruby21: ignore
 
 build-essential:
   debian,ubuntu: build-essential
