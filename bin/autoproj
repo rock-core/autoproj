@@ -267,9 +267,8 @@ EOTEXT
 
     if all_enabled_packages.empty?
         STDERR.puts color("autoproj: nothing to do", :bold)
-    elsif Autoproj::CmdLine.doc?
-        Autoproj::CmdLine.build_packages(command_line_selection, all_enabled_packages)
     elsif Autoproj::CmdLine.build? 
+        Autoproj.message("autoproj: building and installing packages", :bold)
         Autoproj::CmdLine.build_packages(command_line_selection, all_enabled_packages)
     end
 

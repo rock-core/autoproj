@@ -809,14 +809,7 @@ module Autoproj
             return all_enabled_packages
         end
 
-        def self.build_packages(selected_packages, all_enabled_packages)
-            if Autoproj::CmdLine.doc?
-                Autobuild.only_doc = true
-                Autoproj.message("autoproj: building and installing documentation", :bold)
-            else
-                Autoproj.message("autoproj: building and installing packages", :bold)
-            end
-
+        def self.build_packages(selected_packages, all_enabled_packages, phases = [])
             if Autoproj::CmdLine.update_os_dependencies?
                 manifest.install_os_dependencies(all_enabled_packages)
             end
@@ -844,7 +837,7 @@ module Autoproj
                 end
             end
 
-            Autobuild.apply(all_enabled_packages, "autoproj-build")
+            Autobuild.apply(all_enabled_packages, "autoproj-build", phases)
         end
 
         def self.manifest; Autoproj.manifest end
@@ -921,9 +914,6 @@ module Autoproj
             @partial_build = false
             @color = true
             Autobuild.color = true
-            Autobuild.pass_doc_errors = false
-            Autobuild.do_doc = false
-            Autobuild.only_doc = false
             Autobuild.do_update = nil
             do_update = nil
 
