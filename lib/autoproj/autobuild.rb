@@ -408,6 +408,18 @@ def cmake_package(options, &block)
                 end
             end
         end
+        if !pkg.test_utility.has_task?
+            if !pkg.test_utility.source_dir
+                test_dir = File.join(pkg.srcdir, 'test')
+                if File.directory?(test_dir)
+                    pkg.test_utility.source_dir = test_dir
+                end
+            end
+
+            if pkg.test_utility.source_dir
+                pkg.with_tests
+            end
+        end
     end
 end
 
