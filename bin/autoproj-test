@@ -15,7 +15,8 @@ user_selection = user_selection.map do |arg|
     end
 end
 
-Autobuild.pass_doc_errors = false
+Autobuild.pass_test_errors = true
+Autobuild.ignore_errors = true
 
 Autoproj::CmdLine.report do
     resolved_selection = Autoproj::CmdLine.
