@@ -386,6 +386,29 @@ def import_package(options, &block)
     package_common(:import, options, &block)
 end
 
+def common_make_based_package_setup(pkg)
+    unless pkg.has_doc? && pkg.doc_dir
+        pkg.with_doc do
+            doc_html = File.join(pkg.builddir, 'doc', 'html')
+            if File.directory?(doc_html)
+                pkg.doc_dir = doc_html
+            end
+        end
+    end
+    if !pkg.test_utility.has_task?
+        if !pkg.test_utility.source_dir
+            test_dir = File.join(pkg.srcdir, 'test')
+            if File.directory?(test_dir)
+                pkg.test_utility.source_dir = test_dir
+            end
+        end
+
+        if pkg.test_utility.source_dir
+            pkg.with_tests
+        end
+    end
+end
+
 # Define a cmake package
 #
 # Example:
@@ -400,26 +423,7 @@ def cmake_package(options, &block)
     package_common(:cmake, options) do |pkg|
         Autoproj.add_build_system_dependency 'cmake'
         yield(pkg) if block_given?
-        unless pkg.has_doc? && pkg.doc_dir
-            pkg.with_doc do
-                doc_html = File.join(pkg.builddir, 'doc', 'html')
-                if File.directory?(doc_html)
-                    pkg.doc_dir = doc_html
-                end
-            end
-        end
-        if !pkg.test_utility.has_task?
-            if !pkg.test_utility.source_dir
-                test_dir = File.join(pkg.srcdir, 'test')
-                if File.directory?(test_dir)
-                    pkg.test_utility.source_dir = test_dir
-                end
-            end
-
-            if pkg.test_utility.source_dir
-                pkg.with_tests
-            end
-        end
+        common_make_based_package_setup(pkg)
     end
 end
 
@@ -436,17 +440,7 @@ def autotools_package(options, &block)
     package_common(:autotools, options) do |pkg|
         Autoproj.add_build_system_dependency 'autotools'
         yield(pkg) if block_given?
-        unless pkg.has_doc? && pkg.doc_dir
-            pkg.with_doc do
-                doc_html = File.join(pkg.builddir, 'doc', 'html')
-                if File.directory? doc_html
-                    pkg.doc_dir = doc_html
-                end
-            end
-        end
-    end
-end
-
+        common_make_based_package_setup(pkg)
 # This module is used to extend importer packages to handle ruby packages
 # properly
 module Autoproj::RubyPackage
