@@ -441,52 +441,7 @@ def autotools_package(options, &block)
         Autoproj.add_build_system_dependency 'autotools'
         yield(pkg) if block_given?
         common_make_based_package_setup(pkg)
-# This module is used to extend importer packages to handle ruby packages
-# properly
-module Autoproj::RubyPackage
-    def prepare_for_forced_build # :nodoc:
-        super
-        extdir = File.join(srcdir, 'ext')
-        if File.directory?(extdir)
-            Find.find(extdir) do |file|
-                next if file !~ /\<Makefile\>|\<CMakeCache.txt\>$/
-                FileUtils.rm_rf file
-            end
-        end
     end
-
-    def prepare_for_rebuild # :nodoc:
-        super
-        extdir = File.join(srcdir, 'ext')
-        if File.directory?(extdir)
-            Find.find(extdir) do |file|
-                if File.directory?(file) && File.basename(file) == "build"
-                    FileUtils.rm_rf file
-                    Find.prune
-                end
-            end
-            Find.find(extdir) do |file|
-                if File.basename(file) == "Makefile"
-                    Autobuild::Subprocess.run self, 'build', Autobuild.tool("make"), "-C", File.dirname(file), "clean"
-                end
-            end
-        end
-    end
-
-    def update_environment
-        Autobuild.update_environment srcdir
-        libdir = File.join(srcdir, 'lib')
-        if File.directory?(libdir)
-            Autobuild.env_add_path 'RUBYLIB', libdir
-        end
-    end
-
-    # The Rake task that is used to set up the package. Defaults to "default".
-    # Set to nil to disable setup altogether
-    attr_accessor :rake_setup_task
-    # The Rake task that is used to generate documentation. Defaults to "doc".
-    # Set to nil to disable documentation generation
-    attr_accessor :rake_doc_task
 end
 
 def env_set(name, value)
@@ -508,45 +463,25 @@ end
 # +pkg+ is an Autobuild::Importer instance. See the Autobuild API for more
 # information.
 def ruby_package(options)
-    package_common(:import, options) do |pkg|
-        pkg.exclude << /\.so$/
-        pkg.exclude << /Makefile$/
-        pkg.exclude << /mkmf.log$/
-        pkg.exclude << /\.o$/
-        pkg.exclude << /doc$/
-
-        pkg.extend Autoproj::RubyPackage
-        pkg.rake_setup_task = "default"
-        pkg.rake_doc_task   = "redocs"
-
-        # Set up code
-        pkg.post_install do
-            pkg.progress_start "setting up Ruby package %s", :done_message => 'set up Ruby package %s' do
-                Autobuild.update_environment pkg.srcdir
-                # Add lib/ unconditionally, as we know that it is a ruby package.
-                # Autobuild will add it only if there is a .rb file in the directory
-                libdir = File.join(pkg.srcdir, 'lib')
-                if File.directory?(libdir)
-                    Autobuild.env_add_path 'RUBYLIB', libdir
-                end
-
-                if pkg.rake_setup_task && File.file?(File.join(pkg.srcdir, 'Rakefile'))
-                    Autobuild::Subprocess.run pkg, 'post-install',
-                        Autoproj::CmdLine.ruby_executable, Autoproj.find_in_path('rake'), pkg.rake_setup_task, :working_directory => pkg.srcdir
-                end
-            end
-        end
-
+    package_common(:ruby, options) do |pkg|
         yield(pkg) if block_given?
 
         # Documentation code. Ignore if the user provided its own documentation
         # task, or disabled the documentation generation altogether by setting
         # rake_doc_task to nil
         if !pkg.has_doc? && pkg.rake_doc_task
-            pkg.doc_task do
-                pkg.progress_start "generating documentation for %s", :done_message => 'generated documentation for %s' do
-                    Autobuild::Subprocess.run pkg, 'doc', Autoproj::CmdLine.ruby_executable, Autoproj.find_in_path('rake'), pkg.rake_doc_task, :working_directory => pkg.srcdir
+            pkg.with_doc
+        end
+        if !pkg.test_utility.has_task?
+            if !pkg.test_utility.source_dir
+                test_dir = File.join(pkg.srcdir, 'test')
+                if File.directory?(test_dir)
+                    pkg.test_utility.source_dir = test_dir
                 end
+            end
+
+            if pkg.test_utility.source_dir
+                pkg.with_tests
             end
         end
     end
