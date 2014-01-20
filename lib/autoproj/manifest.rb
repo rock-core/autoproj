@@ -22,6 +22,19 @@ module Autoproj
         #
         # See Autoproj.add_build_system_dependency
         attr_reader :build_system_dependencies
+
+        # A set of overriden option values
+        #
+        # @see override_option
+        attr_reader :option_overrides
+    end
+
+    @option_overrides = Hash.new
+
+    # Programatically override a user-selected option without changing the
+    # configuration file
+    def self.override_option(option_name, value)
+        @option_overrides[option_name] = value
     end
 
     # Expand build options in +value+.
@@ -35,6 +48,7 @@ module Autoproj
         options.each_key do |k|
             options[k] = options[k].to_s
         end
+        options = options.merge(option_overrides)
 
         loop do
             new_value = Autoproj.single_expansion(value, options)
