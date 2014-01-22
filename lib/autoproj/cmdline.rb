@@ -1215,14 +1215,6 @@ where 'mode' is one of:
                 Autobuild.do_update = true
                 Autobuild.do_build  = true
                 @update_os_dependencies = true
-            when "snapshot"
-                @snapshot_dir = remaining_args.shift
-                if !snapshot_dir
-                    raise ConfigError.new, "target directory missing\nusage: autoproj snapshot target_dir"
-                end
-                Autobuild.do_update = false
-                Autobuild.do_build  = false
-                @update_os_dependencies = false
             when "update"
                 Autobuild.do_update = true
                 Autobuild.do_build  = false
@@ -1700,7 +1692,7 @@ where 'mode' is one of:
             end
         end
 
-        def self.snapshot(target_dir, packages)
+        def self.snapshot(manifest, target_dir, packages)
             # First, copy the configuration directory to create target_dir
             if File.exists?(target_dir)
                 raise ArgumentError, "#{target_dir} already exists"

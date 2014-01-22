@@ -1,0 +1,25 @@
+#! /usr/bin/env ruby
+
+require 'autoproj'
+require 'autoproj/cmdline'
+
+remaining_args = Autoproj.silent do
+    Autoproj::CmdLine.initialize_root_directory
+    Autoproj::CmdLine.initialize_and_load(ARGV)
+end
+
+snapshot_dir = remaining_args.shift
+if !snapshot_dir
+    raise ConfigError.new, "target directory missing\nusage: autoproj snapshot target_dir"
+end
+
+user_selection = remaining_args.map do |arg|
+    if File.directory?(arg)
+        File.expand_path(arg)
+    else arg
+    end
+end
+resolved_selection = Autoproj::CmdLine.resolve_user_selection(user_selection, :filter => false)
+packages = resolved_selection.selection.keys
+
+Autoproj::CmdLine.snapshot(Autoproj.manifest, snapshot_dir, packages)
