@@ -1703,10 +1703,15 @@ where 'mode' is one of:
             FileUtils.rm_rf File.join(target_dir, 'remotes')
 
             # Now, create snapshot information for each of the packages
-            version_control = []
+            version_control_info = []
+            overrides_info = []
             packages.each do |package_name|
-                package  = Autobuild::Package[package_name]
-                importer = package.importer
+                package  = manifest.packages[package_name]
+                if !package
+                    raise ArgumentError, "#{package_name} is not a known package"
+                end
+                package_set = package.package_set
+                importer = package.autobuild.importer
                 if !importer
                     Autoproj.message "cannot snapshot #{package_name} as it has no importer"
                     next
@@ -1715,9 +1720,13 @@ where 'mode' is one of:
                     next
                 end
 
-                vcs_info = importer.snapshot(package, target_dir)
+                vcs_info = importer.snapshot(package.autobuild, target_dir)
                 if vcs_info
-                    version_control << Hash[package_name, vcs_info]
+                    if package_set.name == 'local'
+                        version_control_info << Hash[package_name, vcs_info]
+                    else
+                        overrides_info << Hash[package_name, vcs_info]
+                    end
                 end
             end
 
@@ -1727,12 +1736,10 @@ where 'mode' is one of:
             end
             # In Ruby 1.9, an empty file results in YAML.load returning false
             overrides ||= Hash.new
-
-            if overrides['overrides']
-                overrides['overrides'].concat(version_control)
-            else
-                overrides['overrides'] = version_control
-            end
+            (overrides['version_control'] ||= Array.new).
+                concat(version_control_info)
+            (overrides['overrides'] ||= Array.new).
+                concat(overrides_info)
 
             File.open(overrides_path, 'w') do |io|
                 io.write YAML.dump(overrides)
