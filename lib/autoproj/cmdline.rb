@@ -1702,6 +1702,29 @@ where 'mode' is one of:
             # buildconf, it is obsolete now
             FileUtils.rm_rf File.join(target_dir, 'remotes')
 
+            # Pin package sets
+            package_sets = Array.new
+            manifest.each_package_set do |pkg_set|
+                next if pkg_set.name == 'local'
+                if pkg_set.local?
+                    package_sets << Pathname.new(pkg_set.local_dir).
+                        relative_path_from(Pathname.new(manifest.file).dirname).
+                        to_s
+                else
+                    vcs_info = pkg_set.vcs.to_hash
+                    if pin_info = pkg_set.snapshot(target_dir)
+                        vcs_info = vcs_info.merge(pin_info)
+                    end
+                    package_sets << vcs_info
+                end
+            end
+            manifest_path = File.join(target_dir, 'manifest')
+            manifest_data = YAML.load(File.read(manifest_path))
+            manifest_data['package_sets'] = package_sets
+            File.open(manifest_path, 'w') do |io|
+                YAML.dump(manifest_data, io)
+            end
+
             # Now, create snapshot information for each of the packages
             version_control_info = []
             overrides_info = []

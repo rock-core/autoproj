@@ -165,6 +165,10 @@ module Autoproj
             @type == 'local'
         end
 
+        def to_hash
+            Hash[:type => type, :url => url].merge(options)
+        end
+
         # Updates the VCS specification +old+ by the information contained in
         # +new+
         #
@@ -522,6 +526,15 @@ module Autoproj
                 !each_package.find { true } &&
                 !File.exists?(File.join(raw_local_dir, "overrides.rb")) &&
                 !File.exists?(File.join(raw_local_dir, "init.rb"))
+        end
+
+        def snapshot(target_dir)
+            if local?
+                Hash.new
+            else
+                package = Manifest.create_autobuild_package(vcs, name, raw_local_dir)
+                package.importer.snapshot(package, target_dir)
+            end
         end
 
         # Create a PackageSet instance from its description as found in YAML
@@ -1401,10 +1414,14 @@ module Autoproj
             @metapackages["#{pkg.package_set.name}.all"].add(pkg.autobuild)
         end
 
-        def definition_source(package_name)
+        def definition_package_set(package_name)
             if pkg_def = @packages[package_name]
                 pkg_def.package_set
             end
+        end
+
+        def definition_source(package_name)
+            definition_package_set(package_name)
         end
         def definition_file(package_name)
             if pkg_def = @packages[package_name]
