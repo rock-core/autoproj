@@ -306,6 +306,7 @@ module Autoproj
 
         def self.update_configuration
             manifest = Autoproj.manifest
+            Autoproj::Manifest.only_local_updates = @only_local
 
             # Load the installation's manifest a first time, to check if we should
             # update it ... We assume that the OS dependencies for this VCS is already
@@ -706,7 +707,7 @@ module Autoproj
                 # packages is not important BUT the ordering of import vs.
                 # prepare in one package IS important: prepare is the method
                 # that takes into account dependencies.
-                pkg.import
+                pkg.import(@only_local)
                 Rake::Task["#{pkg.name}-import"].instance_variable_set(:@already_invoked, true)
                 manifest.load_package_manifest(pkg.name)
 

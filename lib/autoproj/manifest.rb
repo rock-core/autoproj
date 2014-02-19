@@ -1038,7 +1038,7 @@ module Autoproj
             end
 
             def import
-                importer.import(self)
+                importer.import(self,Manifest.only_local_updates)
             end
 
             def add_stat(*args)
@@ -1120,6 +1120,11 @@ module Autoproj
 
         attr_reader :metapackages
 
+        class << self
+            #Set to true if this manifest should only do local updates through the Autobuild::Importer
+            attr_accessor :only_local_updates
+        end
+
 	def initialize
             @file = nil
 	    @data = Hash.new
@@ -1134,6 +1139,7 @@ module Autoproj
             @ignored_os_dependencies = Set.new
             @reused_installations = Array.new
             @ignored_packages = Set.new
+            Manifest::only_local_updates = false
 
             @constant_definitions = Hash.new
             if Autoproj.has_config_key?('manifest_source')
