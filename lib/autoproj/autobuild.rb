@@ -327,14 +327,14 @@ module Autoproj
         if !Dir.enum_for(:glob, File.join(full_path, "*.orogen")).to_a.empty?
             return "orogen_package", full_path
         elsif File.file?(File.join(full_path, "CMakeLists.txt"))
-            dir = find_topmost_directory_containing(full_path) do |dir|
+            toplevel_dir = find_topmost_directory_containing(full_path) do |dir|
                 cmakelists = File.join(dir, 'CMakeLists.txt')
                 File.file?(cmakelists) &&
                     (File.read(cmakelists) =~ /PROJECT/i)
             end
-            dir ||= find_topmost_directory_containing(full_path, 'CMakeLists.txt')
+            toplevel_dir ||= find_topmost_directory_containing(full_path, 'CMakeLists.txt')
 
-            return "cmake_package", dir
+            return "cmake_package", toplevel_dir
         elsif dir = find_topmost_directory_containing(full_path, "Rakefile") ||
             find_topmost_directory_containing(full_path, "lib/*.rb")
 
