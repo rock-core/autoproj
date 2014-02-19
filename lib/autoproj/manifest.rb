@@ -1726,9 +1726,6 @@ module Autoproj
         # The returned array can be empty if +name+ is an ignored package
         def resolve_package_name(name, options = Hash.new)
             if pkg_set = find_metapackage(name)
-                if !pkg_set
-                    raise ConfigError.new, "#{name} is neither a package nor a package set name. Packages in autoproj must be declared in an autobuild file."
-                end
                 pkg_names = pkg_set.each_package.map(&:name)
             else
                 pkg_names = [name]
