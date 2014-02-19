@@ -1,6 +1,20 @@
 module Autoproj
     class InputError < RuntimeError; end
 
+    class << self
+        # Programatically overriden autoproj options
+        #
+        # @see override_option
+        attr_reader :option_overrides
+    end
+    @option_overrides = Hash.new
+
+    # Programatically override a user-selected option without changing the
+    # configuration file
+    def self.override_option(option_name, value)
+        @option_overrides[option_name] = value
+    end
+
     class BuildOption
         attr_reader :name
         attr_reader :type
