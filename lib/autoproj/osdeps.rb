@@ -214,6 +214,15 @@ fi
             end
         end
 
+        #Package manger for OpenSuse and Suse (untested)
+        class ZypperManager < ShellScriptManager
+            def initialize
+                super(['zypper'], true,
+                        "zypper -n install '%s'",
+                        "zypper -n install '%s'")
+            end
+        end
+
         # Package manager interface for systems that use yum
         class YumManager < ShellScriptManager
             def initialize
@@ -690,6 +699,7 @@ fi
             PackageManagers::PacmanManager,
             PackageManagers::YumManager,
             PackageManagers::PortManager,
+            PackageManagers::ZypperManager,
             PackageManagers::PipManager]
         OS_PACKAGE_HANDLERS = {
             'debian' => 'apt-dpkg',
@@ -697,7 +707,8 @@ fi
             'arch' => 'pacman',
             'manjarolinux' => 'pacman',
             'fedora' => 'yum',
-            'darwin' => 'port'
+            'darwin' => 'port',
+            'opensuse' => 'zypper'
         }
 
         # The information contained in the OSdeps files, as a hash
@@ -888,6 +899,8 @@ fi
                         @operating_system = [[lsb_name, "debian"], lsb_versions]
                     elsif lsb_name != 'arch' && File.exists?("/etc/arch-release")
                         @operating_system = [[lsb_name, "arch"], lsb_versions]
+                    elsif lsb_name != 'opensuse' && File.exists?("/etc/SuSE-release")
+                        @operating_system = [[lsb_name, "opensuse"], lsb_versions]
                     elsif lsb_name != 'debian'
                         # Debian unstable cannot be detected with lsb_release,
                         # so debian has its own detection logic
@@ -925,6 +938,11 @@ fi
                         [['darwin'], [version.strip]]
                     elsif Autobuild.windows?
                         [['windows'], []]
+                    elsif File.exists?('/etc/SuSE-release')
+                        version = File.read('/etc/SuSE-release').strip
+                        version =~/.*VERSION\s+=\s+([^\s]+)/
+                        version = $1
+                        [['opensuse'], [version.strip]]
                     end
             end
 

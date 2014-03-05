@@ -49,6 +49,7 @@ ruby19:
         - ruby19
         - rake
     default: nonexistent
+    opensuse: ruby19-devel
 
 ruby20: ignore
 ruby21: ignore
@@ -59,6 +60,7 @@ build-essential:
   arch,manjarolinux: base-dev
   fedora: ignore
   darwin: ignore
+  opensuse: ignore #Toto add scemata
 
 autobuild: gem
 autoproj: gem
@@ -73,6 +75,7 @@ git:
   arch,manjarolinux: git
   fedora: git
   darwin: git-core
+  opensuse: git
 
 hg:
   debian,ubuntu: mercurial
@@ -80,6 +83,7 @@ hg:
   arch,manjarolinux: mercurial
   fedora: mercurial
   darwin: mercurial
+  opensuse: mercurial
 
 svn:
   debian,ubuntu: subversion
@@ -87,6 +91,7 @@ svn:
   arch,manjarolinux: subversion
   fedora: subversion
   darwin: subversion
+  opensuse: subversion
 
 cmake:
   debian,ubuntu: cmake
@@ -94,6 +99,7 @@ cmake:
   arch,manjarolinux: cmake
   fedora: cmake
   darwin: cmake
+  opensuse: cmake
 
 autotools:
   debian,ubuntu:
@@ -111,6 +117,9 @@ autotools:
   darwin:
   - automake
   - autoconf
+  opensuse:
+  - automake
+  - autoconf
 
 lsb_release:
   debian,ubuntu: lsb-release
@@ -118,6 +127,7 @@ lsb_release:
   arch,manjarolinux: lsb-release
   fedora: redhat-lsb
   darwin: ignore
+  opensuse: ignore
     
 archive:
   debian,ubuntu:
@@ -135,16 +145,21 @@ archive:
   darwin:
   - gnutar
   - unzip
+  opensuse:
+  - tar
+  - unzip
 
 cvs:
   debian,ubuntu: cvs
   fedora: cvs
   darwin: cvs
   arch,manjarolinux: cvs
+  opensuse: cvs
 
 pip:
   debian,ubuntu: python-pip
   arch,manjarolinux: python2-pip
+  opensuse: python-pip
 
 # vim: expandtab
 
