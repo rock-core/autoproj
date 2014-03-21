@@ -88,6 +88,13 @@ module Autoproj
                         end
                     end
                 end
+                
+                begin
+                    has_sudo = `which sudo`
+                    return unless $?.success?
+                rescue Exception => e
+                    raise raise ArgumentError, "No sudo is installed on your system. Please install sudo first before using autoproj"
+                end
 
 
                 Tempfile.open('osdeps_sh') do |io|

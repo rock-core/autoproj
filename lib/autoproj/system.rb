@@ -105,6 +105,12 @@ module Autoproj
 
     # Run the provided command as root, using sudo to gain root access
     def self.run_as_root(*args)
+        begin
+            has_sudo = `which sudo`
+            return unless $?.success?
+        rescue Exception => e
+            raise raise ArgumentError, "No sudo is installed on your system. Please install sudo first before using autoproj"
+        end
         if !system('sudo', *args)
             raise "failed to run #{args.join(" ")} as root"
         end
