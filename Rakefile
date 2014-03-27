@@ -8,10 +8,10 @@ Utilrb::Rake.hoe do
             self.developer "Rock Core Developers", "rock-dev@dfki.de"
 
             self.urls = ["http://rock-robotics.org/documentation/autoproj"]
-            self.rubyforge_name = 'autobuild'
+            self.group_name = 'autobuild'
             self.summary = 'Easy installation and management of sets of software packages'
             self.description = "autoproj is a manager for sets of software packages. It allows the user to import and build packages from source, still using the underlying distribution's native package manager for software that is available on it."
-r            self.email = "rock-dev@dfki.de"
+            self.email = "rock-dev@dfki.de"
 
             self.spec_extras[:required_ruby_version] = ">= 1.9.2"
             extra_deps << 
