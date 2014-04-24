@@ -51,8 +51,21 @@ ruby19:
     default: nonexistent
     opensuse: ruby19-devel
 
-ruby20: ignore
-ruby21: ignore
+ruby20:
+    debian:
+        - ruby2.0
+        - ruby2.0-dev
+        - rake
+        - rubygems-integration
+    default: ignore
+
+ruby21:
+    debian:
+        - ruby2.1
+        - ruby2.1-dev
+        - rake
+        - rubygems-integration
+    default: ignore
 
 build-essential:
   debian,ubuntu: build-essential
