@@ -89,17 +89,10 @@ module Autoproj
                     end
                 end
                 
-                begin
-                    has_sudo = `which sudo`
-                    return unless $?.success?
-                rescue Exception => e
-                    raise raise ArgumentError, "No sudo is installed on your system. Please install sudo first before using autoproj"
-                end
-
-
+                sudo = Autobuild.tool_in_path('sudo')
                 Tempfile.open('osdeps_sh') do |io|
                     io.puts "#! /bin/bash"
-                    io.puts GAIN_ROOT_ACCESS
+                    io.puts GAIN_ROOT_ACCESS % [sudo]
                     io.write script
                     io.flush
                     Autobuild::Subprocess.run 'autoproj', 'osdeps', '/bin/bash', io.path
@@ -109,7 +102,7 @@ module Autoproj
             GAIN_ROOT_ACCESS = <<-EOSCRIPT
 # Gain root access using sudo
 if test `id -u` != "0"; then
-    exec sudo /bin/bash $0 "$@"
+    exec %s /bin/bash $0 "$@"
 
 fi
             EOSCRIPT
