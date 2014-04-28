@@ -398,6 +398,14 @@ fi
                 end
             end
 
+            def reinstall
+                base_cmdline = [Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('gem')]
+                Autobuild::Subprocess.run 'autoproj', 'osdeps', 'reinstall', *base_cmdline,
+                    'clean'
+                Autobuild::Subprocess.run 'autoproj', 'osdeps', 'reinstall', *base_cmdline,
+                    'pristine', '--all', '--extensions'
+            end
+
             def install(gems)
                 guess_gem_program
 
@@ -1484,8 +1492,18 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
         # The set of packages that have already been installed
         attr_reader :installed_packages
 
-        # Requests the installation of the given set of packages
-        def install(packages, options = Hash.new)
+        # Set up the registered package handlers according to the specified osdeps mode
+        #
+        # It enables/disables package handlers based on either the value
+        # returned by {#osdeps_mode} or the value passed as option (the latter
+        # takes precedence). Moreover, sets the handler's silent flag using
+        # {#silent?}
+        #
+        # @option options [Array<String>] the package handlers that should be
+        #   enabled. The default value is returned by {#osdeps_mode}
+        # @return [Array<PackageManagers::Manager>] the set of enabled package
+        #   managers
+        def setup_package_handlers(options = Hash.new)
             options =
                 if Kernel.respond_to?(:validate_options)
                     Kernel.validate_options options, :osdeps_mode => osdeps_mode
@@ -1513,9 +1531,25 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
                 v.silent = self.silent?
             end
 
+            enabled_handlers = []
+            if os_package_handler.enabled?
+                enabled_handlers << os_package_handler
+            end
+            package_handlers.each_value do |v|
+                if v.enabled?
+                    enabled_handlers << v
+                end
+            end
+            enabled_handlers
+        end
+
+        # Requests the installation of the given set of packages
+        def install(packages, options = Hash.new)
             # Remove the set of packages that have already been installed 
             packages = packages.to_set - installed_packages
             return false if packages.empty?
+
+            setup_package_handlers(options)
 
             packages = resolve_os_dependencies(packages)
             packages = packages.map do |handler, list|

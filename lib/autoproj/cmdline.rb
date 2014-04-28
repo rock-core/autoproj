@@ -824,6 +824,16 @@ module Autoproj
                 if !opt.ask(false)
                     raise Interrupt
                 end
+                if Autoproj::CmdLine.update_os_dependencies?
+                    # We also reinstall the osdeps that provide the
+                    # functionality
+                    managers = Autoproj.osdeps.setup_package_handlers
+                    managers.each do |mng|
+                        if mng.respond_to?(:reinstall)
+                            mng.reinstall
+                        end
+                    end
+                end
 
             elsif !selected_packages.empty? && !force_re_build_with_depends?
                 if Autobuild.do_rebuild
