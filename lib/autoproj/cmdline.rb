@@ -75,7 +75,7 @@ module Autoproj
             end
             FileUtils.chmod 0755, File.join(bindir, 'ruby')
 
-            subprograms = ['gem', 'irb', 'testrb'].each do |name|
+            ['gem', 'irb', 'testrb'].each do |name|
                 # Look for the corresponding gem program
                 prg_name = "#{name}#{install_suffix}"
                 if File.file?(prg_path = File.join(ruby_bindir, prg_name))
