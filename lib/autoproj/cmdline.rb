@@ -58,6 +58,7 @@ module Autoproj
                 end
             end
             Autoproj.change_option('ruby_executable', ruby_executable, true)
+            Autobuild.programs['ruby'] = ruby_executable
 
             install_suffix = ""
             if match = /ruby(.*)$/.match(ruby)
