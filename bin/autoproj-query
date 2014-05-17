@@ -38,42 +38,45 @@ end
 remaining = parser.parse(ARGV)
 
 root_dir  = Autoproj::CmdLine.initialize_root_directory
-selection = Autoproj::CmdLine.initialize_and_load(remaining)
-if selection.empty?
-    STDERR.puts Autoproj.console.color("no query given on the command line", :red)
-    exit 1
-elsif selection.size > 1
-    STDERR.puts Autoproj.console.color("more than one query given on the command line", :red)
-    exit 1
-end
-selection = selection.first
-query = Autoproj::Query.parse_query(selection)
+Autoproj::CmdLine.report do
+    selection = Autoproj::CmdLine.initialize_and_load(remaining)
 
-packages =
-    if search_all
-        Autoproj.manifest.packages.to_a
-    else
-        Autoproj.manifest.all_selected_packages.map do |pkg_name|
-            [pkg_name, Autoproj.manifest.packages[pkg_name]]
+    if selection.empty?
+        STDERR.puts Autoproj.console.color("no query given on the command line", :red)
+        exit 1
+    elsif selection.size > 1
+        STDERR.puts Autoproj.console.color("more than one query given on the command line", :red)
+        exit 1
+    end
+    selection = selection.first
+    query = Autoproj::Query.parse_query(selection)
+
+    packages =
+        if search_all
+            Autoproj.manifest.packages.to_a
+        else
+            Autoproj.manifest.all_selected_packages.map do |pkg_name|
+                [pkg_name, Autoproj.manifest.packages[pkg_name]]
+            end
         end
+
+    matches = packages.map do |name, pkg_def|
+        if priority = query.match(pkg_def)
+            [priority, name]
+        end
+    end.compact
+
+    fields = Hash.new
+    matches = matches.sort
+    matches.each do |priority, name|
+        pkg = Autobuild::Package[name]
+        fields['SRCDIR'] = pkg.srcdir
+        fields['PREFIX'] = pkg.prefix
+        fields['NAME'] = name
+        fields['PRIORITY'] = priority
+
+        value = Autoproj.expand(display_format, fields)
+        puts value
     end
-
-matches = packages.map do |name, pkg_def|
-    if priority = query.match(pkg_def)
-        [priority, name]
-    end
-end.compact
-
-fields = Hash.new
-matches = matches.sort
-matches.each do |priority, name|
-    pkg = Autobuild::Package[name]
-    fields['SRCDIR'] = pkg.srcdir
-    fields['PREFIX'] = pkg.prefix
-    fields['NAME'] = name
-    fields['PRIORITY'] = priority
-
-    value = Autoproj.expand(display_format, fields)
-    puts value
 end
 
