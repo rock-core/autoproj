@@ -1970,12 +1970,12 @@ where 'mode' is one of:
 
         rescue ConfigError => e
             STDERR.puts
-            STDERR.puts color(e.message, :red, :bold)
+            STDERR.puts Autoproj.color(e.message, :red, :bold)
             if Autoproj.in_autoproj_installation?(Dir.pwd)
                 root_dir = /#{Regexp.quote(Autoproj.root_dir)}(?!\/\.gems)/
                 e.backtrace.find_all { |path| path =~ root_dir }.
                     each do |path|
-                        STDERR.puts color("  in #{path}", :red, :bold)
+                        STDERR.puts Autoproj.color("  in #{path}", :red, :bold)
                     end
             end
             if Autobuild.debug then raise
@@ -1983,7 +1983,7 @@ where 'mode' is one of:
             end
         rescue Interrupt
             STDERR.puts
-            STDERR.puts color("Interrupted by user", :red, :bold)
+            STDERR.puts Autoproj.color("Interrupted by user", :red, :bold)
             if Autobuild.debug then raise
             else exit 1
             end
