@@ -1,0 +1,56 @@
+#! /usr/bin/env ruby
+
+require 'autoproj'
+
+root_dir = Autoproj::CmdLine.initialize_root_directory
+
+Autoproj::CmdLine.report do
+    cache_dir, *_ =
+        Autoproj.silent do
+            Autoproj::CmdLine.initialize_and_load(ARGV)
+        end
+    manifest = Autoproj.manifest
+
+    cache_dir = File.expand_path(cache_dir, root_dir)
+    if !File.exists?(cache_dir)
+        Autoproj.message "  creating autoproj cache in #{cache_dir}"
+        FileUtils.mkdir_p cache_dir
+    else
+        Autoproj.message "  updating already existing cache repository in #{cache_dir}"
+    end
+    archive_cache_dir = File.join(cache_dir, 'archives')
+    if !File.directory?(archive_cache_dir)
+        Autoproj.message "    creating archive cache in #{archive_cache_dir}"
+        FileUtils.mkdir_p archive_cache_dir
+    else
+        Autoproj.message "    updating already existing archive cache in #{archive_cache_dir}"
+    end
+    git_cache_dir = File.join(cache_dir, 'git')
+    if !File.directory?(git_cache_dir)
+        Autoproj.message "    creating git cache in #{git_cache_dir}"
+        FileUtils.mkdir_p git_cache_dir
+        Autobuild::Subprocess.run("autoproj-cache", "import", Autobuild.tool(:git), "--git-dir", git_cache_dir, 'init', "--bare")
+    else
+        Autoproj.message "    updating already existing git cache in #{git_cache_dir}"
+    end
+
+    manifest.each_package do |pkg|
+        if pkg.importer.kind_of?(Autobuild::Git)
+            Autoproj.message "  caching #{pkg.name} (git)"
+            pkg.importdir = git_cache_dir
+            pkg.importer.local_branch = nil
+            pkg.importer.remote_branch = nil
+            remote_name = pkg.name.gsub(/[^\w]/, '_')
+            pkg.importer.remote_name = remote_name
+            pkg.importer.update_remotes_configuration(pkg, 'autoproj-cache')
+            Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', git_cache_dir, 'remote', 'update', remote_name)
+        elsif pkg.importer.kind_of?(Autobuild::ArchiveImporter)
+            Autoproj.message "  caching #{pkg.name} (archive)"
+            pkg.importer.cachedir = archive_cache_dir
+            pkg.importer.update_cache(pkg)
+        end
+    end
+
+    Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', git_cache_dir, 'gc', '--aggressive', '--prune=all')
+end
+
