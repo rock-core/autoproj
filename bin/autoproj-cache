@@ -4,6 +4,20 @@ require 'autoproj'
 
 root_dir = Autoproj::CmdLine.initialize_root_directory
 
+def with_retry(count)
+    (count + 1).times do |i|
+        begin
+            break yield
+        rescue Autobuild::SubcommandFailed
+            if i == count
+                raise
+            else
+                Autobuild.message "  failed, retrying (#{i}/#{count})"
+            end
+        end
+    end
+end
+
 Autoproj::CmdLine.report do
     cache_dir, *_ =
         Autoproj.silent do
@@ -43,11 +57,16 @@ Autoproj::CmdLine.report do
             remote_name = pkg.name.gsub(/[^\w]/, '_')
             pkg.importer.remote_name = remote_name
             pkg.importer.update_remotes_configuration(pkg, 'autoproj-cache')
-            Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', git_cache_dir, 'remote', 'update', remote_name)
+
+            with_retry(10) do
+                Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', git_cache_dir, 'remote', 'update', remote_name)
+            end
         elsif pkg.importer.kind_of?(Autobuild::ArchiveImporter)
             Autoproj.message "  caching #{pkg.name} (archive)"
             pkg.importer.cachedir = archive_cache_dir
-            pkg.importer.update_cache(pkg)
+            with_retry(10) do
+                pkg.importer.update_cache(pkg)
+            end
         end
     end
 
