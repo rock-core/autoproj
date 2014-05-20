@@ -148,6 +148,7 @@ ENV['AUTOPROJ_OSDEPS_MODE'] = osdeps_mode
 # binary) by setting Autobuild.programs['gem'] to nil
 Autobuild.programs['gem'] = nil
 Autoproj::OSDependencies.autodetect_ruby
+Autoproj::OSDependencies.autodetect_ruby_program
 
 osdeps_management = 
     if ENV['AUTOPROJ_DEFAULT_OSDEPS']

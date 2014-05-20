@@ -684,6 +684,14 @@ fi
             "ruby#{RUBY_VERSION.split('.')[0, 2].join("")}"
         end
 
+        def self.autodetect_ruby_program
+            ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
+            ruby_bindir = RbConfig::CONFIG['bindir']
+            ruby_executable = File.join(ruby_bindir, ruby)
+            Autobuild.programs['ruby'] = ruby_executable
+            ruby_executable
+        end
+
         def self.autodetect_ruby
             self.alias(ruby_version_keyword, "ruby")
         end

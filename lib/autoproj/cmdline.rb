@@ -47,10 +47,8 @@ module Autoproj
         end
 
         def self.handle_ruby_version
-            ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
-            ruby_bindir = RbConfig::CONFIG['bindir']
+            @ruby_executable = Autoproj::OSDependencies.autodetect_ruby_program
 
-            @ruby_executable = File.join(ruby_bindir, ruby)
             if Autoproj.has_config_key?('ruby_executable')
                 expected = Autoproj.user_config('ruby_executable')
                 if expected != ruby_executable
@@ -58,7 +56,6 @@ module Autoproj
                 end
             end
             Autoproj.change_option('ruby_executable', ruby_executable, true)
-            Autobuild.programs['ruby'] = ruby_executable
 
             install_suffix = ""
             if match = /ruby(.*)$/.match(ruby)
