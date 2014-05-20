@@ -123,6 +123,7 @@ module Autobuild
 end
 
 OSDEPS_CODE
+TOOLS_CODE
 OPTIONS_CODE
 SYSTEM_CODE
 

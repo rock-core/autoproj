@@ -30,6 +30,8 @@ namespace 'dist' do
         options_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'options.rb'))
         system_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'system.rb'))
         osdeps_defaults = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'default.osdeps'))
+        require 'autobuild'
+        tools_code = File.read(File.join(Autobuild::LIB_DIR, 'autobuild', 'tools.rb'))
         # Filter rubygems dependencies from the OSdeps default. They will be
         # installed at first build
         osdeps = YAML.load(osdeps_defaults)
@@ -44,7 +46,7 @@ namespace 'dist' do
         osdeps_defaults = YAML.dump(osdeps)
         # Since we are using gsub to replace the content in the bootstrap file,
         # we have to quote all \
-        [osdeps_code, options_code, system_code, osdeps_defaults].each do |text|
+        [osdeps_code, options_code, system_code, osdeps_defaults, tools_code].each do |text|
             text.gsub! /\\/, '\\\\\\\\'
         end
 
@@ -52,7 +54,8 @@ namespace 'dist' do
             gsub('OSDEPS_CODE', osdeps_code).
             gsub('OPTIONS_CODE', options_code).
             gsub('SYSTEM_CODE', system_code).
-            gsub('OSDEPS_DEFAULTS', osdeps_defaults)
+            gsub('OSDEPS_DEFAULTS', osdeps_defaults).
+            gsub('TOOLS_CODE', tools_code)
         File.open(File.join(Dir.pwd, 'bin', 'autoproj_bootstrap'), 'w') do |io|
             io.write bootstrap_code
         end
