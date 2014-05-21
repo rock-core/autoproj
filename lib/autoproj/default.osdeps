@@ -141,7 +141,7 @@ lsb_release:
   arch,manjarolinux: lsb-release
   fedora: redhat-lsb
   darwin: ignore
-  opensuse: ignore
+  opensuse: lsb-release
     
 archive:
   debian,ubuntu:
