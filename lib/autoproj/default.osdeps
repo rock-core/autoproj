@@ -57,6 +57,7 @@ ruby20:
         - ruby2.0-dev
         - rake
         - rubygems-integration
+    opensuse: ruby20-devel
     default: ignore
 
 ruby21:
