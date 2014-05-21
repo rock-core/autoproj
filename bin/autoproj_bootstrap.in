@@ -177,7 +177,7 @@ end
 File.open('env.sh', 'w') do |io|
     io.write <<-EOSHELL
 export RUBYOPT=-rubygems
-export GEM_PATH=#{gem_path.join(":")}
+export GEM_PATH=#{gem_path}
 export GEM_HOME=#{gem_home}
 export PATH=$GEM_HOME/bin:$PATH
     EOSHELL
