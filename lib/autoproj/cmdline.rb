@@ -58,7 +58,7 @@ module Autoproj
             Autoproj.change_option('ruby_executable', ruby_executable, true)
 
             install_suffix = ""
-            if match = /ruby(.*)$/.match(ruby)
+            if match = /ruby(.*)$/.match(RbConfig::CONFIG['RUBY_INSTALL_NAME'])
                 install_suffix = match[1]
             end
 
@@ -68,7 +68,7 @@ module Autoproj
 
             File.open(File.join(bindir, 'ruby'), 'w') do |io|
                 io.puts "#! /bin/sh"
-                io.puts "exec #{File.join(ruby_bindir, ruby)} \"$@\""
+                io.puts "exec #{ruby_executable} \"$@\""
             end
             FileUtils.chmod 0755, File.join(bindir, 'ruby')
 
@@ -77,7 +77,7 @@ module Autoproj
                 prg_name = "#{name}#{install_suffix}"
                 if File.file?(prg_path = File.join(ruby_bindir, prg_name))
                     File.open(File.join(bindir, name), 'w') do |io|
-                        io.puts "#! #{File.join(ruby_bindir, ruby)}"
+                        io.puts "#! #{ruby_executable}"
                         io.puts "exec \"#{prg_path}\", *ARGV"
                     end
                     FileUtils.chmod 0755, File.join(bindir, name)
@@ -209,6 +209,8 @@ module Autoproj
         def self.update_myself
             return if !Autoproj::CmdLine.update_os_dependencies?
 
+            handle_ruby_version
+
             # This is a guard to avoid infinite recursion in case the user is
             # running autoproj osdeps --force
             if ENV['AUTOPROJ_RESTARTING'] == '1'
@@ -227,11 +229,10 @@ module Autoproj
                 Autoproj.save_config
                 ENV['AUTOPROJ_RESTARTING'] = '1'
                 require 'rbconfig'
-                ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
                 if defined?(ORIGINAL_ARGV)
-                    exec(ruby, $0, *ORIGINAL_ARGV)
+                    exec(ruby_executable, $0, *ORIGINAL_ARGV)
                 else
-                    exec(ruby, $0, *ARGV)
+                    exec(ruby_executable, $0, *ARGV)
                 end
             end
         end
