@@ -355,9 +355,7 @@ fi
                 Autobuild.env_add_path 'PATH', "#{gem_home}/bin"
 
                 # Now, reset the directories in our own RubyGems instance
-                if Gem::Specification.respond_to?(:dirs=)
-                    Gem::Specification.dirs = ENV['GEM_PATH'].split(':')
-                end
+                Gem.paths = ENV
             end
 
             # Return the directory in which RubyGems package should be installed

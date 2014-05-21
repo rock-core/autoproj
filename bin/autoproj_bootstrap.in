@@ -53,20 +53,12 @@ end
 # Environment is clean, so just mark it as so unconditionally
 ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] = '1'
 
-needed_gem_home = ENV['AUTOPROJ_GEM_HOME'] || "#{Dir.pwd}/.gems"
-if $LOADED_FEATURES.find { |str| str =~ /bygems/ }
-    if ENV['GEM_HOME'] != needed_gem_home
-        require 'rbconfig'
-        RUBY = RbConfig::CONFIG['RUBY_INSTALL_NAME']
+gem_home = ENV['AUTOPROJ_GEM_HOME'] || File.join(Dir.pwd, '.gems')
+gem_path = ([gem_home] + Gem.default_path).join(":")
+Gem.paths = Hash['GEM_HOME' => gem_home, 'GEM_PATH' => gem_path]
 
-        ENV['GEM_HOME'] = needed_gem_home
-        ENV['GEM_PATH'] = nil
-        exec RUBY, __FILE__, *ARGV
-    end
-end
-
-
-ENV['GEM_HOME'] = needed_gem_home
+ENV['GEM_HOME'] = gem_home
+ENV['GEM_PATH'] = gem_path
 ENV['PATH']     = "#{ENV['GEM_HOME']}/bin:#{ENV['PATH']}"
 
 require 'yaml'
@@ -185,8 +177,8 @@ end
 File.open('env.sh', 'w') do |io|
     io.write <<-EOSHELL
 export RUBYOPT=-rubygems
-export GEM_PATH=#{needed_gem_home}:$GEM_PATH
-export GEM_HOME=#{needed_gem_home}
+export GEM_PATH=#{gem_path.join(":")}
+export GEM_HOME=#{gem_home}
 export PATH=$GEM_HOME/bin:$PATH
     EOSHELL
 end
