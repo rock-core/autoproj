@@ -428,7 +428,7 @@ fi
             def install(gems)
                 guess_gem_program
 
-                base_cmdline = [Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('gem'), 'install']
+                base_cmdline = [Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('gem'), 'install', '--no-format-executable']
                 if !GemManager.with_doc
                     base_cmdline << '--no-rdoc' << '--no-ri'
                 end
