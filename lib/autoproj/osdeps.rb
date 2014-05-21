@@ -119,14 +119,16 @@ fi
                     needs_locking, user_install_cmd, auto_install_cmd
             end
 
-            def generate_user_os_script(os_packages)
+            def generate_user_os_script(os_packages, options = Hash.new)
+                user_install_cmd = options[:user_install_cmd] || self.user_install_cmd
                 if user_install_cmd
                     (user_install_cmd % [os_packages.join("' '")])
                 else generate_auto_os_script(os_packages)
                 end
             end
 
-            def generate_auto_os_script(os_packages)
+            def generate_auto_os_script(os_packages, options = Hash.new)
+                auto_install_cmd = options[:auto_install_cmd] || self.auto_install_cmd
                 (auto_install_cmd % [os_packages.join("' '")])
             end
 
@@ -164,11 +166,11 @@ fi
                 false
             end
 
-            def install(packages)
+            def install(packages, options = Hash.new)
                 handled_os = OSDependencies.supported_operating_system?
                 if handled_os
-                    shell_script = generate_auto_os_script(packages)
-                    user_shell_script = generate_user_os_script(packages)
+                    shell_script = generate_auto_os_script(packages, options)
+                    user_shell_script = generate_user_os_script(packages, options)
                 end
                 if osdeps_interaction(packages, user_shell_script)
                     Autoproj.message "  installing OS packages: #{packages.sort.join(", ")}"
@@ -218,8 +220,27 @@ fi
         class ZypperManager < ShellScriptManager
             def initialize
                 super(['zypper'], true,
-                        "zypper -n install '%s'",
+                        "zypper install '%s'",
                         "zypper -n install '%s'")
+            end
+
+            def install(packages)
+                patterns, packages = packages.partition { |pkg| pkg =~ /^@/ }
+                patterns = patterns.map { |str| str[1..-1] }
+                result = false
+                if !patterns.empty?
+                    result |= super(patterns,
+                                    :auto_install_cmd => "zypper --non-interactive install --type pattern '%s'",
+                                    :user_install_cmd => "zypper install --type pattern '%s'")
+                end
+                if !packages.empty?
+                    result |= super(packages)
+                end
+                if result
+                    # Invalidate caching of installed packages, as we just
+                    # installed new packages !
+                    @installed_packages = nil
+                end
             end
         end
 
