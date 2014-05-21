@@ -74,7 +74,7 @@ build-essential:
   arch,manjarolinux: base-dev
   fedora: ignore
   darwin: ignore
-  opensuse: ignore #Toto add scemata
+  opensuse: ["@devel_C_C++", "gcc-c++"]
 
 autobuild: gem
 autoproj: gem
