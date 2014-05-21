@@ -75,7 +75,7 @@ module Autoproj
             ['gem', 'irb', 'testrb'].each do |name|
                 # Look for the corresponding gem program
                 prg_name = "#{name}#{install_suffix}"
-                if File.file?(prg_path = File.join(ruby_bindir, prg_name))
+                if File.file?(prg_path = File.join(RbConfig::CONFIG['bindir'], prg_name))
                     File.open(File.join(bindir, name), 'w') do |io|
                         io.puts "#! #{ruby_executable}"
                         io.puts "exec \"#{prg_path}\", *ARGV"
