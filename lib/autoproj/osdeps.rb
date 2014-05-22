@@ -383,6 +383,15 @@ fi
             def self.gem_home
                 ENV['AUTOPROJ_GEM_HOME'] || File.join(Autoproj.root_dir, ".gems")
             end
+            
+            # Returns the set of default options that are added to gem
+            #
+            # By default, we add --no-user-install to un-break distributions
+            # like Arch that set --user-install by default (thus disabling the
+            # role of GEM_HOME)
+            def self.default_install_options
+                @default_install_options ||= ['--no-user-install', '--no-format-executable']
+            end
 
             def initialize
                 super(['gem'])
@@ -428,7 +437,7 @@ fi
             def install(gems)
                 guess_gem_program
 
-                base_cmdline = [Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('gem'), 'install', '--no-format-executable']
+                base_cmdline = [Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('gem'), 'install', *GemManager.default_install_options]
                 if !GemManager.with_doc
                     base_cmdline << '--no-rdoc' << '--no-ri'
                 end
