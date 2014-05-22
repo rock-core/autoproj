@@ -86,6 +86,14 @@ module Autobuild
     def self.message(str)
         STDERR.puts "  #{str}"
     end
+    def self.progress(key, str)
+        STDERR.puts "  #{str}"
+    end
+    def self.progress_done(key)
+    end
+    def self.message(str)
+        STDERR.puts "  #{str}"
+    end
 
     class << self
         attr_reader :programs
