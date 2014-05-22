@@ -935,7 +935,7 @@ fi
                     @operating_system = [names.split(','), versions.split(',')]
                 end
             else
-                Autoproj.message "  autodetecting the operating system"
+                Autobuild.progress :operating_system_autodetection, "autodetecting the operating system"
                 lsb_name, lsb_versions = os_from_lsb
                 if lsb_name
                     if lsb_name != 'debian' && File.exists?("/etc/debian_version")
@@ -1003,7 +1003,10 @@ fi
 
             @operating_system = [names, versions]
             Autoproj.change_option('operating_system', @operating_system, true)
+            Autobuild.progress :operating_system_autodetection, "operating system: #{(names - ['default']).join(",")} - #{(versions - ['default']).join(",")}"
             @operating_system
+        ensure
+            Autobuild.progress_done :operating_system_autodetection
         end
 
         def self.os_from_lsb
