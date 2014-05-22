@@ -201,8 +201,8 @@ fi
         class PacmanManager < ShellScriptManager
             def initialize
                 super(['pacman'], true,
-                        "pacman '%s'",
-                        "pacman -Sy --noconfirm '%s'")
+                        "pacman -Sy --needed '%s'",
+                        "pacman -Sy --needed --noconfirm '%s'")
             end
         end
 
