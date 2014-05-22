@@ -196,6 +196,43 @@ fi
             end
         end
 
+        # Package manager interface for Mac OS using homebrew as
+        # its package manager
+        class HomebrewManager < ShellScriptManager
+            def initialize
+                require 'json'
+                super(['brew'], true,
+                        "brew install '%s'",
+                        "brew install '%s'",
+                        false)
+            end
+
+            def filter_uptodate_packages(packages)
+                # TODO there might be duplicates in packages which should be fixed
+                # somewhere else
+                packages = packages.uniq
+                result = `brew info --json=v1 '#{packages.join("' '")}'`
+                result = begin
+                             Array(JSON.parse(result))
+                         rescue JSON::ParserError => e
+                             Autoproj.warn "Error while parsing result of brew info --json=v1"
+                             []
+                         end
+
+                # fall back if something went wrong
+                if packages.size != result.size
+                    Autoproj.warn "brew info returns less packages when requested. Falling back to install all packages"
+                    return packages
+                end
+
+                new_packages = []
+                result.each do |pkg|
+                    new_packages << pkg["name"] if pkg["installed"].empty?
+                end
+                new_packages
+            end
+        end
+
         # Package manager interface for systems that use pacman (i.e. arch) as
         # their package manager
         class PacmanManager < ShellScriptManager
@@ -698,6 +735,7 @@ fi
             PackageManagers::GemManager,
             PackageManagers::EmergeManager,
             PackageManagers::PacmanManager,
+            PackageManagers::HomebrewManager,
             PackageManagers::YumManager,
             PackageManagers::PortManager,
             PackageManagers::ZypperManager,
