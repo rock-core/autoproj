@@ -20,6 +20,7 @@ ruby18:
         - ruby
         - rb-rake
     default: nonexistent
+    arch: ignore # on arch, if ruby is installed then so is the supporting stuff
     
 ruby19:
     debian:
@@ -39,8 +40,6 @@ ruby19:
     gentoo:
         - dev-lang/ruby:1.9
         - rake
-    arch,manjarolinux:
-        - ruby
     fedora:
       "17":
       - ruby
@@ -48,8 +47,9 @@ ruby19:
     darwin:
         - ruby19
         - rake
-    default: nonexistent
     opensuse: ruby19-devel
+    arch: ignore # on arch, if ruby is installed then so is the supporting stuff
+    default: nonexistent
 
 ruby20:
     debian:
@@ -58,7 +58,8 @@ ruby20:
         - rake
         - rubygems-integration
     opensuse: ruby20-devel
-    default: ignore
+    arch: ignore # on arch, if ruby is installed then so is the supporting stuff
+    default: nonexistent
 
 ruby21:
     debian:
@@ -66,12 +67,13 @@ ruby21:
         - ruby2.1-dev
         - rake
         - rubygems-integration
-    default: ignore
+    arch: ignore # on arch, if ruby is installed then so is the supporting stuff
+    default: nonexistent
 
 build-essential:
   debian,ubuntu: build-essential
   gentoo: ignore
-  arch,manjarolinux: base-dev
+  arch: base-devel
   fedora: ignore
   darwin: ignore
   opensuse: ["@devel_C_C++", "gcc-c++"]
@@ -86,7 +88,7 @@ git:
     default: git-core
   ubuntu: git-core
   gentoo: dev-vcs/git
-  arch,manjarolinux: git
+  arch: git
   fedora: git
   darwin: git-core
   opensuse: git
@@ -94,7 +96,7 @@ git:
 hg:
   debian,ubuntu: mercurial
   gentoo: dev-vcs/mercurial
-  arch,manjarolinux: mercurial
+  arch: mercurial
   fedora: mercurial
   darwin: mercurial
   opensuse: mercurial
@@ -102,7 +104,7 @@ hg:
 svn:
   debian,ubuntu: subversion
   gentoo: dev-util/subversion
-  arch,manjarolinux: subversion
+  arch: subversion
   fedora: subversion
   darwin: subversion
   opensuse: subversion
@@ -110,7 +112,7 @@ svn:
 cmake:
   debian,ubuntu: cmake
   gentoo: dev-util/cmake
-  arch,manjarolinux: cmake
+  arch: cmake
   fedora: cmake
   darwin: cmake
   opensuse: cmake
@@ -122,7 +124,7 @@ autotools:
   gentoo:
   - "sys-devel/automake:1.9"
   - sys-devel/autoconf
-  arch,manjarolinux: 
+  arch: 
   - automake 
   - autoconf
   fedora:
@@ -138,7 +140,7 @@ autotools:
 lsb_release:
   debian,ubuntu: lsb-release
   gentoo: sys-apps/lsb-release
-  arch,manjarolinux: lsb-release
+  arch: lsb-release
   fedora: redhat-lsb
   darwin: ignore
   opensuse: ignore
@@ -150,7 +152,7 @@ archive:
   gentoo:
   - app-arch/tar
   - app-arch/unzip
-  arch,manjarolinux:
+  arch:
   - tar
   - unzip
   fedora:
@@ -167,12 +169,12 @@ cvs:
   debian,ubuntu: cvs
   fedora: cvs
   darwin: cvs
-  arch,manjarolinux: cvs
+  arch: cvs
   opensuse: cvs
 
 pip:
   debian,ubuntu: python-pip
-  arch,manjarolinux: python2-pip
+  arch: python2-pip
   opensuse: python-pip
 
 # vim: expandtab
