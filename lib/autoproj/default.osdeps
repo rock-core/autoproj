@@ -87,7 +87,7 @@ git:
   gentoo: dev-vcs/git
   arch,manjarolinux: git
   fedora: git
-  darwin: git-core
+  darwin: git
   opensuse: git
 
 hg:
@@ -156,8 +156,7 @@ archive:
   - tar
   - unzip
   darwin:
-  - gnutar
-  - unzip
+  - gnu-tar
   opensuse:
   - tar
   - unzip
