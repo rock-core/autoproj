@@ -749,7 +749,6 @@ fi
             'debian' => 'apt-dpkg',
             'gentoo' => 'emerge',
             'arch' => 'pacman',
-            'manjarolinux' => 'pacman',
             'fedora' => 'yum',
             'darwin' => 'port',
             'opensuse' => 'zypper'
