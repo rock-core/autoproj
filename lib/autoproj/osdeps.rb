@@ -936,18 +936,26 @@ fi
                 end
             else
                 Autobuild.progress :operating_system_autodetection, "autodetecting the operating system"
-                lsb_name, lsb_versions = os_from_lsb
-                if lsb_name
-                    if lsb_name != 'debian' && File.exists?("/etc/debian_version")
-                        @operating_system = [[lsb_name, "debian"], lsb_versions]
-                    elsif lsb_name != 'arch' && File.exists?("/etc/arch-release")
-                        @operating_system = [[lsb_name, "arch"], lsb_versions]
-                    elsif lsb_name != 'opensuse' && File.exists?("/etc/SuSE-release")
-                        @operating_system = [[lsb_name, "opensuse"], lsb_versions]
-                    elsif lsb_name != 'debian'
-                        # Debian unstable cannot be detected with lsb_release,
-                        # so debian has its own detection logic
-                        @operating_system = [[lsb_name], lsb_versions]
+                names, versions = os_from_os_release
+                # Don't use the os-release information on Debian, since they
+                # refuse to put enough information to detect 'unstable'
+                # reliably. So, we use Debian's heuristic detection method below
+                if names && names[0] != 'debian'
+                    @operating_system = [names, versions]
+                else
+                    lsb_name, lsb_versions = os_from_lsb
+                    if lsb_name
+                        if lsb_name != 'debian' && File.exists?("/etc/debian_version")
+                            @operating_system = [[lsb_name, "debian"], lsb_versions]
+                        elsif lsb_name != 'arch' && File.exists?("/etc/arch-release")
+                            @operating_system = [[lsb_name, "arch"], lsb_versions]
+                        elsif lsb_name != 'opensuse' && File.exists?("/etc/SuSE-release")
+                            @operating_system = [[lsb_name, "opensuse"], lsb_versions]
+                        elsif lsb_name != 'debian'
+                            # Debian unstable cannot be detected with lsb_release,
+                            # so debian has its own detection logic
+                            @operating_system = [[lsb_name], lsb_versions]
+                        end
                     end
                 end
             end
@@ -1007,6 +1015,26 @@ fi
             @operating_system
         ensure
             Autobuild.progress_done :operating_system_autodetection
+        end
+
+        def self.os_from_os_release(filename = '/etc/os-release')
+            return if !File.exists?(filename)
+
+            fields = Hash.new
+            File.readlines(filename).each do |line|
+                if line.strip =~ /^(\w+)=(?:["'])?([^"']+)(?:["'])?$/
+                    fields[$1] = $2
+                else Autoproj.warn "error parsing /etc/os-release, line: #{line.inspect}"
+                end
+            end
+
+            names = []
+            versions = []
+            names << fields['ID'] << fields['ID_LIKE']
+            versions << fields['VERSION_ID']
+            version = fields['VERSION'] || ''
+            versions.concat(version.gsub(/[^\w.]/, ' ').split(' '))
+            return names.compact.uniq, versions.compact.uniq
         end
 
         def self.os_from_lsb

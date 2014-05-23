@@ -516,5 +516,33 @@ class TC_OSDependencies < Test::Unit::TestCase
         flexmock(OSDependencies).should_receive(:supported_operating_system?).and_return(false)
         assert_equal [[osdeps.os_package_handler, ['a_package']]], osdeps.resolve_os_dependencies(['a_package'])
     end
+
+    DATA_DIR = File.expand_path('data', File.dirname(__FILE__))
+    def test_os_from_os_release_returns_nil_if_the_os_release_file_is_not_found
+        assert !Autoproj::OSDependencies.os_from_os_release('does_not_exist')
+    end
+    def test_os_from_os_release_handles_quoted_and_unquoted_fields
+        names, versions = Autoproj::OSDependencies.os_from_os_release(
+            File.join(DATA_DIR, 'os_release.with_missing_optional_fields'))
+        assert_equal ['name'], names
+        assert_equal ['version_id'], versions
+    end
+    def test_os_from_os_release_handles_optional_fields
+        names, versions = Autoproj::OSDependencies.os_from_os_release(
+            File.join(DATA_DIR, 'os_release.with_missing_optional_fields'))
+        assert_equal ['name'], names
+        assert_equal ['version_id'], versions
+    end
+    def test_os_from_os_release_parses_the_version_field
+        _, versions = Autoproj::OSDependencies.os_from_os_release(
+            File.join(DATA_DIR, 'os_release.with_complex_version_field'))
+        assert_equal ['version_id', 'version', 'codename', 'codename_bis'], versions
+    end
+    def test_os_from_os_release_removes_duplicate_values
+        names, versions = Autoproj::OSDependencies.os_from_os_release(
+            File.join(DATA_DIR, 'os_release.with_duplicate_values'))
+        assert_equal ['id'], names
+        assert_equal ['version_id', 'codename'], versions
+    end
 end
 
