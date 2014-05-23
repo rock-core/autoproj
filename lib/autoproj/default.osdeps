@@ -131,14 +131,6 @@ autotools:
   - automake
   - autoconf
 
-lsb_release:
-  debian,ubuntu: lsb-release
-  gentoo: sys-apps/lsb-release
-  arch: lsb-release
-  fedora: redhat-lsb
-  darwin: ignore
-  opensuse: lsb-release
-    
 archive:
   debian,ubuntu:
   - tar

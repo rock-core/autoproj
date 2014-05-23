@@ -168,18 +168,14 @@ end
 
 # Now try to find out the name of the gem binary
 PACKAGES      = []
-if !File.exists?('/etc/os-release')
-    PACKAGES << 'lsb_release'
-end
-
-ENV['RUBYOPT']  = "-rubygems"
-require 'rubygems'
 
 STDERR.puts "autoproj: installing autoproj and its dependencies (this can take a long time)"
 # First install the dependencies of autoproj, as we don't want them to be
 # affected by the prerelease flag
 begin
-    osdeps_management.install(PACKAGES)
+    if !PACKAGES.empty?
+        osdeps_management.install(PACKAGES)
+    end
 rescue Autoproj::ConfigError => e
     STDERR.puts "failed: #{e.message}"
     exit(1)

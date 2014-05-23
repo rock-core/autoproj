@@ -889,6 +889,68 @@ fi
             @operating_system = values
         end
 
+        def self.guess_operating_system
+            if File.exists?('/etc/debian_version')
+                versions = [File.read('/etc/debian_version').strip]
+                if versions.first =~ /sid/
+                    versions = ["unstable", "sid"]
+                end
+                [['debian'], versions]
+            elsif File.exists?('/etc/redhat-release')
+                release_string = File.read('/etc/redhat-release').strip
+                release_string =~ /(.*) release ([\d.]+)/
+                name = $1.downcase
+                version = $2
+                if name =~ /Red Hat Entreprise/
+                    name = 'rhel'
+                end
+                [[name], [version]]
+            elsif File.exists?('/etc/gentoo-release')
+                release_string = File.read('/etc/gentoo-release').strip
+                release_string =~ /^.*([^\s]+)$/
+                version = $1
+                [['gentoo'], [version]]
+            elsif File.exists?('/etc/arch-release')
+                [['arch'], []]
+            elsif Autobuild.macos? 
+                version=`sw_vers | head -2 | tail -1`.split(":")[1]
+                [['darwin'], [version.strip]]
+            elsif Autobuild.windows?
+                [['windows'], []]
+            elsif File.exists?('/etc/SuSE-release')
+                version = File.read('/etc/SuSE-release').strip
+                version =~/.*VERSION\s+=\s+([^\s]+)/
+                version = $1
+                [['opensuse'], [version.strip]]
+            end
+        end
+
+        def self.ensure_derivatives_refer_to_their_parents(names)
+            names = names.dup
+            version_files = Hash[
+                '/etc/debian_version' => 'debian',
+                '/etc/redhat-release' => 'fedora',
+                '/etc/gentoo-release' => 'gentoo',
+                '/etc/arch-release' => 'arch',
+                '/etc/SuSE-release' => 'opensuse']
+            version_files.each do |file, name|
+                if File.exists?(file) && !names.include?(name)
+                    names << name
+                end
+            end
+            names
+        end
+        
+        def self.normalize_os_representation(names, versions)
+            # Normalize the names to lowercase
+            names    = names.map(&:downcase)
+            versions = versions.map(&:downcase)
+            if !versions.include?('default')
+                versions += ['default']
+            end
+            return names, versions
+        end
+
         # Autodetects the operating system name and version
         #
         # +osname+ is the operating system name, all in lowercase (e.g. ubuntu,
@@ -912,102 +974,41 @@ fi
 
             if options[:force]
                 @operating_system = nil
-            else
-                if !@operating_system.nil?
-                    return @operating_system
-                elsif Autoproj.has_config_key?('operating_system') && !(user_os = ENV['AUTOPROJ_OS'])
-                    os = Autoproj.user_config('operating_system')
-                    if os.respond_to?(:to_ary)
-                        if os[0].respond_to?(:to_ary) && os[0].all? { |s| s.respond_to?(:to_str) } &&
-                           os[1].respond_to?(:to_ary) && os[1].all? { |s| s.respond_to?(:to_str) }
-                           @operating_system = os
-                           return os
-                        end
-                    end
-                end
-            end
-
-            if user_os = ENV['AUTOPROJ_OS']
-                if user_os.empty?
-                    @operating_system = false
-                else
-                    names, versions = user_os.split(':')
-                    @operating_system = [names.split(','), versions.split(',')]
-                end
-            else
-                Autobuild.progress :operating_system_autodetection, "autodetecting the operating system"
-                names, versions = os_from_os_release
-                # Don't use the os-release information on Debian, since they
-                # refuse to put enough information to detect 'unstable'
-                # reliably. So, we use Debian's heuristic detection method below
-                if names && names[0] != 'debian'
-                    @operating_system = [names, versions]
-                else
-                    lsb_name, lsb_versions = os_from_lsb
-                    if lsb_name
-                        if lsb_name != 'debian' && File.exists?("/etc/debian_version")
-                            @operating_system = [[lsb_name, "debian"], lsb_versions]
-                        elsif lsb_name != 'arch' && File.exists?("/etc/arch-release")
-                            @operating_system = [[lsb_name, "arch"], lsb_versions]
-                        elsif lsb_name != 'opensuse' && File.exists?("/etc/SuSE-release")
-                            @operating_system = [[lsb_name, "opensuse"], lsb_versions]
-                        elsif lsb_name != 'debian'
-                            # Debian unstable cannot be detected with lsb_release,
-                            # so debian has its own detection logic
-                            @operating_system = [[lsb_name], lsb_versions]
-                        end
-                    end
-                end
-            end
-
-            if @operating_system.nil?
-                # Need to do some heuristics unfortunately
+            elsif !@operating_system.nil? # @operating_system can be set to false to simulate an unknown OS
+                return @operating_system
+            elsif user_os = ENV['AUTOPROJ_OS']
                 @operating_system =
-                    if File.exists?('/etc/debian_version')
-                        versions = [File.read('/etc/debian_version').strip]
-                        if versions.first =~ /sid/
-                            versions = ["unstable", "sid"]
-                        end
-                        if lsb_versions
-                            lsb_versions.each { |v| versions << v if !versions.include?(v) }
-                        end
-                        [['debian'], versions]
-                    elsif File.exists?('/etc/fedora-release')
-                        release_string = File.read('/etc/fedora-release').strip
-                        release_string =~ /Fedora release (\d+)/
-                        version = $1
-                        [['fedora'], [version]]
-                    elsif File.exists?('/etc/gentoo-release')
-                        release_string = File.read('/etc/gentoo-release').strip
-                        release_string =~ /^.*([^\s]+)$/
-                            version = $1
-                        [['gentoo'], [version]]
-                    elsif File.exists?('/etc/arch-release')
-                        [['arch'], []]
-                    elsif Autobuild.macos? 
-                        version=`sw_vers | head -2 | tail -1`.split(":")[1]
-                        [['darwin'], [version.strip]]
-                    elsif Autobuild.windows?
-                        [['windows'], []]
-                    elsif File.exists?('/etc/SuSE-release')
-                        version = File.read('/etc/SuSE-release').strip
-                        version =~/.*VERSION\s+=\s+([^\s]+)/
-                        version = $1
-                        [['opensuse'], [version.strip]]
+                    if user_os.empty? then false
+                    else
+                        names, versions = user_os.split(':')
+                        normalize_os_representation(names.split(','), versions.split(','))
                     end
+                return @operating_system
+            elsif Autoproj.has_config_key?('operating_system')
+                os = Autoproj.user_config('operating_system')
+                if os.respond_to?(:to_ary)
+                    if os[0].respond_to?(:to_ary) && os[0].all? { |s| s.respond_to?(:to_str) } &&
+                       os[1].respond_to?(:to_ary) && os[1].all? { |s| s.respond_to?(:to_str) }
+                       @operating_system = os
+                       return os
+                    end
+                end
+                @operating_system = nil # Invalid OS format in the configuration file
             end
 
-            if !@operating_system
-                return
-            end
+            Autobuild.progress :operating_system_autodetection, "autodetecting the operating system"
+            names, versions = os_from_os_release
 
-            # Normalize the names to lowercase
-            names, versions = @operating_system[0], @operating_system[1]
-            names    = names.map(&:downcase)
-            versions = versions.map(&:downcase)
-            if !versions.include?('default')
-                versions += ['default']
+            # Don't use the os-release information on Debian, since they
+            # refuse to put enough information to detect 'unstable'
+            # reliably. So, we use the heuristic method for it
+            if !names || names[0] == 'debian'
+                names, versions = guess_operating_system
             end
+            return if !names
+
+            names = ensure_derivatives_refer_to_their_parents(names)
+            names, versions = normalize_os_representation(names, versions)
 
             @operating_system = [names, versions]
             Autoproj.change_option('operating_system', @operating_system, true)
