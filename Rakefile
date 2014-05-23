@@ -14,6 +14,9 @@ Utilrb::Rake.hoe do
             self.email = "rock-dev@dfki.de"
 
             self.spec_extras[:required_ruby_version] = ">= 1.9.2"
+
+            license 'BSD'
+
             extra_deps << 
                 ['autobuild',   '>= 1.7.0'] <<
                 ['utilrb', '>= 1.6.0'] <<
