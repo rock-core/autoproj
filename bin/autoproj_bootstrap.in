@@ -167,7 +167,10 @@ rescue Autoproj::ConfigError => e
 end
 
 # Now try to find out the name of the gem binary
-PACKAGES      = %w{lsb_release}
+PACKAGES      = []
+if !File.exists?('/etc/os-release')
+    PACKAGES << 'lsb_release'
+end
 
 ENV['RUBYOPT']  = "-rubygems"
 require 'rubygems'
