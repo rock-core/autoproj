@@ -1,27 +1,6 @@
 # The following definitions are needed to bootstrap autoproj
 none: ignore
 
-ruby18:
-    debian,ubuntu:
-        - ruby1.8-dev
-        - ruby1.8
-        - rubygems1.8
-        - ri1.8
-        - libopenssl-ruby1.8
-        - rake
-    gentoo:
-        - dev-lang/ruby:1.8
-        - rake
-    fedora:
-      "15,16":
-        - ruby
-        - rubygems
-    darwin:
-        - ruby
-        - rb-rake
-    default: nonexistent
-    arch: ignore # on arch, if ruby is installed then so is the supporting stuff
-    
 ruby19:
     debian:
         - ruby1.9.1
