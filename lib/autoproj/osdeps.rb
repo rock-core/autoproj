@@ -1023,9 +1023,11 @@ fi
 
             fields = Hash.new
             File.readlines(filename).each do |line|
+                line = line.strip
                 if line.strip =~ /^(\w+)=(?:["'])?([^"']+)(?:["'])?$/
                     fields[$1] = $2
-                else Autoproj.warn "error parsing /etc/os-release, line: #{line.inspect}"
+                elsif !line.empty?
+                    Autoproj.warn "could not parse line '#{line.inspect}' in /etc/os-release"
                 end
             end
 
