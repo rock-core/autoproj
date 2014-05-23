@@ -236,7 +236,7 @@ module Autoproj
             definition = @source_definition || raw_description_file
             @name = definition['name']
 
-            if @name !~ /^[\w_\.-]+$/
+            if @name !~ /^[\w\.-]+$/
                 raise ConfigError.new(source_file),
                     "in #{source_file}: invalid source name '#{@name}': source names can only contain alphanumeric characters, and .-_"
             elsif @name == "local"
@@ -373,7 +373,7 @@ module Autoproj
                     end
 
                     name_match = name
-                    if name_match =~ /[^\w\/_-]/
+                    if name_match =~ /[^\w\/-]/
                         name_match = Regexp.new("^" + name_match)
                     end
                     if name_match === package_name
