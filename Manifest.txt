@@ -58,7 +58,12 @@ shell/autoproj_zsh
 test/data/empty_manifest.xml
 test/data/full_manifest.xml
 test/data/invalid_manifest.xml
-test/data/test_manifest/autoproj/local/local.autobuild
+test/data/os_release.with_complex_version_field
+test/data/os_release.with_duplicate_values
+test/data/os_release.with_missing_optional_fields
+test/data/os_release.with_quoted_and_unquoted_fields
+test/data/test_manifest/autoproj/local_set/local.autobuild
+test/data/test_manifest/autoproj/local_set/source.yml
 test/data/test_manifest/autoproj/manifest
 test/package_managers/apt-dpkg-status
 test/package_managers/apt-dpkg-status.installed-last
@@ -66,7 +71,6 @@ test/package_managers/apt-dpkg-status.noninstalled-last
 test/package_managers/test_apt_dpkg_manager.rb
 test/package_managers/test_gem.rb
 test/package_managers/test_pip.rb
-test/test_debian.rb
 test/test_manifest.rb
 test/test_os_dependencies.rb
 test/test_package_manifest.rb
