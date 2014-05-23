@@ -121,16 +121,6 @@ module Autoproj
         Autobuild.env_inherit(*names)
     end
 
-    # Find the given program in PATH. It raises ArgumentError if the program
-    # can't be found
-    def self.find_in_path(name)
-        result = ENV['PATH'].split(':').find { |dir| File.file?(File.join(dir, name)) }
-        if !result
-            raise ArgumentError, "#{name} can not be found in PATH (#{ENV['PATH']})"
-        end
-        File.join(result, name)
-    end
-
     # @deprecated use isolate_environment instead
     def self.set_initial_env
         isolate_environment
