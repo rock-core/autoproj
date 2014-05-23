@@ -45,6 +45,11 @@ ruby20:
         - ruby2.0-dev
         - rake
         - rubygems-integration
+    fedora:
+      '20':
+      - ruby
+      - ruby-devel
+      - rubygem-rake
     opensuse: ruby20-devel
     arch: ignore # on arch, if ruby is installed then so is the supporting stuff
     default: nonexistent
@@ -56,13 +61,14 @@ ruby21:
         - rake
         - rubygems-integration
     arch: ignore # on arch, if ruby is installed then so is the supporting stuff
+    fedora: ruby-devel
     default: nonexistent
 
 build-essential:
   debian,ubuntu: build-essential
   gentoo: ignore
   arch: base-devel
-  fedora: ignore
+  fedora: ["gcc-c++", make, glibc-devel]
   darwin: ignore
   opensuse: ["@devel_C_C++", "gcc-c++"]
 
@@ -164,6 +170,7 @@ pip:
   debian,ubuntu: python-pip
   arch: python2-pip
   opensuse: python-pip
+  fedora: python-pip
 
 # vim: expandtab
 
