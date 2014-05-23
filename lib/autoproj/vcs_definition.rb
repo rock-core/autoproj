@@ -56,8 +56,6 @@ module Autoproj
         #   - package_name
         #     branch: value
         def self.vcs_definition_to_hash(spec)
-            options = Hash.new
-
             plain = Array.new
             filtered_spec = Hash.new
             spec.each do |key, value|
