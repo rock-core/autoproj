@@ -8,30 +8,22 @@ class TC_Manifest < Test::Unit::TestCase
     DATA_DIR = File.expand_path('data', File.dirname(__FILE__))
     include Autoproj
 
-    def test_each_sources
+    def test_each_package_set
         Dir.chdir(File.join(DATA_DIR, 'test_manifest', 'autoproj')) do
             manifest = Manifest.load(File.join(DATA_DIR, 'test_manifest', 'autoproj', 'manifest'))
-            sources  = manifest.each_source.to_set
+            sources  = manifest.each_package_set(false).to_set
 
             test_data      = "#{DATA_DIR}/test_manifest"
             test_data_name = test_data.gsub '/', '_'
 
-            expected = [
-                 ["#{test_data_name}_autoproj_local", "local",
-                    "#{test_data}/autoproj/local",
-                    "#{test_data}/autoproj/local",
-                    {}],
-                 ["#{test_data_name}_remote1_git", "git",
-                    "#{test_data}/remote1.git",
-                    "#{test_data}/autoproj/remotes/_home_doudou_src_autoproj_test_data_test_manifest_remote1_git",
-                    {}],
-                 ["#{test_data_name}_remote2_git", "git",
-                    "#{test_data}/remote2.git",
-                    "#{test_data}/autoproj/remotes/_home_doudou_src_autoproj_test_data_test_manifest_remote2_git",
-                    {:branch=>"next"}]
-            ]
+            local_set = sources.find { |pkg_set| pkg_set.name == 'local_set' }
+            assert local_set
+            assert_equal "#{test_data}/autoproj/local_set", local_set.raw_local_dir
+            assert local_set.local?
 
-            assert_equal(expected.to_set, sources)
+            remote_set = sources.find { |pkg_set| pkg_set.name == "git:remote2.git branch=next"}
+            assert remote_set, "available package sets: #{sources.map(&:name)}"
+            assert_equal "#{test_data}/.remotes/git__home_doudou_dev_rock_master_tools_autoproj_test_data_test_manifest_remote2_git", remote_set.raw_local_dir
         end
     end
 

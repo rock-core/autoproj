@@ -1,6 +1,5 @@
-sources:
-    - ./local
-    - git:remote1.git
+package_sets:
+    - ./local_set
     - type: git
       url: remote2.git
       branch: next
