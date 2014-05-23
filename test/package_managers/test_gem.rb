@@ -94,11 +94,11 @@ class TC_OSDependencies_Gem < Test::Unit::TestCase
 
         packages = [['pkg0'], ['pkg1', '>= 0.5'], ['pkg2'], ['pkg3', '>= 0.9']]
         subprocess.should_receive(:run).
-            with(any, any, 'mygem', 'install', '--no-rdoc', '--no-ri', 'pkg0', 'pkg2').once
+            with(any, any, any, any, 'mygem', 'install', '--no-rdoc', '--no-ri', 'pkg0', 'pkg2').once
         subprocess.should_receive(:run).
-            with(any, any, 'mygem', 'install', '--no-rdoc', '--no-ri', 'pkg1', '-v', '>= 0.5').once
+            with(any, any, any, any, 'mygem', 'install', '--no-rdoc', '--no-ri', 'pkg1', '-v', '>= 0.5').once
         subprocess.should_receive(:run).
-            with(any, any, 'mygem', 'install', '--no-rdoc', '--no-ri', 'pkg3', '-v', '>= 0.9').once
+            with(any, any, any, any, 'mygem', 'install', '--no-rdoc', '--no-ri', 'pkg3', '-v', '>= 0.9').once
         gem_manager.install(packages)
     end
 
@@ -109,7 +109,7 @@ class TC_OSDependencies_Gem < Test::Unit::TestCase
 
         packages = [['pkg0']]
         subprocess.should_receive(:run).
-            with(any, any, 'mygem', 'install', 'pkg0').once
+            with(any, any, any, any, 'mygem', 'install', 'pkg0').once
         gem_manager.install([['pkg0']])
     end
 
@@ -119,7 +119,7 @@ class TC_OSDependencies_Gem < Test::Unit::TestCase
         subprocess = flexmock(Autobuild::Subprocess)
 
         subprocess.should_receive(:run).
-            with(any, any, 'mygem', 'install', '--prerelease', 'pkg0').once
+            with(any, any, any, any, 'mygem', 'install', '--prerelease', 'pkg0').once
         gem_manager.install([['pkg0']])
     end
 
