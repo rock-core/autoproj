@@ -59,7 +59,7 @@ class TC_PackageManifest < Test::Unit::TestCase
 
     def test_failure_on_wrong_document
         data = File.join(DATA_DIR, 'invalid_manifest.xml')
-        assert_raises(Autoproj::ConfigError) { Autoproj::PackageManifest.load(pkg, data) }
+        assert_raises(Autobuild::PackageException) { Autoproj::PackageManifest.load(pkg, data) }
     end
 end
 
