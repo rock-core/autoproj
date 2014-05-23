@@ -552,7 +552,7 @@ fi
         
           #{cmdlines.map { |c| c.join(" ") }.join("\n      ")}
         
-        Autoproj expects these Gems to be installed in #{Autoproj.gem_home} This can
+        Autoproj expects these Gems to be installed in #{GemManager.gem_home} This can
         be overridden by setting the AUTOPROJ_GEM_HOME environment variable manually
 
                 EOMSG
@@ -636,7 +636,7 @@ fi
         
           #{cmdlines.map { |c| c.join(" ") }.join("\n      ")}
         
-        Autoproj expects these Python packages to be installed in #{Autoproj.pip_home} This can
+        Autoproj expects these Python packages to be installed in #{PipManager.pip_home} This can
         be overridden by setting the AUTOPROJ_PYTHONUSERBASE environment variable manually
 
                 EOMSG
