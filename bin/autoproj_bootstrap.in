@@ -74,6 +74,9 @@ module Autoproj
         string
     end
 
+    def self.warn(str, *args)
+        STDERR.puts "WARN #{str}"
+    end
     def self.message(str)
         STDERR.puts "  #{str}"
     end
