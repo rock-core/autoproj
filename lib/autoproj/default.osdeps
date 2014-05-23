@@ -31,12 +31,21 @@ ruby19:
         - rubygems-integration
 
     ubuntu:
-        - ruby1.9.1
-        - ruby1.9.1-dev
-        - rubygems1.9.1
-        - ri1.9.1
-        - libopenssl-ruby1.9.1
-        - rake
+        '12.04':
+            - ruby1.9.1
+            - ruby1.9.1-dev
+            - rubygems1.9.1
+            - ri1.9.1
+            - libopenssl-ruby1.9.1
+            - rake
+        default:
+            - ruby1.9.1
+            - ruby1.9.1-dev
+            - rubygems1.9.1
+            - ri1.9.1
+            - libopenssl-ruby1.9.1
+            - rake
+            - rubygems-integration
     gentoo:
         - dev-lang/ruby:1.9
         - rake
