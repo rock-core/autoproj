@@ -2,7 +2,7 @@ module Autoproj
     # Sets an environment variable
     #
     # This sets (or resets) the environment variable +name+ to the given value.
-    # If multiple values are given, they are joined with ':'
+    # If multiple values are given, they are joined with File::PATH_SEPARATOR
     #
     # The values can contain configuration parameters using the
     # $CONF_VARIABLE_NAME syntax.
@@ -14,7 +14,7 @@ module Autoproj
     # Adds new values to a given environment variable
     #
     # Adds the given value(s) to the environment variable named +name+. The
-    # values are added using the ':' marker.
+    # values are added using the File::PATH_SEPARATOR marker
     #
     # The values can contain configuration parameters using the
     # $CONF_VARIABLE_NAME syntax.
@@ -27,8 +27,8 @@ module Autoproj
     # PATH, RUBYLIB, PYTHONPATH)
     #
     # This sets (or resets) the environment variable +name+ to the given value.
-    # If multiple values are given, they are joined with ':'. Unlike env_set,
-    # duplicate values will be removed.
+    # If multiple values are given, they are joined with File::PATH_SEPARATOR.
+    # Unlike env_set, duplicate values will be removed.
     #
     # The values can contain configuration parameters using the
     # $CONF_VARIABLE_NAME syntax.
@@ -41,7 +41,8 @@ module Autoproj
     # variable (such as PATH, RUBYLIB, PYTHONPATH)
     #
     # Adds the given value(s) to the environment variable named +name+. The
-    # values are added using the ':' marker. Unlike env_set, duplicate values
+    # values are added using the File::PATH_SEPARATOR marker. Unlike env_set,
+    # duplicate values
     # will be removed.
     #
     # The values can contain configuration parameters using the

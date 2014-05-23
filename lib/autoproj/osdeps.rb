@@ -355,15 +355,15 @@ fi
             # of GEM_PATH
             def self.initialize_environment
                 Autobuild::ORIGINAL_ENV['GEM_PATH'] =
-                    (ENV['GEM_PATH'] || "").split(":").find_all do |p|
+                    (ENV['GEM_PATH'] || "").split(File::PATH_SEPARATOR).find_all do |p|
                         !Autoproj.in_autoproj_installation?(p)
-                    end.join(":")
+                    end.join(File::PATH_SEPARATOR)
                 Autobuild.env_inherit 'GEM_PATH'
                 Autobuild.env_init_from_env 'GEM_PATH'
 
-                orig_gem_path = Autobuild::ORIGINAL_ENV['GEM_PATH'].split(':')
+                orig_gem_path = Autobuild::ORIGINAL_ENV['GEM_PATH'].split(File::PATH_SEPARATOR)
                 Autobuild::SYSTEM_ENV['GEM_PATH'] = Gem.default_path
-                Autobuild::ORIGINAL_ENV['GEM_PATH'] = orig_gem_path.join(":")
+                Autobuild::ORIGINAL_ENV['GEM_PATH'] = orig_gem_path.join(File::PATH_SEPARATOR)
 
                 Autoproj.manifest.each_reused_autoproj_installation do |p|
                     p_gems = File.join(Autoproj.root_dir, '.gems')
