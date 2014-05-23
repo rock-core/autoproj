@@ -544,5 +544,9 @@ class TC_OSDependencies < Test::Unit::TestCase
         assert_equal ['id'], names
         assert_equal ['version_id', 'codename'], versions
     end
+    def test_os_from_lsb_returns_nil_if_lsb_release_is_not_found_in_path
+        flexmock(ENV).should_receive('[]').with('PATH').and_return('')
+        assert !Autoproj::OSDependencies.os_from_lsb
+    end
 end
 

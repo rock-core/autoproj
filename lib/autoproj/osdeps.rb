@@ -1038,12 +1038,7 @@ fi
         end
 
         def self.os_from_lsb
-            has_lsb_release = nil
-            begin
-                has_lsb_release = `which lsb_release`
-                return unless $?.success?
-            rescue Exception => e
-                #seems which is not installes (e.g. on windows)
+            if !Autobuild.find_in_path('lsb_release')
                 return
             end
 
