@@ -19,6 +19,8 @@ ruby18:
     port:
         - ruby
         - rb-rake
+    brew:
+        - ruby186
     default: nonexistent
     
 ruby19:
@@ -48,6 +50,8 @@ ruby19:
     port:
         - ruby19
         - rake
+    brew:
+        - ruby193
     default: nonexistent
     opensuse: ruby19-devel
 
@@ -88,6 +92,7 @@ git:
   arch,manjarolinux: git
   fedora: git
   port: git-core
+  brew: git
   opensuse: git
 
 hg:
@@ -158,6 +163,8 @@ archive:
   port:
   - gnutar
   - unzip
+  brew:
+  - gnu-tar
   opensuse:
   - tar
   - unzip
