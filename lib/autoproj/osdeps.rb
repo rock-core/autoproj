@@ -213,15 +213,24 @@ fi
                 packages = packages.uniq
                 result = `brew info --json=v1 '#{packages.join("' '")}'`
                 result = begin
-                             Array(JSON.parse(result))
+                             result = JSON.parse(result)
+                             if packages.size == 1
+                                 [result]
+                             else
+                                 result
+                             end
                          rescue JSON::ParserError => e
-                             Autoproj.warn "Error while parsing result of brew info --json=v1"
-                             []
+                             if result && !result.empty?
+                                 Autoproj.warn "Error while parsing result of brew info --json=v1"
+                             else
+                                 # one of the packages is unknown fallback to install all
+                                 # packaes which will complain about it
+                             end
+                             return packages
                          end
-
-                # fall back if something went wrong
+                # fall back if something else went wrong
                 if packages.size != result.size
-                    Autoproj.warn "brew info returns less packages when requested. Falling back to install all packages"
+                    Autoproj.warn "brew info returns less or more packages when requested. Falling back to install all packages"
                     return packages
                 end
 
