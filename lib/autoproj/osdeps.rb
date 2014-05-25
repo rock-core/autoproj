@@ -755,7 +755,7 @@ fi
             'arch' => 'pacman',
             'manjarolinux' => 'pacman',
             'fedora' => 'yum',
-            'darwin' => 'brew',
+            'darwin' => 'port',
             'opensuse' => 'zypper'
         }
 
