@@ -16,7 +16,7 @@ ruby18:
       "15,16":
         - ruby
         - rubygems
-    darwin:
+    port:
         - ruby
         - rb-rake
     default: nonexistent
@@ -45,7 +45,7 @@ ruby19:
       "17":
       - ruby
       - rubygems
-    darwin:
+    port:
         - ruby19
         - rake
     default: nonexistent
@@ -87,7 +87,7 @@ git:
   gentoo: dev-vcs/git
   arch,manjarolinux: git
   fedora: git
-  darwin: git-core
+  port: git-core
   opensuse: git
 
 hg:
@@ -155,7 +155,7 @@ archive:
   fedora:
   - tar
   - unzip
-  darwin:
+  port:
   - gnutar
   - unzip
   opensuse:
