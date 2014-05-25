@@ -63,6 +63,17 @@ module Autoproj
         File.join(root_dir, "autoproj")
     end
 
+    # @deprecated use Autobuild.find_in_path instead
+    #
+    # Warning: the autobuild method returns nil (instead of raising) if the
+    # argument cannot be found
+    def self.find_in_path(name)
+        if path = Autobuild.find_in_path(name)
+            return path
+        else raise ArgumentError, "cannot find #{name} in PATH (#{ENV['PATH']})"
+        end
+    end
+
     class << self
         # The directory in which packages will be installed.
         #
