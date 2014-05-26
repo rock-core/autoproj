@@ -493,13 +493,13 @@ fi
                         dep = Gem::Dependency.new(name, version_requirements)
                         available =
                             if gem_fetcher.respond_to?(:find_matching)
-                                non_prerelease, _ = gem_fetcher.find_matching(dep, false, true).first
+                                non_prerelease, _ = gem_fetcher.find_matching(dep, true, true).map(&:first)
                                 if GemManager.with_prerelease
-                                    prerelease, _ = gem_fetcher.find_matching(dep, false, true, true).last
+                                    prerelease, _ = gem_fetcher.find_matching(dep, false, true, true).map(&:first)
+                                else prerelease = Array.new
                                 end
-                                [non_prerelease, prerelease].
-                                    compact.
-                                    map { |name, version, _| [name, version] }
+                                (non_prerelease + prerelease).
+                                    map { |(n, v, _), _| [n, v] }
 
                             else # Post RubyGems-2.0
                                 type = if GemManager.with_prerelease then :complete
@@ -511,7 +511,7 @@ fi
                                 end.map { |tuple, _| [tuple.name, tuple.version] }
                             end
                         installed_version = installed.map(&:version).max
-                        available_version = available.map { |name, v| v }.max
+                        available_version = available.map { |_, v| v }.max
                         if !available_version
                             if version
                                 raise ConfigError.new, "cannot find any gem with the name '#{name}' and version #{version}"
