@@ -206,8 +206,10 @@ module Autoproj
             end
         end
 
-        def self.update_myself
-            return if !Autoproj::CmdLine.update_os_dependencies?
+        def self.update_myself(options = Hash.new)
+            options = Kernel.validate_options options,
+                :force => false
+            return if !options[:force] && !Autoproj::CmdLine.update_os_dependencies?
 
             handle_ruby_version
 
@@ -217,8 +219,25 @@ module Autoproj
                 return
             end
 
+            use_prerelease =
+                if env_flag = ENV['AUTOPROJ_USE_PRERELEASE']
+                    env_flag == '1'
+                elsif Autoproj.has_config_key?('autoproj_use_prerelease')
+                    Autoproj.user_config('autoproj_use_prerelease')
+                end
+            Autoproj.change_option "autoproj_use_prerelease", use_prerelease, true
+
+            did_update =
+                begin
+                    saved_flag = PackageManagers::GemManager.with_prerelease
+                    PackageManagers::GemManager.with_prerelease = use_prerelease
+                    Autoproj.osdeps.install(%w{autobuild autoproj})
+                ensure
+                    PackageManagers::GemManager.with_prerelease = saved_flag
+                end
+
             # First things first, see if we need to update ourselves
-            if Autoproj.osdeps.install(%w{autobuild autoproj})
+            if did_update
                 puts
                 Autoproj.message 'autoproj and/or autobuild has been updated, restarting autoproj'
                 puts
@@ -1564,7 +1583,7 @@ where 'mode' is one of:
             end
             osdeps.osdeps_mode
 
-            osdeps.install ['autoproj']
+            update_myself :force => true
 
             reuse = []
             parser = lambda do |opt|
@@ -1578,6 +1597,7 @@ where 'mode' is one of:
             end
             args = parse_arguments(args, false, &parser)
             Autoproj.change_option 'reused_autoproj_installations', reuse, true
+            Autoproj.export_env_sh
 
             # If we are not getting the installation setup from a VCS, copy the template
             # files
@@ -1585,10 +1605,6 @@ where 'mode' is one of:
                 sample_dir = File.expand_path(File.join("..", "..", "samples"), File.dirname(__FILE__))
                 FileUtils.cp_r File.join(sample_dir, "autoproj"), "autoproj"
             end
-
-            handle_ruby_version
-
-            Autoproj.export_env_sh
 
             if args.size == 1 # the user asks us to download a manifest
                 manifest_url = args.first
