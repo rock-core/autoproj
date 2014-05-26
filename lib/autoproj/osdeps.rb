@@ -493,7 +493,14 @@ fi
                         dep = Gem::Dependency.new(name, version_requirements)
                         available =
                             if gem_fetcher.respond_to?(:find_matching)
-                                gem_fetcher.find_matching(dep, true, true, GemManager.with_prerelease).map(&:first)
+                                non_prerelease, _ = gem_fetcher.find_matching(dep, false, true).first
+                                if GemManager.with_prerelease
+                                    prerelease, _ = gem_fetcher.find_matching(dep, false, true, true).last
+                                end
+                                [non_prerelease, prerelease].
+                                    compact.
+                                    map { |name, version, _| [name, version] }
+
                             else # Post RubyGems-2.0
                                 type = if GemManager.with_prerelease then :complete
                                        else :released
