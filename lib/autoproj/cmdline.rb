@@ -231,7 +231,7 @@ module Autoproj
                 begin
                     saved_flag = PackageManagers::GemManager.with_prerelease
                     PackageManagers::GemManager.with_prerelease = use_prerelease
-                    Autoproj.osdeps.install(%w{autobuild autoproj})
+                    OSDependencies.load_default.install(%w{autobuild autoproj})
                 ensure
                     PackageManagers::GemManager.with_prerelease = saved_flag
                 end
