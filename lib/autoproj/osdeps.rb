@@ -637,9 +637,9 @@ fi
                         dep = Gem::Dependency.new(name, version_requirements)
                         available =
                             if gem_fetcher.respond_to?(:find_matching)
-                                non_prerelease, _ = gem_fetcher.find_matching(dep, true, true).map(&:first)
+                                non_prerelease = gem_fetcher.find_matching(dep, true, true).map(&:first)
                                 if GemManager.with_prerelease
-                                    prerelease, _ = gem_fetcher.find_matching(dep, false, true, true).map(&:first)
+                                    prerelease = gem_fetcher.find_matching(dep, false, true, true).map(&:first)
                                 else prerelease = Array.new
                                 end
                                 (non_prerelease + prerelease).
