@@ -198,7 +198,7 @@ end
 # run autoproj bootstrap manually.
 if ARGV.first != "localdev"
     if ARGV.first == "dev"
-        ENV['AUTOPROJ_USE_PRERELEASE'] = 1
+        ENV['AUTOPROJ_USE_PRERELEASE'] = '1'
         Autoproj::PackageManagers::GemManager.with_prerelease = true
         ARGV.shift
     end
