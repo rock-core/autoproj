@@ -30,7 +30,6 @@ lib/autoproj/default.osdeps
 lib/autoproj/environment.rb
 lib/autoproj/gitorious.rb
 lib/autoproj/installation_manifest.rb
-lib/autoproj/loader.rb
 lib/autoproj/manifest.rb
 lib/autoproj/metapackage.rb
 lib/autoproj/options.rb
