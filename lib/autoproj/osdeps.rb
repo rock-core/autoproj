@@ -547,7 +547,7 @@ fi
                                 else prerelease = Array.new
                                 end
                                 (non_prerelease + prerelease).
-                                    map { |(n, v, _), _| [n, v] }
+                                    map { |n, v, _| [n, v] }
 
                             else # Post RubyGems-2.0
                                 type = if GemManager.with_prerelease then :complete
