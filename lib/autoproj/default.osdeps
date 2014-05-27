@@ -32,9 +32,12 @@ ruby19:
       "17":
       - ruby
       - rubygems
-    darwin:
+    port:
         - ruby19
         - rake
+    brew:
+        - ruby193
+    default: nonexistent
     opensuse: ruby19-devel
     arch: ignore # on arch, if ruby is installed then so is the supporting stuff
     default: nonexistent
@@ -84,7 +87,8 @@ git:
   gentoo: dev-vcs/git
   arch: git
   fedora: git
-  darwin: git-core
+  port: git-core
+  brew: git
   opensuse: git
 
 hg:
@@ -144,9 +148,11 @@ archive:
   fedora:
   - tar
   - unzip
-  darwin:
+  port:
   - gnutar
   - unzip
+  brew:
+  - gnu-tar
   opensuse:
   - tar
   - unzip

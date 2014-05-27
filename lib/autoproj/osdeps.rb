@@ -74,7 +74,7 @@ module Autoproj
         # Base class for all package managers that simply require the call of a
         # shell script to install packages (e.g. yum, apt, ...)
         class ShellScriptManager < Manager
-            def self.execute_as_root(script, with_locking)
+            def self.execute(script, with_locking,with_root)
                 if with_locking
                     File.open('/tmp/autoproj_osdeps_lock', 'w') do |lock_io|
                         begin
@@ -82,7 +82,7 @@ module Autoproj
                                 Autoproj.message "  waiting for other autoproj instances to finish their osdeps installation"
                                 sleep 5
                             end
-                            return execute_as_root(script, false)
+                            return execute(script, false,with_root)
                         ensure
                             lock_io.flock(File::LOCK_UN)
                         end
@@ -92,7 +92,7 @@ module Autoproj
                 sudo = Autobuild.tool_in_path('sudo')
                 Tempfile.open('osdeps_sh') do |io|
                     io.puts "#! /bin/bash"
-                    io.puts GAIN_ROOT_ACCESS % [sudo]
+                    io.puts GAIN_ROOT_ACCESS % [sudo] if with_root
                     io.write script
                     io.flush
                     Autobuild::Subprocess.run 'autoproj', 'osdeps', '/bin/bash', io.path
@@ -108,15 +108,17 @@ fi
             EOSCRIPT
 
             attr_writer :needs_locking
+            attr_writer :needs_root
             def needs_locking?; !!@needs_locking end
+            def needs_root?; !!@needs_root end
 
             attr_reader :auto_install_cmd
             attr_reader :user_install_cmd
 
-            def initialize(names, needs_locking, user_install_cmd, auto_install_cmd)
+            def initialize(names, needs_locking, user_install_cmd, auto_install_cmd,needs_root=true)
                 super(names)
-                @needs_locking, @user_install_cmd, @auto_install_cmd =
-                    needs_locking, user_install_cmd, auto_install_cmd
+                @needs_locking, @user_install_cmd, @auto_install_cmd,@needs_root =
+                    needs_locking, user_install_cmd, auto_install_cmd, needs_root
             end
 
             def generate_user_os_script(os_packages, options = Hash.new)
@@ -179,7 +181,7 @@ fi
                         Autoproj.message "Generating installation script for non-ruby OS dependencies"
                         Autoproj.message shell_script
                     end
-                    ShellScriptManager.execute_as_root(shell_script, needs_locking?)
+                    ShellScriptManager.execute(shell_script, needs_locking?,needs_root?)
                     return true
                 end
                 false
@@ -193,6 +195,52 @@ fi
                 super(['port'], true,
                         "port install '%s'",
                         "port install '%s'")
+            end
+        end
+
+        # Package manager interface for Mac OS using homebrew as
+        # its package manager
+        class HomebrewManager < ShellScriptManager
+            def initialize
+                require 'json'
+                super(['brew'], true,
+                        "brew install '%s'",
+                        "brew install '%s'",
+                        false)
+            end
+
+            def filter_uptodate_packages(packages)
+                # TODO there might be duplicates in packages which should be fixed
+                # somewhere else
+                packages = packages.uniq
+                result = `brew info --json=v1 '#{packages.join("' '")}'`
+                result = begin
+                             result = JSON.parse(result)
+                             if packages.size == 1
+                                 [result]
+                             else
+                                 result
+                             end
+                         rescue JSON::ParserError => e
+                             if result && !result.empty?
+                                 Autoproj.warn "Error while parsing result of brew info --json=v1"
+                             else
+                                 # one of the packages is unknown fallback to install all
+                                 # packaes which will complain about it
+                             end
+                             return packages
+                         end
+                # fall back if something else went wrong
+                if packages.size != result.size
+                    Autoproj.warn "brew info returns less or more packages when requested. Falling back to install all packages"
+                    return packages
+                end
+
+                new_packages = []
+                result.each do |pkg|
+                    new_packages << pkg["name"] if pkg["installed"].empty?
+                end
+                new_packages
             end
         end
 
@@ -747,7 +795,7 @@ fi
             PackageManagers::GemManager,
             PackageManagers::EmergeManager,
             PackageManagers::PacmanManager,
-            PackageManagers::PacmanManager,
+            PackageManagers::HomebrewManager,
             PackageManagers::YumManager,
             PackageManagers::PortManager,
             PackageManagers::ZypperManager,
