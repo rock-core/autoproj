@@ -446,6 +446,7 @@ fi
                     is_installed = false
                     dpkg_status.each do |line|
                         line = line.chomp
+                        line = line.encode( "UTF-8", "binary", :invalid => :replace, :undef => :replace)
                         if line == ""
                             if is_installed
                                 current_packages.each do |pkg|
