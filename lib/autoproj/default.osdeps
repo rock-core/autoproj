@@ -32,10 +32,10 @@ ruby19:
       "17":
       - ruby
       - rubygems
-    port:
+    macos-port:
         - ruby19
         - rake
-    brew:
+    macos-brew:
         - ruby193
     default: nonexistent
     opensuse: ruby19-devel
@@ -87,8 +87,8 @@ git:
   gentoo: dev-vcs/git
   arch: git
   fedora: git
-  port: git-core
-  brew: git
+  macos-port: git-core
+  macos-brew: git
   opensuse: git
 
 hg:
@@ -148,10 +148,10 @@ archive:
   fedora:
   - tar
   - unzip
-  port:
+  macos-port:
   - gnutar
   - unzip
-  brew:
+  macos-brew:
   - gnu-tar
   opensuse:
   - tar

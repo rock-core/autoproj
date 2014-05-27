@@ -289,7 +289,7 @@ fi
         # their package manager
         class PortManager < ShellScriptManager
             def initialize
-                super(['port'], true,
+                super(['macports'], true,
                         "port install '%s'",
                         "port install '%s'")
             end
@@ -299,7 +299,7 @@ fi
         # its package manager
         class HomebrewManager < ShellScriptManager
             def initialize
-                super(['homebrew'], true,
+                super(['brew'], true,
                         "brew install '%s'",
                         "brew install '%s'",
                         false)
@@ -913,8 +913,8 @@ fi
             'gentoo' => 'emerge',
             'arch' => 'pacman',
             'fedora' => 'yum',
-            'macports' => 'port',
-            'brew' => 'homebrew',
+            'macos-port' => 'macports',
+            'macos-brew' => 'brew',
             'opensuse' => 'zypper'
         }
 
@@ -1078,7 +1078,22 @@ fi
                 [['arch'], []]
             elsif Autobuild.macos? 
                 version=`sw_vers | head -2 | tail -1`.split(":")[1]
-                [['darwin'], [version.strip]]
+                manager =
+                    if ENV['AUTOPROJ_MACOSX_PACKAGE_MANAGER']
+                        ENV['AUTOPROJ_MACOSX_PACKAGE_MANAGER']
+                    else 'macos-brew'
+                    end
+                if !OS_PACKAGE_HANDLERS.include?(manager)
+                    known_managers = OS_PACKAGE_HANDLERS.keys.grep(/^macos/)
+                    raise ArgumentError, "#{manager} is not a known MacOSX package manager. Known package managers are #{known_managers.join(", ")}"
+                end
+
+                managers = 
+                    if manager == 'macos-port'
+                        [manager, 'port']
+                    else [manager]
+                    end
+                [[*managers, 'darwin'], [version.strip]]
             elsif Autobuild.windows?
                 [['windows'], []]
             elsif File.exists?('/etc/SuSE-release')
