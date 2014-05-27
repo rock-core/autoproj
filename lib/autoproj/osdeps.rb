@@ -202,7 +202,6 @@ fi
         # its package manager
         class HomebrewManager < ShellScriptManager
             def initialize
-                require 'json'
                 super(['brew'], true,
                         "brew install '%s'",
                         "brew install '%s'",

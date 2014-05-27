@@ -19,6 +19,7 @@ require 'autoproj/cmdline'
 require 'autoproj/query'
 require 'logger'
 require 'utilrb/logger'
+require 'json'
 
 module Autoproj
     class << self
