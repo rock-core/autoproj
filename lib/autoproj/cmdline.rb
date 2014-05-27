@@ -225,7 +225,7 @@ module Autoproj
                 elsif Autoproj.has_config_key?('autoproj_use_prerelease')
                     Autoproj.user_config('autoproj_use_prerelease')
                 end
-            Autoproj.change_option "autoproj_use_prerelease", use_prerelease, true
+            Autoproj.change_option "autoproj_use_prerelease", (use_prerelease ? true : false), true
 
             did_update =
                 begin
