@@ -317,7 +317,7 @@ fi
                              else
                                  result
                              end
-                         rescue JSON::ParserError => e
+                         rescue JSON::ParserError
                              if result && !result.empty?
                                  Autoproj.warn "Error while parsing result of brew info --json=v1"
                              else
