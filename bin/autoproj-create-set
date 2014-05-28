@@ -5,12 +5,32 @@ require 'autoproj/cmdline'
 
 pwd = Dir.pwd
 root_dir  = Autoproj::CmdLine.initialize_root_directory
-selection = Autoproj::CmdLine.initialize_and_load(ARGV)
+Autoproj.silent do
+    Autoproj::CmdLine.initialize_and_load([])
+end
 
-if !(new_set_path = File.expand_path(selection.shift, pwd))
-    Autoproj.message("missing package set name on the command line", :red)
+parser = OptionParser.new do |opt|
+    opt.banner = ['autoproj create-set path [package package ..]',
+                  '',
+                  'Creates a new package set that includes the given packages',
+                  'Packages can be already defined in other package sets',
+                  'or (more commonly) paths to checked out packages on disk',
+                  '',
+                  'The path argument is the path where the package set should',
+                  'be created. The basename will be used as the package set name',
+                  'For instance,',
+                  '   autoproj create-set new_set/lead',
+                  'Will create a new package set definition in the new_set/lead',
+                  'directory. The new set will be named "lead"'].join("\n")
+                
+end
+user_selection = parser.parse(ARGV)
+
+if !(new_set_path = user_selection.shift)
+    Autoproj.message("missing path to the generated package set on the command line", :red)
     exit 1
 end
+new_set_path = File.expand_path(new_set_path, pwd)
 new_set_name = File.basename(new_set_path)
 selection = Autoproj::CmdLine.resolve_user_selection(user_selection)
 Autoproj::CmdLine.validate_user_selection(user_selection, selection)
@@ -55,8 +75,19 @@ puts
 puts
 new_packages.each do |pkg|
     if !pkg.vcs
-        puts "  package #{pkg.autobuild.name} has no version control information"
-        puts "  you will have to provide this in the generated source.yml file"
+        # Try to autodetect the VCS
+        srcdir = pkg.autobuild.srcdir
+        handler = [Autobuild::Git].find do |vcs_handler|
+            vcs_handler.can_handle?(srcdir)
+        end
+        if handler
+            raw_vcs = handler.vcs_definition_for(srcdir)
+            pkg.vcs = Autoproj::VCSDefinition.from_raw(raw_vcs)
+        else
+            puts "  package #{pkg.autobuild.name} has no version control information"
+            puts "  and I am not able to autodetect it."
+            puts "  you will have to provide this in the generated source.yml file"
+        end
     end
 end
 
