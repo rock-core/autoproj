@@ -1,4 +1,5 @@
 require 'tempfile'
+require 'json'
 module Autoproj
     # Module that contains the package manager implementations for the
     # OSDependencies class

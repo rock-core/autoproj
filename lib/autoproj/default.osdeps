@@ -36,7 +36,7 @@ ruby19:
         - ruby19
         - rake
     macos-brew:
-        - ruby193
+        - gem: rake
     default: nonexistent
     opensuse: ruby19-devel
     arch: ignore # on arch, if ruby is installed then so is the supporting stuff
@@ -55,6 +55,8 @@ ruby20:
       - rubygem-rake
     opensuse: ruby20-devel
     arch: ignore # on arch, if ruby is installed then so is the supporting stuff
+    macos-brew:
+        - gem: rake
     default: nonexistent
 
 ruby21:
@@ -65,6 +67,8 @@ ruby21:
         - rubygems-integration
     arch: ignore # on arch, if ruby is installed then so is the supporting stuff
     fedora: ruby-devel
+    macos-brew:
+        - gem: rake
     default: nonexistent
 
 build-essential:
