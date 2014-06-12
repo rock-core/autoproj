@@ -38,7 +38,6 @@ ruby19:
     macos-brew:
         - gem: rake
     opensuse: ruby19-devel
-    arch: ignore # on arch, if ruby is installed then so is the supporting stuff
     default: ignore # we assume that if the user has a ruby 1.9 runtime, it is usable
 
 ruby20:
@@ -59,7 +58,6 @@ ruby20:
       - ruby-devel
       - rubygem-rake
     opensuse: ruby20-devel
-    arch: ignore # on arch, if ruby is installed then so is the supporting stuff
     macos-brew:
         - gem: rake
     default: ignore # we assume that if the user has a ruby 2.0 runtime, it is usable
@@ -70,8 +68,6 @@ ruby21:
         - ruby2.1-dev
         - rake
         - rubygems-integration
-    ubuntu: ignore
-    arch: ignore # on arch, if ruby is installed then so is the supporting stuff
     fedora: ruby-devel
     macos-brew:
         - gem: rake
