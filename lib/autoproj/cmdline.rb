@@ -208,7 +208,7 @@ module Autoproj
 
         def self.update_myself(options = Hash.new)
             options = Kernel.validate_options options,
-                :force => false
+                force: false, restart_on_update: true
             return if !options[:force] && !Autoproj::CmdLine.update_os_dependencies?
 
             handle_ruby_version
@@ -237,7 +237,7 @@ module Autoproj
                 end
 
             # First things first, see if we need to update ourselves
-            if did_update
+            if did_update && options[:restart_on_update]
                 puts
                 Autoproj.message 'autoproj and/or autobuild has been updated, restarting autoproj'
                 puts
@@ -1606,8 +1606,7 @@ where 'mode' is one of:
             end
             osdeps.osdeps_mode
 
-            update_myself :force => true
-
+            update_myself :force => true, :restart_on_update => false
             Autoproj.change_option 'reused_autoproj_installations', reuse, true
             Autoproj.export_env_sh
 
