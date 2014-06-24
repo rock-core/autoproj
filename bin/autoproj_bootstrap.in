@@ -1,7 +1,7 @@
 #! /usr/bin/ruby
 
-if RUBY_VERSION < "1.8.7"
-    STDERR.puts "autoproj requires Ruby >= 1.8.7"
+if RUBY_VERSION < "1.9.2"
+    STDERR.puts "autoproj requires Ruby >= 1.9.2"
     exit 1
 end
 
