@@ -512,7 +512,7 @@ fi
                 Autobuild::ORIGINAL_ENV['GEM_PATH'] = orig_gem_path.join(File::PATH_SEPARATOR)
 
                 Autoproj.manifest.each_reused_autoproj_installation do |p|
-                    p_gems = File.join(Autoproj.root_dir, '.gems')
+                    p_gems = File.join(p, '.gems')
                     if File.directory?(p_gems)
                         Autobuild.env_add_path 'GEM_PATH', p_gems
                     end

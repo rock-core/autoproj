@@ -136,7 +136,7 @@ module Autoproj
             load_autoprojrc
 
             Autoproj.manifest.each_reused_autoproj_installation do |p|
-                Autoproj.manifest.reuse(path)
+                Autoproj.manifest.reuse(p)
             end
 
             # We load the local init.rb first so that the manifest loading
