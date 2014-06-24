@@ -1567,6 +1567,29 @@ where 'mode' is one of:
                 end
             end
 
+            reuse = []
+            parser = lambda do |opt|
+                opt.on '--reuse DIR', 'reuse the given autoproj installation (can be given multiple times)' do |path|
+                    path = File.expand_path(path)
+                    if !File.directory?(path) || !File.directory?(File.join(path, 'autoproj'))
+                        raise ConfigError.new, "#{path} does not look like an autoproj installation"
+                    end
+                    reuse << path
+                end
+            end
+            args = parse_arguments(args, false, &parser)
+            if current_root = ENV['AUTOPROJ_CURRENT_ROOT']
+                # Allow having a current root only if it is being reused
+                if (current_root != Dir.pwd) && !reuse.include?(current_root)
+                    STDERR.puts "the env.sh from #{ENV['AUTOPROJ_CURRENT_ROOT']} seem to already be sourced"
+                    STDERR.puts "start a new shell and try to bootstrap again"
+                    STDERR.puts
+                    STDERR.puts "you are allowed to boostrap from another autoproj installation"
+                    STDERR.puts "only if you reuse it with the --reuse flag"
+                    exit 1
+                end
+            end
+
             Autoproj.root_dir = Dir.pwd
             Autobuild.prefix  = Autoproj.build_dir
             Autobuild.srcdir  = Autoproj.root_dir
@@ -1585,17 +1608,6 @@ where 'mode' is one of:
 
             update_myself :force => true
 
-            reuse = []
-            parser = lambda do |opt|
-                opt.on '--reuse DIR', 'reuse the given autoproj installation (can be given multiple times)' do |path|
-                    path = File.expand_path(path)
-                    if !File.directory?(path) || !File.directory?(File.join(path, 'autoproj'))
-                        raise ConfigError.new, "#{path} does not look like an autoproj installation"
-                    end
-                    reuse << path
-                end
-            end
-            args = parse_arguments(args, false, &parser)
             Autoproj.change_option 'reused_autoproj_installations', reuse, true
             Autoproj.export_env_sh
 
