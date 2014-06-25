@@ -47,7 +47,7 @@ ruby20:
         - rake
         - rubygems-integration
     ubuntu:
-        '14.04':
+        '13.10,14.04':
             - ruby2.0
             - ruby2.0-dev
             - rake
