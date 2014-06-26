@@ -515,6 +515,7 @@ fi
                     p_gems = File.join(p, '.gems')
                     if File.directory?(p_gems)
                         Autobuild.env_add_path 'GEM_PATH', p_gems
+                        Autobuild.env_add_path 'PATH', File.join(p_gems, 'bin')
                     end
                 end
                 Autobuild.env_add_path 'GEM_PATH', gem_home
