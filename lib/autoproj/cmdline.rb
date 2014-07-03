@@ -96,6 +96,11 @@ module Autoproj
                 Autobuild::Reporting << Autobuild::MailReporter.new(mail_config)
             end
 
+            # Make sure that the currently loaded env.sh is actually us
+            if ENV['AUTOPROJ_CURRENT_ROOT'] && !ENV['AUTOPROJ_CURRENT_ROOT'].empty? && (ENV['AUTOPROJ_CURRENT_ROOT'] != Autoproj.root_dir)
+                raise ConfigError.new, "the current environment is for #{ENV['AUTOPROJ_CURRENT_ROOT']}, but you are in #{Autoproj.root_dir}, make sure you are loading the right #{ENV_FILENAME} script !"
+            end
+
             # Remove from LOADED_FEATURES everything that is coming from our
             # configuration directory
             Autobuild::Package.clear
@@ -119,11 +124,6 @@ module Autoproj
 
             if Autoproj.has_config_key?('randomize_layout')
                 @randomize_layout = Autoproj.user_config('randomize_layout')
-            end
-
-            # Make sure that the currently loaded env.sh is actually us
-            if ENV['AUTOPROJ_CURRENT_ROOT'] && !ENV['AUTOPROJ_CURRENT_ROOT'].empty? && (ENV['AUTOPROJ_CURRENT_ROOT'] != Autoproj.root_dir)
-                raise ConfigError.new, "the current environment is for #{ENV['AUTOPROJ_CURRENT_ROOT']}, but you are in #{Autoproj.root_dir}, make sure you are loading the right #{ENV_FILENAME} script !"
             end
 
             Autoproj.manifest = Manifest.new
