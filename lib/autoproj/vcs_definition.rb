@@ -30,6 +30,21 @@ module Autoproj
             Hash[:type => type, :url => url].merge(options)
         end
 
+        # Update this VCS definition with new information / options and return
+        # the updated definition
+        #
+        # @return [VCSDefinition]
+        def update(spec, new_raw_entry)
+            new = self.class.vcs_definition_to_hash(spec)
+            if new.has_key?(:type) && (type != new[:type])
+                # The type changed. We replace the old definition by the new one
+                # completely
+                self.class.from_raw(new, new_raw_entry)
+            else
+                self.class.from_raw(to_hash.merge(new), raw + new_raw_entry)
+            end
+        end
+
         # Updates the VCS specification +old+ by the information contained in
         # +new+
         #

@@ -258,9 +258,8 @@ module Autoproj
 
         def self.load_configuration(silent = false)
             manifest = Autoproj.manifest
-            manifest.cache_package_sets
 
-            manifest.each_package_set(false) do |pkg_set|
+            manifest.each_package_set do |pkg_set|
                 if Gem::Version.new(pkg_set.required_autoproj_version) > Gem::Version.new(Autoproj::VERSION)
                     raise ConfigError.new(pkg_set.source_file), "the #{pkg_set.name} package set requires autoproj v#{pkg_set.required_autoproj_version} but this is v#{Autoproj::VERSION}"
                 end
@@ -268,7 +267,7 @@ module Autoproj
 
             # Load init.rb files. each_source must not load the source.yml file, as
             # init.rb may define configuration options that are used there
-            manifest.each_package_set(false) do |source|
+            manifest.each_package_set do |source|
                 Autoproj.load_if_present(source, source.local_dir, "init.rb")
             end
 
@@ -323,39 +322,7 @@ module Autoproj
         end
 
         def self.update_configuration
-            manifest = Autoproj.manifest
-            Autoproj::Manifest.only_local_updates = @only_local
-
-            # Load the installation's manifest a first time, to check if we should
-            # update it ... We assume that the OS dependencies for this VCS is already
-            # installed (i.e. that the user did not remove it)
-            if manifest.vcs
-                manifest.update_yourself
-                manifest_path = File.join(Autoproj.config_dir, 'manifest')
-                manifest.load(manifest_path)
-            end
-
-            source_os_dependencies = manifest.each_remote_source(false).
-                inject(Set.new) do |set, source|
-                    set << source.vcs.type if !source.local?
-                end
-
-            # Update the remote sources if there are any
-            if manifest.has_remote_sources?
-                if manifest.should_update_remote_sources
-                    Autoproj.message("autoproj: updating remote definitions of package sets", :bold)
-                end
-
-                # If we need to install some packages to import our remote sources, do it
-                if update_os_dependencies?
-                    Autoproj.osdeps.install(source_os_dependencies)
-                end
-
-                if manifest.should_update_remote_sources
-                    manifest.update_remote_sources
-                end
-                Autoproj.message
-            end
+            Ops::Configuration.new(Autoproj.manifest, Ops.loader).update_configuration(only_local?)
         end
 
         def self.setup_package_directories(pkg)
@@ -411,10 +378,7 @@ module Autoproj
                 pkg.setup = true
             end
 
-            # Load the package's override files. each_source must not load the
-            # source.yml file, as init.rb may define configuration options that are used
-            # there
-            manifest.each_source(false).to_a.each do |source|
+            manifest.each_package_set do |source|
                 Autoproj.load_if_present(source, source.local_dir, "overrides.rb")
             end
 
@@ -490,7 +454,7 @@ module Autoproj
 
                 package_sets = Set.new
                 all_selected_packages.each do |name|
-                    pkg_set = manifest.definition_source(name)
+                    pkg_set = manifest.definition_package_set(name)
                     package_sets << pkg_set
                     all_packages[name] = [manifest.package(name).autobuild, pkg_set.name]
                 end
@@ -725,7 +689,7 @@ module Autoproj
                 # packages is not important BUT the ordering of import vs.
                 # prepare in one package IS important: prepare is the method
                 # that takes into account dependencies.
-                pkg.import(@only_local)
+                pkg.import(only_local?)
                 Rake::Task["#{pkg.name}-import"].instance_variable_set(:@already_invoked, true)
                 manifest.load_package_manifest(pkg.name)
 
@@ -1320,7 +1284,7 @@ where 'mode' is one of:
                 elsif !File.directory?(pkg.srcdir)
                     lines << Autoproj.color("  is not imported yet", :magenta)
                 else
-                    status = begin pkg.importer.status(pkg,@only_local)
+                    status = begin pkg.importer.status(pkg, only_local?)
                              rescue Interrupt
                                  raise
                              rescue Exception => e
@@ -1404,19 +1368,12 @@ where 'mode' is one of:
         end
 
         def self.status(packages)
-            console = Autoproj.console
-            
-            sources = Autoproj.manifest.each_configuration_source.
-                map do |vcs, text_name, local_dir|
-                    Autoproj::Manifest.create_autobuild_package(vcs, text_name, local_dir)
-                end
-
-            if !sources.empty?
+            pkg_sets = Autoproj.manifest.each_package_set.map(&:create_autobuild_package)
+            if !pkg_sets.empty?
                 Autoproj.message("autoproj: displaying status of configuration", :bold)
-                display_status(sources)
+                display_status(pkg_sets)
                 STDERR.puts
             end
-
 
             Autoproj.message("autoproj: displaying status of packages", :bold)
             packages = packages.sort.map do |pkg_name|
@@ -1505,7 +1462,10 @@ where 'mode' is one of:
                     
                 FileUtils.mv config_dir, backup_name
             end
-            Autoproj::Manifest.update_package_set(vcs, "autoproj main configuration", config_dir)
+            Ops::Configuration.update_configuration_repository(
+                vcs,
+                "autoproj main configuration",
+                config_dir)
 
             # If the new tree has a configuration file, load it and set
             # manifest_source

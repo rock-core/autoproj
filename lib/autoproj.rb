@@ -17,6 +17,11 @@ require 'autoproj/system'
 require 'autoproj/options'
 require 'autoproj/cmdline'
 require 'autoproj/query'
+
+require 'autoproj/ops/tools'
+require 'autoproj/ops/loader'
+require 'autoproj/ops/configuration'
+
 require 'logger'
 require 'utilrb/logger'
 

@@ -242,19 +242,22 @@ module Autoproj
         end
     end
 
-    # Returns the information about the file that is currently being loaded
-    #
-    # The return value is [package_set, path], where +package_set+ is the
-    # PackageSet instance and +path+ is the path of the file w.r.t. the autoproj
-    # root directory
-    def self.current_file
-        @file_stack.last
+    # @deprecated use Ops.loader.in_package_set or add a proper Loader object to your
+    #   class
+    def self.in_package_set(package_set, path)
+        Ops.loader.in_package_set(package_set, path)
     end
 
-    # The PackageSet object representing the package set that is currently being
-    # loaded
+    # @deprecated use Ops.loader.current_file or add a proper Loader object to your
+    #   class
+    def self.current_file
+        Ops.loader.current_file
+    end
+
+    # @deprecated use Ops.loader.current_package_set or add a proper Loader object to your
+    #   class
     def self.current_package_set
-        current_file.first
+        Ops.loader.current_package_set
     end
 
     def self.define(package_type, spec, &block)
@@ -264,30 +267,6 @@ module Autoproj
     end
 
     @loaded_autobuild_files = Set.new
-    def self.filter_load_exception(error, package_set, path)
-        raise error if Autoproj.verbose
-        rx_path = Regexp.quote(path)
-        if error_line = error.backtrace.find { |l| l =~ /#{rx_path}/ }
-            if line_number = Integer(/#{rx_path}:(\d+)/.match(error_line)[1])
-                line_number = "#{line_number}:"
-            end
-
-            if package_set.local?
-                raise ConfigError.new(path), "#{path}:#{line_number} #{error.message}", error.backtrace
-            else
-                raise ConfigError.new(path), "#{File.basename(path)}(package_set=#{package_set.name}):#{line_number} #{error.message}", error.backtrace
-            end
-        else
-            raise error
-        end
-    end
-
-    def self.in_package_set(package_set, path)
-        @file_stack.push([package_set, File.expand_path(path).gsub(/^#{Regexp.quote(Autoproj.root_dir)}\//, '')])
-        yield
-    ensure
-        @file_stack.pop
-    end
 
     class << self
         attr_reader :loaded_autobuild_files

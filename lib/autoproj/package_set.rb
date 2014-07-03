@@ -4,7 +4,18 @@ module Autoproj
     # package definitions (.autobuild files), and finally definition of
     # dependencies that are provided by the operating system (.osdeps file).
     class PackageSet
+        # Exception raised when an operation that needs the source.yml to be
+        # loaded is called before {PackageSet#load_description_file} is called 
+        class NotLoaded < RuntimeError
+            attr_reader :package_set
+            def initialize(package_set)
+                @package_set = package_set
+            end
+        end
+
+        # @return [Manifest] the manifest this package set is being used by
         attr_reader :manifest
+
         # The VCSDefinition object that defines the version control holding
         # information for this source. Local package sets (i.e. the ones that are not
         # under version control) use the 'local' version control name. For them,
@@ -25,16 +36,26 @@ module Autoproj
 
         # If true, this package set has been loaded because another set imports
         # it. If false, it is loaded explicitely by the user
-        def explicit?; !@imported_from end
+        def explicit?; !!@explicit end
+        attr_writer :explicit
 
         attr_reader :source_definition
         attr_reader :constants_definitions
 
-        # Sets the auto_imports flag. See #auto_imports?
+        # Sets the auto_imports flag
+        #
+        # @see auto_imports?
         attr_writer :auto_imports
         # If true (the default), imports listed in this package set will be
         # automatically loaded by autoproj
         def auto_imports?; !!@auto_imports end
+
+        # The VCS definition entries from the 'imports' section of the YAML file
+        # @return [Array<VCSDefinition>]
+        attr_reader :imports_vcs
+
+        # The package sets that this imports
+        attr_reader :imports
 
         # Returns the Metapackage object that has the same name than this
         # package set
@@ -56,7 +77,10 @@ module Autoproj
             @all_osdeps = []
 
             @provides = Set.new
-            @imports  = Array.new
+            @imports  = Set.new
+            @imports_vcs  = Array.new
+            @imported_from = Array.new
+            @explicit = false
             @auto_imports = true
         end
 
@@ -86,18 +110,54 @@ module Autoproj
                 !File.exists?(File.join(raw_local_dir, "init.rb"))
         end
 
+        def create_autobuild_package
+            Ops::Tools.create_autobuild_package(vcs, name, raw_local_dir)
+        end
+
         def snapshot(target_dir)
             if local?
                 Hash.new
             else
-                package = Manifest.create_autobuild_package(vcs, name, raw_local_dir)
+                package = create_autobuild_package
                 package.importer.snapshot(package, target_dir)
             end
         end
 
-        # Create a PackageSet instance from its description as found in YAML
-        # configuration files
-        def self.from_spec(manifest, raw_spec, load_description)
+        # Returns the "best" name under which we can refer to the given package
+        # set to the user
+        #
+        # Mainly, it returns the package set's name if the package set is
+        # checked out, and the vcs (as a string) otherwise
+        #
+        # @return [String]
+        def self.name_of(manifest, vcs)
+            pkg_set = PackageSet.new(manifest, vcs)
+            if pkg_set.present?
+                name = pkg_set.raw_description_file['name']
+            end
+            name || vcs.to_s
+        end
+
+        # Returns the local directory in which the given package set should be
+        # checked out
+        #
+        # @param [VCSDefinition] vcs the version control information for the
+        #   package set
+        # @return [String]
+        def self.raw_local_dir_of(vcs)
+            if vcs.local?
+                File.expand_path(vcs.url)
+            else
+                File.expand_path(File.join(Autoproj.remotes_dir, vcs.create_autobuild_importer.repository_id.gsub(/[^\w]/, '_')))
+            end
+        end
+
+        # Resolve the VCS information for a package set
+        #
+        # This parses the information stored in the package_sets section of
+        # autoproj/manifest, or the imports section of the source.yml files and
+        # returns the corresponding VCSDefinition object
+        def self.resolve_definition(manifest, raw_spec)
             if raw_spec.respond_to?(:to_str)
                 local_path = File.join(Autoproj.config_dir, raw_spec)
                 if File.directory?(local_path)
@@ -111,22 +171,7 @@ module Autoproj
             # either vcs_type:url or just url. In the latter case, we expect
             # 'url' to be a path to a local directory
             vcs_spec = Autoproj.expand(vcs_spec, manifest.constant_definitions)
-            vcs_def  = VCSDefinition.from_raw(vcs_spec, [[nil, raw_spec]])
-
-            source = PackageSet.new(manifest, vcs_def)
-            source.auto_imports = options[:auto_imports]
-            if load_description
-                if source.present?
-                    source.load_description_file
-                else
-                    raise InternalError, "cannot load description file as it has not been checked out yet"
-                end
-            else
-                # Try to load just the name from the source.yml file
-                source.load_minimal
-            end
-
-            source
+            return VCSDefinition.from_raw(vcs_spec, [[nil, raw_spec]]), options
         end
 
         # Returns a string that uniquely represents the version control
@@ -156,11 +201,7 @@ module Autoproj
         #
         # For local sources, is simply returns the path to the source directory.
         def raw_local_dir
-            if local?
-                File.expand_path(vcs.url)
-            else
-                File.expand_path(File.join(Autoproj.remotes_dir, vcs.create_autobuild_importer.repository_id.gsub(/[^\w]/, '_')))
-            end
+            self.class.raw_local_dir_of(vcs)
         end
 
         # Remote sources can be accessed through a hidden directory in
@@ -196,11 +237,7 @@ module Autoproj
 
         # Returns the source name
         def name
-            if @name
-                @name
-            else
-                vcs.to_s
-            end
+            @name || self.class.name_of(manifest, vcs)
         end
 
         # Loads the source.yml file, validates it and returns it as a hash
@@ -228,40 +265,12 @@ module Autoproj
             source_definition
         end
 
-        # Load and validate the self-contained information from the YAML hash
-        def load_minimal
-            # If @source_definition is set, it means that load_description_file
-            # has been called and that therefore all information has already
-            # been parsed
-            definition = @source_definition || raw_description_file
-            @name = definition['name']
-
-            if @name !~ /^[\w\.-]+$/
-                raise ConfigError.new(source_file),
-                    "in #{source_file}: invalid source name '#{@name}': source names can only contain alphanumeric characters, and .-_"
-            elsif @name == "local"
-                raise ConfigError.new(source_file),
-                    "in #{source_file}: the name 'local' is a reserved name"
-            end
-
-            @provides = (definition['provides'] || Set.new).to_set
-            @imports  = (definition['imports'] || Array.new).map do |set_def|
-                pkg_set = Autoproj.in_file(source_file) do
-                    PackageSet.from_spec(manifest, set_def, false)
-                end
-
-                pkg_set.imported_from = self
-                pkg_set
-            end
-
-        rescue InternalError
-            # This ignores raw_description_file error if the package set is not
-            # checked out yet
-        end
-
-        # Yields the imports this package set declares, as PackageSet instances
-        def each_imported_set(&block)
-            @imports.each(&block)
+        # Yields the imports raw information
+        #
+        # @yieldparam [VCSDefinition] vcs the import VCS information
+        # @yieldparam [Hash] options import options
+        def each_raw_imported_set(&block)
+            @imports_vcs.each(&block)
         end
 
         # Path to the source.yml file
@@ -270,16 +279,28 @@ module Autoproj
         end
 
         # Load the source.yml file and resolves all information it contains.
-        #
-        # This for instance requires configuration options to be defined. Use
-        # PackageSet#load_minimal to load only self-contained information
         def load_description_file
-            if @source_definition
-                return
+            @source_definition = raw_description_file
+            name = @source_definition['name']
+            if name !~ /^[\w\.-]+$/
+                raise ConfigError.new(source_file),
+                    "in #{source_file}: invalid source name '#{@name}': source names can only contain alphanumeric characters, and .-_"
+            elsif name == "local"
+                raise ConfigError.new(source_file),
+                    "in #{source_file}: the name 'local' is a reserved name"
             end
 
-            @source_definition = raw_description_file
-            load_minimal
+            parse_source_definition
+        end
+
+        def parse_source_definition
+            @name = source_definition['name']
+            @provides = (source_definition['provides'] || Set.new).to_set
+            @imports_vcs  = (source_definition['imports'] || Array.new).map do |set_def|
+                Autoproj.in_file(source_file) do
+                    PackageSet.resolve_definition(manifest, set_def)
+                end
+            end
 
             # Compute the definition of constants
             Autoproj.in_file(source_file) do
@@ -290,7 +311,7 @@ module Autoproj
 
         def single_expansion(data, additional_expansions = Hash.new)
             if !source_definition
-                load_description_file
+                raise NotLoaded.new(self), "you must load the package set information with #load_description_file before you can call #single_expansion"
             end
             Autoproj.single_expansion(data, additional_expansions.merge(constants_definitions))
         end
@@ -428,6 +449,24 @@ module Autoproj
             end
         end
 
+        # Update a VCS object using the overrides defined in this package set
+        #
+        # @param [String] package_name the package name
+        # @param [VCSDefinition] the vcs to be updated
+        # @return [VCSDefinition] the new, updated vcs object
+        def overrides_for(package_name, vcs)
+            new_spec, new_raw_entry = version_control_field(package_name, 'overrides', false)
+            return vcs if !new_spec
+
+            Autoproj.in_file source_file do
+                begin
+                    vcs.update(new_spec, new_raw_entry)
+                rescue ConfigError => e
+                    raise ConfigError.new, "invalid resulting VCS specification in the overrides section for package #{package_name}: #{e.message}"
+                end
+            end
+        end
+
         # Enumerates the Autobuild::Package instances that are defined in this
         # source
         def each_package
@@ -453,21 +492,35 @@ module Autoproj
 
     # Specialization of the PackageSet class for the overrides listed in autoproj/
     class LocalPackageSet < PackageSet
-        def initialize(manifest)
-            super(manifest, VCSDefinition.from_raw(:type => 'local', :url => Autoproj.config_dir))
+        def initialize(manifest, vcs = nil)
+            if Autoproj.has_config_key?('manifest_source')
+                vcs ||= VCSDefinition.from_raw(Autoproj.user_config('manifest_source'))
+            end
+            super(manifest, vcs)
         end
 
         def name
-            'local'
+            'main configuration'
         end
-        def load_minimal
+
+        def local_dir
+            Autoproj.config_dir
         end
-        def repository_id
-            'local'
+
+        def raw_local_dir
+            Autoproj.config_dir
+        end
+
+        def manifest_path
+            File.join(Autoproj.config_dir, "manifest")
+        end
+
+        def overrides_yml_path
+            File.join(Autoproj.config_dir, "overrides.yml")
         end
 
         def source_file
-            File.join(Autoproj.config_dir, "overrides.yml")
+            overrides_yml_path
         end
 
         # Returns the default importer for this package set
@@ -476,17 +529,27 @@ module Autoproj
                 VCSDefinition.from_raw(:type => 'none')
         end
 
+        def load_description_file
+            @source_definition = raw_description_file
+            parse_source_definition
+        end
+
         def raw_description_file
-            path = source_file
-            if File.file?(path)
-                data = Autoproj.in_file(path, Autoproj::YAML_LOAD_ERROR) do
-                    YAML.load(File.read(path)) || Hash.new
+            if File.file?(overrides_yml_path)
+                description = Autoproj.in_file(overrides_yml_path, Autoproj::YAML_LOAD_ERROR) do
+                    YAML.load(File.read(overrides_yml_path)) || Hash.new
                 end
-                data['name'] = 'local'
-                data
             else
-                { 'name' => 'local' }
+                description = Hash.new
             end
+
+            manifest_data = Autoproj.in_file(manifest_path, Autoproj::YAML_LOAD_ERROR) do
+                YAML.load(File.read(manifest_path)) || Hash.new
+            end
+            description['imports'] = (description['imports'] || Array.new).
+                concat(manifest_data['package_sets'] || Array.new)
+            description['name'] = name
+            description
         end
     end
 

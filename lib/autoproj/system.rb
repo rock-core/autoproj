@@ -202,33 +202,16 @@ module Autoproj
         end
     end
 
-    # Load a definition file given at +path+. +source+ is the package set from
-    # which the file is taken.
-    #
-    # If any error is detected, the backtrace will be filtered so that it is
-    # easier to understand by the user. Moreover, if +source+ is non-nil, the
-    # package set name will be mentionned.
+    # @deprecated use Ops.loader.load or add a proper Loader object to your
+    #   class
     def self.load(package_set, *path)
-        path = File.join(*path)
-        in_package_set(package_set, File.expand_path(path).gsub(/^#{Regexp.quote(Autoproj.root_dir)}\//, '')) do
-            begin
-                Kernel.load path
-            rescue Interrupt
-                raise
-            rescue ConfigError => e
-                raise
-            rescue Exception => e
-                filter_load_exception(e, package_set, path)
-            end
-        end
+        Ops.loader.load(package_set, *path)
     end
 
-    # Same as #load, but runs only if the file exists.
+    # @deprecated use Ops.loader.load_if_present or add a proper Loader object
+    #   to your class
     def self.load_if_present(package_set, *path)
-        path = File.join(*path)
-        if File.file?(path)
-            self.load(package_set, *path)
-        end
+        Ops.loader.load_if_present(package_set, *path)
     end
 
     # Look into +dir+, searching for shared libraries. For each library, display

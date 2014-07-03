@@ -28,36 +28,17 @@ module Autoproj
     # The Manifest class represents the information included in the main
     # manifest file, and allows to manipulate it
     class Manifest
-        # Data structure used to use autobuild importers without a package, to
-        # import configuration data.
-        #
-        # It has to match the interface of Autobuild::Package that is relevant
-        # for importers
-        class FakePackage < Autobuild::Package
-            attr_reader :srcdir
-            attr_reader :importer
-
-            # Used by the autobuild importers
-            attr_accessor :updated
-
-            def initialize(text_name, srcdir, importer = nil)
-                super(text_name)
-                @srcdir = srcdir
-                @importer = importer
-                @@packages.delete(text_name)
-            end
-
-            def import
-                importer.import(self,Manifest.only_local_updates)
-            end
-
-            def add_stat(*args)
-            end
-        end
-
         # The set of packages that are selected by the user, either through the
         # manifest file or through the command line, as a set of package names
         attr_accessor :explicit_selection
+
+        # Set the package sets that are available on this manifest
+        #
+        # This is set externally at loading time. {load_and_update_package_sets}
+        # can do it as well
+        #
+        # @return [Array<PackageSet>]
+        attr_writer :package_sets
 
         # Returns true if +pkg_name+ has been explicitely selected
         def explicitly_selected_package?(pkg_name)
@@ -130,16 +111,16 @@ module Autoproj
 
         attr_reader :metapackages
 
-        class << self
-            #Set to true if this manifest should only do local updates through the Autobuild::Importer
-            attr_accessor :only_local_updates
-        end
+        # The VCS object for the main configuration itself
+        attr_reader :vcs
 
 	def initialize
             @file = nil
 	    @data = Hash.new
             @packages = Hash.new
             @package_manifests = Hash.new
+            @package_sets = []
+
             @automatic_exclusions = Hash.new
             @constants_definitions = Hash.new
             @disabled_imports = Set.new
@@ -149,7 +130,6 @@ module Autoproj
             @ignored_os_dependencies = Set.new
             @reused_installations = Array.new
             @ignored_packages = Set.new
-            Manifest::only_local_updates = false
 
             @constant_definitions = Hash.new
             if Autoproj.has_config_key?('manifest_source')
@@ -261,7 +241,7 @@ module Autoproj
             #
             # And honestly I don't think someone will have 20 000 package sets
             done_something = false
-            each_package_set(false) do |source| 
+            each_package_set do |source| 
                 next if source_name && source.name != source_name
                 done_something = true
 
@@ -281,7 +261,7 @@ module Autoproj
                 return enum_for(:each_source_file)
             end
 
-            each_package_set(false) do |source|
+            each_package_set do |source|
 		Dir.glob(File.join(source.local_dir, "*.osdeps")).each do |file|
 		    yield(source, file)
 		end
@@ -293,130 +273,62 @@ module Autoproj
             each_remote_source(false).any? { true }
         end
 
-        # True if calling update_remote_sources will actually do anything
-        def should_update_remote_sources
-            if Autobuild.do_update
-                return true
-            end
-
-            each_remote_source(false) do |source|
-                if !File.directory?(source.local_dir)
-                    return true
-                end
-            end
-            false
-        end
-
         # Like #each_package_set, but filters out local package sets
-        def each_remote_package_set(load_description = true)
-            if !block_given?
-                enum_for(:each_remote_package_set, load_description)
-            else
-                each_package_set(load_description) do |source|
-                    if !source.local?
-                        yield(source)
-                    end
+        def each_remote_package_set
+            return enum_for(__method__) if !block_given?
+
+            each_package_set do |pkg_set|
+                if !pkg_set.local?
+                    yield(pkg_set)
                 end
             end
         end
 
-        def each_remote_source(*args, &block)
-            each_remote_package_set(*args, &block)
-        end
-
-        # Helper method for #each_package_set
-        def enumerate_package_set(pkg_set, explicit_sets, all_sets) # :nodoc:
-            if @disabled_imports.include?(pkg_set.name)
-                pkg_set.auto_imports = false
-            end
-
-            result = []
-            if pkg_set.auto_imports?
-                pkg_set.each_imported_set do |imported_set|
-                    if explicit_sets.any? { |src| src.vcs == imported_set.vcs } ||
-                        all_sets.any? { |src| src.vcs == imported_set.vcs }
-                        next
-                    end
-
-                    all_sets << imported_set
-                    result.concat(enumerate_package_set(imported_set, explicit_sets, all_sets))
-                end
-            end
-            result << pkg_set
-            result
-        end
-
-        # call-seq:
-        #   each_package_set { |pkg_set| ... }
+        # Enumerates the version control information for all the package sets
+        # listed directly in the manifest file
         #
-        # Lists all package sets defined in this manifest, by yielding a
-        # PackageSet object that describes it.
-        def each_package_set(load_description = true, &block)
-            if !block_given?
-                return enum_for(:each_package_set, load_description)
-            end
-
-            if @package_sets
-                if load_description
-                    @package_sets.each do |src|
-                        if !src.source_definition
-                            src.load_description_file
-                        end
-                    end
-                end
-                return @package_sets.each(&block)
-            end
-
-	    explicit_sets = (data['package_sets'] || []).map do |spec|
+        # @yieldparam [VCSDefinition] vcs the package set VCS object
+        # @yieldparam [Hash] options additional import options
+        # @options options [Boolean] :auto_update (true) if true, the set of
+        #   package sets declared as imports in package set's source.yml file
+        #   will be auto-imported by autoproj, otherwise they won't
+        # @return [nil]
+        def each_raw_explicit_package_set
+            return enum_for(__method__) if !block_given?
+            (data['package_sets'] || []).map do |spec|
                 Autoproj.in_file(self.file) do
-                    PackageSet.from_spec(self, spec, load_description)
+                    yield(*PackageSet.resolve_definition(self, spec))
                 end
             end
-
-            all_sets = Array.new
-            explicit_sets.each do |pkg_set|
-                all_sets.concat(enumerate_package_set(pkg_set, explicit_sets, all_sets + [pkg_set]))
-            end
-
-            # Now load the local source 
-            local = LocalPackageSet.new(self)
-            if load_description
-                local.load_description_file
-            else
-                local.load_minimal
-            end
-            if !load_description || !local.empty?
-                all_sets << local
-            end
-            
-            if load_description
-                all_sets.each(&:load_description_file)
-            else
-                all_sets.each(&:load_minimal)
-            end
-            all_sets.each(&block)
+            nil
         end
 
-        # DEPRECATED. For backward-compatibility only
+        # Lists all package sets defined in this manifest, including the package
+        # sets that are auto-imported
         #
-        # use #each_package_set instead
-        def each_source(*args, &block)
-            each_package_set(*args, &block)
+        # Note that this can be called only after the package sets got loaded
+        # with {load_package_sets}
+        #
+        # @yieldparam [PackageSet]
+        def each_package_set(&block)
+            @package_sets.each(&block)
         end
 
+        # Load the package set information
+        def load_and_update_package_sets
+            Ops::Configuration.new(self, Ops.loader).load_and_update_package_sets
+        end
+
+        # Returns a package set that is used by autoproj for its own purposes
         def local_package_set
             each_package_set.find { |s| s.kind_of?(LocalPackageSet) }
         end
 
-        # Save the currently known package sets. After this call,
-        # #each_package_set will always return the same set regardless of
-        # changes on the manifest's data structures
-        def cache_package_sets
-            @package_sets = each_package_set(false).to_a
-            @package_sets.each do |pkg_set|
-                @metapackages[pkg_set.name] ||= Metapackage.new(pkg_set.name)
-                @metapackages["#{pkg_set.name}.all"] ||= Metapackage.new("#{pkg_set.name}.all")
-            end
+        # Registers a new package set
+        def register_package_set(pkg_set)
+            metapackage(pkg_set.name)
+            metapackage("#{pkg_set.name}.all")
+            @package_sets << pkg_set
         end
 
         # Register a new package
@@ -430,18 +342,34 @@ module Autoproj
             @metapackages["#{pkg.package_set.name}.all"].add(pkg.autobuild)
         end
 
+        # Returns the package set that defines a package
+        #
+        # @param [String] package_name the package name
+        # @return [PackageSet] the package set
+        # @raise ArgumentError if package_name is not the name of a known
+        #   package
         def definition_package_set(package_name)
             if pkg_def = @packages[package_name]
                 pkg_def.package_set
+            else raise ArgumentError, "no package called #{package_name}"
             end
         end
 
+        # @deprecated use {definition_package_set} instead
         def definition_source(package_name)
             definition_package_set(package_name)
         end
+
+        # Returns the full path to the file that defines a package
+        #
+        # @param [String] package_name the package name
+        # @return [String] the package set
+        # @raise ArgumentError if package_name is not the name of a known
+        #   package
         def definition_file(package_name)
             if pkg_def = @packages[package_name]
                 pkg_def.file
+            else raise ArgumentError, "no package called #{package_name}"
             end
         end
 
@@ -449,7 +377,9 @@ module Autoproj
             packages[name]
         end
 
-        # Lists all defined packages as PackageDefinition objects
+        # Lists all defined packages
+        #
+        # @yieldparam [PackageDefinition] pkg
         def each_package_definition(&block)
             if !block_given?
                 return enum_for(:each_package_definition)
@@ -457,8 +387,9 @@ module Autoproj
             packages.each_value(&block)
         end
 
-        # Lists all defined autobuild packages as instances of
-        # Autobuild::Package and its subclasses
+        # Lists the autobuild objects for all defined packages
+        #
+        # @yieldparam [Autobuild::Package] pkg
         def each_autobuild_package
             if !block_given?
                 return enum_for(:each_package)
@@ -466,207 +397,45 @@ module Autoproj
             packages.each_value { |pkg| yield(pkg.autobuild) }
         end
 
-        # DEPRECATED: use either #each_autobuild_package and
-        # #each_package_definition
-        def each_package(&block)
-            each_autobuild_package(&block)
-        end
-
-        # The VCS object for the main configuration itself
-        attr_reader :vcs
-
-        def each_configuration_source
-            if !block_given?
-                return enum_for(:each_configuration_source)
-            end
-
-            if vcs
-                yield(vcs, "autoproj main configuration", Autoproj.config_dir)
-            end
-
-            each_remote_source(false) do |source|
-                yield(source.vcs, source.name || source.vcs.url, source.local_dir)
-            end
-            self
-        end
-
-        # Creates an autobuild package whose job is to allow the import of a
-        # specific repository into a given directory.
-        #
-        # +vcs+ is the VCSDefinition file describing the repository, +text_name+
-        # the name used when displaying the import progress, +pkg_name+ the
-        # internal name used to represent the package and +into+ the directory
-        # in which the package should be checked out.
+        # @deprecated use Ops::Tools.create_autobuild_package or include
+        #   Ops::Tools into your class to get it as instance method
         def self.create_autobuild_package(vcs, text_name, into)
-            importer     = vcs.create_autobuild_importer
-            return if !importer # updates have been disabled by using the 'none' type
-
-            FakePackage.new(text_name, into, importer)
-
-        rescue Autobuild::ConfigException => e
-            raise ConfigError.new, "cannot import #{name}: #{e.message}", e.backtrace
+            Ops::Tools.create_autobuild_package(vcs, text_name, into)
         end
 
-        # Imports or updates a source (remote or otherwise).
+        # @deprecated use Ops::Configuration#update_main_configuration
+        def update_yourself(only_local = false)
+            Ops::Configuration.new(self, Ops.loader).update_main_configuration(only_local)
+        end
+
+        # @deprecated use Ops::Configuration.update_remote_package_set
+        def update_remote_set(vcs, only_local = false)
+            Ops::Configuration.update_remote_package_set(vcs, only_local)
+        end
+
+        # Compute the VCS definition for a given package
         #
-        # See create_autobuild_package for informations about the arguments.
-        def self.update_package_set(vcs, text_name, into)
-            fake_package = create_autobuild_package(vcs, text_name, into)
-            if other_root = CmdLine.update_from
-                # Define a package in the installation manifest that points to
-                # the desired folder in other_root
-                relative_path = Pathname.new(into).
-                    relative_path_from(Pathname.new(Autoproj.root_dir)).to_s
-                other_dir = File.join(other_root.path, relative_path)
-                if File.directory?(other_dir)
-                    other_root.packages.unshift(
-                        InstallationManifest::Package.new(fake_package.name, other_dir, File.join(other_dir, 'install')))
-                end
+        # @param [String] package_name the name of the package to be resolved
+        # @param [PackageSet,nil] package_source the package set that defines the
+        #   given package, defaults to the package's definition source (as
+        #   returned by {definition_package_set}) if not given
+        # @return [VCSDefinition] the VCS definition object
+        def importer_definition_for(package_name, package_source = definition_package_set(package_name))
+            vcs = package_source.importer_definition_for(package_name)
+            return if !vcs
 
-                # Then move the importer there if possible
-                if fake_package.importer.respond_to?(:pick_from_autoproj_root)
-                    if !fake_package.importer.pick_from_autoproj_root(fake_package, other_root)
-                        fake_package.update = false
-                    end
-                else
-                    fake_package.update = false
-                end
+            # Get the sets that come *after* the one that defines the package to
+            # apply the overrides
+            package_sets = each_package_set.to_a.dup
+            while !package_sets.empty? && package_sets.first != package_source
+                package_sets.shift
             end
-            fake_package.import
+            package_sets.shift
 
-        rescue Autobuild::ConfigException => e
-            raise ConfigError.new, "cannot import #{name}: #{e.message}", e.backtrace
-        end
-
-        # Updates the main autoproj configuration
-        def update_yourself
-            Manifest.update_package_set(vcs, "autoproj main configuration", Autoproj.config_dir)
-        end
-
-        def update_remote_set(pkg_set, remotes_symlinks_dir = nil)
-            Manifest.update_package_set(
-                pkg_set.vcs,
-                pkg_set.name,
-                pkg_set.raw_local_dir)
-
-            if remotes_symlinks_dir
-                pkg_set.load_minimal
-                symlink_dest = File.join(remotes_symlinks_dir, pkg_set.name)
-
-                # Check if the current symlink is valid, and recreate it if it
-                # is not
-                if File.symlink?(symlink_dest)
-                    dest = File.readlink(symlink_dest)
-                    if dest != pkg_set.raw_local_dir
-                        FileUtils.rm_f symlink_dest
-                        Autoproj.create_symlink(pkg_set.raw_local_dir, symlink_dest)
-                    end
-                else
-                    FileUtils.rm_f symlink_dest
-                    Autoproj.create_symlink(pkg_set.raw_local_dir, symlink_dest)
-                end
-
-                symlink_dest
+            # Then apply the overrides
+            package_sets.inject(vcs) do |updated_vcs, pkg_set|
+                pkg_set.overrides_for(package_name, updated_vcs)
             end
-        end
-
-        # Updates all the remote sources in ROOT_DIR/.remotes, as well as the
-        # symbolic links in ROOT_DIR/autoproj/remotes
-        def update_remote_package_sets
-            remotes_symlinks_dir = File.join(Autoproj.config_dir, 'remotes')
-            FileUtils.mkdir_p remotes_symlinks_dir
-
-            # Iterate on the remote sources, without loading the source.yml
-            # file (we're not ready for that yet)
-            #
-            # Do it iteratively to properly take imports into account, but we
-            # first unconditionally update all the existing sets to properly
-            # handle imports that have been removed
-            updated_sets     = Hash.new
-            known_remotes = []
-            each_remote_package_set(false) do |pkg_set|
-                next if !pkg_set.explicit?
-                if pkg_set.present?
-                    known_remotes << update_remote_set(pkg_set, remotes_symlinks_dir)
-                    updated_sets[pkg_set.repository_id] = pkg_set
-                end
-            end
-
-            old_updated_sets = nil
-            while old_updated_sets != updated_sets
-                old_updated_sets = updated_sets.dup
-                each_remote_package_set(false) do |pkg_set|
-                    next if updated_sets.has_key?(pkg_set.repository_id)
-
-                    if !pkg_set.explicit?
-                        Autoproj.message "  #{pkg_set.imported_from.name}: auto-importing #{pkg_set.name}"
-                    end
-                    known_remotes << update_remote_set(pkg_set, remotes_symlinks_dir)
-                    updated_sets[pkg_set.repository_id] = pkg_set
-                end
-            end
-
-            # Check for directories in ROOT_DIR/.remotes that do not map to a
-            # source repository, and remove them
-            Dir.glob(File.join(Autoproj.remotes_dir, '*')).each do |dir|
-                dir = File.expand_path(dir)
-                if File.directory?(dir) && !updated_sets.values.find { |pkg| pkg.raw_local_dir == dir }
-                    FileUtils.rm_rf dir
-                end
-            end
-
-            # Now remove obsolete symlinks
-            Dir.glob(File.join(remotes_symlinks_dir, '*')).each do |file|
-                if File.symlink?(file) && !known_remotes.include?(file)
-                    FileUtils.rm_f file
-                end
-            end
-        end
-
-        # DEPRECATED. For backward-compatibility only
-        def update_remote_sources(*args, &block)
-            update_remote_package_sets(*args, &block)
-        end
-
-        def importer_definition_for(package_name, package_source = nil)
-            if !package_source
-                package_source = packages.values.
-                    find { |pkg| pkg.autobuild.name == package_name }.
-                    package_set
-            end
-
-            sources = each_package_set.to_a.dup
-
-            # Remove sources listed before the package source
-            while !sources.empty? && sources[0].name != package_source.name
-                sources.shift
-            end
-            package_source = sources.shift
-            if !package_source
-                raise InternalError, "cannot find the package set that defines #{package_name}"
-            end
-
-            # Get the version control information from the package source. There
-            # must be one
-            vcs_spec, raw = Autoproj.in_file package_source.source_file do
-                package_source.version_control_field(package_name, 'version_control')
-            end
-            return if !vcs_spec
-
-            sources.each do |src|
-                overrides_spec, raw_additional = src.version_control_field(package_name, 'overrides', false)
-                raw = raw.concat(raw_additional)
-                if overrides_spec
-                    vcs_spec = Autoproj.in_file src.source_file do
-                        begin
-                            VCSDefinition.update_raw_vcs_spec(vcs_spec, overrides_spec)
-                        rescue ConfigError => e
-                            raise ConfigError.new, "invalid resulting VCS specification in the overrides section for package #{package_name}: #{e.message}"
-                        end
-                    end
-                end
-            end
-            VCSDefinition.from_raw(vcs_spec, raw)
         end
 
         # Sets up the package importers based on the information listed in
@@ -700,10 +469,18 @@ module Autoproj
             end
         end
 
+        # Checks if there is a package with a given name
+        #
+        # @param [String] name
+        # @return [Boolean]
+        def has_package?(name)
+            packages.has_key?(name)
+        end
+
         # Returns true if +name+ is the name of a package set known to this
         # autoproj installation
         def has_package_set?(name)
-            each_package_set(false).find { |set| set.name == name }
+            each_package_set.find { |set| set.name == name }
         end
 
         # Returns the PackageSet object for the given package set, or raises
@@ -1046,7 +823,7 @@ module Autoproj
         # Returns the package directory for the given package name
         def whereis(package_name)
             Autoproj.in_file(self.file) do
-                set_name = definition_source(package_name).name
+                set_name = definition_package_set(package_name).name
                 actual_layout = normalized_layout
                 return actual_layout[package_name] || actual_layout[set_name] || '/'
             end
