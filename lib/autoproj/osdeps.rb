@@ -420,6 +420,25 @@ fi
                 end
                 new_packages
             end
+
+            def install(packages)
+                patterns, packages = packages.partition { |pkg| pkg =~ /^@/ }
+                patterns = patterns.map { |str| str[1..-1] }
+                result = false
+                if !patterns.empty?
+                    result |= super(patterns,
+                                    :auto_install_cmd => "yum groupinstall -y '%s'",
+                                    :user_install_cmd => "yum groupinstall '%s'")
+                end
+                if !packages.empty?
+                    result |= super(packages)
+                end
+                if result
+                    # Invalidate caching of installed packages, as we just
+                    # installed new packages !
+                    @installed_packages = nil
+                end
+            end
         end
 
         # Package manager interface for systems that use APT and dpkg for
