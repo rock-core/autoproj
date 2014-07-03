@@ -232,7 +232,7 @@ module Autoproj
         # Lists the autobuild files that are in the package sets we know of
 	def each_autobuild_file(source_name = nil, &block)
             if !block_given?
-                return enum_for(:each_source_file, source_name)
+                return enum_for(__method__, source_name)
             end
 
             # This looks very inefficient, but it is because source names are
@@ -258,7 +258,7 @@ module Autoproj
         # Yields each osdeps definition files that are present in our sources
         def each_osdeps_file
             if !block_given?
-                return enum_for(:each_source_file)
+                return enum_for(__method__)
             end
 
             each_package_set do |source|
