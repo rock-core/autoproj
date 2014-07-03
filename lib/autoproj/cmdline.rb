@@ -132,7 +132,6 @@ module Autoproj
             Autobuild.srcdir  = Autoproj.root_dir
             Autobuild.logdir = File.join(Autobuild.prefix, 'log')
 
-            local_source = LocalPackageSet.new(Autoproj.manifest)
             load_autoprojrc
 
             Autoproj.manifest.each_reused_autoproj_installation do |p|
@@ -142,6 +141,7 @@ module Autoproj
             # We load the local init.rb first so that the manifest loading
             # process can use options defined there for the autoproj version
             # control information (for instance)
+            local_source = LocalPackageSet.new(Autoproj.manifest)
             Autoproj.load_if_present(local_source, local_source.local_dir, "init.rb")
 
             manifest_path = File.join(Autoproj.config_dir, 'manifest')
@@ -1264,18 +1264,13 @@ where 'mode' is one of:
 
         StatusResult = Struct.new :uncommitted, :local, :remote
         def self.display_status(packages)
-            last_was_in_sync = false
             result = StatusResult.new
 
             sync_packages = ""
             packages.each do |pkg|
                 lines = []
 
-                pkg_name =
-                    if pkg.respond_to?(:text_name)
-                        pkg.text_name
-                    else pkg.autoproj_name
-                    end
+                pkg_name = pkg.autoproj_name
 
                 if !pkg.importer
                     lines << Autoproj.color("  is a local-only package (no VCS)", :bold, :red)
@@ -1287,7 +1282,7 @@ where 'mode' is one of:
                     status = begin pkg.importer.status(pkg, only_local?)
                              rescue Interrupt
                                  raise
-                             rescue Exception => e
+                             rescue Exception
                                  lines << Autoproj.color("  failed to fetch status information", :red)
                                  nil
                              end
