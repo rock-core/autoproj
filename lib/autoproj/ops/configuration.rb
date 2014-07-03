@@ -190,11 +190,14 @@ module Autoproj
         #   package sets
         def load_and_update_package_sets(root_pkg_set, only_local = false)
             package_sets = [root_pkg_set]
+            seen_already = Set.new
             by_name = Hash.new
 
             queue = queue_auto_imports_if_needed(Array.new, root_pkg_set)
             while !queue.empty?
                 vcs, options, imported_from = queue.shift
+                next if seen_already.include?(vcs)
+                seen_already << vcs
 
                 if !vcs.local?
                     update_remote_package_set(vcs, only_local)

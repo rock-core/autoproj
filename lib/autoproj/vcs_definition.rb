@@ -148,6 +148,14 @@ module Autoproj
             end
         end
 
+        def hash
+            to_hash.hash
+        end
+
+        def eql?(other_vcs)
+            to_hash == other_vcs.to_hash
+        end
+
         def self.to_absolute_url(url, root_dir = nil)
             # NOTE: we MUST use nil as default argument of root_dir as we don't
             # want to call Autoproj.root_dir unless completely necessary
