@@ -265,12 +265,6 @@ module Autoproj
                 end
             end
 
-            # Load init.rb files. each_source must not load the source.yml file, as
-            # init.rb may define configuration options that are used there
-            manifest.each_package_set do |source|
-                Autoproj.load_if_present(source, source.local_dir, "init.rb")
-            end
-
             # Loads OS package definitions once and for all
             Autoproj.load_osdeps_from_package_sets
 
