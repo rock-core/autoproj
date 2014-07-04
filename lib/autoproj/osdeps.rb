@@ -1461,8 +1461,12 @@ fi
         # Resolves the given OS dependencies into the actual packages that need
         # to be installed on this particular OS.
         #
-        # Raises ConfigError if some packages can't be found or if the
-        # nonexistent keyword was found for some of them
+        # @param [Array<String>] dependencies the list of osdep names that should be resolved
+        # @return [Array<#install,Array<String>>] the set of packages, grouped
+        #   by the package handlers that should be used to install them
+        #
+        # @raise MissingOSDep if some packages can't be found or if the
+        #   nonexistent keyword was found for some of them
         def resolve_os_dependencies(dependencies)
             all_packages = []
             dependencies.each do |name|
