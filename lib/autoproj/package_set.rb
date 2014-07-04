@@ -493,14 +493,22 @@ module Autoproj
     # Specialization of the PackageSet class for the overrides listed in autoproj/
     class LocalPackageSet < PackageSet
         def initialize(manifest, vcs = nil)
-            if Autoproj.has_config_key?('manifest_source')
-                vcs ||= VCSDefinition.from_raw(Autoproj.user_config('manifest_source'))
+            if !vcs
+                if Autoproj.has_config_key?('manifest_source')
+                    vcs = VCSDefinition.from_raw(Autoproj.user_config('manifest_source'))
+                else
+                    vcs = VCSDefinition.from_raw(:type => 'local', :url => Autoproj.config_dir)
+                end
             end
             super(manifest, vcs)
         end
 
         def name
             'main configuration'
+        end
+
+        def local?
+            true
         end
 
         def local_dir
