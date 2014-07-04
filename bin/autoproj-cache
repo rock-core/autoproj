@@ -70,6 +70,6 @@ Autoproj::CmdLine.report do
         end
     end
 
-    Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', git_cache_dir, 'gc', '--aggressive', '--prune=all')
+    Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', git_cache_dir, 'gc', '--prune=all')
 end
 
