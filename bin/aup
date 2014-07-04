@@ -1,7 +1,8 @@
 #! /usr/bin/env ruby
 require 'optparse'
+require 'autoproj'
 
-build_all = false
+build_all = (Dir.pwd == Autoproj.root_dir)
 parser = OptionParser.new do |opt|
     opt.banner = "aup [options] [dir_or_package]
 Runs autoproj update for the given directory or package name.
@@ -34,8 +35,11 @@ while !options.empty?
     end
 end
 
+
 # If --all is not given *and* there is no non-option argument (i.e. no directory
 # / package name), add the current directory to the command line
+#
+# BUT make running 'aup' in the root directory the equivalent of aup --all
 if remaining.grep(/^-/).size == remaining.size && !build_all
     remaining.push '.'
 end
