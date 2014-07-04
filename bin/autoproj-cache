@@ -48,7 +48,7 @@ Autoproj::CmdLine.report do
         Autoproj.message "    updating already existing git cache in #{git_cache_dir}"
     end
 
-    manifest.each_package do |pkg|
+    manifest.each_autobuild_package do |pkg|
         if pkg.importer.kind_of?(Autobuild::Git)
             Autoproj.message "  caching #{pkg.name} (git)"
             pkg.importdir = git_cache_dir

@@ -11,7 +11,7 @@ manifest_path = File.join(Autoproj.config_dir, 'manifest')
 manifest_data = YAML.load(File.read(manifest_path))
 manifest_data['layout'] = Array.new
 
-packages = manifest.each_package.map(&:name)
+packages = manifest.each_autobuild_package.map(&:name)
 
 while !packages.empty?
     pkg = packages[rand(packages.size)]

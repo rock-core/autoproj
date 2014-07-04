@@ -284,7 +284,7 @@ EOTEXT
         Autoproj.message
         Autoproj.message "statistics about the build", :bold
 
-        Autoproj.manifest.each_package.sort_by(&:name).each do |pkg|
+        Autoproj.manifest.each_autobuild_package.sort_by(&:name).each do |pkg|
             next if pkg.statistics.empty?
 
             if per_phase.empty?

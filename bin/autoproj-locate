@@ -17,7 +17,7 @@ selection = selection.first
 
 selection_rx = Regexp.new(Regexp.quote(selection))
 candidates = []
-Autoproj.manifest.each_package do |pkg|
+Autoproj.manifest.each_autobuild_package do |pkg|
     name = pkg.name
     next if !Autoproj.manifest.package_enabled?(name)
 
@@ -44,7 +44,7 @@ if candidates.empty?
     rx_strict = Regexp.new("#{rx_strict}/#{Regexp.quote(directories.last)}$")
 
     candidates_strict = []
-    Autoproj.manifest.each_package do |pkg|
+    Autoproj.manifest.each_autobuild_package do |pkg|
         name = pkg.name
         next if !Autoproj.manifest.package_enabled?(name)
 

@@ -7,7 +7,7 @@ Autoproj.silent = true
 root_dir  = Autoproj::CmdLine.initialize_root_directory
 Autoproj::CmdLine.initialize_and_load(ARGV)
 
-Autoproj.manifest.each_package do |pkg|
+Autoproj.manifest.each_autobuild_package do |pkg|
     pkg.prepare_for_rebuild
 end
 

@@ -22,7 +22,7 @@ Autoproj::CmdLine.report do
     resolved_selection = Autoproj::CmdLine.
         resolve_user_selection(user_selection, :filter => false)
     # Remove non-existing packages
-    Autoproj.manifest.each_package do |pkg|
+    Autoproj.manifest.each_autobuild_package do |pkg|
         if !File.directory?(pkg.srcdir)
             Autoproj.manifest.add_exclusion(pkg, "#{pkg.name} is not checked out")
         end
