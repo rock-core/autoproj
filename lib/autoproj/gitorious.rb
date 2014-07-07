@@ -24,33 +24,44 @@ module Autoproj
             :git_url  => "git://#{base_url}",
             :http_url => "https://git.#{base_url}",
             :ssh_url  => "git@#{base_url}:",
-            :fallback_to_http => true
+            :fallback_to_http => true,
+            :default => 'git,ssh'
 
         gitorious_long_doc = [
-            "Access method to import data from #{base_url} (git, http or ssh)",
-            "Use 'ssh' only if you have an account there. Note that",
-            "ssh will always be used to push to the repositories, this is",
-            "only to get data from the server. Therefore, we advise to use",
-            "'git' as it is faster than ssh and better than http"]
+            "How should I interact with #{base_url} (git, http or ssh)",
+            "If you give two values, comma-separated, the first one will be",
+            "used for pulling and the second one for pushing"]
+
+        access_methods = Hash[
+            'git' => 'git,ssh',
+            'ssh' => 'ssh,ssh',
+            'http' => 'http,http']
 
         configuration_option name, 'string',
-            :default => "git",
-            :values => ["http", "ssh"],
+            :default => options[:default],
             :doc => gitorious_long_doc do |value|
+                if value =~ /,/
+                    value.split(',').each do |method|
+                        if !access_methods.has_key?(method)
+                            raise Autoproj::InputError, "#{method} is not a known access method"
+                        end
+                    end
+                elsif !access_methods.has_key?(value)
+                    raise Autoproj::InputError, "#{value} is not a known access method"
+                end
 
-            value
-        end
+                value
+            end
 
         access_mode = Autoproj.user_config(name)
-        if access_mode == "git"
-            Autoproj.change_option("#{name}_ROOT", options[:git_url])
-            Autoproj.change_option("#{name}_PUSH_ROOT", options[:ssh_url])
-        elsif access_mode == "http"
-            Autoproj.change_option("#{name}_ROOT", options[:http_url])
-            Autoproj.change_option("#{name}_PUSH_ROOT", options[:http_url])
-        elsif access_mode == "ssh"
-            Autoproj.change_option("#{name}_ROOT", options[:ssh_url])
-            Autoproj.change_option("#{name}_PUSH_ROOT", options[:ssh_url])
+        access_mode = access_methods[access_mode] || access_mode
+        pull, push = access_mode.split(',')
+        [[pull, "_ROOT"], [push, "_PUSH_ROOT"]].each do |method, var_suffix|
+            url = if method == "git" then options[:git_url]
+                  elsif method == "http" then options[:http_url]
+                  elsif method == "ssh" then options[:ssh_url]
+                  end
+            Autoproj.change_option("#{name}#{var_suffix}", url)
         end
 
         Autoproj.add_source_handler name.downcase do |url, vcs_options|
@@ -68,5 +79,5 @@ module Autoproj
 end
 
 Autoproj.gitorious_server_configuration('GITORIOUS', 'gitorious.org')
-Autoproj.gitorious_server_configuration('GITHUB', 'github.com', :http_url => 'https://github.com')
+Autoproj.gitorious_server_configuration('GITHUB', 'github.com', :http_url => 'https://github.com', :default => 'http,ssh')
 
