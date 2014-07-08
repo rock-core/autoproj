@@ -483,7 +483,7 @@ module Autoproj
             package_sets.sort_by(&:name).each do |pkg_set|
                 next if pkg_set.empty?
                 if pkg_set.imported_from
-                    Autoproj.message "#{pkg_set.name} (imported by #{pkg_set.imported_from.name})"
+                    Autoproj.message "#{pkg_set.name} (imported by #{pkg_set.imported_from.map(&:name).join(", ")})"
                 else
                     Autoproj.message "#{pkg_set.name} (listed in manifest)"
                 end
