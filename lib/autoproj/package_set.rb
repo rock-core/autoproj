@@ -265,6 +265,16 @@ module Autoproj
             source_definition
         end
 
+        # Yields the package sets imported by this package set
+        #
+        # This information is available only after the whole configuration has
+        # been loaded
+        #
+        # @yieldparam [PackageSet] pkg_set a package set imported by this one
+        def each_imported_set(&block)
+            @imports.each(&block)
+        end
+
         # Yields the imports raw information
         #
         # @yieldparam [VCSDefinition] vcs the import VCS information
