@@ -344,17 +344,20 @@ module Autoproj
 
 
         def self.setup_all_package_directories
+            manifest = Autoproj.manifest
+
             # Override the package directories from our reused installations
             imported_packages = Set.new
-            Autoproj.manifest.reused_installations.each do |manifest|
-                manifest.each do |pkg|
-                    imported_packages << pkg.name
-                    Autobuild::Package[pkg.name].srcdir = pkg.srcdir
-                    Autobuild::Package[pkg.name].prefix = pkg.prefix
+            Autoproj.manifest.reused_installations.each do |imported_manifest|
+                imported_manifest.each do |imported_pkg|
+                    imported_packages << imported_pkg.name
+                    if pkg = manifest.find_package(imported_pkg.name)
+                        pkg.autobuild.srcdir = imported_pkg.srcdir
+                        pkg.autobuild.prefix = imported_pkg.prefix
+                    end
                 end
             end
 
-            manifest = Autoproj.manifest
             manifest.packages.each_value do |pkg_def|
                 pkg = pkg_def.autobuild
                 next if imported_packages.include?(pkg_def.name)

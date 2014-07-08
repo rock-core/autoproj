@@ -373,6 +373,10 @@ module Autoproj
             end
         end
 
+        def find_package(name)
+            packages[name]
+        end
+
         def package(name)
             packages[name]
         end
