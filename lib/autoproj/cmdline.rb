@@ -1521,7 +1521,9 @@ where 'mode' is one of:
 
             reuse = []
             parser = lambda do |opt|
-                opt.on '--reuse DIR', 'reuse the given autoproj installation (can be given multiple times)' do |path|
+                opt.on '--reuse [DIR]', "reuse the given autoproj installation (can be given multiple times). If given without arguments, reuse the currently active install (#{ENV['AUTOPROJ_CURRENT_ROOT']})" do |path|
+                    path ||= ENV['AUTOPROJ_CURRENT_ROOT']
+
                     path = File.expand_path(path)
                     if !File.directory?(path) || !File.directory?(File.join(path, 'autoproj'))
                         raise ConfigError.new, "#{path} does not look like an autoproj installation"
