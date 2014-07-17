@@ -244,8 +244,8 @@ module Autoproj
 
     # @deprecated use Ops.loader.in_package_set or add a proper Loader object to your
     #   class
-    def self.in_package_set(package_set, path)
-        Ops.loader.in_package_set(package_set, path)
+    def self.in_package_set(package_set, path, &block)
+        Ops.loader.in_package_set(package_set, path, &block)
     end
 
     # @deprecated use Ops.loader.current_file or add a proper Loader object to your
