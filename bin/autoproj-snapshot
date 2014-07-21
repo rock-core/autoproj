@@ -9,10 +9,11 @@ remaining_args = Autoproj.silent do
     Autoproj::CmdLine.initialize_and_load(ARGV)
 end
 
-snapshot_dir = File.expand_path(remaining_args.shift, current_dir)
+snapshot_dir = remaining_args.shift
 if !snapshot_dir
     raise ConfigError.new, "target directory missing\nusage: autoproj snapshot target_dir"
 end
+snapshot_dir = File.expand_path(snapshot_dir, current_dir)
 
 user_selection = remaining_args.map do |arg|
     if File.directory?(arg)
