@@ -1186,6 +1186,17 @@ fi
                     options.dup
                 end
 
+            if user_os = ENV['AUTOPROJ_OS']
+                @operating_system =
+                    if user_os.empty? then false
+                    else
+                        names, versions = user_os.split(':')
+                        normalize_os_representation(names.split(','), versions.split(','))
+                    end
+                return @operating_system
+            end
+
+
             if options[:force]
                 @operating_system = nil
             elsif !@operating_system.nil? # @operating_system can be set to false to simulate an unknown OS
@@ -1200,16 +1211,6 @@ fi
                     end
                 end
                 @operating_system = nil # Invalid OS format in the configuration file
-            end
-
-            if user_os = ENV['AUTOPROJ_OS']
-                @operating_system =
-                    if user_os.empty? then false
-                    else
-                        names, versions = user_os.split(':')
-                        normalize_os_representation(names.split(','), versions.split(','))
-                    end
-                return @operating_system
             end
 
             Autobuild.progress :operating_system_autodetection, "autodetecting the operating system"
