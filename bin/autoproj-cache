@@ -39,28 +39,29 @@ Autoproj::CmdLine.report do
     else
         Autoproj.message "    updating already existing archive cache in #{archive_cache_dir}"
     end
+
     git_cache_dir = File.join(cache_dir, 'git')
-    if !File.directory?(git_cache_dir)
-        Autoproj.message "    creating git cache in #{git_cache_dir}"
-        FileUtils.mkdir_p git_cache_dir
-        Autobuild::Subprocess.run("autoproj-cache", "import", Autobuild.tool(:git), "--git-dir", git_cache_dir, 'init', "--bare")
-    else
-        Autoproj.message "    updating already existing git cache in #{git_cache_dir}"
-    end
 
     manifest.each_autobuild_package do |pkg|
         if pkg.importer.kind_of?(Autobuild::Git)
-            Autoproj.message "  caching #{pkg.name} (git)"
-            pkg.importdir = git_cache_dir
+            pkg.importdir = File.join(git_cache_dir, pkg.name)
             pkg.importer.local_branch = nil
             pkg.importer.remote_branch = nil
-            remote_name = pkg.name.gsub(/[^\w]/, '_')
-            pkg.importer.remote_name = remote_name
+            pkg.importer.remote_name = 'autobuild'
+
+            if !File.directory?(pkg.importdir)
+                Autoproj.message "  creating git cache for #{pkg.name}"
+                FileUtils.mkdir_p File.dirname(pkg.importdir)
+                Autobuild::Subprocess.run("autoproj-cache", "import", Autobuild.tool(:git), "--git-dir", pkg.importdir, 'init', "--bare")
+            else
+                Autoproj.message "  updating already existing git cache for #{pkg.name}"
+            end
             pkg.importer.update_remotes_configuration(pkg, 'autoproj-cache')
 
             with_retry(10) do
-                Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', git_cache_dir, 'remote', 'update', remote_name)
+                Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', pkg.importdir, 'remote', 'update', 'autobuild')
             end
+            Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', pkg.importdir, 'gc', '--prune=all')
         elsif pkg.importer.kind_of?(Autobuild::ArchiveImporter)
             Autoproj.message "  caching #{pkg.name} (archive)"
             pkg.importer.cachedir = archive_cache_dir
@@ -69,7 +70,5 @@ Autoproj::CmdLine.report do
             end
         end
     end
-
-    Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', git_cache_dir, 'gc', '--prune=all')
 end
 
