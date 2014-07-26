@@ -33,7 +33,6 @@ module Autoproj
                 pkg.importer.remote_branch = nil
                 pkg.importer.remote_name = 'autobuild'
 
-                Autoproj.message "  caching #{pkg.name} (git)"
                 if !File.directory?(pkg.importdir)
                     FileUtils.mkdir_p File.dirname(pkg.importdir)
                     Autobuild::Subprocess.run("autoproj-cache", "import", Autobuild.tool(:git), "--git-dir", pkg.importdir, 'init', "--bare")
@@ -51,7 +50,6 @@ module Autoproj
             end
 
             def cache_archive(pkg)
-                Autoproj.message "  caching #{pkg.name} (archive)"
                 pkg.importer.cachedir = archive_cache_dir
                 with_retry(10) do
                     pkg.importer.update_cache(pkg)
@@ -61,11 +59,20 @@ module Autoproj
             def create_or_update
                 FileUtils.mkdir_p cache_dir
 
-                manifest.each_autobuild_package do |pkg|
-                    if pkg.importer.kind_of?(Autobuild::Git)
+                packages = manifest.each_autobuild_package.
+                    sort_by(&:name)
+                total = packages.size
+                Autoproj.message "Handling #{total} packages"
+                packages.each_with_index do |pkg, i|
+                    case pkg.importer
+                    when Autobuild::Git
+                        Autoproj.message "  [#{i}/#{total}] caching #{pkg.name} (git)"
                         cache_git(pkg)
-                    elsif pkg.importer.kind_of?(Autobuild::ArchiveImporter)
+                    when Autobuild::ArchiveImporter
+                        Autoproj.message "  [#{i}/#{total}] caching #{pkg.name} (archive)"
                         cache_archive(pkg)
+                    else
+                        Autoproj.message "  [#{i}/#{total}] not caching #{pkg.name} (cannot cache #{pkg.importer.class})"
                     end
                 end
             end
