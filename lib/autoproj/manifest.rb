@@ -395,9 +395,7 @@ module Autoproj
         #
         # @yieldparam [Autobuild::Package] pkg
         def each_autobuild_package
-            if !block_given?
-                return enum_for(:each_package)
-            end
+            return enum_for(__method__) if !block_given?
             packages.each_value { |pkg| yield(pkg.autobuild) }
         end
 
