@@ -1,74 +1,18 @@
 #! /usr/bin/env ruby
 
 require 'autoproj'
+require 'autoproj/ops/cache'
 
 root_dir = Autoproj::CmdLine.initialize_root_directory
-
-def with_retry(count)
-    (count + 1).times do |i|
-        begin
-            break yield
-        rescue Autobuild::SubcommandFailed
-            if i == count
-                raise
-            else
-                Autobuild.message "  failed, retrying (#{i}/#{count})"
-            end
-        end
-    end
-end
 
 Autoproj::CmdLine.report do
     cache_dir, *_ =
         Autoproj.silent do
             Autoproj::CmdLine.initialize_and_load(ARGV)
         end
-    manifest = Autoproj.manifest
-
     cache_dir = File.expand_path(cache_dir, root_dir)
-    if !File.exists?(cache_dir)
-        Autoproj.message "  creating autoproj cache in #{cache_dir}"
-        FileUtils.mkdir_p cache_dir
-    else
-        Autoproj.message "  updating already existing cache repository in #{cache_dir}"
-    end
-    archive_cache_dir = File.join(cache_dir, 'archives')
-    if !File.directory?(archive_cache_dir)
-        Autoproj.message "    creating archive cache in #{archive_cache_dir}"
-        FileUtils.mkdir_p archive_cache_dir
-    else
-        Autoproj.message "    updating already existing archive cache in #{archive_cache_dir}"
-    end
 
-    git_cache_dir = File.join(cache_dir, 'git')
-
-    manifest.each_autobuild_package do |pkg|
-        if pkg.importer.kind_of?(Autobuild::Git)
-            pkg.importdir = File.join(git_cache_dir, pkg.name)
-            pkg.importer.local_branch = nil
-            pkg.importer.remote_branch = nil
-            pkg.importer.remote_name = 'autobuild'
-
-            if !File.directory?(pkg.importdir)
-                Autoproj.message "  creating git cache for #{pkg.name}"
-                FileUtils.mkdir_p File.dirname(pkg.importdir)
-                Autobuild::Subprocess.run("autoproj-cache", "import", Autobuild.tool(:git), "--git-dir", pkg.importdir, 'init', "--bare")
-            else
-                Autoproj.message "  updating already existing git cache for #{pkg.name}"
-            end
-            pkg.importer.update_remotes_configuration(pkg, 'autoproj-cache')
-
-            with_retry(10) do
-                Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', pkg.importdir, 'remote', 'update', 'autobuild')
-            end
-            Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', pkg.importdir, 'gc', '--prune=all')
-        elsif pkg.importer.kind_of?(Autobuild::ArchiveImporter)
-            Autoproj.message "  caching #{pkg.name} (archive)"
-            pkg.importer.cachedir = archive_cache_dir
-            with_retry(10) do
-                pkg.importer.update_cache(pkg)
-            end
-        end
-    end
+    cache_op = Autoproj::Ops::Cache.new(cache_dir, Autoproj.manifest)
+    cache_op.create_or_update
 end
 
