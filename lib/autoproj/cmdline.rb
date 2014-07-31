@@ -1377,6 +1377,35 @@ where 'mode' is one of:
             end
         end
 
+        #
+        # will recover version information from packages and package_sets
+        # 
+        def self.versions(manifest, packages)
+            # create snapshot information for each of the packages
+            version_info = []
+            packages.each do |package_name|
+                package  = manifest.packages[package_name]
+                if !package
+                    raise ArgumentError, "#{package_name} is not a known package"
+                end
+                package_set = package.package_set
+                importer = package.autobuild.importer
+                if !importer
+                    Autoproj.message "cannot snapshot #{package_name} as it has no importer"
+                    next
+                elsif !importer.respond_to?(:snapshot)
+                    Autoproj.message "cannot snapshot #{package_name} as the #{importer.class} importer does not support it"
+                    next
+                end
+
+                vcs_info = importer.version(package.autobuild)
+                if vcs_info
+                    version_info << Hash[package_name, vcs_info]
+                end
+            end
+            version_info
+        end
+
         def self.snapshot(manifest, target_dir, packages)
             # First, copy the configuration directory to create target_dir
             if File.exists?(target_dir)
@@ -1564,6 +1593,7 @@ where 'mode' is one of:
             Autoproj::CmdLine.load_configuration
             Autoproj::CmdLine.setup_all_package_directories
             Autoproj::CmdLine.finalize_package_setup
+
 
             load_all_available_package_manifests
             update_environment
