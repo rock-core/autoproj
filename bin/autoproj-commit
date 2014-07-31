@@ -1,0 +1,54 @@
+#! /usr/bin/env ruby
+
+require 'autoproj'
+require 'autoproj/cmdline'
+require 'pp'
+
+current_dir = Dir.pwd
+remaining_args = Autoproj.silent do
+    Autoproj::CmdLine.initialize_root_directory
+    Autoproj::CmdLine.initialize_and_load(ARGV)
+end
+
+# snapshot_dir = remaining_args.shift
+# if !snapshot_dir
+#     raise ConfigError.new, "target directory missing\nusage: autoproj snapshot target_dir"
+# end
+# snapshot_dir = File.expand_path(snapshot_dir, current_dir)
+
+user_selection = remaining_args.map do |arg|
+    if File.directory?(arg)
+        File.expand_path(arg)
+    else arg
+    end
+end
+manifest = Autoproj.manifest
+Autoproj::CmdLine.report do
+    resolved_selection = Autoproj::CmdLine.
+        resolve_user_selection(user_selection, :filter => false)
+    resolved_selection.filter_excluded_and_ignored_packages(Autoproj.manifest)
+    # This calls #prepare, which is required to run build_packages
+    packages = Autoproj::CmdLine.import_packages(resolved_selection)
+    # Remove non-existing packages
+    packages.each do |pkg|
+        if !File.directory?(manifest.package(pkg).autobuild.srcdir)
+            raise ConfigError, "cannot commit #{pkg.name} as it is not checked out"
+        end
+    end
+
+    # get version information
+    #pp Autoproj::CmdLine.versions(Autoproj.manifest, packages)
+
+    # get the filename for the overrides
+    versions_file = File.expand_path( File.join( Autoproj.root_dir, "overrides", "versions" ) )
+    # get versions file
+    if File.exists? versions_file
+	versions = YAML.load( File.read( versions_file ) )
+    end
+
+    # write to versions file
+    
+    
+    # create a commit in the autoproj repo 
+end
+
