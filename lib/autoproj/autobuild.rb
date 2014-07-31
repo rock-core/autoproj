@@ -222,14 +222,14 @@ module Autoproj
     class Reporter < Autobuild::Reporter
         def error(error)
             error_lines = error.to_s.split("\n")
-            Autoproj.message("Build failed", :bold, :red)
+            Autoproj.message("Command failed", :bold, :red)
             Autoproj.message("#{error_lines.shift}", :bold, :red)
             error_lines.each do |line|
                 Autoproj.message line
             end
         end
         def success
-            Autoproj.message("Build finished successfully at #{Time.now}", :bold, :green)
+            Autoproj.message("Command finished successfully at #{Time.now}", :bold, :green)
             if Autobuild.post_success_message
                 Autoproj.message Autobuild.post_success_message
             end
