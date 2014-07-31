@@ -570,15 +570,25 @@ def user_config(key)
 end
 
 class Autobuild::Git
-    def snapshot(package, target_dir)
+    # get version information from the importer
+    def version(package)
         Dir.chdir(package.srcdir) do
             head_commit   = `git rev-parse #{branch}`.chomp
             { 'commit' => head_commit }
         end
     end
+
+    # create a snapshot of the package
+    def snapshot(package, target_dir)
+        version(package)
+    end
 end
 
 class Autobuild::ArchiveImporter
+    def version(package)
+        { 'url' => @url }
+    end
+
     def snapshot(package, target_dir)
         archive_dir = File.join(target_dir, 'archives')
         FileUtils.mkdir_p archive_dir
