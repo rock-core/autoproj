@@ -571,30 +571,25 @@ end
 
 class Autobuild::Git
     # get version information from the importer
-    def version(package)
+    def snapshot(package, target_dir = nil)
         Dir.chdir(package.srcdir) do
-            head_commit   = `git rev-parse #{branch}`.chomp
+            head_commit   = `git rev-parse HEAD`.chomp
             { 'commit' => head_commit }
         end
-    end
-
-    # create a snapshot of the package
-    def snapshot(package, target_dir)
-        version(package)
     end
 end
 
 class Autobuild::ArchiveImporter
-    def version(package)
-        { 'url' => @url }
-    end
+    def snapshot(package, target_dir = nil)
+        if target_dir
+            archive_dir = File.join(target_dir, 'archives')
+            FileUtils.mkdir_p archive_dir
+            FileUtils.cp @cachefile, archive_dir
 
-    def snapshot(package, target_dir)
-        archive_dir = File.join(target_dir, 'archives')
-        FileUtils.mkdir_p archive_dir
-        FileUtils.cp @cachefile, archive_dir
-
-        { 'url' =>  "file://$AUTOPROJ_SOURCE_DIR/archives/#{File.basename(@cachefile)}" }
+            { 'url' =>  "file://$AUTOPROJ_SOURCE_DIR/archives/#{File.basename(@cachefile)}" }
+        else
+            { 'url' => @url }
+        end
     end
 end
 

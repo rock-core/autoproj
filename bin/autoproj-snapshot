@@ -34,6 +34,6 @@ Autoproj::CmdLine.report do
             raise ConfigError, "cannot snapshot #{pkg.name} as it is not checked out"
         end
     end
-    Autoproj::CmdLine.snapshot(Autoproj.manifest, snapshot_dir, packages)
+    Autoproj::CmdLine.snapshot(Autoproj.manifest, packages, snapshot_dir)
 end
 

@@ -1377,45 +1377,7 @@ where 'mode' is one of:
             end
         end
 
-        #
-        # will recover version information from packages and package_sets
-        # 
-        def self.versions(manifest, packages)
-            # create snapshot information for each of the packages
-            version_info = []
-            packages.each do |package_name|
-                package  = manifest.packages[package_name]
-                if !package
-                    raise ArgumentError, "#{package_name} is not a known package"
-                end
-                package_set = package.package_set
-                importer = package.autobuild.importer
-                if !importer
-                    Autoproj.message "cannot snapshot #{package_name} as it has no importer"
-                    next
-                elsif !importer.respond_to?(:snapshot)
-                    Autoproj.message "cannot snapshot #{package_name} as the #{importer.class} importer does not support it"
-                    next
-                end
-
-                vcs_info = importer.version(package.autobuild)
-                if vcs_info
-                    version_info << Hash[package_name, vcs_info]
-                end
-            end
-            version_info
-        end
-
-        def self.snapshot(manifest, target_dir, packages)
-            # First, copy the configuration directory to create target_dir
-            if File.exists?(target_dir)
-                raise ArgumentError, "#{target_dir} already exists"
-            end
-            FileUtils.cp_r Autoproj.config_dir, target_dir
-            # Finally, remove the remotes/ directory from the generated
-            # buildconf, it is obsolete now
-            FileUtils.rm_rf File.join(target_dir, 'remotes')
-
+        def self.versions(manifest, packages, target_dir = nil)
             # Pin package sets
             package_sets = Array.new
             manifest.each_package_set do |pkg_set|
@@ -1432,12 +1394,7 @@ where 'mode' is one of:
                     package_sets << vcs_info
                 end
             end
-            manifest_path = File.join(target_dir, 'manifest')
-            manifest_data = YAML.load(File.read(manifest_path))
-            manifest_data['package_sets'] = package_sets
-            File.open(manifest_path, 'w') do |io|
-                YAML.dump(manifest_data, io)
-            end
+            pp package_sets
 
             # Now, create snapshot information for each of the packages
             version_control_info = []
@@ -1467,17 +1424,39 @@ where 'mode' is one of:
                 end
             end
 
-            overrides_path = File.join(target_dir, 'overrides.yml')
-            if File.exists?(overrides_path)
-                overrides = YAML.load(File.read(overrides_path))
-            end
-            # In Ruby 1.9, an empty file results in YAML.load returning false
-            overrides ||= Hash.new
+            # combine package_set and pkg information
+            overrides = Hash.new
             (overrides['version_control'] ||= Array.new).
                 concat(version_control_info)
             (overrides['overrides'] ||= Array.new).
                 concat(overrides_info)
 
+            overrides
+        end
+
+        def snapshot(manifest, packages, target_dir)
+            # get the versions information first and snapshot individual 
+            # packages
+            overrides = versions( manifest, packages, target_dir )
+
+            # First, copy the configuration directory to create target_dir
+            if File.exists?(target_dir)
+                raise ArgumentError, "#{target_dir} already exists"
+            end
+            FileUtils.cp_r Autoproj.config_dir, target_dir
+            # Finally, remove the remotes/ directory from the generated
+            # buildconf, it is obsolete now
+            FileUtils.rm_rf File.join(target_dir, 'remotes')
+
+            # write manifest file
+            manifest_path = File.join(target_dir, 'manifest')
+            manifest_data['package_sets'] = package_sets
+            File.open(manifest_path, 'w') do |io|
+                YAML.dump(manifest_data, io)
+            end
+
+            # write overrides file
+            overrides_path = File.join(target_dir, 'overrides.yml')
             File.open(overrides_path, 'w') do |io|
                 io.write YAML.dump(overrides)
             end
