@@ -23,6 +23,6 @@ Autoproj::CmdLine.report do
     # This calls #prepare, which is required to run build_packages
     packages = Autoproj::CmdLine.import_packages(resolved_selection)
     packages.each { |pkg| Autobuild::Package[pkg].disable_phases('import', 'prepare', 'install') }
-    Autoproj::CmdLine.build_packages(resolved_selection, packages, ['doc'])
+    Autobuild.apply(packages, "autoproj-doc", ['doc'])
 end
 

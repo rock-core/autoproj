@@ -1,5 +1,6 @@
 require 'highline'
 require 'utilrb/module/attr_predicate'
+require 'autoproj/ops/build'
 module Autoproj
     class << self
         attr_accessor :verbose
@@ -780,40 +781,41 @@ module Autoproj
                 manifest.install_os_dependencies(all_enabled_packages)
             end
 
-            if selected_packages.empty? && Autobuild.do_rebuild
-                # If we don't have an explicit package selection, the handling
-                # of #prepare_for_rebuild is passed to Autobuild.apply. However,
-                # we want to make sure that the user really wants this
-                opt = BuildOption.new("", "boolean", {:doc => 'this is going to trigger a rebuild of all packages. Is that really what you want ?'}, nil)
-                if !opt.ask(false)
-                    raise Interrupt
-                end
-                if Autoproj::CmdLine.update_os_dependencies?
-                    # We also reinstall the osdeps that provide the
-                    # functionality
-                    managers = Autoproj.osdeps.setup_package_handlers
-                    managers.each do |mng|
-                        if mng.respond_to?(:reinstall)
-                            mng.reinstall
-                        end
+            ops = Ops::Build.new(manifest, update_os_dependencies?)
+            if Autobuild.do_rebuild || Autobuild.do_forced_build
+                packages_to_rebuild =
+                    if force_re_build_with_depends? || selected_packages.empty?
+                        all_enabled_packages
+                    else selected_packages
                     end
-                end
 
-            elsif !selected_packages.empty? && !force_re_build_with_depends?
-                if Autobuild.do_rebuild
-                    selected_packages.each do |pkg_name|
-                        Autobuild::Package[pkg_name].prepare_for_rebuild
+                if selected_packages.empty?
+                    # If we don't have an explicit package selection, we want to
+                    # make sure that the user really wants this
+                    mode_name = if Autobuild.do_rebuild then 'rebuild'
+                                else 'force-build'
+                                end
+                    opt = BuildOption.new("", "boolean", {:doc => "this is going to trigger a #{mode_name} of all packages. Is that really what you want ?"}, nil)
+                    if !opt.ask(false)
+                        raise Interrupt
                     end
-                    Autobuild.do_rebuild = false
-                elsif Autobuild.do_forced_build
-                    selected_packages.each do |pkg_name|
-                        Autobuild::Package[pkg_name].prepare_for_forced_build
+                    if Autobuild.do_rebuild
+                        ops.rebuild_all
+                    else
+                        ops.force_build_all
                     end
-                    Autobuild.do_forced_build = false
+                elsif Autobuild.do_rebuild
+                    ops.rebuild_packages(packages_to_rebuild, all_enabled_packages)
+                else
+                    ops.force_build_packages(packages_to_rebuild, all_enabled_packages)
                 end
+                return
             end
 
-            Autobuild.apply(all_enabled_packages, "autoproj-build", phases)
+            if phases.include?('build')
+                ops.build_packages(all_enabled_packages)
+            end
+            Autobuild.apply(all_enabled_packages, "autoproj-build", phases - ['build'])
         end
 
         def self.manifest; Autoproj.manifest end
