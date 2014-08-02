@@ -41,27 +41,7 @@ end
 
 # Find the autoproj root dir
 Autoproj::CmdLine.report do
-    selected_packages =
-        begin Autoproj::CmdLine.parse_arguments(ARGV.dup)
-        rescue RuntimeError => e
-            if Autoproj::CmdLine.bootstrap? && !Autoproj.in_autoproj_installation?(Dir.pwd)
-                STDERR.puts <<EOTEXT
-
-
-#{color('autoproj bootstrap failed', :red, :bold)}
-To retry, first source the #{Autoproj::ENV_FILENAME} script with
-  source #{Dir.pwd}/#{Autoproj::ENV_FILENAME}
-and then re-run autoproj bootstrap with
-  autoproj bootstrap <vcs_type> <vcs_url> <vcs_options>
-
-where
-  'vcs_type' is git, svn, darcs, cvs
-  'vcs_url' is the vcs-specific URL to the repository, and
-  'vcs_options' are optional values that can be given to the chosen VCS
-EOTEXT
-            end
-            raise
-        end
+    selected_packages = Autoproj::CmdLine.parse_arguments(ARGV.dup)
 
     # Expand directories in the selected_packages set, before we chdir to the
     # autoproj root
@@ -160,30 +140,6 @@ EOTEXT
         Autoproj::CmdLine.display_configuration(manifest, selected_packages.packages)
     end
     
-    if Autoproj::CmdLine.bootstrap?
-        STDERR.puts <<EOTEXT
-
-
-#{color('autoproj bootstrap successfully finished', :green, :bold)}
-
-#{color('To further use autoproj and the installed software', :bold)}, you
-must add the following line at the bottom of your .bashrc:
-  source #{Dir.pwd}/#{Autoproj::ENV_FILENAME}
-
-WARNING: autoproj will not work until your restart all
-your consoles, or run the following in them:
-  $ source #{Dir.pwd}/#{Autoproj::ENV_FILENAME}
-
-#{color('To import and build the packages', :bold)}, you can now run
-  autoproj update
-  autoproj build
-
-The resulting software is installed in
-  #{Dir.pwd}/install
-
-EOTEXT
-    end
-
     if Autoproj::CmdLine.only_config? || Autoproj::CmdLine.reconfigure?
         exit(0)
     end

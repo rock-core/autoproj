@@ -833,7 +833,6 @@ module Autoproj
         end
 
         def self.manifest; Autoproj.manifest end
-        def self.bootstrap?; !!@bootstrap end
         def self.only_status?; !!@only_status end
         def self.only_local?; !!@only_local end
         def self.check?; !!@check end
@@ -1149,17 +1148,6 @@ where 'mode' is one of:
             end
 
             case mode
-            when "bootstrap"
-                @bootstrap = true
-                bootstrap(*remaining_args)
-                remaining_args.clear
-
-                @display_configuration = false
-                Autobuild.do_build  = false
-                Autobuild.do_update = false
-                @update_os_dependencies = false
-                @only_config = true
-
             when "switch-config"
                 if Dir.pwd.start_with?(Autoproj.remotes_dir) || Dir.pwd.start_with?(Autoproj.config_dir)
                     raise ConfigError, "you cannot run autoproj switch-config from autoproj's configuration directory or one of its subdirectories"
