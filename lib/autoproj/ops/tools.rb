@@ -47,6 +47,16 @@ module Autoproj
             raise ConfigError.new, "cannot import #{text_name}: #{e.message}", e.backtrace
         end
 
+        def load_autoprojrc
+            # Load the user-wide autoproj RC file
+            if home_dir = Dir.home
+                rcfile = File.join(home_dir, '.autoprojrc')
+                if File.file?(rcfile)
+                    Kernel.load rcfile
+                end
+            end
+        end
+
         extend Tools
     end
     end
