@@ -631,7 +631,7 @@ fi
                     gems.each do |name, v|
                         installed_gems << name
                     end
-                    did_something = true
+                    true
                 end
             end
 
