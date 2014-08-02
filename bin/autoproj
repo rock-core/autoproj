@@ -1,7 +1,7 @@
 #! /usr/bin/env ruby
 
-if RUBY_VERSION < "1.8.7"
-    STDERR.puts "autoproj requires Ruby >= 1.8.7"
+if RUBY_VERSION < "1.9.2"
+    STDERR.puts "autoproj requires Ruby >= 1.9.2"
     exit 1
 end
 
@@ -18,15 +18,9 @@ def color(*args)
     Autoproj.color(*args)
 end
 
-if defined? Encoding # This is a 1.9-only thing
-    Encoding.default_internal = Encoding::UTF_8
-    Encoding.default_external = Encoding::UTF_8
-end
+Encoding.default_internal = Encoding::UTF_8
+Encoding.default_external = Encoding::UTF_8
 Autoproj::OSDependencies.autodetect_ruby
-if defined? Encoding # This is a 1.9-only thing
-    Encoding.default_internal = Encoding::UTF_8
-    Encoding.default_external = Encoding::UTF_8
-end
 
 # Check the first element of ARGV. If a tool called autoproj-VALUE exists, just
 # pass the hand to it
