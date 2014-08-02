@@ -400,7 +400,7 @@ end
 # information.
 def cmake_package(options, &block)
     package_common(:cmake, options) do |pkg|
-        Autoproj.add_build_system_dependency 'cmake'
+        pkg.depends_on 'cmake'
         yield(pkg) if block_given?
         common_make_based_package_setup(pkg)
     end
@@ -417,7 +417,7 @@ end
 # information.
 def autotools_package(options, &block)
     package_common(:autotools, options) do |pkg|
-        Autoproj.add_build_system_dependency 'autotools'
+        pkg.depends_on 'autotools'
         yield(pkg) if block_given?
         common_make_based_package_setup(pkg)
     end
