@@ -1138,6 +1138,10 @@ module Autoproj
         # @return [OSDependencies]
         # @see load_osdeps_from_package_sets
         attr_accessor :osdeps
+
+        # The configuration file
+        # @return [Configuration]
+        attr_accessor :config
     end
 
     # Load the osdeps files contained in {manifest} into {osdeps}

@@ -10,7 +10,6 @@ module Autoproj
         options.each_key do |k|
             options[k] = options[k].to_s
         end
-        options = options.merge(option_overrides)
 
         loop do
             new_value = Autoproj.single_expansion(value, options)
