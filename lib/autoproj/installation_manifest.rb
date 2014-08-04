@@ -3,13 +3,19 @@ module Autoproj
     class InstallationManifest
         Package = Struct.new :name, :srcdir, :prefix
 
+        DEFAULT_MANIFEST_NAME = ".autoproj-installation-manifest"
+
         attr_reader :path
         attr_reader :packages
         def initialize(path)
             @path = path
         end
 
-        def load(path)
+        def default_manifest_path
+            File.join(path, DEFAULT_MANIFEST_NAME)
+        end
+            
+        def load(path = default_manifest_path)
             @packages = CSV.read(path).map do |row|
                 Package.new(*row)
             end
