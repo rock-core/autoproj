@@ -57,6 +57,11 @@ module Autoproj
             end
         end
 
+        def load_main_initrb(manifest = Autoproj.manifest)
+            local_source = LocalPackageSet.new(manifest)
+            Autoproj.load_if_present(local_source, local_source.local_dir, "init.rb")
+        end
+
         def common_options(parser)
             parser.on '--verbose' do
                 Autoproj.verbose  = true

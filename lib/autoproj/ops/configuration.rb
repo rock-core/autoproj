@@ -45,6 +45,14 @@ module Autoproj
             File.join(config_dir, "remotes")
         end
 
+        # The path to the main manifest file
+        #
+        # @return [String]
+        def manifest_path
+            File.join(config_dir, 'manifest')
+        end
+
+
         # @param [Manifest] manifest
         # @param [Loader] loader
         # @option options [InstallationManifest] :update_from
@@ -278,9 +286,9 @@ module Autoproj
             # installed (i.e. that the user did not remove it)
             if manifest.vcs && !manifest.vcs.local?
                 update_main_configuration(only_local)
-                manifest_path = File.join(config_dir, 'manifest')
-                manifest.load(manifest_path)
             end
+            Tools.load_main_initrb(manifest)
+            manifest.load(manifest_path)
 
             root_pkg_set = LocalPackageSet.new(manifest)
             root_pkg_set.load_description_file

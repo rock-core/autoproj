@@ -144,8 +144,7 @@ module Autoproj
             # We load the local init.rb first so that the manifest loading
             # process can use options defined there for the autoproj version
             # control information (for instance)
-            local_source = LocalPackageSet.new(Autoproj.manifest)
-            Autoproj.load_if_present(local_source, local_source.local_dir, "init.rb")
+            Ops::Tools.load_main_initrb(Autoproj.manifest)
 
             manifest_path = File.join(Autoproj.config_dir, 'manifest')
             Autoproj.manifest.load(manifest_path)
