@@ -125,6 +125,14 @@ module Autobuild
     end
 end
 
+BUILD_OPTION_CODE
+CONFIG_CODE
+module Autoproj
+    def self.config
+        @config ||= Configuration.new
+    end
+end
+
 OSDEPS_CODE
 TOOLS_CODE
 OPTIONS_CODE

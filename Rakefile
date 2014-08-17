@@ -29,6 +29,8 @@ namespace 'dist' do
     desc "generate the bootstrap script"
     task 'bootstrap' do
         require 'yaml'
+        build_option_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'build_option.rb'))
+        config_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'configuration.rb'))
         osdeps_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'osdeps.rb'))
         options_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'options.rb'))
         system_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'system.rb'))
@@ -54,6 +56,8 @@ namespace 'dist' do
         end
 
         bootstrap_code = File.read(File.join(Dir.pwd, 'bin', 'autoproj_bootstrap.in')).
+            gsub('BUILD_OPTION_CODE', build_option_code).
+            gsub('CONFIG_CODE', config_code).
             gsub('OSDEPS_CODE', osdeps_code).
             gsub('OPTIONS_CODE', options_code).
             gsub('SYSTEM_CODE', system_code).
