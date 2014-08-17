@@ -83,6 +83,7 @@ module Autoproj
                         reuse << path
                     end
                 end
+                Tools.common_options(parser)
                 args = parser.parse(args)
                 return args, reuse
             end

@@ -57,6 +57,22 @@ module Autoproj
             end
         end
 
+        def common_options(parser)
+            parser.on '--verbose' do
+                Autoproj.verbose  = true
+                Autobuild.verbose = true
+                Rake.application.options.trace = false
+                Autobuild.debug = false
+            end
+
+            parser.on '--debug' do
+                Autoproj.verbose  = true
+                Autobuild.verbose = true
+                Rake.application.options.trace = true
+                Autobuild.debug = true
+            end
+        end
+
         extend Tools
     end
     end
