@@ -43,21 +43,15 @@ module Autoproj
     end
 
     module CmdLine
-        class << self
-            attr_reader :ruby_executable
+        def self.config
+            Autoproj.config
         end
 
-        def self.handle_ruby_version
-            @ruby_executable = Autoproj::OSDependencies.autodetect_ruby_program
+        def self.ruby_executable
+            Autoproj.config.ruby_executable
+        end
 
-            if Autoproj.has_config_key?('ruby_executable')
-                expected = Autoproj.user_config('ruby_executable')
-                if expected != ruby_executable
-                    raise ConfigError.new, "this autoproj installation was bootstrapped using #{expected}, but you are currently running under #{ruby_executable}. This is usually caused by calling a wrong gem program (for instance, gem1.8 instead of gem1.9.1)"
-                end
-            end
-            Autoproj.change_option('ruby_executable', ruby_executable, true)
-
+        def self.install_ruby_shims
             install_suffix = ""
             if match = /ruby(.*)$/.match(RbConfig::CONFIG['RUBY_INSTALL_NAME'])
                 install_suffix = match[1]
@@ -110,26 +104,14 @@ module Autoproj
             Autoproj.loaded_autobuild_files.clear
             Autoproj.load_config
 
-            handle_ruby_version
+            config.validate_ruby_executable
+            install_ruby_shims
 
-            if Autoproj.has_config_key?('autobuild')
-                params = Autoproj.user_config('autobuild')
-                if params.kind_of?(Hash)
-                    params.each do |k, v|
-                        Autobuild.send("#{k}=", v)
-                    end
-                end
-            end
+            config.apply_autobuild_configuration
+            config.apply_autoproj_prefix
 
-            if Autoproj.has_config_key?('prefix')
-                Autoproj.prefix = Autoproj.user_config('prefix')
-            end
-
-            if Autoproj.has_config_key?('randomize_layout')
-                @randomize_layout = Autoproj.user_config('randomize_layout')
-            end
-
-            Autoproj.manifest = Manifest.new
+            manifest = Manifest.new
+            Autoproj.manifest = manifest
             Autoproj.prepare_environment
             Autobuild.prefix  = Autoproj.build_dir
             Autobuild.srcdir  = Autoproj.root_dir
@@ -137,32 +119,17 @@ module Autoproj
 
             Ops::Tools.load_autoprojrc
 
-            Autoproj.manifest.each_reused_autoproj_installation do |p|
-                Autoproj.manifest.reuse(p)
+            config.each_reused_autoproj_installation do |p|
+                manifest.reuse(p)
             end
 
             # We load the local init.rb first so that the manifest loading
             # process can use options defined there for the autoproj version
             # control information (for instance)
-            Ops::Tools.load_main_initrb(Autoproj.manifest)
+            Ops::Tools.load_main_initrb(manifest)
 
             manifest_path = File.join(Autoproj.config_dir, 'manifest')
-            Autoproj.manifest.load(manifest_path)
-
-            # Once thing left to do: handle the Autoproj.auto_update
-            # configuration parameter. This has to be done here as the rest of
-            # the configuration update/loading procedure rely on it.
-            #
-            # Namely, we must check if Autobuild.do_update has been explicitely
-            # set to true or false. If that is the case, don't do anything.
-            # Otherwise, set it to the value of auto_update (set in the
-            # manifest)
-            if Autobuild.do_update.nil?
-                Autobuild.do_update = manifest.auto_update?
-            end
-            if @update_os_dependencies.nil?
-                @update_os_dependencies = manifest.auto_update?
-            end
+            manifest.load(manifest_path)
 
             # Initialize the Autoproj.osdeps object by loading the default. The
             # rest is loaded later
@@ -197,7 +164,7 @@ module Autoproj
                 force: false, restart_on_update: true
             return if !options[:force] && !Autoproj::CmdLine.update_os_dependencies?
 
-            handle_ruby_version
+            Autoproj.config.validate_ruby_executable
 
             # This is a guard to avoid infinite recursion in case the user is
             # running autoproj osdeps --force
@@ -205,18 +172,10 @@ module Autoproj
                 return
             end
 
-            use_prerelease =
-                if env_flag = ENV['AUTOPROJ_USE_PRERELEASE']
-                    env_flag == '1'
-                elsif Autoproj.has_config_key?('autoproj_use_prerelease')
-                    Autoproj.user_config('autoproj_use_prerelease')
-                end
-            Autoproj.change_option "autoproj_use_prerelease", (use_prerelease ? true : false), true
-
             did_update =
                 begin
                     saved_flag = PackageManagers::GemManager.with_prerelease
-                    PackageManagers::GemManager.with_prerelease = use_prerelease
+                    PackageManagers::GemManager.with_prerelease = Autoproj.config.use_prerelease?
                     OSDependencies.load_default.install(%w{autobuild autoproj})
                 ensure
                     PackageManagers::GemManager.with_prerelease = saved_flag
@@ -309,7 +268,7 @@ module Autoproj
             pkg_name = pkg.name
 
             layout =
-                if randomize_layout?
+                if config.randomize_layout?
                     Digest::SHA256.hexdigest(pkg_name)[0, 12]
                 else manifest.whereis(pkg_name)
                 end
@@ -823,7 +782,7 @@ module Autoproj
         def self.check?; !!@check end
         def self.manifest_update?; !!@manifest_update end
         def self.only_config?; !!@only_config end
-        def self.randomize_layout?; !!@randomize_layout end
+        def self.randomize_layout?; config.randomize_layout? end
         def self.update_os_dependencies?
             # Check if the mode disables osdeps anyway ...
             if !@update_os_dependencies.nil? && !@update_os_dependencies
@@ -1053,8 +1012,7 @@ where 'mode' is one of:
                     @status_exit_code = true
                 end
                 opts.on('--randomize-layout', 'in build and full-build, generate a random layout') do
-                    @randomize_layout = true
-                    Autoproj.change_option('randomize_layout', true)
+                    config.randomize_layout = true
                 end
 
                 opts.on("--verbose", "verbose output") do

@@ -101,12 +101,6 @@ module Autoproj
             end
         end
 
-        # True if autoproj should run an update automatically when the user
-        # uses" build"
-        def auto_update?
-            !!data['auto_update']
-        end
-
         attr_reader :constant_definitions
 
         attr_reader :metapackages
@@ -1091,10 +1085,9 @@ module Autoproj
             result
         end
 
+        # @deprecated use Autoproj.config.each_reused_autoproj_installation
         def each_reused_autoproj_installation
-            if Autoproj.has_config_key?('reused_autoproj_installations')
-                Autoproj.user_config('reused_autoproj_installations').each(&proc)
-            end
+            Autoproj.config.each_reused_autoproj_installation(&proc)
         end
 
         def reuse(*dir)
