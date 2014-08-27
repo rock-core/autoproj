@@ -588,7 +588,7 @@ class Autobuild::ArchiveImporter
 
             { 'url' =>  "file://$AUTOPROJ_SOURCE_DIR/archives/#{File.basename(@cachefile)}" }
         else
-            { 'url' => @url }
+            { 'url' => @url.to_s }
         end
     end
 end
