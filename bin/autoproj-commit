@@ -2,6 +2,7 @@
 
 require 'autoproj'
 require 'autoproj/cmdline'
+require 'autoproj/ops/snapshot'
 require 'pp'
 
 current_dir = Dir.pwd
@@ -36,22 +37,6 @@ Autoproj::CmdLine.report do
         end
     end
 
-    # get version information
-    versions_update = Autoproj::CmdLine.versions(Autoproj.manifest, packages)
-    pp versions_update
-
-    # get the filename for the overrides
-    versions_file = File.expand_path( File.join( Autoproj.root_dir, "overrides", "versions" ) )
-
-    # do a partial update if file exists, and specific packages have
-    # been selected
-    if user_selection and File.exists? versions_file
-        versions = YAML.load( File.read( versions_file ) )
-    end
-
-    # write to versions file
-    FileUtils.mkdir_p(File.dirname( versions_file ))
-    
-    # create a commit in the autoproj repo 
+    snapshot = Autoproj::Ops::Snapshot.commit packages
 end
 
