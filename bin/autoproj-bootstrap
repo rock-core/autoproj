@@ -43,13 +43,8 @@ EOTEXT
 #{color('autoproj bootstrap failed', :red, :bold)}
 To retry, first source the #{Autoproj::ENV_FILENAME} script with
   source #{root_dir}/#{Autoproj::ENV_FILENAME}
-and then re-run autoproj bootstrap with
-  autoproj bootstrap <vcs_type> <vcs_url> <vcs_options>
-
-where
-  'vcs_type' is git, svn, darcs, cvs
-  'vcs_url' is the vcs-specific URL to the repository, and
-  'vcs_options' are optional values that can be given to the chosen VCS
+and then re-run autoproj bootstrap
+  autoproj bootstrap '#{ARGV.join("'")}'
     EOTEXT
 
         raise
