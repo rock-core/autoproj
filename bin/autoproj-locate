@@ -3,25 +3,28 @@
 require 'autoproj'
 require 'autoproj/cmdline'
 
-Autoproj.silent = true
 root_dir  = Autoproj::CmdLine.initialize_root_directory
-selection = Autoproj::CmdLine.initialize_and_load(ARGV)
-if selection.empty?
+
+manifest = Autoproj::InstallationManifest.new(root_dir)
+if !File.file?(manifest.default_manifest_path)
+    Autoproj.error "the installation manifest is not present, please run autoproj envsh to generate it"
+end
+manifest.load
+
+if ARGV.empty?
     puts root_dir
     exit 0
-elsif selection.size > 1
-    STDERR.puts Autoproj.console.color("more than one name given on the command line", :red)
+elsif ARGV.size > 1
+    Autoproj.error "more than one name given on the command line"
     exit 1
 end
-selection = selection.first
+selection = ARGV.first
 
 selection_rx = Regexp.new(Regexp.quote(selection))
 candidates = []
-Autoproj.manifest.each_autobuild_package do |pkg|
+manifest.each do |pkg|
     name = pkg.name
-    next if !Autoproj.manifest.package_enabled?(name)
-
-    srcdir = Autobuild::Package[name].srcdir
+    srcdir = pkg.srcdir
     if name == selection
         puts srcdir
         exit(0)
@@ -44,11 +47,9 @@ if candidates.empty?
     rx_strict = Regexp.new("#{rx_strict}/#{Regexp.quote(directories.last)}$")
 
     candidates_strict = []
-    Autoproj.manifest.each_autobuild_package do |pkg|
+    manifest.each do |pkg|
         name = pkg.name
-        next if !Autoproj.manifest.package_enabled?(name)
-
-        srcdir = Autobuild::Package[name].srcdir
+        srcdir = pkg.srcdir
         if name =~ rx
             candidates << srcdir
         end
@@ -72,10 +73,10 @@ if candidates.size > 1
 end
 
 if candidates.empty?
-    STDERR.puts Autoproj.console.color("cannot find #{selection} in the current autoproj installation", :bold, :red)
+    Autoproj.error "cannot find #{selection} in the current autoproj installation"
     exit 1
 elsif candidates.size > 1
-    STDERR.puts Autoproj.console.color("multiple packages match #{selection} in the current autoproj installation: #{candidates.join(", ")}", :bold, :red)
+    Autoproj.error "multiple packages match #{selection} in the current autoproj installation: #{candidates.join(", ")}"
     exit 1
 else
     puts candidates.first

@@ -395,9 +395,7 @@ module Autoproj
         #
         # @yieldparam [Autobuild::Package] pkg
         def each_autobuild_package
-            if !block_given?
-                return enum_for(:each_package)
-            end
+            return enum_for(__method__) if !block_given?
             packages.each_value { |pkg| yield(pkg.autobuild) }
         end
 
@@ -1106,11 +1104,10 @@ module Autoproj
             end
 
             manifest = InstallationManifest.new(dir)
-            manifest_file = File.join(dir,  ".autoproj-installation-manifest")
-            if !File.file?(manifest_file)
+            if !File.file?(manifest.default_manifest_path)
                 raise ConfigError.new, "while setting up reuse of #{dir}, the .autoproj-installation-manifest file does not exist. You should probably rerun autoproj envsh in that folder first"
             end
-            manifest.load(manifest_file)
+            manifest.load
             @reused_installations << manifest
             manifest.each do |pkg|
                 ignore_package pkg.name
