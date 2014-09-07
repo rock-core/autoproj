@@ -13,6 +13,20 @@ module Autoproj
             end
         end
 
+        @source_files = ["source.yml"]
+        class << self
+            attr_reader :source_files
+
+            def master_source_file
+                source_files.first
+            end
+
+            def add_source_file(name)
+                source_files.delete(name)
+                source_files << name
+            end
+        end
+
         # @return [Manifest] the manifest this package set is being used by
         attr_reader :manifest
 
@@ -249,19 +263,30 @@ module Autoproj
                 raise InternalError, "source #{vcs} has not been fetched yet, cannot load description for it"
             end
 
-            source_file = File.join(raw_local_dir, "source.yml")
-            if !File.exists?(source_file)
+            master_source_file = File.join(raw_local_dir, PackageSet.master_source_file)
+            if !File.exists?(master_source_file)
                 raise ConfigError.new, "source #{vcs.type}:#{vcs.url} should have a source.yml file, but does not"
             end
 
-            source_definition = Autoproj.in_file(source_file, Autoproj::YAML_LOAD_ERROR) do
-                YAML.load(File.read(source_file))
+            source_definition = Hash.new
+            PackageSet.source_files.each do |name|
+                source_file = File.join(raw_local_dir, name)
+                next if !File.file?(source_file)
+
+                newdefs = Autoproj.in_file(source_file, Autoproj::YAML_LOAD_ERROR) do
+                    YAML.load(File.read(source_file))
+                end
+                source_definition.merge!(newdefs || Hash.new) do |k, old, new|
+                    if old.respond_to?(:to_ary)
+                        old + new
+                    else new
+                    end
+                end
             end
 
-            if !source_definition || !source_definition['name']
-                raise ConfigError.new(source_file), "in #{source_file}: missing a 'name' field"
+            if !source_definition['name']
+                raise ConfigError.new(master_source_file), "in #{master_source_file}: missing a 'name' field"
             end
-
             source_definition
         end
 
