@@ -11,12 +11,6 @@ remaining_args = Autoproj.silent do
     Autoproj::CmdLine.initialize_and_load(ARGV)
 end
 
-# snapshot_dir = remaining_args.shift
-# if !snapshot_dir
-#     raise ConfigError.new, "target directory missing\nusage: autoproj snapshot target_dir"
-# end
-# snapshot_dir = File.expand_path(snapshot_dir, current_dir)
-
 user_selection = remaining_args.map do |arg|
     if File.directory?(arg)
         File.expand_path(arg)
@@ -25,6 +19,6 @@ user_selection = remaining_args.map do |arg|
 end
 manifest = Autoproj.manifest
 Autoproj::CmdLine.report do
-    snapshot = Autoproj::Ops::Snapshot.commit packages
+    snapshot = Autoproj::Ops::Snapshot.commit user_selection
 end
 
