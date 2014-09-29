@@ -32,6 +32,16 @@ module Autoproj
             result
         end
 
+        def has_documentation?
+            xml.elements.each('package/description') do |node|
+                doc = (node.text || "").strip
+                if !doc.empty?
+                    return true
+                end
+            end
+            return false
+        end
+
         def documentation
             xml.elements.each('package/description') do |node|
                 doc = (node.text || "").strip
@@ -99,6 +109,20 @@ module Autoproj
                 end
             else
                 enum_for :each_package_dependency
+            end
+        end
+
+        def each_maintainer
+            if !block_given?
+                return enum_for(:each_maintainer)
+            end
+
+            xml.elements.each('package/maintainer') do |maintainer|
+                (maintainer.text || "").strip.split(',').each do |str|
+                    name, email = str.split('/').map(&:strip)
+                    email = nil if email && email.empty?
+                    yield(name, email)
+                end
             end
         end
 
