@@ -75,7 +75,7 @@ packages.each do |name|
 
     packages.each do |pkg_name|
         puts Autoproj.color("source package #{pkg_name}", :bold)
-        puts "  imported from"
+        puts "  source definition"
         vcs = Autoproj.manifest.importer_definition_for(pkg_name)
 
         fragments = []
