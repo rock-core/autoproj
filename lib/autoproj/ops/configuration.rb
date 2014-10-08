@@ -173,8 +173,6 @@ module Autoproj
             if imported_from
                 pkg_set.imported_from << imported_from
                 imported_from.imports << pkg_set
-            else
-                pkg_set.explicit = true
             end
             pkg_set
         end
@@ -294,6 +292,9 @@ module Autoproj
             root_pkg_set.load_description_file
             root_pkg_set.explicit = true
             package_sets = load_and_update_package_sets(root_pkg_set, only_local)
+            root_pkg_set.imports.each do |pkg_set|
+                pkg_set.explicit = true
+            end
             package_sets = sort_package_sets_by_import_order(package_sets)
             package_sets.each do |pkg_set|
                 manifest.register_package_set(pkg_set)
