@@ -236,6 +236,7 @@ module Autoproj
                 # Finally, queue the imports
                 queue_auto_imports_if_needed(queue, pkg_set)
             end
+
             cleanup_remotes_dir(package_sets)
             cleanup_remotes_user_dir(package_sets)
             package_sets
@@ -264,9 +265,15 @@ module Autoproj
             end
         end
 
-        def sort_package_sets_by_import_order(package_sets)
+        def sort_package_sets_by_import_order(package_sets, root_pkg_set)
+            # We do not consider the 'standalone' package sets while sorting.
+            # They are taken care of later, as we need to maintain the order the
+            # user defined in the package_sets section of the manifest
+            queue = package_sets.find_all do |pkg_set|
+                (!pkg_set.imports.empty? || !pkg_set.explicit?) && !(pkg_set == root_pkg_set)
+            end
+
             sorted = Array.new
-            queue = package_sets.dup
             while !queue.empty?
                 pkg_set = queue.shift
                 if pkg_set.imports.any? { |imported_set| !sorted.include?(imported_set) }
@@ -275,6 +282,25 @@ module Autoproj
                     sorted << pkg_set
                 end
             end
+
+            # We now need to re-add the standalone package sets. Their order is
+            # determined by the order in the package_set section of the manifest
+            #
+            # Concretely, we add them in order, just after the entry above them
+            previous = nil
+            root_pkg_set.imports.each do |explicit_pkg_set|
+                if !sorted.include?(explicit_pkg_set)
+                    if !previous
+                        sorted.unshift explicit_pkg_set
+                    else
+                        i = sorted.index(previous)
+                        sorted.insert(i + 1, explicit_pkg_set)
+                    end
+                end
+                previous = pkg_set
+            end
+
+            sorted << root_pkg_set
             sorted
         end
 
@@ -295,7 +321,7 @@ module Autoproj
             root_pkg_set.imports.each do |pkg_set|
                 pkg_set.explicit = true
             end
-            package_sets = sort_package_sets_by_import_order(package_sets)
+            package_sets = sort_package_sets_by_import_order(package_sets, root_pkg_set)
             package_sets.each do |pkg_set|
                 manifest.register_package_set(pkg_set)
             end
