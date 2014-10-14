@@ -11,9 +11,6 @@ Autoproj::CmdLine.report do
     switcher = Autoproj::Ops::MainConfigSwitcher.new(root_dir)
     begin
         switcher.bootstrap(*ARGV)
-        manifest = Autoproj::Manifest.load(File.join(Autoproj.config_dir, 'manifest'))
-        update = Autoproj::Ops::Configuration.new(manifest, Autoproj::Ops.loader)
-        update.update_configuration
         Autoproj.save_config
 
         STDERR.puts <<EOTEXT
