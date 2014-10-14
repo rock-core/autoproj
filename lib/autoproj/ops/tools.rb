@@ -76,6 +76,15 @@ module Autoproj
                 Rake.application.options.trace = true
                 Autobuild.debug = true
             end
+
+            parser.on("--[no-]color", "enable or disable color in status messages (enabled by default)") do |flag|
+                Autoproj::CmdLine.color = flag
+                Autobuild.color = flag
+            end
+
+            parser.on("--[no-]progress", "enable or disable progress display (enabled by default)") do |flag|
+                Autobuild.progress_display_enabled = flag
+            end
         end
 
         extend Tools

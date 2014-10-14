@@ -813,6 +813,7 @@ module Autoproj
         def self.ignore_dependencies?; @ignore_dependencies end
 
         def self.color?; @color end
+        def self.color=(flag); @color = flag end
 
         class << self
             attr_accessor :update_from
@@ -924,13 +925,6 @@ where 'mode' is one of:
                 opts.on('--from PATH', 'in update mode, use this existing autoproj installation to check out the packages (for importers that support this)') do |path|
                     self.update_from = Autoproj::InstallationManifest.from_root(File.expand_path(path))
                 end
-                opts.on("--[no-]color", "enable or disable color in status messages (enabled by default)") do |flag|
-                    @color = flag
-                    Autobuild.color = flag
-                end
-                opts.on("--[no-]progress", "enable or disable progress display (enabled by default)") do |flag|
-                    Autobuild.progress_display_enabled = flag
-                end
                 opts.on("--version", "displays the version and then exits") do
                     puts "autoproj v#{Autoproj::VERSION}"
                     exit(0)
@@ -1015,17 +1009,6 @@ where 'mode' is one of:
                     config.randomize_layout = true
                 end
 
-                opts.on("--verbose", "verbose output") do
-                    Autoproj.verbose  = true
-                    Autobuild.verbose = true
-                    Rake.application.options.trace = false
-                end
-                opts.on("--debug", "debugging output") do
-                    Autoproj.verbose  = true
-                    Autobuild.verbose = true
-                    Rake.application.options.trace = true
-                    Autobuild.debug = true
-                end
                 opts.on('--nice NICE', Integer, 'nice the subprocesses to the given value') do |value|
                     Autobuild.nice = value
                 end
@@ -1051,6 +1034,7 @@ where 'mode' is one of:
                 opts.on("--mail-only-errors", "send mail only on errors") do
                     mail_config[:only_errors] = true
                 end
+                Ops::Tools.common_options(opts)
                 opts.instance_eval(&additional_options) if block_given?
             end
 
