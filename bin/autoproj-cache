@@ -13,6 +13,6 @@ Autoproj::CmdLine.report do
     cache_dir = File.expand_path(cache_dir, root_dir)
 
     cache_op = Autoproj::Ops::Cache.new(cache_dir, Autoproj.manifest)
-    cache_op.create_or_update
+    cache_op.create_or_update(Autobuild.ignore_errors)
 end
 

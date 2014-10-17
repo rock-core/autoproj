@@ -56,7 +56,7 @@ module Autoproj
                 end
             end
 
-            def create_or_update
+            def create_or_update(keep_going = false)
                 FileUtils.mkdir_p cache_dir
 
                 packages = manifest.each_autobuild_package.
@@ -64,15 +64,37 @@ module Autoproj
                 total = packages.size
                 Autoproj.message "Handling #{total} packages"
                 packages.each_with_index do |pkg, i|
-                    case pkg.importer
-                    when Autobuild::Git
-                        Autoproj.message "  [#{i}/#{total}] caching #{pkg.name} (git)"
-                        cache_git(pkg)
-                    when Autobuild::ArchiveImporter
-                        Autoproj.message "  [#{i}/#{total}] caching #{pkg.name} (archive)"
-                        cache_archive(pkg)
-                    else
-                        Autoproj.message "  [#{i}/#{total}] not caching #{pkg.name} (cannot cache #{pkg.importer.class})"
+                    begin
+                        case pkg.importer
+                        when Autobuild::Git
+                            Autoproj.message "  [#{i}/#{total}] caching #{pkg.name} (git)"
+                            cache_git(pkg)
+                        when Autobuild::ArchiveImporter
+                            Autoproj.message "  [#{i}/#{total}] caching #{pkg.name} (archive)"
+                            cache_archive(pkg)
+                        else
+                            Autoproj.message "  [#{i}/#{total}] not caching #{pkg.name} (cannot cache #{pkg.importer.class})"
+                        end
+                    rescue Interrupt
+                        raise
+                    rescue ::Exception => e
+                        if keep_going
+                            pkg.error "       failed to cache #{pkg.name}, but going on as requested"
+                            lines = e.to_s.split("\n")
+                            if lines.empty?
+                                lines = e.message.split("\n")
+                            end
+                            if lines.empty?
+                                lines = ["unknown error"]
+                            end
+                            pkg.message(lines.shift, :red, :bold)
+                            lines.each do |line|
+                                pkg.message(line)
+                            end
+                            nil
+                        else
+                            raise
+                        end
                     end
                 end
             end
