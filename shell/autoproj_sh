@@ -1,4 +1,4 @@
-function acd {
+acd() {
     local pkg_path
     pkg_path=$(autoproj locate $1)
 

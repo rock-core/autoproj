@@ -176,17 +176,10 @@ module Autoproj
            end
 
         shell_dir = File.expand_path(File.join("..", "..", "shell"), File.dirname(__FILE__))
-        if Autoproj.shell_helpers? && shell = ENV['SHELL']
-            shell_kind = File.basename(shell)
-            if shell_kind =~ /^\w+$/
-                shell_file = File.join(shell_dir, "autoproj_#{shell_kind}")
-                if File.exists?(shell_file)
-                    Autoproj.message
-                    Autoproj.message "autodetected the shell to be #{shell_kind}, sourcing autoproj shell helpers"
-                    Autoproj.message "add \"Autoproj.shell_helpers = false\" in autoproj/init.rb to disable"
-                    Autobuild.env_source_after(shell_file)
-                end
-            end
+        if Autoproj.shell_helpers?
+            Autoproj.message "sourcing autoproj shell helpers"
+            Autoproj.message "add \"Autoproj.shell_helpers = false\" in autoproj/init.rb to disable"
+            Autobuild.env_source_after(File.join(shell_dir, "autoproj_sh"))
         end
 
         File.open(filename, "w") do |io|
