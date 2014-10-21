@@ -35,11 +35,11 @@ lib/autoproj/gitorious.rb
 lib/autoproj/installation_manifest.rb
 lib/autoproj/manifest.rb
 lib/autoproj/metapackage.rb
-lib/autoproj/ops/main_config_switcher.rb
 lib/autoproj/ops/build.rb
 lib/autoproj/ops/cache.rb
 lib/autoproj/ops/configuration.rb
 lib/autoproj/ops/loader.rb
+lib/autoproj/ops/main_config_switcher.rb
 lib/autoproj/ops/tools.rb
 lib/autoproj/options.rb
 lib/autoproj/osdeps.rb
@@ -62,6 +62,7 @@ samples/autoproj/overrides.yml
 samples/manifest.xml
 samples/osdeps.yml
 shell/autoproj_bash
+shell/autoproj_sh
 shell/autoproj_zsh
 test/data/empty_manifest.xml
 test/data/full_manifest.xml
