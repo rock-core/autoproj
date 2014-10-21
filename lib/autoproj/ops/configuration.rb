@@ -186,6 +186,13 @@ module Autoproj
             queue
         end
 
+        def repository_id_of(vcs)
+            name = PackageSet.name_of(manifest, vcs)
+            raw_local_dir = PackageSet.raw_local_dir_of(vcs)
+            fake_package = Tools.create_autobuild_package(vcs, name, raw_local_dir)
+            fake_package.importer.repository_id
+        end
+
         # Load the package set information
         #
         # It loads the package set information as required by {manifest} and
@@ -196,14 +203,21 @@ module Autoproj
         #   package sets
         def load_and_update_package_sets(root_pkg_set, only_local = false)
             package_sets = [root_pkg_set]
-            seen_already = Set.new
+            by_repository_id = Hash.new
             by_name = Hash.new
 
             queue = queue_auto_imports_if_needed(Array.new, root_pkg_set)
             while !queue.empty?
                 vcs, options, imported_from = queue.shift
-                next if seen_already.include?(vcs)
-                seen_already << vcs
+                repository_id = repository_id_of(vcs)
+                if already_processed = by_repository_id[repository_id]
+                    already_processed_vcs, already_processed_from = *already_processed
+                    if already_processed_from && (already_processed_vcs != vcs)
+                        Autoproj.warn "already loaded the package set from #{already_processed_vcs} from #{already_processed_from.name}, this overrides different settings (#{vcs}) found in #{imported_from.name}"
+                    end
+                    next
+                end
+                by_repository_id[repository_id] = vcs
 
                 if !vcs.local?
                     update_remote_package_set(vcs, only_local)

@@ -144,7 +144,7 @@ module Autoproj
             elsif !other_vcs.local?
                 this_importer = create_autobuild_importer
                 other_importer = other_vcs.create_autobuild_importer
-                this_importer.repository_id == other_importer.repository_id
+                this_importer.source_id == other_importer.source_id
             end
         end
 
