@@ -290,13 +290,15 @@ module Autoproj
         end
 
         # Get the value for a given option
-        def get(key)
+        def get(key, default_value = nil)
             if overrides.has_key?(key)
                 return overrides[key]
             end
 
             value, validated = config[key]
-            if value.nil? || (declared?(key) && !validated)
+            if value.nil? && !declared?(key) && !default_value.nil?
+                default_value
+            elsif value.nil? || (declared?(key) && !validated)
                 value = configure(key)
             else
                 if declared?(key) && (displayed_options[key] != value)
@@ -389,8 +391,67 @@ module Autoproj
                 io.write YAML.dump(h)
             end
         end
+
+        def each_reused_autoproj_installation
+            if has_value_for?('reused_autoproj_installations')
+                get('reused_autoproj_installations').each(&proc)
+            else [].each(&proc)
+            end
+        end
+
+        def ruby_executable
+            @ruby_executable ||= OSDependencies.autodetect_ruby_program
+        end
+
+        def validate_ruby_executable
+            if has_value_for?('ruby_executable')
+                expected = get('ruby_executable')
+                if expected != ruby_executable
+                    raise ConfigError.new, "this autoproj installation was bootstrapped using #{expected}, but you are currently running under #{ruby_executable}. This is usually caused by calling a wrong gem program (for instance, gem1.8 instead of gem1.9.1)"
+                end
+            end
+            set('ruby_executable', ruby_executable, true)
+        end
+
+        def use_prerelease?
+            use_prerelease =
+                if env_flag = ENV['AUTOPROJ_USE_PRERELEASE']
+                    env_flag == '1'
+                elsif has_value_for?('autoproj_use_prerelease')
+                    get('autoproj_use_prerelease')
+                end
+            set "autoproj_use_prerelease", (use_prerelease ? true : false), true
+            use_prerelease
+        end
+
+        def apply_autobuild_configuration
+            if has_value_for?('autobuild')
+                params = get('autobuild')
+                if params.kind_of?(Hash)
+                    params.each do |k, v|
+                        Autobuild.send("#{k}=", v)
+                    end
+                end
+            end
+        end
+
+        def apply_autoproj_prefix
+            if has_value_for?('prefix')
+                Autoproj.prefix = get('prefix')
+            else Autoproj.prefix = 'install'
+            end
+        end
+
+        def randomize_layout?
+            get('randomize_layout', false)
+        end
+
+        def randomize_layout=(value)
+            set('randomize_layout', value, true)
+        end
     end
 end
+
 
 module Autoproj
     def self.config
@@ -2373,9 +2434,11 @@ module Autoproj
         config.save(File.join(Autoproj.config_dir, "config.yml"))
     end
 
-    def self.load_config
+    def self.config
         @config ||= Configuration.new
+    end
 
+    def self.load_config
         config_file = File.join(Autoproj.config_dir, "config.yml")
         if File.exists?(config_file)
             config.load(config_file, reconfigure?)
@@ -2867,7 +2930,7 @@ end
 # version of autoproj. If it is "localdev", expect him to install autoproj and
 # run autoproj bootstrap manually.
 if ARGV.first != "localdev"
-    if ARGV.first == "dev"
+    if ARGV.first == "dev" || (ENV['AUTOPROJ_USE_PRERELEASE'] == '1')
         ENV['AUTOPROJ_USE_PRERELEASE'] = '1'
         Autoproj::PackageManagers::GemManager.with_prerelease = true
         ARGV.shift
