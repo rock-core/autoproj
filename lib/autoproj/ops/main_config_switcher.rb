@@ -114,7 +114,7 @@ module Autoproj
                 # If we are not getting the installation setup from a VCS, copy the template
                 # files
                 if args.empty? || args.size == 1
-                    sample_dir = File.expand_path(File.join("..", "..", "samples"), File.dirname(__FILE__))
+                    sample_dir = File.expand_path(File.join("..", "..", "..", "samples"), File.dirname(__FILE__))
                     FileUtils.cp_r File.join(sample_dir, "autoproj"), "autoproj"
                 end
 
