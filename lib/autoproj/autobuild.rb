@@ -96,6 +96,10 @@ module Autobuild
 
         alias __depends_on__ depends_on
         def depends_on(name)
+            if name.respond_to?(:name) # probably a Package object
+                name = name.name
+            end
+
             if Autoproj::CmdLine.ignore_dependencies?
                 return
             end
