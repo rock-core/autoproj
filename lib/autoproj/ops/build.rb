@@ -29,7 +29,7 @@ module Autoproj
                 if update_os_dependencies?
                     # We also reinstall the osdeps that provide the
                     # functionality
-                    managers = manifest.osdeps.setup_package_handlers
+                    managers = Autoproj.osdeps.setup_package_handlers
                     managers.each do |mng|
                         if mng.respond_to?(:reinstall)
                             mng.reinstall

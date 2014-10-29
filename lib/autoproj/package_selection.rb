@@ -14,6 +14,8 @@ module Autoproj
         # are errors or simply warnings (i.e. if the user really wants a given
         # package, or merely might be adding it by accident)
         class PackageSelection
+            include Enumerable
+
             # The set of matches, i.e. a mapping from a user-provided string to
             # the set of packages it selected
             attr_reader :matches

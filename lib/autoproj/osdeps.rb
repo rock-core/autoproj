@@ -595,9 +595,9 @@ fi
             def reinstall
                 Autoproj.message "reinstalling all RubyGems"
                 base_cmdline = [Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('gem')]
-                Autobuild::Subprocess.run 'autoproj', 'osdeps', 'reinstall', *base_cmdline,
+                Autobuild::Subprocess.run 'osdeps', 'reinstall', *base_cmdline,
                     'clean'
-                Autobuild::Subprocess.run 'autoproj', 'osdeps', 'reinstall', *base_cmdline,
+                Autobuild::Subprocess.run 'osdeps', 'reinstall', *base_cmdline,
                     'pristine', '--all', '--extensions'
             end
 
