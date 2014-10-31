@@ -1271,6 +1271,8 @@ fi
             return [distributor, [codename, version]]
         end
 
+        class InvalidRecursiveStatement < Autobuild::Exception; end
+
         # Return the list of packages that should be installed for +name+
         #
         # The following two simple return values are possible:
@@ -1333,7 +1335,11 @@ fi
             found, pkg = partition_osdep_entry(name, dep_def, ['osdep'], [], os_names, os_versions)
             if found
                 pkg.each do |pkg_name|
-                    result.concat(resolve_package(pkg_name))
+                    resolved = resolve_package(pkg_name)
+                    if !resolved
+                        raise InvalidRecursiveStatement, "osdep #{pkg_name} does not exist. It is referred to by #{name}."
+                    end
+                    result.concat(resolved)
                 end
             end
 
