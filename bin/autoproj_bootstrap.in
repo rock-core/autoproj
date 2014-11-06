@@ -83,6 +83,8 @@ module Autoproj
 end
 
 module Autobuild
+    class Exception < RuntimeError; end
+
     def self.do_update
         true
     end
