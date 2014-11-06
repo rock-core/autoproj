@@ -160,7 +160,7 @@ packages.each do |name|
 
     osdeps.each do |pkg_name|
         puts Autoproj.color("the osdep '#{pkg_name}'", :bold)
-        Autoproj.osdeps.resolve_os_dependencies(pkg_name).each do |manager, packages|
+        Autoproj.osdeps.resolve_os_dependencies([pkg_name]).each do |manager, packages|
             puts "  #{manager.names.first}: #{packages.map { |*subnames| subnames.join(" ") }.join(", ")}"
         end
     end
