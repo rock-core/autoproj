@@ -997,10 +997,10 @@ module Autoproj
         #
         # This method converts the first two directories into the third one
         def expand_package_selection(selection, options = Hash.new)
-            options = Kernel.validate_options options, :filter => true
-            base_dir = Autoproj.root_dir
+            options = Kernel.validate_options options, filter: true
 
             result = PackageSelection.new
+
             # All the packages that are available on this installation
             all_layout_packages = self.all_selected_packages
 
@@ -1029,25 +1029,36 @@ module Autoproj
 
             # Finally, check for package source directories
             all_packages = self.all_package_names
+            all_osdeps_packages = osdeps.all_package_names
+
             selection.each do |sel|
                 match_pkg_name = Regexp.new(Regexp.quote(sel))
-                all_packages.each do |pkg_name|
+                matching_packages = all_packages.map do |pkg_name|
                     pkg = Autobuild::Package[pkg_name]
-                    if pkg_name =~ match_pkg_name || "#{sel}/" =~ Regexp.new("^#{Regexp.quote(pkg.srcdir)}/") || pkg.srcdir =~ Regexp.new("^#{Regexp.quote(sel)}")
-                        # Check-out packages that are not in the manifest only
-                        # if they are explicitely selected. However, we do store
-                        # them as "possible resolutions" for the user selection,
-                        # and add them if -- at the end of the method -- nothing
-                        # has been found for this particular selection
-                        if !all_layout_packages.include?(pkg.name)
-                            if pkg_name != sel && pkg.srcdir != sel
-                                pending_selections[sel] = pkg_name
-                                next
-                            end
-                        end
-
-                        result.select(sel, pkg_name)
+                    if pkg_name =~ match_pkg_name ||
+                        "#{sel}/" =~ Regexp.new("^#{Regexp.quote(pkg.srcdir)}/") ||
+                        pkg.srcdir =~ Regexp.new("^#{Regexp.quote(sel)}")
+                        [pkg_name, (pkg_name == sel || pkg.srcdir == sel)]
                     end
+                end.compact
+                matching_osdeps_packages = all_osdeps_packages.find_all do |pkg_name|
+                    if pkg_name =~ match_pkg_name
+                        [pkg_name, pkg_name == sel]
+                    end
+                end.compact
+
+                (matching_packages + matching_osdeps_packages).to_set.each do |pkg_name, exact_match|
+                    # Check-out packages that are not in the manifest only
+                    # if they are explicitely selected. However, we do store
+                    # them as "possible resolutions" for the user selection,
+                    # and add them if -- at the end of the method -- nothing
+                    # has been found for this particular selection
+                    if !all_layout_packages.include?(pkg_name) && !exact_match
+                        pending_selections[sel] = pkg_name
+                        next
+                    end
+
+                    result.select(sel, pkg_name)
                 end
             end
 

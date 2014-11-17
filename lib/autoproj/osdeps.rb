@@ -1006,6 +1006,14 @@ fi
             @filter_uptodate_packages = true
         end
 
+        # Returns the name of all known OS packages
+        #
+        # It includes even the packages for which there are no definitions on
+        # this OS
+        def all_package_names
+            all_definitions.keys
+        end
+
         # Returns the full path to the osdeps file from which the package
         # definition for +package_name+ has been taken
         def source_of(package_name)
