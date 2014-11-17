@@ -108,12 +108,16 @@ module Autoproj
         # The VCS object for the main configuration itself
         attr_reader :vcs
 
+        # The definition of all OS packages available on this installation
+        attr_reader :osdeps
+
 	def initialize
             @file = nil
 	    @data = Hash.new
             @packages = Hash.new
             @package_manifests = Hash.new
             @package_sets = []
+            @osdeps = OSDependencies.new
 
             @automatic_exclusions = Hash.new
             @constants_definitions = Hash.new
@@ -558,7 +562,7 @@ module Autoproj
             options = Kernel.validate_options options, :filter => true
 
             explicit_selection  = explicitly_selected_package?(name)
-	    osdeps_availability = Autoproj.osdeps.availability_of(name)
+	    osdeps_availability = osdeps.availability_of(name)
             available_as_source = Autobuild::Package[name]
 
             osdeps_overrides = Autoproj.manifest.osdeps_overrides[name]
@@ -609,9 +613,9 @@ module Autoproj
                         return []
                     end
                     begin
-                        Autoproj.osdeps.resolve_os_dependencies([name].to_set)
+                        osdeps.resolve_os_dependencies([name].to_set)
                     rescue Autoproj::ConfigError => e
-                        if osdeps_availability != Autoproj::OSDependencies::NO_PACKAGE && !Autoproj.osdeps.os_package_handler.enabled?
+                        if osdeps_availability != Autoproj::OSDependencies::NO_PACKAGE && !osdeps.os_package_handler.enabled?
                             if !@ignored_os_dependencies.include?(name)
                                 Autoproj.warn "some package depends on the #{name} osdep: #{e.message}"
                                 Autoproj.warn "this osdeps dependency is simply ignored as you asked autoproj to not install osdeps packages"
@@ -647,7 +651,7 @@ module Autoproj
                 end
                 pkg_set.each_package.
                     map(&:name).
-                    find_all { |pkg_name| !Autoproj.osdeps || !Autoproj.osdeps.has?(pkg_name) }
+                    find_all { |pkg_name| !osdeps || !osdeps.has?(pkg_name) }
             end
         end
 
@@ -747,7 +751,7 @@ module Autoproj
                 result |= metapackage(pkg_set.name).packages.map(&:name).to_set
             end
             result.to_a.
-                find_all { |pkg_name| !Autoproj.osdeps || !Autoproj.osdeps.has?(pkg_name) }
+                find_all { |pkg_name| !osdeps.has?(pkg_name) }
         end
 
         # Returns true if +name+ is a valid package and is included in the build
@@ -758,7 +762,7 @@ module Autoproj
         # If it is false, the method will simply return false on non-defined
         # packages 
         def package_enabled?(name, validate = true)
-            if !Autobuild::Package[name] && !Autoproj.osdeps.has?(name)
+            if !Autobuild::Package[name] && !osdeps.has?(name)
                 if validate
                     raise ArgumentError, "package #{name} does not exist"
                 end
@@ -942,7 +946,7 @@ module Autoproj
                     true
                 end
             end
-            Autoproj.osdeps.install(required_os_packages)
+            osdeps.install(required_os_packages)
         end
 
         # The set of overrides added with #add_osdeps_overrides
@@ -1137,7 +1141,13 @@ module Autoproj
         #
         # @return [OSDependencies]
         # @see load_osdeps_from_package_sets
-        attr_accessor :osdeps
+        def osdeps
+            manifest.osdeps
+        end
+
+        def osdeps=(osdeps)
+            raise ArgumentError, "cannot set the osdeps object explicitely anymore. Use osdeps.clear and osdeps.merge"
+        end
 
         # The configuration file
         # @return [Configuration]

@@ -133,11 +133,11 @@ module Autoproj
 
             # Initialize the Autoproj.osdeps object by loading the default. The
             # rest is loaded later
-            Autoproj.osdeps = Autoproj::OSDependencies.load_default
-            Autoproj.osdeps.silent = !osdeps?
-            Autoproj.osdeps.filter_uptodate_packages = osdeps_filter_uptodate?
+            manifest.osdeps.load_default
+            manifest.osdeps.silent = !osdeps?
+            manifest.osdeps.filter_uptodate_packages = osdeps_filter_uptodate?
             if osdeps_forced_mode
-                Autoproj.osdeps.osdeps_mode = osdeps_forced_mode
+                manifest.osdeps.osdeps_mode = osdeps_forced_mode
             end
 
             # Define the option NOW, as update_os_dependencies? needs to know in
@@ -146,7 +146,7 @@ module Autoproj
             # It might lead to having multiple operating system detections, but
             # that's the best I can do for now.
 	    Autoproj::OSDependencies.define_osdeps_mode_option
-            Autoproj.osdeps.osdeps_mode
+            manifest.osdeps.osdeps_mode
 
             # Do that AFTER we have properly setup Autoproj.osdeps as to avoid
             # unnecessarily redetecting the operating system

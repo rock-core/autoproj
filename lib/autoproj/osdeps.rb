@@ -910,6 +910,10 @@ fi
             OSDependencies.load(file)
         end
 
+        def load_default
+            merge(self.class.load_default)
+        end
+
         PACKAGE_HANDLERS = [PackageManagers::AptDpkgManager,
             PackageManagers::GemManager,
             PackageManagers::EmergeManager,
