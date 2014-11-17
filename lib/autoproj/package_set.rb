@@ -331,7 +331,12 @@ module Autoproj
         def parse_source_definition
             @name = source_definition['name']
             @provides = (source_definition['provides'] || Set.new).to_set
-            @imports_vcs  = (source_definition['imports'] || Array.new).map do |set_def|
+            @imports_vcs  = Array(source_definition['imports'] || Array.new).map do |set_def|
+                if !set_def.kind_of?(Hash)
+                    raise ConfigError.new(source_file),
+                        "in #{source_file}: wrong format for 'imports' section. Expected an array of maps (e.g. - github: my/url)."
+                end
+
                 Autoproj.in_file(source_file) do
                     PackageSet.resolve_definition(manifest, set_def)
                 end
