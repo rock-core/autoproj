@@ -23,13 +23,6 @@ module Autoproj
             # set of user-provided strings that caused that package to be
             # selected
             attr_reader :selection
-            # The set of osdeps matches, i.e. a mapping from a user-provided string to
-            # the set of packages it selected
-            attr_reader :osdeps_matches
-            # The set of selected osdeps packages, as a hash of the package name
-            # to the set of user-provided strings that caused that package to be
-            # selected
-            attr_reader :osdeps_selection
             # A flag that tells #filter_excluded_and_ignored_packages whether
             # the a given package selection is weak or not.
             #
@@ -48,8 +41,6 @@ module Autoproj
             def initialize
                 @selection = Hash.new { |h, k| h[k] = Set.new }
                 @matches = Hash.new { |h, k| h[k] = Set.new }
-                @osdeps_matches = Hash.new { |h, k| h[k] = Set.new }
-                @osdeps_selection = Hash.new { |h, k| h[k] = Set.new }
                 @weak_dependencies = Hash.new
                 @ignores = Hash.new { |h, k| h[k] = Set.new }
                 @exclusions = Hash.new { |h, k| h[k] = Set.new }
@@ -60,13 +51,8 @@ module Autoproj
                 selection.keys
             end
 
-            # The set of packages that have been selected
-            def osdeps_packages
-                osdeps_selection.keys
-            end
-
             def include?(pkg_name)
-                selection.has_key?(pkg_name) || osdeps_selection.has_key?(pkg_name)
+                selection.has_key?(pkg_name)
             end
 
             def empty?
