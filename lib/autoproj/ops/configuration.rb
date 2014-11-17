@@ -211,13 +211,18 @@ module Autoproj
                 vcs, options, imported_from = queue.shift
                 repository_id = repository_id_of(vcs)
                 if already_processed = by_repository_id[repository_id]
-                    already_processed_vcs, already_processed_from = *already_processed
+                    already_processed_vcs, already_processed_from, pkg_set = *already_processed
                     if already_processed_from && (already_processed_vcs != vcs)
                         Autoproj.warn "already loaded the package set from #{already_processed_vcs} from #{already_processed_from.name}, this overrides different settings (#{vcs}) found in #{imported_from.name}"
                     end
+
+                    if imported_from
+                        pkg_set.imported_from << imported_from
+                        imported_from.imports << pkg_set
+                    end
                     next
                 end
-                by_repository_id[repository_id] = vcs
+                by_repository_id[repository_id] = [vcs, imported_from]
 
                 if !vcs.local?
                     update_remote_package_set(vcs, only_local)
@@ -243,6 +248,7 @@ module Autoproj
                 end
 
                 pkg_set = load_package_set(vcs, options, imported_from)
+                by_repository_id[repository_id][2] = pkg_set
                 package_sets << pkg_set
 
                 by_name[pkg_set.name] = [pkg_set, vcs, options, imported_from]
