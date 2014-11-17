@@ -38,6 +38,7 @@ module Autoproj
                 end
 
                 packages = manifest.all_layout_packages
+                manifest.pristine_os_dependencies(packages)
                 rebuild_packages(packages, packages)
             end
 

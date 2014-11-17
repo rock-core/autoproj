@@ -932,10 +932,8 @@ module Autoproj
             return required_os_packages, package_os_deps
         end
 
-        # Installs the OS dependencies that are required by the given packages
-        def install_os_dependencies(packages)
-            required_os_packages, package_os_deps = list_os_dependencies(packages)
-            required_os_packages.delete_if do |pkg|
+        def filter_os_dependencies(required_os_packages, package_os_deps)
+            required_os_packages.find_all do |pkg|
                 if excluded?(pkg)
                     raise ConfigError.new, "the osdeps package #{pkg} is excluded from the build in #{file}. It is required by #{package_os_deps[pkg].join(", ")}"
                 end
@@ -943,9 +941,29 @@ module Autoproj
                     if Autoproj.verbose
                         Autoproj.message "ignoring osdeps package #{pkg}"
                     end
-                    true
+                    false
+                else true
                 end
             end
+        end
+
+        # Restores the OS dependencies required by the given packages to
+        # pristine conditions
+        #
+        # This is usually called as a rebuild step to make sure that all these
+        # packages are updated to whatever required the rebuild
+        def pristine_os_dependencies(packages)
+            required_os_packages, package_os_deps = list_os_dependencies(packages)
+            required_os_packages =
+                filter_os_dependencies(required_os_packages, package_os_deps)
+            osdeps.pristine(required_os_packages)
+        end
+
+        # Installs the OS dependencies that are required by the given packages
+        def install_os_dependencies(packages)
+            required_os_packages, package_os_deps = list_os_dependencies(packages)
+            required_os_packages =
+                filter_os_dependencies(required_os_packages, package_os_deps)
             osdeps.install(required_os_packages)
         end
 

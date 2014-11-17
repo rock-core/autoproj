@@ -592,13 +592,34 @@ fi
                 end
             end
 
-            def reinstall
-                Autoproj.message "  reinstalling all RubyGems"
+            def build_gem_cmdlines(gems)
+                with_version, without_version = gems.partition { |name, v| v }
+
+                cmdlines = []
+                if !without_version.empty?
+                    cmdlines << without_version.flatten
+                end
+                with_version.each do |name, v|
+                    cmdlines << [name, "-v", v]
+                end
+                cmdlines
+            end
+
+            def pristine(gems)
+                guess_gem_program
                 base_cmdline = [Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('gem')]
-                Autobuild::Subprocess.run 'osdeps', 'reinstall', *base_cmdline,
-                    'clean'
-                Autobuild::Subprocess.run 'osdeps', 'reinstall', *base_cmdline,
-                    'pristine', '--all', '--extensions'
+                cmdlines = [
+                    [*base_cmdline, 'clean'],
+                ]
+                cmdlines += build_gem_cmdlines(gems).map do |line|
+                    base_cmdline + ["pristine", "--extensions"] + line
+                end
+                if gems_interaction(gems, cmdlines)
+                    Autoproj.message "  restoring RubyGems: #{gems.map { |g| g.join(" ") }.sort.join(", ")}"
+                    cmdlines.each do |c|
+                        Autobuild::Subprocess.run 'autoproj', 'osdeps', *c
+                    end
+                end
             end
 
             def install(gems)
@@ -612,16 +633,10 @@ fi
                 if GemManager.with_prerelease
                     base_cmdline << "--prerelease"
                 end
-                with_version, without_version = gems.partition { |name, v| v }
 
-                cmdlines = []
-                if !without_version.empty?
-                    cmdlines << (base_cmdline + without_version.flatten)
+                cmdlines = build_gem_cmdlines(gems).map do |line|
+                    base_cmdline + line
                 end
-                with_version.each do |name, v|
-                    cmdlines << base_cmdline + [name, "-v", v]
-                end
-
                 if gems_interaction(gems, cmdlines)
                     Autoproj.message "  installing/updating RubyGems dependencies: #{gems.map { |g| g.join(" ") }.sort.join(", ")}"
 
@@ -1845,6 +1860,24 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
                 end
             end
             enabled_handlers
+        end
+
+        # Requests that packages that are handled within the autoproj project
+        # (i.e. gems) are restored to pristine condition
+        #
+        # This is usually called as a rebuild step to make sure that all these
+        # packages are updated to whatever required the rebuild
+        def pristine(packages, options = Hash.new)
+            setup_package_handlers(options)
+            packages = resolve_os_dependencies(packages)
+
+            _, other_packages =
+                packages.partition { |handler, list| handler == os_package_handler }
+            other_packages.each do |handler, list|
+                if handler.respond_to?(:pristine)
+                    handler.pristine(list)
+                end
+            end
         end
 
         # Requests the installation of the given set of packages
