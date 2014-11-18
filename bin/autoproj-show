@@ -2,13 +2,6 @@
 
 require 'autoproj'
 require 'autoproj/cmdline'
-Autoproj.silent = true
-Autoproj::CmdLine.initialize_root_directory
-Autoproj::CmdLine.initialize_and_load(ARGV)
-
-require 'pp'
-default_packages = Autoproj.manifest.default_packages
-revdeps = Autoproj.manifest.compute_revdeps
 
 user_selection = ARGV.map do |arg|
     if File.directory?(arg)
@@ -16,6 +9,14 @@ user_selection = ARGV.map do |arg|
     else arg
     end
 end
+
+Autoproj.silent = true
+Autoproj::CmdLine.initialize_root_directory
+Autoproj::CmdLine.initialize_and_load(ARGV)
+
+default_packages = Autoproj.manifest.default_packages
+revdeps = Autoproj.manifest.compute_revdeps
+
 resolved_selection = Autoproj::CmdLine.resolve_user_selection(user_selection, :filter => false)
 packages = resolved_selection.selection.keys
 
