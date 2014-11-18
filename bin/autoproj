@@ -75,7 +75,7 @@ Autoproj::CmdLine.report do
             exit 0
         end
     elsif selected_packages.empty?
-        Autoproj::CmdLine.update_myself(force: true)
+        Autoproj::CmdLine.update_myself
         Autoproj::CmdLine.update_configuration
     else
         begin
