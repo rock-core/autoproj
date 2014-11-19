@@ -89,7 +89,7 @@ module Autoproj
 
                 # Then move the importer there if possible
                 if fake_package.importer.respond_to?(:pick_from_autoproj_root)
-                    if !fake_package.importer.pick_from_autoproj_root(fake_package, other_root)
+                    if !fake_package.importer.pick_from_autoproj_root(fake_package, update_from)
                         fake_package.update = false
                     end
                 else
