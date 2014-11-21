@@ -382,7 +382,7 @@ module Autoproj
         # @deprecated use {each_autobuild_package} instead
         def each_package(&block)
             Autoproj.warn "Manifest#each_package is deprecated, use each_autobuild_package instead"
-            Autoproj.warn "  " + caller(5).join("\n  ")
+            Autoproj.warn "  " + caller.join("\n  ")
             each_autobuild_package(&block)
         end
 
