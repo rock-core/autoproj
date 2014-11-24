@@ -62,7 +62,7 @@ module Autoproj
                     if (current_root != root_dir) && !reuse.include?(current_root)
                         Autoproj.error "the env.sh from #{ENV['AUTOPROJ_CURRENT_ROOT']} seem to already be sourced"
                         Autoproj.error "start a new shell and try to bootstrap again"
-                        Autoproj.error
+                        Autoproj.error ""
                         Autoproj.error "you are allowed to boostrap from another autoproj installation"
                         Autoproj.error "only if you reuse it with the --reuse flag"
                         raise ConfigError
