@@ -98,14 +98,13 @@ module Autoproj
                 Autobuild.srcdir  = Autoproj.root_dir
                 Autobuild.logdir = File.join(Autobuild.prefix, 'log')
 
-                Autoproj.manifest = Manifest.new
+                manifest = Autoproj.manifest = Manifest.new
                 Tools.load_autoprojrc
                 Autoproj.prepare_environment
 
                 Autoproj::OSDependencies.define_osdeps_mode_option
-                osdeps = Autoproj::OSDependencies.load_default
-                osdeps.osdeps_mode
-                Autoproj.osdeps = osdeps
+                manifest.osdeps.load_default
+                manifest.osdeps.osdeps_mode
 
                 CmdLine.update_myself :force => true, :restart_on_update => false
                 Autoproj.change_option 'reused_autoproj_installations', reuse, true
