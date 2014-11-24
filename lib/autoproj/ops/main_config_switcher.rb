@@ -65,7 +65,7 @@ module Autoproj
                         Autoproj.error ""
                         Autoproj.error "you are allowed to boostrap from another autoproj installation"
                         Autoproj.error "only if you reuse it with the --reuse flag"
-                        raise ConfigError
+                        raise Autobuild::Exception, ""
                     end
                 end
             end
