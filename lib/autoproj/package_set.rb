@@ -592,7 +592,7 @@ module Autoproj
         end
 
         def load_overrides
-            files = Dir.glob(File.join( Autoproj.config_dir, "overrides/*.yml" ) ).sort
+            files = Dir.glob(File.join( Autoproj.overrides_dir, "*.yml" ) ).sort
             overrides_yml_path = File.join( Autoproj.config_dir, "overrides.yml" )
             if File.exist? overrides_yml_path 
                 # todo add deprecation warning

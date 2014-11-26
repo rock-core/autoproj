@@ -31,7 +31,7 @@ module Autoproj
         end
 
         def self.versions_file
-            File.expand_path( File.join( Autoproj.root_dir, "autoproj", "overrides", "50-versions.yml" ) )
+            File.expand_path( File.join( Autoproj.overrides_dir, "50-versions.yml" ) )
         end
 
         def self.resolve_selection( user_selection )
