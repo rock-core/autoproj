@@ -46,21 +46,18 @@ module Autoproj
             packages
         end
 
-        def save_versions( versions_file )
-            # do a partial update if file exists, and specific packages have
-            # been selected
-            if selection and File.exists? versions_file
-                versions = YAML.load( File.read( versions_file ) )
-            else
-                versions = {}
+        def save_versions( versions, versions_file )
+            existing_versions = Array.new
+            if File.exists?(versions_file)
+                existing_versions = YAML.load( File.read( versions_file ) ) ||
+                    Array.new
             end
 
             # create direcotry for versions file first
             FileUtils.mkdir_p(File.dirname( versions_file ))
 
             # augment the versions file with the updated versions
-            Snapshot.merge_packets( version_control_info, versions['version_control'] ||= Array.new )
-            Snapshot.merge_packets( overrides_info, versions['overrides'] ||= Array.new )
+            Snapshot.merge_packets( versions, existing_versions )
 
             # write the yaml file
             File.open(versions_file, 'w') do |io|
@@ -72,42 +69,32 @@ module Autoproj
             # todo
         end
 
-        attr_accessor :version_control_info, :overrides_info, :package_sets
-
         attr_reader :manifest
         def initialize(manifest)
             @manifest = manifest
         end
 
         def snapshot_package_sets(target_dir = nil)
-            # Pin package sets
-            @package_sets = Array.new
+            result = Array.new
             manifest.each_package_set do |pkg_set|
                 next if pkg_set.name == 'local'
-                if pkg_set.local?
-                    @package_sets << Pathname.new(pkg_set.local_dir).
-                        relative_path_from(Pathname.new(manifest.file).dirname).
-                        to_s
-                else
-                    vcs_info = pkg_set.vcs.to_hash
-                    if pin_info = pkg_set.snapshot(target_dir)
-                        vcs_info = vcs_info.merge(pin_info)
-                    end
-                    @package_sets << vcs_info
+
+                vcs_info = pkg_set.vcs.to_hash
+                if pin_info = pkg_set.snapshot(target_dir)
+                    vcs_info = vcs_info.merge(pin_info)
                 end
+                result << Hash[pkg_set.repository_id, vcs_info]
             end
+            result
         end
 
         def snapshot_packages(packages, target_dir = nil)
-            # Now, create snapshot information for each of the packages
-            @version_control_info = []
-            @overrides_info = []
+            result = Array.new
             packages.each do |package_name|
                 package  = manifest.packages[package_name]
                 if !package
                     raise ArgumentError, "#{package_name} is not a known package"
                 end
-                package_set = package.package_set
                 importer = package.autobuild.importer
                 if !importer
                     Autoproj.message "cannot snapshot #{package_name} as it has no importer"
@@ -119,14 +106,10 @@ module Autoproj
 
                 vcs_info = importer.snapshot(package.autobuild, target_dir)
                 if vcs_info
-                    if package_set.name == 'local'
-                        @version_control_info << Hash[package_name, vcs_info]
-                    else
-                        @overrides_info << Hash[package_name, vcs_info]
-                    end
+                    result << Hash[package_name, vcs_info]
                 end
+                result
             end
-
         end
 
         def snapshot(packages, manifest, target_dir)
