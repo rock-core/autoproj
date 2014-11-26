@@ -18,7 +18,7 @@ end
 Autobuild.pass_test_errors = true
 Autobuild.ignore_errors = true
 
-Autoproj::CmdLine.report(report_success: false) do
+Autoproj::CmdLine.report(silent: true) do
     cli = Autoproj::CLI::Test.new(Autoproj.manifest)
     mode, user_selection, options = cli.parse_options(argv)
 

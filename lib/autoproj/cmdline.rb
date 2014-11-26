@@ -1561,12 +1561,12 @@ where 'mode' is one of:
 
         def self.report(options = Hash.new)
             options = Kernel.validate_options options,
-                report_success: true
+                silent: false
 
             Autobuild::Reporting.report do
                 yield
             end
-            if options[:report_success]
+            if !options[:silent]
                 Autobuild::Reporting.success
             end
 
