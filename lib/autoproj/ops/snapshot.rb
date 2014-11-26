@@ -46,9 +46,12 @@ module Autoproj
             packages
         end
 
-        def save_versions( versions, versions_file )
+        def save_versions( versions, versions_file, options = Hash.new )
+            options = Kernel.validate_options options,
+                replace: false
+
             existing_versions = Array.new
-            if File.exists?(versions_file)
+            if !options[:replace] && File.exists?(versions_file)
                 existing_versions = YAML.load( File.read( versions_file ) ) ||
                     Array.new
             end
