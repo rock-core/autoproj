@@ -1,17 +1,33 @@
 module Autoproj
     module Ops
     class Snapshot
-        def self.merge_packets( source, target )
-            source.each do |pkg|
-                name, value = pkg.first
-                idx = target.find_index {|vpkg| vpkg.first.first == name }
-                if idx
-                    target[idx] = pkg
-                else
-                    target << pkg
+        # Update version control information with new choices
+        #
+        # The two parameters are formatted as expected in the version_control
+        # and overrides fields in source.yml / overrides.yml, that is (in YAML)
+        #
+        #   - package_name:
+        #     version: '10'
+        #     control: '20'
+        #     info: '30'
+        #
+        # The two parameters are expected to only use full package names, and
+        # not regular expressions
+        #
+        # @param [Array<String=>Hash>] overrides the information that should augment
+        #   the current state
+        # @param [Array<String=>Hash>] state the current state
+        # @param [Hash] the updated information
+        def self.merge_packets( overrides, state )
+            result = overrides.dup
+            overriden = overrides.map { |entry| entry.keys.first }.to_set
+            state.each do |pkg|
+                name, _ = pkg.first
+                if !overriden.include?(name)
+                    result << pkg
                 end
             end
-            target
+            result
         end
 
         def self.versions_file
