@@ -30,10 +30,6 @@ module Autoproj
             result
         end
 
-        def self.versions_file
-            File.expand_path( File.join( Autoproj.overrides_dir, "50-versions.yml" ) )
-        end
-
         def self.resolve_selection( user_selection )
             resolved_selection = Autoproj::CmdLine.
                 resolve_user_selection(user_selection, :filter => false)
@@ -50,11 +46,7 @@ module Autoproj
             packages
         end
 
-        def self.commit( selection )
-            packages = resolve_selection selection
-            snap = self.new
-            snap.versions( packages, Autoproj.manifest )
-
+        def save_versions( versions_file )
             # do a partial update if file exists, and specific packages have
             # been selected
             if selection and File.exists? versions_file
@@ -67,8 +59,8 @@ module Autoproj
             FileUtils.mkdir_p(File.dirname( versions_file ))
 
             # augment the versions file with the updated versions
-            merge_packets( snap.version_control_info, versions['version_control'] ||= Array.new )
-            merge_packets( snap.overrides_info, versions['overrides'] ||= Array.new )
+            Snapshot.merge_packets( version_control_info, versions['version_control'] ||= Array.new )
+            Snapshot.merge_packets( overrides_info, versions['overrides'] ||= Array.new )
 
             # write the yaml file
             File.open(versions_file, 'w') do |io|
@@ -82,7 +74,12 @@ module Autoproj
 
         attr_accessor :version_control_info, :overrides_info, :package_sets
 
-        def versions(packages, manifest, target_dir = nil)
+        attr_reader :manifest
+        def initialize(manifest)
+            @manifest = manifest
+        end
+
+        def snapshot_package_sets(target_dir = nil)
             # Pin package sets
             @package_sets = Array.new
             manifest.each_package_set do |pkg_set|
@@ -99,7 +96,9 @@ module Autoproj
                     @package_sets << vcs_info
                 end
             end
+        end
 
+        def snapshot_packages(packages, target_dir = nil)
             # Now, create snapshot information for each of the packages
             @version_control_info = []
             @overrides_info = []
@@ -134,7 +133,8 @@ module Autoproj
             # get the versions information first and snapshot individual 
             # packages.
             # This is done by calling versions again with a target dir
-            versions( packages, manifest, target_dir )
+            snapshot_package_sets(target_dir)
+            snapshot_packages(target_dir)
 
             # First, copy the configuration directory to create target_dir
             if File.exists?(target_dir)
