@@ -62,10 +62,10 @@ module Autoproj
                     if (current_root != root_dir) && !reuse.include?(current_root)
                         Autoproj.error "the env.sh from #{ENV['AUTOPROJ_CURRENT_ROOT']} seem to already be sourced"
                         Autoproj.error "start a new shell and try to bootstrap again"
-                        Autoproj.error
+                        Autoproj.error ""
                         Autoproj.error "you are allowed to boostrap from another autoproj installation"
                         Autoproj.error "only if you reuse it with the --reuse flag"
-                        raise ConfigError
+                        raise Autobuild::Exception, ""
                     end
                 end
             end
@@ -98,14 +98,13 @@ module Autoproj
                 Autobuild.srcdir  = Autoproj.root_dir
                 Autobuild.logdir = File.join(Autobuild.prefix, 'log')
 
-                Autoproj.manifest = Manifest.new
+                manifest = Autoproj.manifest = Manifest.new
                 Tools.load_autoprojrc
                 Autoproj.prepare_environment
 
                 Autoproj::OSDependencies.define_osdeps_mode_option
-                osdeps = Autoproj::OSDependencies.load_default
-                osdeps.osdeps_mode
-                Autoproj.osdeps = osdeps
+                manifest.osdeps.load_default
+                manifest.osdeps.osdeps_mode
 
                 CmdLine.update_myself :force => true, :restart_on_update => false
                 Autoproj.change_option 'reused_autoproj_installations', reuse, true

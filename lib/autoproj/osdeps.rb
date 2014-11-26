@@ -1070,11 +1070,11 @@ fi
                     # set of packages than the old one
                     old_resolved = resolve_package(h).inject(Hash.new) do |osdep_h, (handler, status, list)|
                         osdep_h[handler.name] = [status, list]
-                        h
+                        osdep_h
                     end
                     new_resolved = info.resolve_package(h).inject(Hash.new) do |osdep_h, (handler, status, list)|
                         osdep_h[handler.name] = [status, list]
-                        h
+                        osdep_h
                     end
                     if old_resolved != new_resolved
                         Autoproj.warn("osdeps definition for #{h}, previously defined in #{old} overridden by #{new}")

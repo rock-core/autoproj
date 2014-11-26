@@ -548,5 +548,39 @@ class TC_OSDependencies < Test::Unit::TestCase
         flexmock(ENV).should_receive('[]').with('PATH').and_return('')
         assert !Autoproj::OSDependencies.os_from_lsb
     end
+
+    def test_merge_issues_a_warning_if_two_definitions_differ_by_the_operating_system_packages
+        Autoproj::OSDependencies.operating_system = [['os0'], []]
+        osdeps0 = Autoproj::OSDependencies.new
+        osdeps0.definitions['pkg'] = Hash['os0' => ['osdep0'], 'gem' => ['gem0']]
+        osdeps0.sources['pkg'] = 'bla/bla'
+        osdeps1 = Autoproj::OSDependencies.new
+        osdeps1.definitions['pkg'] = Hash['os0' => ['osdep1'], 'gem' => ['gem0']]
+        osdeps1.sources['pkg'] = 'bla/bla'
+        flexmock(Autoproj).should_receive(:warn).once
+        osdeps0.merge(osdeps1)
+    end
+    def test_merge_issues_a_warning_if_two_definitions_differ_by_an_os_independent_package
+        Autoproj::OSDependencies.operating_system = [['os0'], []]
+        osdeps0 = Autoproj::OSDependencies.new
+        osdeps0.definitions['pkg'] = Hash['os0' => ['osdep0'], 'gem' => ['gem0']]
+        osdeps0.sources['pkg'] = 'bla/bla'
+        osdeps1 = Autoproj::OSDependencies.new
+        osdeps1.definitions['pkg'] = Hash['os0' => ['osdep0'], 'gem' => ['gem1']]
+        osdeps1.sources['pkg'] = 'bla/bla'
+        flexmock(Autoproj).should_receive(:warn).once
+        osdeps0.merge(osdeps1)
+    end
+    def test_merge_does_not_issue_a_warning_if_two_definitions_are_identical_for_the_local_operating_system
+        Autoproj::OSDependencies.operating_system = [['os0'], []]
+        osdeps0 = Autoproj::OSDependencies.new
+        osdeps0.definitions['pkg'] = Hash['os0' => ['osdep0'], 'gem' => ['gem0'], 'os1' => ['osdep0']]
+        osdeps0.sources['pkg'] = 'bla/bla'
+        osdeps1 = Autoproj::OSDependencies.new
+        osdeps1.definitions['pkg'] = Hash['os0' => ['osdep0'], 'gem' => ['gem0'], 'os1' => ['osdep1']]
+        osdeps1.sources['pkg'] = 'bla/bla'
+        flexmock(Autoproj).should_receive(:warn).never
+        osdeps0.merge(osdeps1)
+    end
 end
 
