@@ -17,8 +17,12 @@ user_selection = remaining_args.map do |arg|
     else arg
     end
 end
-manifest = Autoproj.manifest
+versions_file = File.join( Autoproj.overrides_dir, "50-versions.yml" )
 Autoproj::CmdLine.report do
-    snapshot = Autoproj::Ops::Snapshot.commit user_selection
+    packages = Autoproj::Ops::Snapshot.resolve_selection user_selection
+    ops = Autoproj::Ops::Snapshot.new(Autoproj.manifest)
+    ops.snapshot_package_sets
+    ops.snapshot_packages(packages)
+    ops.save_versions versions_file
 end
 
