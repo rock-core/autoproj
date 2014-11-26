@@ -56,6 +56,9 @@ module Autoproj
         attr_reader :source_definition
         attr_reader :constants_definitions
 
+        # The set of overrides defined in this package set
+        attr_reader :overrides
+
         # Sets the auto_imports flag
         #
         # @see auto_imports?
@@ -89,6 +92,7 @@ module Autoproj
             @vcs = vcs
             @osdeps = OSDependencies.new
             @all_osdeps = []
+            @overrides = Array.new
 
             @provides = Set.new
             @imports  = Set.new
@@ -118,7 +122,7 @@ module Autoproj
         def local?; vcs.local? end
         # True if this source defines nothing
         def empty?
-            !source_definition['version_control'] && !source_definition['overrides']
+            !source_definition['version_control'] && overrides.empty?
                 !each_package.find { true } &&
                 !File.exists?(File.join(raw_local_dir, "overrides.rb")) &&
                 !File.exists?(File.join(raw_local_dir, "init.rb"))
@@ -133,7 +137,9 @@ module Autoproj
                 Hash.new
             else
                 package = create_autobuild_package
-                package.importer.snapshot(package, target_dir)
+                if package.importer.respond_to?(:snapshot)
+                    package.importer.snapshot(package, target_dir)
+                end
             end
         end
 
@@ -326,6 +332,11 @@ module Autoproj
             end
 
             parse_source_definition
+            @overrides = load_overrides
+        end
+
+        def load_overrides
+            source_definition['overrides'] || Array.new
         end
 
         def parse_source_definition
@@ -499,11 +510,8 @@ module Autoproj
         # @param [VCSDefinition] the vcs to be updated
         # @return [VCSDefinition] the new, updated vcs object
         def overrides_for(package_name, vcs)
-            overrides = { source_file => source_definition }
-            overrides.merge! @overrides if @overrides
-
             overrides.each do |file, override|
-                new_spec, new_raw_entry = vcs_field(override, package_name, 'overrides', false)
+                new_spec, new_raw_entry = vcs_field(Hash['overrides' => override], package_name, 'overrides', false)
 
                 if new_spec
                     Autoproj.in_file file do
@@ -587,27 +595,23 @@ module Autoproj
         def load_description_file
             @source_definition = raw_description_file
             parse_source_definition
-
-            load_overrides
+            @overrides = load_overrides
         end
 
         def load_overrides
             files = Dir.glob(File.join( Autoproj.overrides_dir, "*.yml" ) ).sort
-            overrides_yml_path = File.join( Autoproj.config_dir, "overrides.yml" )
-            if File.exist? overrides_yml_path 
-                # todo add deprecation warning
-                files << overrides_yml_path
-            end
-
-            @overrides = {}
-            files.each do |file|
+            overrides = files.map do |file|
                 source_data = Autoproj.in_file(file, Autoproj::YAML_LOAD_ERROR) do
-                    YAML.load(File.read(file)) || Hash.new
+                    YAML.load(File.read(file)) || Array.new
                 end
-                if source_data
-                    @overrides[file] = source_data
-                end
+                source_data =
+                    if source_data.respond_to?(:to_ary)
+                        source_data
+                    else source_data['overrides'] || Array.new
+                    end
+                [file, source_data]
             end
+            overrides + super
         end
 
         def raw_description_file
