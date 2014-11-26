@@ -1540,11 +1540,16 @@ where 'mode' is one of:
             end
         end
 
-        def self.report
+        def self.report(options = Hash.new)
+            options = Kernel.validate_options options,
+                silent: false
+
             Autobuild::Reporting.report do
                 yield
             end
-            Autobuild::Reporting.success
+            if !options[:silent]
+                Autobuild::Reporting.success
+            end
 
         rescue ConfigError => e
             STDERR.puts

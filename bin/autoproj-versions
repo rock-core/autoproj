@@ -1,0 +1,62 @@
+#! /usr/bin/env ruby
+
+require 'autoproj'
+require 'autoproj/cmdline'
+require 'autoproj/ops/snapshot'
+require 'pp'
+
+DEFAULT_FILE_BASENAME = "50-versions.yml"
+
+args = ARGV.map do |arg|
+    if File.directory?(arg)
+        File.expand_path(arg)
+    else arg
+    end
+end
+
+Autoproj.silent do
+    Autoproj::CmdLine.initialize_root_directory
+    Autoproj::CmdLine.initialize_and_load
+end
+
+do_package_sets = nil
+do_replace = false
+default_save_file = File.join( Autoproj.overrides_dir, DEFAULT_FILE_BASENAME )
+save_file = nil
+options = OptionParser.new do |opt|
+    opt.on '--[no-]package-sets', 'commit the package set state as well (default if no packages are selected)' do |flag|
+        do_package_sets = flag
+    end
+    opt.on '--replace', String, 'if the file given to --save exists, replace it instead of updating it' do
+        do_replace = true
+    end
+    opt.on '--save[=FILE]', String, "the file into which the versions should be saved (if no file is given, defaults to autoproj/overrides.d/#{DEFAULT_FILE_BASENAME})" do |file|
+        if file == '-'
+            output_file = nil
+        else
+            output_file = file
+        end
+    end
+end
+Autoproj::Ops::Tools.common_options(options)
+user_selection = options.parse(args)
+if do_package_sets.nil? && user_selection.empty?
+    do_package_sets = true
+end
+
+Autoproj::CmdLine.report(silent: true) do
+    packages = Autoproj::Ops::Snapshot.resolve_selection user_selection
+    ops = Autoproj::Ops::Snapshot.new(Autoproj.manifest)
+
+    versions = Array.new
+    if do_package_sets
+        versions += ops.snapshot_package_sets
+    end
+    versions += ops.snapshot_packages(packages)
+    if save_file
+        ops.save_versions(versions, output_file, replace: do_replace)
+    else
+        puts YAML.dump(versions)
+    end
+end
+
