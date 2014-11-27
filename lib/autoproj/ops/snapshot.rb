@@ -73,8 +73,21 @@ module Autoproj
         end
 
         attr_reader :manifest
-        def initialize(manifest)
+
+        # Control what happens if a package fails to be snapshotted
+        #
+        # If true, the failure to snapshot a package should lead to a warning.
+        # Otherwise (the default), it leads to an error.
+        #
+        # @return [Boolean]
+        # @see initialize error_or_warn
+        def keep_going?; !!@keep_going end
+
+        def initialize(manifest, options = Hash.new)
             @manifest = manifest
+            options = Kernel.validate_options options,
+                keep_going: false
+            @keep_going = options[:keep_going]
         end
 
         def snapshot_package_sets(target_dir = nil)
@@ -85,10 +98,18 @@ module Autoproj
                 if vcs_info = pkg_set.snapshot(target_dir)
                     result << Hash[pkg_set.repository_id, vcs_info]
                 else
-                    Autoproj.warn "cannot snapshot #{package_name}: importer snapshot failed"
+                    error_or_warn(pkg_set, "cannot snapshot #{package_name}: importer snapshot failed")
                 end
             end
             result
+        end
+
+        def error_or_warn(package, error_msg)
+            if keep_going?
+                Autoproj.warn error_msg
+            else
+                raise Autobuild::PackageException.new(package, 'snapshot'), error_msg
+            end
         end
 
         def snapshot_packages(packages, target_dir = nil)
@@ -100,10 +121,10 @@ module Autoproj
                 end
                 importer = package.autobuild.importer
                 if !importer
-                    Autoproj.message "cannot snapshot #{package_name} as it has no importer"
+                    error_or_warn(package, "cannot snapshot #{package_name} as it has no importer")
                     next
                 elsif !importer.respond_to?(:snapshot)
-                    Autoproj.message "cannot snapshot #{package_name} as the #{importer.class} importer does not support it"
+                    error_or_warn(package, "cannot snapshot #{package_name} as the #{importer.class} importer does not support it")
                     next
                 end
 
@@ -111,7 +132,7 @@ module Autoproj
                 if vcs_info
                     result << Hash[package_name, vcs_info]
                 else
-                    Autoproj.warn "cannot snapshot #{package_name}: importer snapshot failed"
+                    error_or_warn(package, "cannot snapshot #{package_name}: importer snapshot failed")
                 end
             end
             result
