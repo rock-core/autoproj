@@ -594,6 +594,7 @@ module Autoproj
         end
 
         def self.import_packages(selection)
+            updated_packages = Array.new
             selected_packages = selection.packages.
                 map do |pkg_name|
                     pkg = Autobuild::Package[pkg_name]
@@ -632,6 +633,7 @@ module Autoproj
                 # prepare in one package IS important: prepare is the method
                 # that takes into account dependencies.
                 pkg.import(only_local?)
+                updated_packages << pkg.name
                 Rake::Task["#{pkg.name}-import"].instance_variable_set(:@already_invoked, true)
                 manifest.load_package_manifest(pkg.name)
 
@@ -732,6 +734,16 @@ module Autoproj
             end
 
             return all_enabled_packages
+
+        ensure
+            failure_message =
+                if $!
+                    " (#{$!.message.split("\n").first})"
+                end
+            ops = Ops::Snapshot.new(manifest, keep_going: true)
+            ops.update_package_import_state(
+                "#{$0} #{ORIGINAL_ARGV.join(" ")}#{failure_message}",
+                updated_packages)
         end
 
         def self.build_packages(selected_packages, all_enabled_packages, phases = [])
