@@ -1,0 +1,24 @@
+#! /usr/bin/env ruby
+
+require 'autoproj'
+require 'autoproj/cmdline'
+require 'autoproj/ops/snapshot'
+require 'pp'
+
+current_dir = Dir.pwd
+remaining_args = Autoproj.silent do
+    Autoproj::CmdLine.initialize_root_directory
+    Autoproj::CmdLine.initialize_and_load(ARGV)
+end
+
+user_selection = remaining_args.map do |arg|
+    if File.directory?(arg)
+        File.expand_path(arg)
+    else arg
+    end
+end
+manifest = Autoproj.manifest
+Autoproj::CmdLine.report do
+    snapshot = Autoproj::Ops::Snapshot.commit user_selection
+end
+

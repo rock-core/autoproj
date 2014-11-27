@@ -222,14 +222,14 @@ module Autoproj
     class Reporter < Autobuild::Reporter
         def error(error)
             error_lines = error.to_s.split("\n")
-            Autoproj.message("Build failed", :bold, :red)
+            Autoproj.message("Command failed", :bold, :red)
             Autoproj.message("#{error_lines.shift}", :bold, :red)
             error_lines.each do |line|
                 Autoproj.message line
             end
         end
         def success
-            Autoproj.message("Build finished successfully at #{Time.now}", :bold, :green)
+            Autoproj.message("Command finished successfully at #{Time.now}", :bold, :green)
             if Autobuild.post_success_message
                 Autoproj.message Autobuild.post_success_message
             end
@@ -569,21 +569,26 @@ def user_config(key)
 end
 
 class Autobuild::Git
-    def snapshot(package, target_dir)
+    # get version information from the importer
+    def snapshot(package, target_dir = nil)
         Dir.chdir(package.srcdir) do
-            head_commit   = `git rev-parse #{branch}`.chomp
+            head_commit   = `git rev-parse HEAD`.chomp
             { 'commit' => head_commit }
         end
     end
 end
 
 class Autobuild::ArchiveImporter
-    def snapshot(package, target_dir)
-        archive_dir = File.join(target_dir, 'archives')
-        FileUtils.mkdir_p archive_dir
-        FileUtils.cp @cachefile, archive_dir
+    def snapshot(package, target_dir = nil)
+        if target_dir
+            archive_dir = File.join(target_dir, 'archives')
+            FileUtils.mkdir_p archive_dir
+            FileUtils.cp @cachefile, archive_dir
 
-        { 'url' =>  "file://$AUTOPROJ_SOURCE_DIR/archives/#{File.basename(@cachefile)}" }
+            { 'url' =>  "file://$AUTOPROJ_SOURCE_DIR/archives/#{File.basename(@cachefile)}" }
+        else
+            { 'url' => @url.to_s }
+        end
     end
 end
 

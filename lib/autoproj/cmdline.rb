@@ -1358,83 +1358,6 @@ where 'mode' is one of:
             end
         end
 
-        def self.snapshot(manifest, target_dir, packages)
-            # First, copy the configuration directory to create target_dir
-            if File.exists?(target_dir)
-                raise ArgumentError, "#{target_dir} already exists"
-            end
-            FileUtils.cp_r Autoproj.config_dir, target_dir
-            # Finally, remove the remotes/ directory from the generated
-            # buildconf, it is obsolete now
-            FileUtils.rm_rf File.join(target_dir, 'remotes')
-
-            # Pin package sets
-            package_sets = Array.new
-            manifest.each_package_set do |pkg_set|
-                next if pkg_set.name == 'local'
-                if pkg_set.local?
-                    package_sets << Pathname.new(pkg_set.local_dir).
-                        relative_path_from(Pathname.new(manifest.file).dirname).
-                        to_s
-                else
-                    vcs_info = pkg_set.vcs.to_hash
-                    if pin_info = pkg_set.snapshot(target_dir)
-                        vcs_info = vcs_info.merge(pin_info)
-                    end
-                    package_sets << vcs_info
-                end
-            end
-            manifest_path = File.join(target_dir, 'manifest')
-            manifest_data = YAML.load(File.read(manifest_path))
-            manifest_data['package_sets'] = package_sets
-            File.open(manifest_path, 'w') do |io|
-                YAML.dump(manifest_data, io)
-            end
-
-            # Now, create snapshot information for each of the packages
-            version_control_info = []
-            overrides_info = []
-            packages.each do |package_name|
-                package  = manifest.packages[package_name]
-                if !package
-                    raise ArgumentError, "#{package_name} is not a known package"
-                end
-                package_set = package.package_set
-                importer = package.autobuild.importer
-                if !importer
-                    Autoproj.message "cannot snapshot #{package_name} as it has no importer"
-                    next
-                elsif !importer.respond_to?(:snapshot)
-                    Autoproj.message "cannot snapshot #{package_name} as the #{importer.class} importer does not support it"
-                    next
-                end
-
-                vcs_info = importer.snapshot(package.autobuild, target_dir)
-                if vcs_info
-                    if package_set.name == 'local'
-                        version_control_info << Hash[package_name, vcs_info]
-                    else
-                        overrides_info << Hash[package_name, vcs_info]
-                    end
-                end
-            end
-
-            overrides_path = File.join(target_dir, 'overrides.yml')
-            if File.exists?(overrides_path)
-                overrides = YAML.load(File.read(overrides_path))
-            end
-            # In Ruby 1.9, an empty file results in YAML.load returning false
-            overrides ||= Hash.new
-            (overrides['version_control'] ||= Array.new).
-                concat(version_control_info)
-            (overrides['overrides'] ||= Array.new).
-                concat(overrides_info)
-
-            File.open(overrides_path, 'w') do |io|
-                io.write YAML.dump(overrides)
-            end
-        end
-
         # Displays the reverse OS dependencies (i.e. for each osdeps package,
         # who depends on it and where it is defined)
         def self.revshow_osdeps(packages)
@@ -1545,6 +1468,7 @@ where 'mode' is one of:
             Autoproj::CmdLine.load_configuration
             Autoproj::CmdLine.setup_all_package_directories
             Autoproj::CmdLine.finalize_package_setup
+
 
             load_all_available_package_manifests
             update_environment
