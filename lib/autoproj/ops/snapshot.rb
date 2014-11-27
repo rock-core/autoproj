@@ -121,6 +121,64 @@ module Autoproj
             end
             result
         end
+
+        # Returns a package that is used to store this installs import history
+        #
+        # Its importer is guaranteed to be a git importer
+        #
+        # @return [Autobuild::Package] a package whose importer is
+        #   {Autobuild::Git}
+        def import_state_log_package
+            manifest.main_package_set.create_autobuild_package
+        end
+
+        def import_state_log_ref
+            "refs/autoproj"
+        end
+
+        DEFAULT_VERSIONS_FILE_BASENAME = "50-versions.yml"
+
+        def import_state_log_file
+            File.join(OVERRIDES_DIR, DEFAULT_VERSIONS_FILE_BASENAME)
+        end
+
+        def current_import_state
+            main = import_state_log_package
+            # Try to resolve the log ref, and extract the version file from it
+            begin
+                yaml = main.importer.show(main, import_state_log_ref, import_state_log_file)
+                YAML.load(yaml) || Array.new
+            rescue Autobuild::PackageException
+                Array.new
+            end
+        end
+
+        def update_package_import_state(name, packages)
+            current_versions = current_import_state
+            if current_versions.empty?
+                # Do a full snapshot this time only
+                Autoproj.message "  building initial autoproj import log, this may take a while"
+                packages = manifest.all_selected_packages.
+                    find_all { |pkg| File.directory?(manifest.find_package(pkg).autobuild.srcdir) }
+            end
+            versions = snapshot_packages(packages)
+            versions = Snapshot.merge_packets(versions, current_versions)
+            save_import_state(name, versions)
+        end
+
+        def save_import_state(name, versions)
+            main = import_state_log_package
+            git_dir = main.importer.git_dir(main, false)
+            # Ensure that our ref is being logged
+            FileUtils.touch File.join(git_dir, 'logs', *import_state_log_ref.split("/"))
+            # Create the commit with the versions info
+            commit_id = Snapshot.create_commit(main, import_state_log_file, name) do |io|
+                YAML.dump(versions, io)
+            end
+            # And save it in our reflog
+            main.importer.run_git_bare(main, "update-ref", '-m', name, import_state_log_ref, commit_id)
+        end
+
         # Create a git commit in which a file contains provided content
         #
         # The target git repository's current index and history is left
