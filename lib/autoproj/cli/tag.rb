@@ -51,35 +51,17 @@ module Autoproj
                 versions_file = File.join(
                     OVERRIDES_DIR,
                     Versions::DEFAULT_VERSIONS_FILE_BASENAME)
-                object_id = Tempfile.open 'autoproj-versions' do |io|
+                message = options[:message] ||
+                    "autoproj created tag #{tag_name}"
+                Ops::Snapshot.create_commit(versions_file, message) do |io|
                     versions = CLI::Versions.new(manifest)
                     versions.run(Array.new,
                                  package_sets: options[:package_sets],
                                  output_file: io.path,
                                  replace: true,
                                  keep_going: options[:keep_going])
-
-                    importer.run_git_bare(pkg, 'hash-object', '-w',
-                        '--path', versions_file, io.path).first.strip
                 end
 
-                our_index = File.join(importer.git_dir(pkg, bare: false), 'index.autoproj')
-                FileUtils.rm_f our_index
-                begin
-                    ENV['GIT_INDEX_FILE'] = our_index
-                    importer.run_git_bare(pkg, 'update-index',
-                        '--add', '--cacheinfo', "100644,#{object_id},#{versions_file}")
-                    tree_id = importer.run_git_bare(pkg, 'write-tree').first.strip
-                ensure
-                    ENV.delete('GIT_INDEX_FILE')
-                end
-
-                head_id = importer.rev_parse(pkg, 'HEAD')
-
-                commit_msg = options[:message] ||
-                    "autoproj created tag #{tag_name}"
-                commit_id = importer.run_git_bare(pkg, 'commit-tree',
-                    tree_id, '-p', head_id, input_streams: [commit_msg]).first.strip
                 importer.run_git_bare(pkg, 'tag', tag_name, commit_id)
             end
         end
