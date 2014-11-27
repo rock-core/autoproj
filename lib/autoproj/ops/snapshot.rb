@@ -121,45 +121,6 @@ module Autoproj
             end
             result
         end
-
-        def snapshot(packages, manifest, target_dir)
-            # get the versions information first and snapshot individual 
-            # packages.
-            # This is done by calling versions again with a target dir
-            snapshot_package_sets(target_dir)
-            snapshot_packages(target_dir)
-
-            # First, copy the configuration directory to create target_dir
-            if File.exists?(target_dir)
-                raise ArgumentError, "#{target_dir} already exists"
-            end
-            FileUtils.cp_r Autoproj.config_dir, target_dir
-            # Finally, remove the remotes/ directory from the generated
-            # buildconf, it is obsolete now
-            FileUtils.rm_rf File.join(target_dir, 'remotes')
-
-            # write manifest file
-            manifest_path = File.join(target_dir, 'manifest')
-            manifest_data['package_sets'] = @package_sets
-            File.open(manifest_path, 'w') do |io|
-                YAML.dump(manifest_data, io)
-            end
-
-            # write overrides file
-            overrides_path = File.join(target_dir, 'overrides.yml')
-
-            # combine package_set and pkg information
-            overrides = Hash.new
-            (overrides['version_control'] ||= Array.new).
-                concat(@version_control_info)
-            (overrides['overrides'] ||= Array.new).
-                concat(@overrides_info)
-
-            overrides
-            File.open(overrides_path, 'w') do |io|
-                io.write YAML.dump(overrides)
-            end
-        end
     end
     end
 end
