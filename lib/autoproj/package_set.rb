@@ -118,6 +118,9 @@ module Autoproj
         # True if this source has already been checked out on the local autoproj
         # installation
         def present?; File.directory?(raw_local_dir) end
+        # True if this is the main package set (i.e. the main autoproj
+        # configuration)
+        def main?; false end
         # True if this source is local, i.e. is not under a version control
         def local?; vcs.local? end
         # True if this source defines nothing
@@ -564,6 +567,10 @@ module Autoproj
 
         def name
             'main configuration'
+        end
+
+        def main?
+            true
         end
 
         def local?
