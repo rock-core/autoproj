@@ -80,13 +80,13 @@ module Autoproj
         def snapshot_package_sets(target_dir = nil)
             result = Array.new
             manifest.each_package_set do |pkg_set|
-                next if pkg_set.name == 'local'
+                next if pkg_set.local?
 
-                vcs_info = pkg_set.vcs.to_hash
-                if pin_info = pkg_set.snapshot(target_dir)
-                    vcs_info = vcs_info.merge(pin_info)
+                if vcs_info = pkg_set.snapshot(target_dir)
+                    result << Hash[pkg_set.repository_id, vcs_info]
+                else
+                    Autoproj.warn "cannot snapshot #{package_name}: importer snapshot failed"
                 end
-                result << Hash[pkg_set.repository_id, vcs_info]
             end
             result
         end
@@ -110,9 +110,11 @@ module Autoproj
                 vcs_info = importer.snapshot(package.autobuild, target_dir)
                 if vcs_info
                     result << Hash[package_name, vcs_info]
+                else
+                    Autoproj.warn "cannot snapshot #{package_name}: importer snapshot failed"
                 end
-                result
             end
+            result
         end
 
         def snapshot(packages, manifest, target_dir)
