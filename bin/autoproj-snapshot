@@ -1,39 +1,25 @@
 #! /usr/bin/env ruby
+require 'autoproj/cli/snapshot'
 
-require 'autoproj'
-require 'autoproj/cmdline'
-
-current_dir = Dir.pwd
-remaining_args = Autoproj.silent do
-    Autoproj::CmdLine.initialize_root_directory
-    Autoproj::CmdLine.initialize_and_load(ARGV)
-end
-
-snapshot_dir = remaining_args.shift
-if !snapshot_dir
-    raise ConfigError.new, "target directory missing\nusage: autoproj snapshot target_dir"
-end
-snapshot_dir = File.expand_path(snapshot_dir, current_dir)
-
-user_selection = remaining_args.map do |arg|
+args = ARGV.map do |arg|
     if File.directory?(arg)
         File.expand_path(arg)
     else arg
     end
 end
-manifest = Autoproj.manifest
-Autoproj::CmdLine.report do
-    resolved_selection = Autoproj::CmdLine.
-        resolve_user_selection(user_selection, :filter => false)
-    resolved_selection.filter_excluded_and_ignored_packages(Autoproj.manifest)
-    # This calls #prepare, which is required to run build_packages
-    packages = Autoproj::CmdLine.import_packages(resolved_selection)
-    # Remove non-existing packages
-    packages.each do |pkg|
-        if !File.directory?(manifest.package(pkg).autobuild.srcdir)
-            raise ConfigError, "cannot snapshot #{pkg.name} as it is not checked out"
-        end
-    end
-    Autoproj::CmdLine.snapshot(Autoproj.manifest, packages, snapshot_dir)
+
+Autoproj.silent do
+    Autoproj::CmdLine.initialize_root_directory
+    Autoproj::CmdLine.initialize_and_load
 end
 
+cli = Autoproj::CLI::Snapshot.new(Autoproj.manifest)
+args, options = cli.parse_options(args)
+if args.empty?
+    Autoproj.error "missing target directory on the command line"
+    exit 1
+elsif args.size > 1
+    Autoproj.error "expected only one argument on the command line specifying the target directory"
+    exit 1
+end
+cli.run(args.first, options)

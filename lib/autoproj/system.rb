@@ -66,12 +66,14 @@ module Autoproj
         File.join(root_dir, "autoproj")
     end
 
+    OVERRIDES_DIR = "overrides.d"
+
     # Returns the directory containing overrides files
     #
     # If the current directory is not in an autoproj installation,
     # raises UserError.
     def self.overrides_dir
-        File.join(config_dir, "overrides.d")
+        File.join(config_dir, OVERRIDES_DIR)
     end
 
     # @deprecated use Autobuild.find_in_path instead
