@@ -30,22 +30,6 @@ module Autoproj
             result
         end
 
-        def self.resolve_selection( user_selection )
-            resolved_selection = Autoproj::CmdLine.
-                resolve_user_selection(user_selection, :filter => false)
-            resolved_selection.filter_excluded_and_ignored_packages(Autoproj.manifest)
-            # This calls #prepare, which is required to run build_packages
-            packages = Autoproj::CmdLine.import_packages(resolved_selection)
-
-            # Remove non-existing packages
-            packages.each do |pkg|
-                if !File.directory?(Autoproj.manifest.package(pkg).autobuild.srcdir)
-                    raise ConfigError, "cannot commit #{pkg.name} as it is not checked out"
-                end
-            end
-            packages
-        end
-
         def save_versions( versions, versions_file, options = Hash.new )
             options = Kernel.validate_options options,
                 replace: false
