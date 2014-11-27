@@ -1,0 +1,10 @@
+#! /bin/sh
+
+set -e
+
+acd
+autoproj versions --save
+cd autoproj
+git add overrides.d/50-versions.yml
+git commit "$@"
+
