@@ -506,6 +506,10 @@ module Autoproj
             set
         end
 
+        def main_package_set
+            each_package_set.find(&:main?)
+        end
+
         # Exception raised when a caller requires to use an excluded package
         class ExcludedPackage < ConfigError
             attr_reader :name
