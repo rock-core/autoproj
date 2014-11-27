@@ -222,10 +222,10 @@ module Autoproj
     class Reporter < Autobuild::Reporter
         def error(error)
             error_lines = error.to_s.split("\n")
-            Autoproj.message("Command failed", :bold, :red)
-            Autoproj.message("#{error_lines.shift}", :bold, :red)
+            Autoproj.message("Command failed", :bold, :red, STDERR)
+            Autoproj.message("#{error_lines.shift}", :bold, :red, STDERR)
             error_lines.each do |line|
-                Autoproj.message line
+                Autoproj.message line, STDERR
             end
         end
         def success
