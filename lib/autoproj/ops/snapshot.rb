@@ -121,6 +121,56 @@ module Autoproj
             end
             result
         end
+        # Create a git commit in which a file contains provided content
+        #
+        # The target git repository's current index and history is left
+        # unmodified. The only modification is the creation of a new dangling
+        # commit.
+        #
+        # It creates a temporary file and gives it to the block so that the file
+        # gets filled with the new content
+        #
+        # @yieldparam [Tempfile] io a temporary file 
+        # @param [Autobuild::Package] a package object whose importer is a git
+        #   importer. The git commit is created in this repository
+        # @param [String] path the file to be created or updated, relative to
+        #   the root of the git repository
+        # @param [String] the commit message
+        # @return [String] the commit ID
+        def self.create_commit(pkg, path, message)
+            importer = pkg.importer
+            object_id = Tempfile.open 'autoproj-versions' do |io|
+                yield(io)
+                io.flush
+                importer.run_git_bare(
+                    pkg, 'hash-object', '-w',
+                    '--path', path, io.path).first
+            end
+
+            # Create the tree using a temporary index in order to not mess with
+            # the user's index state. read-tree initializes the new index and
+            # then we add the overrides file with update-index / write-tree
+            our_index = File.join(importer.git_dir(pkg, false), 'index.autoproj')
+            FileUtils.rm_f our_index
+            begin
+                ENV['GIT_INDEX_FILE'] = our_index
+                importer.run_git_bare(pkg, 'read-tree', 'HEAD')
+                # And add the new file
+                importer.run_git_bare(
+                    pkg, 'update-index',
+                    '--add', '--cacheinfo', "100644,#{object_id},#{path}")
+                tree_id = importer.run_git_bare(pkg, 'write-tree').first
+            ensure
+                ENV.delete('GIT_INDEX_FILE')
+                FileUtils.rm_f our_index
+            end
+
+            head_id = importer.rev_parse(pkg, 'HEAD')
+
+            importer.run_git_bare(
+                pkg, 'commit-tree',
+                tree_id, '-p', head_id, input_streams: [message]).first
+        end
     end
     end
 end
