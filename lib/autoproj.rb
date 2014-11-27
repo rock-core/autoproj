@@ -17,6 +17,8 @@ require 'autoproj/system'
 require 'autoproj/build_option'
 require 'autoproj/configuration'
 require 'autoproj/options'
+# Required for auto-saving in import_packages
+require 'autoproj/ops/snapshot'
 require 'autoproj/cmdline'
 require 'autoproj/query'
 

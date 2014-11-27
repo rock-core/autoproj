@@ -8,7 +8,7 @@ module Autoproj
         class Versions
             include Ops::Tools
 
-            DEFAULT_VERSIONS_FILE_BASENAME = "50-versions.yml"
+            DEFAULT_VERSIONS_FILE_BASENAME = Ops::Snapshot::DEFAULT_VERSIONS_FILE_BASENAME
 
             def default_versions_file
                 File.join( Autoproj.overrides_dir, DEFAULT_VERSIONS_FILE_BASENAME )
