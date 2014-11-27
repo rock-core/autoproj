@@ -572,10 +572,11 @@ end
 class Autobuild::Git
     # get version information from the importer
     def snapshot(package, target_dir = nil)
-        Dir.chdir(package.srcdir) do
-            head_commit   = `git rev-parse HEAD`.chomp
-            { 'commit' => head_commit }
-        end
+        tag = run_git_bare(package, 'describe', '--tags', '--exact-match', 'HEAD').first.strip
+        { 'tag' => tag }
+    rescue Autobuild::SubcommandFailed
+        head_commit = rev_parse(package, 'HEAD')
+        { 'commit' => head_commit }
     end
 end
 
