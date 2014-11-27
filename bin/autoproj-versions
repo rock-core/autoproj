@@ -10,7 +10,7 @@ end
 
 Autoproj.silent do
     Autoproj::CmdLine.initialize_root_directory
-    Autoproj::CmdLine.initialize_and_load
+    Autoproj::CmdLine.initialize_and_load([])
 end
 
 cli = Autoproj::CLI::Versions.new(Autoproj.manifest)
