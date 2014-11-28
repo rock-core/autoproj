@@ -43,6 +43,14 @@ module Autoproj
     end
 
     module CmdLine
+        def self.argv
+            if defined? ORIGINAL_ARGV
+              ORIGINAL_ARGV
+            else
+              ARGV
+            end
+        end
+
         def self.config
             Autoproj.config
         end
@@ -193,11 +201,7 @@ module Autoproj
                 Autoproj.save_config
                 ENV['AUTOPROJ_RESTARTING'] = '1'
                 require 'rbconfig'
-                if defined?(ORIGINAL_ARGV)
-                    exec(ruby_executable, $0, *ORIGINAL_ARGV)
-                else
-                    exec(ruby_executable, $0, *ARGV)
-                end
+                exec(ruby_executable, $0, *argv)
             end
         end
 
@@ -761,7 +765,7 @@ module Autoproj
                 end
             ops = Ops::Snapshot.new(manifest, keep_going: true)
             ops.update_package_import_state(
-                "#{$0} #{ORIGINAL_ARGV.join(" ")}#{failure_message}",
+                "#{$0} #{argv.join(" ")}#{failure_message}",
                 updated_packages)
         end
 
