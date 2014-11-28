@@ -339,7 +339,11 @@ module Autoproj
         end
 
         def load_overrides
-            source_definition['overrides'] || Array.new
+            if data = source_definition['overrides']
+                [[source_file, data]]
+            else
+                []
+            end
         end
 
         def parse_source_definition
