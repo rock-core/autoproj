@@ -73,12 +73,11 @@ module Autoproj
             end
             pull_base_url = Autoproj.user_config("#{name}_ROOT")
             push_base_url = Autoproj.user_config("#{name}_PUSH_ROOT")
-            vcs_options.merge(
-                type: 'git',
-                url: "#{pull_base_url}#{url}",
-                push_to: "#{push_base_url}#{url}",
-                retry_count: 10,
-                repository_id: "#{name.downcase}:#{url}")
+            Hash[type: 'git',
+                 url: "#{pull_base_url}#{url}",
+                 push_to: "#{push_base_url}#{url}",
+                 retry_count: 10,
+                 repository_id: "#{name.downcase}:#{url}"].merge(vcs_options)
         end
     end
 end
