@@ -293,9 +293,12 @@ module Autoproj
             # We do not consider the 'standalone' package sets while sorting.
             # They are taken care of later, as we need to maintain the order the
             # user defined in the package_sets section of the manifest
-            queue = package_sets.find_all do |pkg_set|
-                (!pkg_set.imports.empty? || !pkg_set.explicit?) && !(pkg_set == root_pkg_set)
-            end
+            queue = package_sets.flat_map do |pkg_set|
+                if (!pkg_set.imports.empty? || !pkg_set.explicit?) && !(pkg_set == root_pkg_set)
+                    [pkg_set] + pkg_set.imports.to_a
+                else []
+                end
+            end.to_set.to_a
 
             sorted = Array.new
             while !queue.empty?
