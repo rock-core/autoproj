@@ -122,6 +122,14 @@ module Autoproj
             result
         end
 
+        # Returns the list of existing version tags
+        def tags(package)
+            importer = package.importer
+            all_tags = importer.run_git_bare(package, 'tag')
+            all_tags.find_all do |tag_name|
+            end
+        end
+
         # Returns a package that is used to store this installs import history
         #
         # Its importer is guaranteed to be a git importer
