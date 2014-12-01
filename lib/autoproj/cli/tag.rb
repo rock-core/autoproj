@@ -26,9 +26,7 @@ module Autoproj
                 end
                 common_options(parser)
                 remaining = parser.parse(args)
-                if remaining.empty?
-                    raise InvalidArguments, "expected the tag name as argument"
-                elsif remaining.size > 1
+                if remaining.size > 1
                     raise InvalidArguments, "expected only the tag name as argument"
                 end
                 return remaining.first, options
@@ -40,6 +38,22 @@ module Autoproj
                 if !importer || !importer.kind_of?(Autobuild::Git)
                     raise ConfigError, "cannot use autoproj tag if the main configuration is not managed by git"
                 end
+
+                versions_file = File.join(
+                    OVERRIDES_DIR,
+                    Versions::DEFAULT_VERSIONS_FILE_BASENAME)
+
+                if tag_name.nil?
+                    importer = pkg.importer
+                    all_tags = importer.run_git_bare(pkg, 'tag')
+                    all_tags.sort.each do |tag|
+                        begin importer.show(pkg, "refs/tags/#{tag}", versions_file)
+                            puts tag
+                        rescue Autobuild::PackageException
+                        end
+                    end
+                    return
+                end
                 
                 # Check if the tag already exists
                 begin
@@ -48,13 +62,11 @@ module Autoproj
                 rescue Autobuild::PackageException
                 end
 
-                versions_file = File.join(
-                    OVERRIDES_DIR,
-                    Versions::DEFAULT_VERSIONS_FILE_BASENAME)
                 message = options[:message] ||
                     "autoproj created tag #{tag_name}"
-                Ops::Snapshot.create_commit(versions_file, message) do |io|
+                commit_id = Ops::Snapshot.create_commit(pkg, versions_file, message) do |io|
                     versions = CLI::Versions.new(manifest)
+                    Autoproj.message "creating versions file, this may take a while"
                     versions.run(Array.new,
                                  package_sets: options[:package_sets],
                                  output_file: io.path,
