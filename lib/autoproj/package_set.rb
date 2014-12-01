@@ -332,9 +332,9 @@ module Autoproj
             @name = source_definition['name']
             @provides = (source_definition['provides'] || Set.new).to_set
             @imports_vcs  = Array(source_definition['imports'] || Array.new).map do |set_def|
-                if !set_def.kind_of?(Hash)
+                if !set_def.kind_of?(Hash) && !set_def.respond_to?(:to_str)
                     raise ConfigError.new(source_file),
-                        "in #{source_file}: wrong format for 'imports' section. Expected an array of maps (e.g. - github: my/url)."
+                        "in #{source_file}: wrong format for 'imports' section. Expected an array of maps or strings (e.g. - github: my/url)."
                 end
 
                 Autoproj.in_file(source_file) do

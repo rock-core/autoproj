@@ -187,6 +187,10 @@ module Autoproj
         end
 
         def repository_id_of(vcs)
+            if vcs.local?
+                return "local:#{vcs.url}"
+            end
+
             name = PackageSet.name_of(manifest, vcs)
             raw_local_dir = PackageSet.raw_local_dir_of(vcs)
             fake_package = Tools.create_autobuild_package(vcs, name, raw_local_dir)
