@@ -205,6 +205,11 @@ module Autoproj
                     '--path', path, io.path).first
             end
 
+            cacheinfo = ["100644", object_id, path]
+            if Autobuild::Git.at_least_version(2, 1)
+                cacheinfo = cacheinfo.join(",")
+            end
+
             # Create the tree using a temporary index in order to not mess with
             # the user's index state. read-tree initializes the new index and
             # then we add the overrides file with update-index / write-tree
@@ -216,7 +221,7 @@ module Autoproj
                 # And add the new file
                 importer.run_git_bare(
                     pkg, 'update-index',
-                    '--add', '--cacheinfo', "100644,#{object_id},#{path}")
+                    '--add', '--cacheinfo', cacheinfo)
                 tree_id = importer.run_git_bare(pkg, 'write-tree').first
             ensure
                 ENV.delete('GIT_INDEX_FILE')
