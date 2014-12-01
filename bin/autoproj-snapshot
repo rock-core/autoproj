@@ -8,18 +8,20 @@ args = ARGV.map do |arg|
     end
 end
 
-Autoproj.silent do
-    Autoproj::CmdLine.initialize_root_directory
-    Autoproj::CmdLine.initialize_and_load([])
-end
+Autoproj::CmdLine.report(silent: true) do
+    Autoproj.silent do
+        Autoproj::CmdLine.initialize_root_directory
+        Autoproj::CmdLine.initialize_and_load([])
+    end
 
-cli = Autoproj::CLI::Snapshot.new(Autoproj.manifest)
-args, options = cli.parse_options(args)
-if args.empty?
-    Autoproj.error "missing target directory on the command line"
-    exit 1
-elsif args.size > 1
-    Autoproj.error "expected only one argument on the command line specifying the target directory"
-    exit 1
+    cli = Autoproj::CLI::Snapshot.new(Autoproj.manifest)
+    args, options = cli.parse_options(args)
+    if args.empty?
+        Autoproj.error "missing target directory on the command line"
+        exit 1
+    elsif args.size > 1
+        Autoproj.error "expected only one argument on the command line specifying the target directory"
+        exit 1
+    end
+    cli.run(args.first, options)
 end
-cli.run(args.first, options)

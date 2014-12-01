@@ -1,13 +1,13 @@
 #! /usr/bin/env ruby
 require 'autoproj/cli/tag'
 
-Autoproj.silent do
-    Autoproj::CmdLine.initialize_root_directory
-    Autoproj::CmdLine.initialize_and_load([])
-end
-
-cli = Autoproj::CLI::Tag.new(Autoproj.manifest)
 Autoproj::CmdLine.report(silent: true) do
+    Autoproj.silent do
+        Autoproj::CmdLine.initialize_root_directory
+        Autoproj::CmdLine.initialize_and_load([])
+    end
+
+    cli = Autoproj::CLI::Tag.new(Autoproj.manifest)
     tag_name, options = cli.parse_options(ARGV)
     cli.run(tag_name, options)
 end

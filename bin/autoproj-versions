@@ -8,11 +8,13 @@ args = ARGV.map do |arg|
     end
 end
 
-Autoproj.silent do
-    Autoproj::CmdLine.initialize_root_directory
-    Autoproj::CmdLine.initialize_and_load([])
-end
+Autoproj::CmdLine.report(silent: true) do
+    Autoproj.silent do
+        Autoproj::CmdLine.initialize_root_directory
+        Autoproj::CmdLine.initialize_and_load([])
+    end
 
-cli = Autoproj::CLI::Versions.new(Autoproj.manifest)
-user_selection, options = cli.parse_options(args)
-cli.run(user_selection, options)
+    cli = Autoproj::CLI::Versions.new(Autoproj.manifest)
+    user_selection, options = cli.parse_options(args)
+    cli.run(user_selection, options)
+end
