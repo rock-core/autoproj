@@ -169,7 +169,8 @@ module Autoproj
                 packages = manifest.all_selected_packages.
                     find_all { |pkg| File.directory?(manifest.find_package(pkg).autobuild.srcdir) }
             end
-            versions = snapshot_packages(packages)
+            versions  = snapshot_package_sets
+            versions += snapshot_packages(packages)
             versions = Snapshot.merge_packets(versions, current_versions)
             save_import_state(name, versions)
         end
