@@ -54,7 +54,7 @@ module Autoproj
                             if file == '-'
                                 nil
                             elsif !file
-                                default_output_file
+                                default_versions_file
                             else
                                 file
                             end
