@@ -193,10 +193,7 @@ module Autoproj
                 return "local:#{vcs.url}"
             end
 
-            name = PackageSet.name_of(manifest, vcs)
-            raw_local_dir = PackageSet.raw_local_dir_of(vcs)
-            fake_package = Tools.create_autobuild_package(vcs, name, raw_local_dir)
-            fake_package.importer.repository_id
+            vcs.create_autobuild_importer.repository_id
         end
 
         # Load the package set information
