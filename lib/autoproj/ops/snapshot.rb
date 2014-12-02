@@ -30,6 +30,12 @@ module Autoproj
             result
         end
 
+        def sort_versions(versions)
+            pkg_sets, pkgs = versions.partition { |n, _| n =~ /^pkg_set:/ }
+            pkg_sets.sort_by { |n, _| n.keys.first } +
+                pkgs.sort_by { |n, _| n.keys.first }
+        end
+
         def save_versions( versions, versions_file, options = Hash.new )
             options = Kernel.validate_options options,
                 replace: false
@@ -45,6 +51,8 @@ module Autoproj
 
             # augment the versions file with the updated versions
             Snapshot.merge_packets( versions, existing_versions )
+
+            versions = sort_versions(versions)
 
             # write the yaml file
             File.open(versions_file, 'w') do |io|
@@ -176,6 +184,8 @@ module Autoproj
         end
 
         def save_import_state(name, versions)
+            versions = sort_versions(versions)
+            
             main = import_state_log_package
             git_dir = main.importer.git_dir(main, false)
             # Ensure that our ref is being logged
