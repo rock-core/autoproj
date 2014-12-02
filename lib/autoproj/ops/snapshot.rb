@@ -80,7 +80,7 @@ module Autoproj
                 next if pkg_set.local?
 
                 if vcs_info = pkg_set.snapshot(target_dir)
-                    result << Hash[pkg_set.repository_id, vcs_info]
+                    result << Hash["pkg_set:#{pkg_set.repository_id}", vcs_info]
                 else
                     error_or_warn(pkg_set, "cannot snapshot #{package_name}: importer snapshot failed")
                 end
