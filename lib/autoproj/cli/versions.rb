@@ -83,6 +83,7 @@ module Autoproj
                     if output_file = options[:output_file]
                         ops.save_versions(versions, output_file, replace: options[:replace])
                     else
+                        versions = ops.sort_versions(versions)
                         puts YAML.dump(versions)
                     end
                 end
