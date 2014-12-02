@@ -572,11 +572,21 @@ end
 class Autobuild::Git
     # get version information from the importer
     def snapshot(package, target_dir = nil)
-        tag = run_git_bare(package, 'describe', '--tags', '--exact-match', 'HEAD').first.strip
-        { 'tag' => tag }
-    rescue Autobuild::SubcommandFailed
-        head_commit = rev_parse(package, 'HEAD')
-        { 'commit' => head_commit }
+        info = Hash.new
+        if local_branch != remote_branch
+            info['local_branch'] = local_branch
+            info['remote_branch'] = remote_branch
+        else
+            info['branch'] = branch
+        end
+
+        begin
+            tag = run_git_bare(package, 'describe', '--tags', '--exact-match', 'HEAD').first.strip
+            info.merge('tag' => tag, 'commit' => nil)
+        rescue Autobuild::SubcommandFailed
+            head_commit = rev_parse(package, 'HEAD')
+            info.merge('tag' => nil, 'commit' => head_commit)
+        end
     end
 end
 
