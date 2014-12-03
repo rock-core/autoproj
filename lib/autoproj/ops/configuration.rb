@@ -89,7 +89,7 @@ module Autoproj
 
                 # Then move the importer there if possible
                 if fake_package.importer.respond_to?(:pick_from_autoproj_root)
-                    if !fake_package.importer.pick_from_autoproj_root(fake_package, other_root)
+                    if !fake_package.importer.pick_from_autoproj_root(fake_package, update_from)
                         fake_package.update = false
                     end
                 else
@@ -187,6 +187,10 @@ module Autoproj
         end
 
         def repository_id_of(vcs)
+            if vcs.local?
+                return "local:#{vcs.url}"
+            end
+
             name = PackageSet.name_of(manifest, vcs)
             raw_local_dir = PackageSet.raw_local_dir_of(vcs)
             fake_package = Tools.create_autobuild_package(vcs, name, raw_local_dir)
@@ -289,9 +293,12 @@ module Autoproj
             # We do not consider the 'standalone' package sets while sorting.
             # They are taken care of later, as we need to maintain the order the
             # user defined in the package_sets section of the manifest
-            queue = package_sets.find_all do |pkg_set|
-                (!pkg_set.imports.empty? || !pkg_set.explicit?) && !(pkg_set == root_pkg_set)
-            end
+            queue = package_sets.flat_map do |pkg_set|
+                if (!pkg_set.imports.empty? || !pkg_set.explicit?) && !(pkg_set == root_pkg_set)
+                    [pkg_set] + pkg_set.imports.to_a
+                else []
+                end
+            end.to_set.to_a
 
             sorted = Array.new
             while !queue.empty?

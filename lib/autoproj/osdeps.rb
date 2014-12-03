@@ -543,6 +543,26 @@ fi
 
                 # Now, reset the directories in our own RubyGems instance
                 Gem.paths = ENV
+
+                # If there is a cache directory, make sure .gems/cache points to
+                # it (there are no programmatic ways to override this)
+                if cache = cache_dir
+                    gem_cache_dir = File.join(gem_home, 'cache')
+                    if !File.symlink?(gem_cache_dir) || File.readlink(gem_cache_dir) != cache
+                        FileUtils.rm_rf gem_cache_dir
+                        Autoproj.create_symlink(cache, gem_cache_dir)
+                    end
+                end
+            end
+
+            # A global cache directory that should be used to avoid
+            # re-downloading gems
+            def self.cache_dir
+                if dir = ENV['AUTOBUILD_CACHE_DIR']
+                    dir = File.join(dir, 'gems')
+                    FileUtils.mkdir_p dir
+                    dir
+                end
             end
 
             # Return the directory in which RubyGems package should be installed

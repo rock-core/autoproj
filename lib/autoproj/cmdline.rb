@@ -799,7 +799,6 @@ module Autoproj
         end
         def self.display_configuration?; !!@display_configuration end
         def self.force_re_build_with_depends?; !!@force_re_build_with_depends end
-        def self.partial_build?; !!@partial_build end
         def self.mail_config; @mail_config || Hash.new end
         def self.update_packages?; @mode == "update" || @mode == "envsh" || build? end
         def self.update_envsh?; @mode == "envsh" || build? || @mode == "update" end
@@ -847,7 +846,6 @@ module Autoproj
             @force_re_build_with_depends = false
             force_re_build_with_depends = nil
             @only_config = false
-            @partial_build = false
             @color = true
             Autobuild.color = true
             Autobuild.do_update = nil
@@ -1055,7 +1053,6 @@ where 'mode' is one of:
             end
 
             selection = args.dup
-            @partial_build = !selection.empty?
             @force_re_build_with_depends = force_re_build_with_depends if !force_re_build_with_depends.nil?
             Autobuild.do_update = do_update if !do_update.nil?
             selection
