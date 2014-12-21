@@ -314,6 +314,10 @@ module Autoproj
             # Now call the blocks that the user defined in the autobuild files. We do it
             # now so that the various package directories are properly setup
             manifest.packages.each_value do |pkg|
+                Autobuild.utilities.keys.each do |utility|
+                    pkg.autobuild.utility(utility).enabled = Autoproj.config.utility_enabled_for?(utility, pkg.name)
+                end
+                
                 pkg.user_blocks.each do |blk|
                     blk[pkg.autobuild]
                 end
