@@ -254,6 +254,13 @@ module Autoproj
                 end
             end
 
+            manifest.each_autobuild_package do |pkg|
+                Autobuild.each_utility do |uname, _|
+                    pkg.utility(uname).enabled =
+                        config.utility_enabled_for?(uname, pkg.name)
+                end
+            end
+
             # We finished loading the configuration files. Not all configuration
             # is done (since we need to process the package setup blocks), but
             # save the current state of the configuration anyway.
@@ -314,10 +321,6 @@ module Autoproj
             # Now call the blocks that the user defined in the autobuild files. We do it
             # now so that the various package directories are properly setup
             manifest.packages.each_value do |pkg|
-                Autobuild.utilities.keys.each do |utility|
-                    pkg.autobuild.utility(utility).enabled = Autoproj.config.utility_enabled_for?(utility, pkg.name)
-                end
-                
                 pkg.user_blocks.each do |blk|
                     blk[pkg.autobuild]
                 end

@@ -877,7 +877,7 @@ module Autoproj
             pkg.autobuild.description = manifest
             package_manifests[package.name] = manifest
 
-            manifest.each_dependency do |name, is_optional|
+            manifest.each_dependency(pkg.modes) do |name, is_optional|
                 begin
                     if is_optional
                         package.optional_dependency name
