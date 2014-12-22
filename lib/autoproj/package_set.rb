@@ -593,6 +593,10 @@ module Autoproj
             File.join(Autoproj.config_dir, "manifest")
         end
 
+        def overrides_file_path
+            File.join(Autoproj.config_dir, "overrides.yml")
+        end
+
         def source_file
             manifest_path
         end
@@ -626,11 +630,21 @@ module Autoproj
         end
 
         def raw_description_file
-            description = Hash.new
+            description = Hash[
+                'imports' => Array.new,
+                'version_control' => Array.new,
+                'overrides' => Array.new]
+            if File.file?(overrides_file_path)
+                overrides_data = Autoproj.in_file(overrides_file_path, Autoproj::YAML_LOAD_ERROR) do
+                    YAML.load(File.read(overrides_file_path)) || Hash.new
+                end
+                description = description.merge(overrides_data)
+            end
+
             manifest_data = Autoproj.in_file(manifest_path, Autoproj::YAML_LOAD_ERROR) do
                 YAML.load(File.read(manifest_path)) || Hash.new
             end
-            description['imports'] = (description['imports'] || Array.new).
+            description['imports'] = description['imports'].
                 concat(manifest_data['package_sets'] || Array.new)
             description['name'] = name
             description
