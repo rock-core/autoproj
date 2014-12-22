@@ -549,6 +549,7 @@ fi
                 if cache = cache_dir
                     gem_cache_dir = File.join(gem_home, 'cache')
                     if !File.symlink?(gem_cache_dir) || File.readlink(gem_cache_dir) != cache
+                        FileUtils.mkdir_p gem_home
                         FileUtils.rm_rf gem_cache_dir
                         Autoproj.create_symlink(cache, gem_cache_dir)
                     end
