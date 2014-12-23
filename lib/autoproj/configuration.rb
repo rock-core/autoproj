@@ -210,10 +210,21 @@ module Autoproj
             end
         end
 
+        # Returns true if packages and prefixes should be auto-generated, based
+        # on the SHA of the package names. This is meant to be used for build
+        # services that want to check that dependencies are properly set
+        #
+        # The default is false (disabled)
+        #
+        # @return [Boolean]
         def randomize_layout?
             get('randomize_layout', false)
         end
 
+        # Sets whether the layout should be randomized
+        #
+        # @return [Boolean]
+        # @see randomize_layout?
         def randomize_layout=(value)
             set('randomize_layout', value, true)
         end
