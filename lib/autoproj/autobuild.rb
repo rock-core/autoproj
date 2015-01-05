@@ -483,6 +483,7 @@ end
 # information.
 def orogen_package(options, &block)
     package_common(:orogen, options) do |pkg|
+        common_make_based_package_setup(pkg)
         yield(pkg) if block_given?
     end
 end
