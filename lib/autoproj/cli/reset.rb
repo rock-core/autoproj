@@ -15,6 +15,7 @@ module Autoproj
             def parse_options(args)
                 options = Hash[]
                 parser = OptionParser.new do |opt|
+                    opt.banner = ["autoproj reset COMMIT_ID", "resets the current autoproj installation to the state saved in the given commit ID"].join("\n")
                     opt.on "--freeze", "freezes the project at the requested version" do
                         options[:freeze] = true
                     end
@@ -22,8 +23,10 @@ module Autoproj
                 common_options(parser)
                 remaining = parser.parse(args)
                 if remaining.empty?
+                    puts parser
                     raise InvalidArguments, "expected a reference (tag or log ID) as argument and got nothing"
                 elsif remaining.size > 1
+                    puts parser
                     raise InvalidArguments, "expected only the tag name as argument"
                 end
                 return remaining.first, options
