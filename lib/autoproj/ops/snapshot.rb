@@ -240,7 +240,7 @@ module Autoproj
                 # And add the new file
                 importer.run_git_bare(
                     pkg, 'update-index',
-                    '--add', '--cacheinfo', cacheinfo)
+                    '--add', '--cacheinfo', *cacheinfo)
                 tree_id = importer.run_git_bare(pkg, 'write-tree').first
             ensure
                 ENV.delete('GIT_INDEX_FILE')
