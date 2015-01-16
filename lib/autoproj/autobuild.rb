@@ -590,6 +590,13 @@ class Autobuild::Git
     end
 end
 
+class Autobuild::SVN
+    def snapshot(package, target_dir = nil)
+        version = svn_revision(package)
+        Hash['revision' => version]
+    end
+end
+
 class Autobuild::ArchiveImporter
     def snapshot(package, target_dir = nil)
         if target_dir
