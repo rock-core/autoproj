@@ -7,6 +7,22 @@ if File.exists?(File.join(root_dir, 'autoproj', "manifest"))
     raise ConfigError.new, "this installation is already bootstrapped. Remove the autoproj directory if it is not the case"
 end
 
+Ops::Tools.load_autoprojrc
+
+# Check if the .autoprojrc changed the PATH and therefore which autoproj script
+# should be executed ... and restart if it did
+autoproj_path = Autobuild.find_in_path('autoproj')
+if $0 != autoproj_path
+    puts "your .autoprojrc file changed PATH in a way that requires the restart of autoproj"
+
+    if ENV['AUTOPROJ_RESTARTING']
+        puts "infinite loop detected, will not restart this time"
+    else
+        require 'rbconfig'
+        exec(Autoproj.config.ruby_executable, autoproj_path, *Autoproj::CmdLine.argv)
+    end
+end
+
 Autoproj::CmdLine.report do
     switcher = Autoproj::Ops::MainConfigSwitcher.new(root_dir)
     begin
