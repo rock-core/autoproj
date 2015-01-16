@@ -1,5 +1,9 @@
 #! /usr/bin/env ruby
 
+if !defined?(ORIGINAL_ARGV)
+    ORIGINAL_ARGV = ARGV.dup
+end
+
 if RUBY_VERSION < "1.9.2"
     STDERR.puts "autoproj requires Ruby >= 1.9.2"
     exit 1
