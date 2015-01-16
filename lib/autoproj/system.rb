@@ -36,23 +36,26 @@ module Autoproj
             return @root_dir
         end
 
-        root_dir_rx =
-            if Autobuild.windows? then /^[a-zA-Z]:\\\\$/
-            else /^\/$/
+        path = Pathname.pwd
+        while !path.root?
+            if (path + "autoproj" + 'manifest').file?
+                break
             end
-
-        while root_dir_rx !~ dir && !File.directory?(File.join(dir, "autoproj"))
-            dir = File.dirname(dir)
+            path = path.parent
         end
-        if root_dir_rx =~ dir
+
+        if path.root?
             raise UserError, "not in a Autoproj installation"
         end
 
-        #Preventing backslashed in path, that might be confusing on some path compares
+        result = path.to_s
+        # I don't know if this is still useful or not ... but it does not hurt
+        #
+        # Preventing backslashed in path, that might be confusing on some path compares
         if Autobuild.windows?
-            dir = dir.gsub(/\\/,'/')
+            result = result.gsub(/\\/,'/')
         end
-        dir
+        result
     end
 
     # Returns the configuration directory for this autoproj installation.
