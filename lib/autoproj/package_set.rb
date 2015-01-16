@@ -417,6 +417,10 @@ module Autoproj
             if all_vcs
                 all_vcs.each do |spec|
                     spec = spec.dup
+                    if !spec.kind_of?(Hash)
+                        raise ConfigError.new, "wrong format for the #{spec} entry, expected #{spec} followed by a colon and one importer option per following line"
+                    end
+
                     if spec.values.size != 1
                         # Maybe the user wrote the spec like
                         #   - package_name:
@@ -518,7 +522,10 @@ module Autoproj
         # @return [VCSDefinition] the new, updated vcs object
         def overrides_for(package_name, vcs)
             overrides.each do |file, override|
-                new_spec, new_raw_entry = vcs_field(Hash['overrides' => override], package_name, 'overrides', false)
+                new_spec, new_raw_entry = 
+                    Autoproj.in_file file do
+                        vcs_field(Hash['overrides' => override], package_name, 'overrides', false)
+                    end
 
                 if new_spec
                     Autoproj.in_file file do
