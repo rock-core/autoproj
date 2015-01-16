@@ -544,13 +544,13 @@ fi
                 Autoproj.manifest.each_reused_autoproj_installation do |p|
                     p_gems = File.join(p, '.gems')
                     if File.directory?(p_gems)
-                        Autobuild.env_add_path 'GEM_PATH', p_gems
-                        Autobuild.env_add_path 'PATH', File.join(p_gems, 'bin')
+                        Autobuild.env_push_path 'GEM_PATH', p_gems
+                        Autobuild.env_push_path 'PATH', File.join(p_gems, 'bin')
                     end
                 end
-                Autobuild.env_add_path 'GEM_PATH', gem_home
+                Autobuild.env_push_path 'GEM_PATH', gem_home
                 Autobuild.env_set 'GEM_HOME', gem_home
-                Autobuild.env_add_path 'PATH', "#{gem_home}/bin"
+                Autobuild.env_push_path 'PATH', "#{gem_home}/bin"
 
                 # Now, reset the directories in our own RubyGems instance
                 Gem.paths = ENV
