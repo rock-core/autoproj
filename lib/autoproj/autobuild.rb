@@ -582,10 +582,10 @@ class Autobuild::Git
 
         begin
             tag = run_git_bare(package, 'describe', '--tags', '--exact-match', 'HEAD').first.strip
-            info.merge('tag' => tag, 'commit' => nil)
+            info.merge('tag' => tag.encode('UTF-8'), 'commit' => nil)
         rescue Autobuild::SubcommandFailed
             head_commit = rev_parse(package, 'HEAD')
-            info.merge('tag' => nil, 'commit' => head_commit)
+            info.merge('tag' => nil, 'commit' => head_commit.encode('UTF-8'))
         end
     end
 end
