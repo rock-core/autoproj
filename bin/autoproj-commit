@@ -2,7 +2,7 @@
 
 set -e
 
-acd
+cd $(autoproj locate)
 autoproj versions --save
 cd autoproj
 git add overrides.d/50-versions.yml
