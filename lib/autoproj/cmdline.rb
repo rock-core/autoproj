@@ -365,9 +365,13 @@ module Autoproj
         end
 
         def self.update_environment
-            Autoproj.manifest.reused_installations.each do |manifest|
-                manifest.each do |pkg|
-                    Autobuild::Package[pkg.name].update_environment
+            manifest.reused_installations.each do |reused_manifest|
+                reused_manifest.each do |pkg|
+                    # The reused installations might have packages we do not
+                    # know about, just ignore them
+                    if pkg = manifest.find_autobuild_package(pkg)
+                        pkg.update_environment
+                    end
                 end
             end
 

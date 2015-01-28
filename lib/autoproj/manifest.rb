@@ -375,6 +375,12 @@ module Autoproj
             packages[name]
         end
 
+        def find_autobuild_package(name)
+            if pkg = packages[name]
+                pkg.autobuild
+            end
+        end
+
         def package(name)
             packages[name]
         end
