@@ -49,7 +49,12 @@ module Autoproj
 
         def load_autoprojrc
             # Load the user-wide autoproj RC file
-            if home_dir = Dir.home
+            home_dir =
+                begin Dir.home
+                rescue ArgumentError
+                end
+
+            if home_dir
                 rcfile = File.join(home_dir, '.autoprojrc')
                 if File.file?(rcfile)
                     Kernel.load rcfile
