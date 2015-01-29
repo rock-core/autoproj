@@ -651,7 +651,7 @@ module Autoproj
                 # packages is not important BUT the ordering of import vs.
                 # prepare in one package IS important: prepare is the method
                 # that takes into account dependencies.
-                pkg.import(only_local?)
+                pkg.import(only_local: only_local?)
                 if pkg.updated?
                     updated_packages << pkg.name
                 end

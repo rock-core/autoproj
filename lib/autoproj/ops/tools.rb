@@ -24,8 +24,8 @@ module Autoproj
                 @@packages.delete(text_name)
             end
 
-            def import(only_local = false)
-                importer.import(self, only_local)
+            def import(options = Hash.new)
+                importer.import(self, options)
             end
 
             def add_stat(*args)

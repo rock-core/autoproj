@@ -96,7 +96,7 @@ module Autoproj
                     fake_package.update = false
                 end
             end
-            fake_package.import(only_local)
+            fake_package.import(only_local: only_local)
 
         rescue Autobuild::ConfigException => e
             raise ConfigError.new, "cannot import #{name}: #{e.message}", e.backtrace
