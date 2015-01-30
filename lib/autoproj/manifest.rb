@@ -139,7 +139,7 @@ module Autoproj
         # Call this method to ignore a specific package. It must not be used in
         # init.rb, as the manifest is not yet loaded then
         def ignore_package(package_name)
-            @ignored_packages << package_name
+            @ignored_packages << package_name.to_str
         end
 
         # True if the given package should not be built, with the packages that
