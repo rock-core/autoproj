@@ -1,43 +1,9 @@
 #! /usr/bin/env ruby
 
 require 'autoproj'
-require 'autoproj/cmdline'
+require 'autoproj/cli/test'
 
-modified_config = false
-list_config = false
-Autoproj.load_config
-options = OptionParser.new do |opt|
-    opt.on '--enable[=PACKAGE,PACKAGE]', Array, 'enable tests for all packages or for specific packages (does not run the tests)' do |packages|
-        if !packages
-            Autoproj.config.utility_enable_all('test')
-        else
-            Autoproj.config.utility_enable_for('test', *packages)
-        end
-        modified_config = true
-    end
-    opt.on '--disable[=PACKAGE,PACKAGE]', Array, 'disable tests for all packages or for specific packages (does not run the tests)' do |packages|
-        if !packages
-            Autoproj.config.utility_disable_all('test')
-        else
-            Autoproj.config.utility_disable_for('test', *packages)
-        end
-        modified_config = true
-    end
-    opt.on '--list', 'list the test availability and enabled/disabled state information' do
-        list_config = true
-    end
-end
-
-user_selection = options.parse(ARGV)
-
-if modified_config
-    Autoproj.save_config
-    if !list_config
-        exit 0
-    end
-end
-
-user_selection = user_selection.map do |arg|
+argv = ARGV.map do |arg|
     if File.directory?(arg)
         File.expand_path(arg)
     else arg
@@ -49,37 +15,17 @@ Autoproj.silent do
     Autoproj::CmdLine.initialize_and_load([])
 end
 
-if list_config
-    lines = Array.new
-    Autoproj.manifest.each_autobuild_package do |pkg|
-        lines << [pkg.name, pkg.test_utility.enabled?, pkg.test_utility.available?]
-    end
-    lines = lines.sort_by { |name, _| name }
-    w     = lines.map { |name, _| name.length }.max
-    format = "%-#{w}s %-7s %-9s"
-    puts format % ["Package Name", "Enabled", "Available"]
-    lines.each do |name, enabled, available|
-        puts(format % [name, (!!enabled).to_s, (!!available).to_s])
-    end
-    exit 0
-end
-
 Autobuild.pass_test_errors = true
 Autobuild.ignore_errors = true
 
-Autoproj::CmdLine.report do
-    resolved_selection = Autoproj::CmdLine.
-        resolve_user_selection(user_selection, :filter => false)
-    # Remove non-existing packages
-    Autoproj.manifest.each_autobuild_package do |pkg|
-        if !File.directory?(pkg.srcdir)
-            Autoproj.manifest.add_exclusion(pkg, "#{pkg.name} is not checked out")
-        end
+Autoproj::CmdLine.report(report_success: false) do
+    cli = Autoproj::CLI::Test.new(Autoproj.manifest)
+    mode, user_selection, options = cli.parse_options(argv)
+
+    if mode == 'run'
+        cli.run(user_selection, options)
+    elsif mode == 'list'
+        cli.list(user_selection, options)
     end
-    resolved_selection.filter_excluded_and_ignored_packages(Autoproj.manifest)
-    # This calls #prepare, which is required to run build_packages
-    packages = Autoproj::CmdLine.import_packages(resolved_selection)
-    packages.each { |pkg| Autobuild::Package[pkg].disable_phases('import', 'prepare', 'install') }
-    Autobuild.apply(packages, "autoproj-test", ['test'])
 end
 
