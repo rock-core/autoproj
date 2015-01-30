@@ -1,36 +1,31 @@
 #! /usr/bin/env ruby
 
 require 'autoproj'
-require 'autoproj/cmdline'
+require 'autoproj/cli/test'
 
-user_selection = Autoproj.silent do
-    Autoproj::CmdLine.initialize_root_directory
-    Autoproj::CmdLine.initialize_and_load(ARGV)
-end
-
-user_selection = user_selection.map do |arg|
+argv = ARGV.map do |arg|
     if File.directory?(arg)
         File.expand_path(arg)
     else arg
     end
 end
 
+Autoproj.silent do
+    Autoproj::CmdLine.initialize_root_directory
+    Autoproj::CmdLine.initialize_and_load([])
+end
+
 Autobuild.pass_test_errors = true
 Autobuild.ignore_errors = true
 
-Autoproj::CmdLine.report do
-    resolved_selection = Autoproj::CmdLine.
-        resolve_user_selection(user_selection, :filter => false)
-    # Remove non-existing packages
-    Autoproj.manifest.each_autobuild_package do |pkg|
-        if !File.directory?(pkg.srcdir)
-            Autoproj.manifest.add_exclusion(pkg, "#{pkg.name} is not checked out")
-        end
+Autoproj::CmdLine.report(report_success: false) do
+    cli = Autoproj::CLI::Test.new(Autoproj.manifest)
+    mode, user_selection, options = cli.parse_options(argv)
+
+    if mode == 'run'
+        cli.run(user_selection, options)
+    elsif mode == 'list'
+        cli.list(user_selection, options)
     end
-    resolved_selection.filter_excluded_and_ignored_packages(Autoproj.manifest)
-    # This calls #prepare, which is required to run build_packages
-    packages = Autoproj::CmdLine.import_packages(resolved_selection)
-    packages.each { |pkg| Autobuild::Package[pkg].disable_phases('import', 'prepare', 'install') }
-    Autobuild.apply(packages, "autoproj-test", ['test'])
 end
 

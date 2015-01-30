@@ -254,6 +254,13 @@ module Autoproj
                 end
             end
 
+            manifest.each_autobuild_package do |pkg|
+                Autobuild.each_utility do |uname, _|
+                    pkg.utility(uname).enabled =
+                        config.utility_enabled_for?(uname, pkg.name)
+                end
+            end
+
             # We finished loading the configuration files. Not all configuration
             # is done (since we need to process the package setup blocks), but
             # save the current state of the configuration anyway.
@@ -597,7 +604,11 @@ module Autoproj
             end
         end
 
-        def self.import_packages(selection)
+        def self.import_packages(selection, options = Hash.new)
+            options = Kernel.validate_options options,
+                warn_about_ignored_packages: true,
+                warn_about_excluded_packages: true
+
             selected_packages = selection.packages.
                 map do |pkg_name|
                     pkg = Autobuild::Package[pkg_name]
@@ -724,14 +735,18 @@ module Autoproj
                 end
             end
 
-            selection.exclusions.each do |sel, pkg_names|
-                pkg_names.sort.each do |pkg_name|
-                    Autoproj.warn "#{pkg_name}, which was selected for #{sel}, cannot be built: #{Autoproj.manifest.exclusion_reason(pkg_name)}", :bold
+            if options[:warn_about_excluded_packages]
+                selection.exclusions.each do |sel, pkg_names|
+                    pkg_names.sort.each do |pkg_name|
+                        Autoproj.warn "#{pkg_name}, which was selected for #{sel}, cannot be built: #{Autoproj.manifest.exclusion_reason(pkg_name)}", :bold
+                    end
                 end
             end
-            selection.ignores.each do |sel, pkg_names|
-                pkg_names.sort.each do |pkg_name|
-                    Autoproj.warn "#{pkg_name}, which was selected for #{sel}, is ignored", :bold
+            if options[:warn_about_ignored_packages]
+                selection.ignores.each do |sel, pkg_names|
+                    pkg_names.sort.each do |pkg_name|
+                        Autoproj.warn "#{pkg_name}, which was selected for #{sel}, is ignored", :bold
+                    end
                 end
             end
 
@@ -1620,11 +1635,16 @@ where 'mode' is one of:
             end
         end
 
-        def self.report
+        def self.report(options = Hash.new)
+            options = Kernel.validate_options options,
+                report_success: true
+
             Autobuild::Reporting.report do
                 yield
             end
-            Autobuild::Reporting.success
+            if options[:report_success]
+                Autobuild::Reporting.success
+            end
 
         rescue ConfigError => e
             STDERR.puts

@@ -139,7 +139,7 @@ module Autoproj
         # Call this method to ignore a specific package. It must not be used in
         # init.rb, as the manifest is not yet loaded then
         def ignore_package(package_name)
-            @ignored_packages << package_name
+            @ignored_packages << package_name.to_str
         end
 
         # True if the given package should not be built, with the packages that
@@ -883,7 +883,7 @@ module Autoproj
             pkg.autobuild.description = manifest
             package_manifests[package.name] = manifest
 
-            manifest.each_dependency do |name, is_optional|
+            manifest.each_dependency(pkg.modes) do |name, is_optional|
                 begin
                     if is_optional
                         package.optional_dependency name

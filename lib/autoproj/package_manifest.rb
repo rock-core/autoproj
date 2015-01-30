@@ -70,46 +70,43 @@ module Autoproj
             @xml = doc
         end
 
-        def each_dependency(&block)
-            if block_given?
-                each_os_dependency(&block)
-                each_package_dependency(&block)
-            else
-                enum_for(:each_dependency, &block)
+        def each_dependency(in_modes = Array.new, &block)
+            return enum_for(__method__) if !block_given?
+
+            depend_nodes = xml.elements.to_a('package/depend') +
+                xml.elements.to_a('package/depend_optional') +
+                xml.elements.to_a('package/rosdep')
+
+            depend_nodes.each do |node|
+                dependency = node.attributes['package'] || node.attributes['name']
+                optional   = (node.attributes['optional'].to_s == '1' || node.name == "depend_optional")
+                modes      = node.attributes['modes'].to_s.split(',')
+                if !modes.empty? && modes.none? { |m| in_modes.include?(m) }
+                    next
+                end
+
+                if dependency
+                    yield(dependency, optional)
+                elsif node.name == 'rosdep'
+                    raise ConfigError.new, "manifest of #{package.name} has a <rosdep> tag without a 'name' attribute"
+                else
+                    raise ConfigError.new, "manifest of #{package.name} has a <#{node.name}> tag without a 'package' attribute"
+                end
+            end
+
+            package.os_packages.each do |name|
+                yield(name, false)
             end
         end
 
-        def each_os_dependency
-            if block_given?
-                xml.elements.each('package/rosdep') do |node|
-                    yield(node.attributes['name'], false)
-                end
-                package.os_packages.each do |name|
-                    yield(name, false)
-                end
-            else
-                enum_for :each_os_dependency
-            end
+        def each_os_dependency(modes = Array.new, &block)
+            Autoproj.warn "PackageManifest#each_os_dependency called, fix your code"
+            return each_dependency(modes, &block)
         end
 
-        def each_package_dependency
-            if block_given?
-                depend_nodes = xml.elements.to_a('package/depend') +
-                    xml.elements.to_a('package/depend_optional')
-
-                depend_nodes.each do |node|
-                    dependency = node.attributes['package']
-                    optional = (node.attributes['optional'].to_s == '1' || node.name == "depend_optional")
-
-                    if dependency
-                        yield(dependency, optional)
-                    else
-                        raise ConfigError.new, "manifest of #{package.name} has a <depend> tag without a 'package' attribute"
-                    end
-                end
-            else
-                enum_for :each_package_dependency
-            end
+        def each_package_dependency(modes = Array.new)
+            Autoproj.warn "PackageManifest#each_os_dependency called, fix your code"
+            return each_dependency(modes, &block)
         end
 
         def each_maintainer

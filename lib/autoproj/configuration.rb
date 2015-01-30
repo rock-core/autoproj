@@ -210,12 +210,107 @@ module Autoproj
             end
         end
 
+        # Returns true if packages and prefixes should be auto-generated, based
+        # on the SHA of the package names. This is meant to be used for build
+        # services that want to check that dependencies are properly set
+        #
+        # The default is false (disabled)
+        #
+        # @return [Boolean]
         def randomize_layout?
             get('randomize_layout', false)
         end
 
+        # Sets whether the layout should be randomized
+        #
+        # @return [Boolean]
+        # @see randomize_layout?
         def randomize_layout=(value)
             set('randomize_layout', value, true)
+        end
+
+        DEFAULT_UTILITY_SETUP = Hash[
+            'doc' => true,
+            'test' => false]
+
+        # The configuration key that should be used to store the utility
+        # enable/disable information 
+        #
+        # @param [String] the utility name
+        # @return [String] the config key
+        def utility_key(utility)
+            "autoproj_#{utility}_utility"
+        end
+
+        # Returns whether a given utility is enabled for the package
+        #
+        # If there is no specific configuration for the package, uses the global
+        # default set with utility_enable_all or utility_disable_all. If none of
+        # these methods has been called, uses the default in
+        # {DEFAULT_UTILITY_SETUP}
+        #
+        # @param [String] utility the utility name (e.g. 'doc' or 'test')
+        # @param [String] package the package name
+        # @return [Boolean] true if the utility should be enabled for the
+        #   requested package and false otherwise
+        def utility_enabled_for?(utility, package)
+            utility_config = get(utility_key(utility), Hash.new)
+            if utility_config.has_key?(package)
+                utility_config[package]
+            else get("#{utility_key(utility)}_default", DEFAULT_UTILITY_SETUP[utility])
+            end
+        end
+
+        # Enables a utility for all packages
+        #
+        # This both sets the default value for all packages and resets all
+        # package-specific values set with {utility_enable_for} and
+        # {utility_disable_for}
+        #
+        # @param [String] utility the utility name (e.g. 'doc' or 'test')
+        # @return [void]
+        def utility_enable_all(utility)
+            reset(utility_key(utility))
+            set("#{utility_key(utility)}_default", true)
+        end
+
+        # Enables a utility for a specific package
+        #
+        # Note that if the default for this utility is to be enabled, this is
+        # essentially a no-op.
+        #
+        # @param [String] utility the utility name (e.g. 'doc' or 'test')
+        # @param [String] package the package name
+        # @return [void]
+        def utility_enable_for(utility, package)
+            utility_config = get(utility_key(utility), Hash.new)
+            set(utility_key(utility), utility_config.merge(package => true))
+        end
+
+        # Disables a utility for all packages
+        #
+        # This both sets the default value for all packages and resets all
+        # package-specific values set with {utility_enable_for} and
+        # {utility_disable_for}
+        #
+        # @param [String] utility the utility name (e.g. 'doc' or 'test')
+        # @return [void]
+        def utility_disable_all(utility)
+            reset(utility_key(utility))
+            set("#{utility_key(utility)}_default", false)
+        end
+
+        # Disables a utility for a specific package
+        #
+        # Note that if the default for this utility is to be disabled, this is
+        # essentially a no-op.
+        #
+        # @param [String] utility the utility name (e.g. 'doc' or 'test')
+        # @param [String] package the package name
+        # @return [void]
+        def utility_disable_for(utility, package)
+            utility_config = get(utility_key(utility), Hash.new)
+            set(utility_key(utility), utility_config.merge(package => false))
         end
     end
 end

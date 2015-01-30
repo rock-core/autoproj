@@ -92,6 +92,34 @@ module Autoproj
             end
         end
 
+        def resolve_selection(user_selection, options = Hash.new)
+            options = Kernel.validate_options options,
+                recursive: true,
+                ignore_non_imported_packages: false
+
+            resolved_selection = CmdLine.
+                resolve_user_selection(user_selection, filter: false)
+            if options[:ignore_non_imported_packages]
+                manifest.each_autobuild_package do |pkg|
+                    if !File.directory?(pkg.srcdir)
+                        manifest.ignore_package(pkg.name)
+                    end
+                end
+            end
+            resolved_selection.filter_excluded_and_ignored_packages(manifest)
+
+            packages =
+                if options[:recursive]
+                    CmdLine.import_packages(
+                        resolved_selection,
+                        warn_about_ignored_packages: false)
+                else
+                    resolved_selection.to_a
+                end
+
+            packages
+        end
+
         extend Tools
     end
     end

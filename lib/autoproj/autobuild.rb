@@ -405,8 +405,8 @@ end
 def cmake_package(options, &block)
     package_common(:cmake, options) do |pkg|
         pkg.depends_on 'cmake'
-        yield(pkg) if block_given?
         common_make_based_package_setup(pkg)
+        yield(pkg) if block_given?
     end
 end
 
@@ -422,8 +422,8 @@ end
 def autotools_package(options, &block)
     package_common(:autotools, options) do |pkg|
         pkg.depends_on 'autotools'
-        yield(pkg) if block_given?
         common_make_based_package_setup(pkg)
+        yield(pkg) if block_given?
     end
 end
 
@@ -447,8 +447,6 @@ end
 # information.
 def ruby_package(options)
     package_common(:ruby, options) do |pkg|
-        yield(pkg) if block_given?
-
         # Documentation code. Ignore if the user provided its own documentation
         # task, or disabled the documentation generation altogether by setting
         # rake_doc_task to nil
@@ -467,6 +465,8 @@ def ruby_package(options)
                 pkg.with_tests
             end
         end
+
+        yield(pkg) if block_given?
     end
 end
 
@@ -483,6 +483,7 @@ end
 # information.
 def orogen_package(options, &block)
     package_common(:orogen, options) do |pkg|
+        common_make_based_package_setup(pkg)
         yield(pkg) if block_given?
     end
 end

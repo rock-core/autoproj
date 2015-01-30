@@ -32,6 +32,19 @@ module Autoproj
             @autobuild, @package_set, @file =
                 autobuild, package_set, file
             @user_blocks = []
+            @modes = ['import', 'build']
+        end
+
+        # The modes in which this package will be used
+        #
+        # Mainly used during dependency resolution to disable unneeded
+        # dependencies
+        #
+        # @return [Array<String>]
+        def modes
+            @modes + autobuild.utilities.values.
+                find_all { |u| u.enabled? }.
+                map(&:name)
         end
 
         # The package name
