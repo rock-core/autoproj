@@ -62,7 +62,7 @@ module Autoproj
                     File.open(versions_path, 'w') do |io|
                         io.write file_data
                     end
-                    system("autoproj", "update")
+                    system("autoproj", "update", '--reset')
 
                 ensure
                     if !options[:freeze]

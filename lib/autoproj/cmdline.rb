@@ -609,9 +609,11 @@ module Autoproj
         end
 
         def self.import_packages(selection, options = Hash.new)
-            options = Kernel.validate_options options,
+            options, import_options = Kernel.filter_options options,
                 warn_about_ignored_packages: true,
                 warn_about_excluded_packages: true
+            import_options = Hash[only_local: only_local?, reset: reset?, checkout_only: !Autobuild.do_update].
+                merge(import_options)
 
             updated_packages = Array.new
             selected_packages = selection.packages.
@@ -651,7 +653,7 @@ module Autoproj
                 # packages is not important BUT the ordering of import vs.
                 # prepare in one package IS important: prepare is the method
                 # that takes into account dependencies.
-                pkg.import(only_local: only_local?)
+                pkg.import(import_options)
                 if pkg.updated?
                     updated_packages << pkg.name
                 end
@@ -819,6 +821,7 @@ module Autoproj
         def self.manifest; Autoproj.manifest end
         def self.only_status?; !!@only_status end
         def self.only_local?; !!@only_local end
+        def self.reset?; !!@reset end
         def self.check?; !!@check end
         def self.manifest_update?; !!@manifest_update end
         def self.only_config?; !!@only_config end
@@ -886,6 +889,7 @@ module Autoproj
             @force_re_build_with_depends = false
             force_re_build_with_depends = nil
             @only_config = false
+            @reset = false
             @color = true
             Autobuild.color = true
             Autobuild.do_update = nil
@@ -1037,9 +1041,13 @@ where 'mode' is one of:
                 opts.on("--none", "in osdeps mode, do not install any package but display information about them, regardless of the otherwise selected mode") do
                     @osdeps_forced_mode = 'none'
                 end
-                opts.on("--local", "for status, do not access the network") do
+                opts.on("--local", "in status and update modes, do not access the network") do
                     @only_local = true
                 end
+                opts.on("--reset", "in update mode, reset the repositories to the state requested by the VCS configuration") do
+                    @reset = true
+                end
+
                 opts.on('--exit-code', 'in status mode, exit with a code that reflects the status of the installation (see documentation for details)') do
                     @status_exit_code = true
                 end
