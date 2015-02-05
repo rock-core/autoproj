@@ -20,7 +20,7 @@ end
 all_packages = Hash.new
 package_sets = manifest.each_package_set.to_a
 package_sets.each do |pkg_set|
-    pkg_set.each_autobuild_package.each do |pkg|
+    pkg_set.each_package do |pkg|
         all_packages[pkg.name] = [pkg, pkg_set.name]
     end
 end
@@ -36,8 +36,9 @@ Autoproj.message
 Autoproj.message("autoproj: package sets", :bold)
 package_sets.sort_by(&:name).each do |pkg_set|
     next if pkg_set.empty?
-    if pkg_set.imported_from
-        Autoproj.message "  #{pkg_set.name} (imported by #{pkg_set.imported_from.name})"
+    if !pkg_set.imported_from.empty?
+        imported_from = pkg_set.imported_from.map(&:name).sort
+        Autoproj.message "  #{pkg_set.name} (imported by #{imported_from.join(", ")})"
     else
         Autoproj.message "  #{pkg_set.name} (listed in manifest)"
     end
