@@ -80,7 +80,9 @@ packages.each do |name|
         vcs = Autoproj.manifest.importer_definition_for(pkg_name)
 
         fragments = []
-        if vcs.raw
+        if !vcs
+            fragments << ["has no VCS definition", []]
+        elsif vcs.raw
             first = true
             fragments << [nil, vcs_to_array(vcs)]
             vcs.raw.each do |pkg_set, vcs_info|
