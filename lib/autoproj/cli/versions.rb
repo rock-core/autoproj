@@ -30,7 +30,7 @@ module Autoproj
                 # Remove non-existing packages
                 packages.each do |pkg|
                     if !File.directory?(manifest.package(pkg).autobuild.srcdir)
-                        raise ConfigError, "cannot commit #{pkg.name} as it is not checked out"
+                        raise ConfigError, "cannot commit #{pkg} as it is not checked out"
                     end
                 end
                 packages
