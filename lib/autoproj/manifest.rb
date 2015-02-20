@@ -65,8 +65,8 @@ module Autoproj
 
             @file = file
             @data = data
-            @ignored_packages |= (data['ignored_packages'] || Set.new)
-            data['exclude_packages'] ||= Set.new
+            @ignored_packages |= (data['ignored_packages'] || Set.new).to_set
+            @manifest_exclusions |= (data['exclude_packages'] || Set.new).to_set
 
             if data['constants']
                 @constant_definitions = Autoproj.resolve_constant_definitions(data['constants'])
@@ -128,6 +128,7 @@ module Autoproj
             @ignored_os_dependencies = Set.new
             @reused_installations = Array.new
             @ignored_packages = Set.new
+            @manifest_exclusions = Set.new
 
             @constant_definitions = Hash.new
             if Autoproj.has_config_key?('manifest_source')
@@ -185,7 +186,7 @@ module Autoproj
         # The set of package names that are listed in the excluded_packages
         # section of the manifest
         def manifest_exclusions
-            data['exclude_packages']
+            @manifest_exclusions
         end
 
         # A package_name => reason map of the exclusions added with #add_exclusion.
@@ -198,6 +199,17 @@ module Autoproj
             automatic_exclusions[package_name] = reason
         end
 
+        # Tests whether the given package is excluded in the manifest
+        def excluded_in_manifest?(package_name)
+            manifest_exclusions.any? do |matcher|
+                if (pkg_set = metapackages[matcher]) && pkg_set.include?(package_name)
+                    true
+                else
+                    Regexp.new(matcher) === package_name
+                end
+            end
+        end
+
         # If +package_name+ is excluded from the build, returns a string that
         # tells why. Otherwise, returns nil
         #
@@ -205,7 +217,7 @@ module Autoproj
         # exclude_packages section of the manifest, or because they are
         # disabled on this particular operating system.
         def exclusion_reason(package_name)
-            if manifest_exclusions.any? { |l| Regexp.new(l) =~ package_name }
+            if excluded_in_manifest?(package_name)
                 "#{package_name} is listed in the exclude_packages section of the manifest"
             else
                 automatic_exclusions[package_name]
@@ -218,7 +230,7 @@ module Autoproj
         # This is useful to avoid building packages that are of no use for the
         # user.
         def excluded?(package_name)
-            if manifest_exclusions.any? { |l| Regexp.new(l) =~ package_name }
+            if excluded_in_manifest?(package_name)
                 true
             elsif automatic_exclusions.any? { |pkg_name, | pkg_name == package_name }
                 true
