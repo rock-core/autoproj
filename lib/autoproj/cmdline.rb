@@ -602,6 +602,28 @@ module Autoproj
             end
         end
 
+        def self.import_next_step(manifest, pkg, reverse_dependencies)
+            new_packages = []
+            pkg.dependencies.each do |dep_name|
+                reverse_dependencies[dep_name] << pkg.name
+                new_packages << manifest.find_autobuild_package(dep_name)
+            end
+            pkg_opt_deps, _ = pkg.partition_optional_dependencies
+            pkg_opt_deps.each do |dep_name|
+                new_packages << manifest.find_autobuild_package(dep_name)
+            end
+
+            new_packages.delete_if do |new_pkg|
+                if manifest.excluded?(new_pkg.name)
+                    mark_exclusion_along_revdeps(new_pkg.name, reverse_dependencies)
+                    true
+                elsif manifest.ignored?(new_pkg.name)
+                    true
+                end
+            end
+            new_packages
+        end
+
         def self.import_packages(selection, options = Hash.new)
             options, import_options = Kernel.filter_options options,
                 warn_about_ignored_packages: true,
@@ -642,6 +664,15 @@ module Autoproj
                     raise ConfigError.new, "#{pkg.name} has no VCS, but is not checked out in #{pkg.srcdir}"
                 end
 
+                # Try to auto-exclude the package early. If the autobuild file
+                # contained some information that allows us to exclude it now,
+                # then let's just do it
+                import_next_step(manifest, pkg, reverse_dependencies)
+                if manifest.excluded?(pkg.name)
+                    selection.filter_excluded_and_ignored_packages(manifest)
+                    next
+                end
+
                 ## COMPLETELY BYPASS RAKE HERE
                 # The reason is that the ordering of import/prepare between
                 # packages is not important BUT the ordering of import vs.
@@ -669,28 +700,13 @@ module Autoproj
                 end
                 pkg.update_environment
 
-                # Verify that its dependencies are there, and add
-                # them to the selected_packages set so that they get
-                # imported as well
-                new_packages = []
-                pkg.dependencies.each do |dep_name|
-                    reverse_dependencies[dep_name] << pkg.name
-                    new_packages << Autobuild::Package[dep_name]
+                new_packages = import_next_step(manifest, pkg, reverse_dependencies)
+                # Excluded dependencies might have caused the package to be
+                # excluded as well ... do not add any dependency to the
+                # processing queue if it is the case
+                if !manifest.excluded?(pkg.name)
+                    package_queue.concat(new_packages.sort_by(&:name))
                 end
-                pkg_opt_deps, _ = pkg.partition_optional_dependencies
-                pkg_opt_deps.each do |dep_name|
-                    new_packages << Autobuild::Package[dep_name]
-                end
-
-                new_packages.delete_if do |pkg|
-                    if Autoproj.manifest.excluded?(pkg.name)
-                        mark_exclusion_along_revdeps(pkg.name, reverse_dependencies)
-                        true
-                    elsif Autoproj.manifest.ignored?(pkg.name)
-                        true
-                    end
-                end
-                package_queue.concat(new_packages.sort_by(&:name))
 
                 # Verify that everything is still OK with the new
                 # exclusions/ignores
