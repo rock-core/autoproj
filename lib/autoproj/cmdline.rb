@@ -206,8 +206,6 @@ module Autoproj
         end
 
         def self.load_configuration(silent = false)
-            manifest = Autoproj.manifest
-
             manifest.each_package_set do |pkg_set|
                 if Gem::Version.new(pkg_set.required_autoproj_version) > Gem::Version.new(Autoproj::VERSION)
                     raise ConfigError.new(pkg_set.source_file), "the #{pkg_set.name} package set requires autoproj v#{pkg_set.required_autoproj_version} but this is v#{Autoproj::VERSION}"
@@ -272,7 +270,7 @@ module Autoproj
         end
 
         def self.update_configuration
-            Ops::Configuration.new(Autoproj.manifest, Ops.loader).update_configuration(only_local?)
+            Ops::Configuration.new(manifest, Ops.loader).update_configuration(only_local?)
         end
 
         def self.setup_package_directories(pkg)
@@ -300,11 +298,9 @@ module Autoproj
 
 
         def self.setup_all_package_directories
-            manifest = Autoproj.manifest
-
             # Override the package directories from our reused installations
             imported_packages = Set.new
-            Autoproj.manifest.reused_installations.each do |imported_manifest|
+            manifest.reused_installations.each do |imported_manifest|
                 imported_manifest.each do |imported_pkg|
                     imported_packages << imported_pkg.name
                     if pkg = manifest.find_package(imported_pkg.name)
@@ -541,8 +537,6 @@ module Autoproj
         # Returns the set of packages that are actually selected based on what
         # the user gave on the command line
         def self.resolve_user_selection(selected_packages, options = Hash.new)
-            manifest = Autoproj.manifest
-
             if selected_packages.empty?
                 return manifest.default_packages
             end
@@ -591,18 +585,18 @@ module Autoproj
             root = !reason
             chain.unshift pkg_name
             if root
-                reason = Autoproj.manifest.exclusion_reason(pkg_name)
+                reason = manifest.exclusion_reason(pkg_name)
             else
                 if chain.size == 1
-                    Autoproj.manifest.add_exclusion(pkg_name, "its dependency #{reason}")
+                    manifest.add_exclusion(pkg_name, "its dependency #{reason}")
                 else
-                    Autoproj.manifest.add_exclusion(pkg_name, "#{reason} (dependency chain: #{chain.join(">")})")
+                    manifest.add_exclusion(pkg_name, "#{reason} (dependency chain: #{chain.join(">")})")
                 end
             end
 
             return if !revdeps.has_key?(pkg_name)
             revdeps[pkg_name].each do |dep_name|
-                if !Autoproj.manifest.excluded?(dep_name)
+                if !manifest.excluded?(dep_name)
                     mark_exclusion_along_revdeps(dep_name, revdeps, chain.dup, reason)
                 end
             end
@@ -618,7 +612,7 @@ module Autoproj
             updated_packages = Array.new
             selected_packages = selection.packages.
                 map do |pkg_name|
-                    pkg = Autobuild::Package[pkg_name]
+                    pkg = manifest.find_autobuild_package(pkg_name)
                     if !pkg
                         raise ConfigError.new, "selected package #{pkg_name} does not exist"
                     end
@@ -662,10 +656,10 @@ module Autoproj
 
                 # The package setup mechanisms might have added an exclusion
                 # on this package. Handle this.
-                if Autoproj.manifest.excluded?(pkg.name)
+                if manifest.excluded?(pkg.name)
                     mark_exclusion_along_revdeps(pkg.name, reverse_dependencies)
                     # Run a filter now, to have errors as early as possible
-                    selection.filter_excluded_and_ignored_packages(Autoproj.manifest)
+                    selection.filter_excluded_and_ignored_packages(manifest)
                     # Delete this package from the current_packages set
                     next
                 end
@@ -700,7 +694,7 @@ module Autoproj
 
                 # Verify that everything is still OK with the new
                 # exclusions/ignores
-                selection.filter_excluded_and_ignored_packages(Autoproj.manifest)
+                selection.filter_excluded_and_ignored_packages(manifest)
             end
 
 	    all_enabled_packages = Set.new
@@ -748,7 +742,7 @@ module Autoproj
             if options[:warn_about_excluded_packages]
                 selection.exclusions.each do |sel, pkg_names|
                     pkg_names.sort.each do |pkg_name|
-                        Autoproj.warn "#{pkg_name}, which was selected for #{sel}, cannot be built: #{Autoproj.manifest.exclusion_reason(pkg_name)}", :bold
+                        Autoproj.warn "#{pkg_name}, which was selected for #{sel}, cannot be built: #{manifest.exclusion_reason(pkg_name)}", :bold
                     end
                 end
             end
@@ -1303,7 +1297,7 @@ where 'mode' is one of:
         end
 
         def self.status(packages)
-            pkg_sets = Autoproj.manifest.each_package_set.map(&:create_autobuild_package)
+            pkg_sets = manifest.each_package_set.map(&:create_autobuild_package)
             if !pkg_sets.empty?
                 Autoproj.message("autoproj: displaying status of configuration", :bold)
                 display_status(pkg_sets)
@@ -1318,7 +1312,7 @@ where 'mode' is one of:
         end
 
         def self.missing_dependencies(pkg)
-            manifest = Autoproj.manifest.package_manifests[pkg.name]
+            manifest = manifest.package_manifests[pkg.name]
             all_deps = pkg.dependencies.map do |dep_name|
                 dep_pkg = Autobuild::Package[dep_name]
                 if dep_pkg then dep_pkg.name
@@ -1346,7 +1340,7 @@ where 'mode' is one of:
                 result = []
 
                 pkg = Autobuild::Package[pkg_name]
-                manifest = Autoproj.manifest.package_manifests[pkg.name]
+                manifest = manifest.package_manifests[pkg.name]
 
                 # Check if the manifest contains rosdep tags
                 # if manifest && !manifest.each_os_dependency.to_a.empty?
@@ -1368,7 +1362,7 @@ where 'mode' is one of:
         def self.manifest_update(packages)
             packages.sort.each do |pkg_name|
                 pkg = Autobuild::Package[pkg_name]
-                manifest = Autoproj.manifest.package_manifests[pkg.name]
+                manifest = manifest.package_manifests[pkg.name]
 
                 xml = 
                     if !manifest
@@ -1409,7 +1403,7 @@ where 'mode' is one of:
         # Displays the reverse OS dependencies (i.e. for each osdeps package,
         # who depends on it and where it is defined)
         def self.revshow_osdeps(packages)
-            _, ospkg_to_pkg = Autoproj.manifest.list_os_dependencies(packages)
+            _, ospkg_to_pkg = manifest.list_os_dependencies(packages)
 
             # A mapping from a package name to
             #   [is_os_pkg, is_gem_pkg, definitions, used_by]
@@ -1460,7 +1454,7 @@ where 'mode' is one of:
 
         # Displays the OS dependencies required by the given packages
         def self.show_osdeps(packages)
-            _, ospkg_to_pkg = Autoproj.manifest.list_os_dependencies(packages)
+            _, ospkg_to_pkg = manifest.list_os_dependencies(packages)
 
             # ospkg_to_pkg is the reverse mapping to what we want. Invert it
             mapping = Hash.new { |h, k| h[k] = Set.new }
@@ -1581,7 +1575,7 @@ where 'mode' is one of:
 
         def self.export_installation_manifest
             File.open(File.join(Autoproj.root_dir, ".autoproj-installation-manifest"), 'w') do |io|
-                Autoproj.manifest.all_selected_packages.each do |pkg_name|
+                manifest.all_selected_packages.each do |pkg_name|
                     pkg = Autobuild::Package[pkg_name]
                     io.puts "#{pkg_name},#{pkg.srcdir},#{pkg.prefix}"
                 end
