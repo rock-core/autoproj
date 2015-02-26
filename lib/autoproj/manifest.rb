@@ -40,7 +40,8 @@ module Autoproj
         # @return [Array<PackageSet>]
         attr_writer :package_sets
 
-        # Returns true if +pkg_name+ has been explicitely selected
+        # Returns true if +pkg_name+ has been explicitely selected, either by
+        # the command line or through the layout
         def explicitly_selected_package?(pkg_name)
             explicit_selection && explicit_selection.include?(pkg_name)
         end
@@ -67,6 +68,12 @@ module Autoproj
             @data = data
             @ignored_packages |= (data['ignored_packages'] || Set.new).to_set
             @manifest_exclusions |= (data['exclude_packages'] || Set.new).to_set
+
+            @normalized_layout = Hash.new
+            compute_normalized_layout(
+                normalized_layout,
+                '/',
+                data['layout'] || Hash.new)
 
             if data['constants']
                 @constant_definitions = Autoproj.resolve_constant_definitions(data['constants'])
@@ -230,7 +237,11 @@ module Autoproj
         # This is useful to avoid building packages that are of no use for the
         # user.
         def excluded?(package_name)
-            if excluded_in_manifest?(package_name)
+            package_name = package_name.to_str
+
+            if normalized_layout.has_key?(package_name)
+                false
+            elsif excluded_in_manifest?(package_name)
                 true
             elsif automatic_exclusions.any? { |pkg_name, | pkg_name == package_name }
                 true
@@ -835,7 +846,11 @@ module Autoproj
             end
         end
 
-        def normalized_layout(result = Hash.new, layout_level = '/', layout_data = (data['layout'] || Hash.new))
+        # A mapping from names to layout placement, as found in the layout
+        # section of the manifest
+        attr_reader :normalized_layout
+
+        def compute_normalized_layout(result, layout_level, layout_data)
             layout_data.each do |value|
                 if value.kind_of?(Hash)
                     subname, subdef = value.find { true }
