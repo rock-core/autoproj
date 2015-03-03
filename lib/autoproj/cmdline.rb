@@ -43,6 +43,14 @@ module Autoproj
     end
 
     module CmdLine
+        def self.argv
+            if defined? ORIGINAL_ARGV
+              ORIGINAL_ARGV
+            else
+              ARGV
+            end
+        end
+
         def self.config
             Autoproj.config
         end
@@ -193,17 +201,11 @@ module Autoproj
                 Autoproj.save_config
                 ENV['AUTOPROJ_RESTARTING'] = '1'
                 require 'rbconfig'
-                if defined?(ORIGINAL_ARGV)
-                    exec(ruby_executable, $0, *ORIGINAL_ARGV)
-                else
-                    exec(ruby_executable, $0, *ARGV)
-                end
+                exec(ruby_executable, $0, *argv)
             end
         end
 
         def self.load_configuration(silent = false)
-            manifest = Autoproj.manifest
-
             manifest.each_package_set do |pkg_set|
                 if Gem::Version.new(pkg_set.required_autoproj_version) > Gem::Version.new(Autoproj::VERSION)
                     raise ConfigError.new(pkg_set.source_file), "the #{pkg_set.name} package set requires autoproj v#{pkg_set.required_autoproj_version} but this is v#{Autoproj::VERSION}"
@@ -268,7 +270,7 @@ module Autoproj
         end
 
         def self.update_configuration
-            Ops::Configuration.new(Autoproj.manifest, Ops.loader).update_configuration(only_local?)
+            Ops::Configuration.new(manifest, Ops.loader).update_configuration(only_local?)
         end
 
         def self.setup_package_directories(pkg)
@@ -296,11 +298,9 @@ module Autoproj
 
 
         def self.setup_all_package_directories
-            manifest = Autoproj.manifest
-
             # Override the package directories from our reused installations
             imported_packages = Set.new
-            Autoproj.manifest.reused_installations.each do |imported_manifest|
+            manifest.reused_installations.each do |imported_manifest|
                 imported_manifest.each do |imported_pkg|
                     imported_packages << imported_pkg.name
                     if pkg = manifest.find_package(imported_pkg.name)
@@ -537,8 +537,6 @@ module Autoproj
         # Returns the set of packages that are actually selected based on what
         # the user gave on the command line
         def self.resolve_user_selection(selected_packages, options = Hash.new)
-            manifest = Autoproj.manifest
-
             if selected_packages.empty?
                 return manifest.default_packages
             end
@@ -587,31 +585,56 @@ module Autoproj
             root = !reason
             chain.unshift pkg_name
             if root
-                reason = Autoproj.manifest.exclusion_reason(pkg_name)
+                reason = manifest.exclusion_reason(pkg_name)
             else
                 if chain.size == 1
-                    Autoproj.manifest.add_exclusion(pkg_name, "its dependency #{reason}")
+                    manifest.add_exclusion(pkg_name, "its dependency #{reason}")
                 else
-                    Autoproj.manifest.add_exclusion(pkg_name, "#{reason} (dependency chain: #{chain.join(">")})")
+                    manifest.add_exclusion(pkg_name, "#{reason} (dependency chain: #{chain.join(">")})")
                 end
             end
 
             return if !revdeps.has_key?(pkg_name)
             revdeps[pkg_name].each do |dep_name|
-                if !Autoproj.manifest.excluded?(dep_name)
+                if !manifest.excluded?(dep_name)
                     mark_exclusion_along_revdeps(dep_name, revdeps, chain.dup, reason)
                 end
             end
         end
 
+        def self.import_next_step(manifest, pkg, reverse_dependencies)
+            new_packages = []
+            pkg.dependencies.each do |dep_name|
+                reverse_dependencies[dep_name] << pkg.name
+                new_packages << manifest.find_autobuild_package(dep_name)
+            end
+            pkg_opt_deps, _ = pkg.partition_optional_dependencies
+            pkg_opt_deps.each do |dep_name|
+                new_packages << manifest.find_autobuild_package(dep_name)
+            end
+
+            new_packages.delete_if do |new_pkg|
+                if manifest.excluded?(new_pkg.name)
+                    mark_exclusion_along_revdeps(new_pkg.name, reverse_dependencies)
+                    true
+                elsif manifest.ignored?(new_pkg.name)
+                    true
+                end
+            end
+            new_packages
+        end
+
         def self.import_packages(selection, options = Hash.new)
-            options = Kernel.validate_options options,
+            options, import_options = Kernel.filter_options options,
                 warn_about_ignored_packages: true,
                 warn_about_excluded_packages: true
+            import_options = Hash[only_local: only_local?, reset: reset?, checkout_only: !Autobuild.do_update].
+                merge(import_options)
 
+            updated_packages = Array.new
             selected_packages = selection.packages.
                 map do |pkg_name|
-                    pkg = Autobuild::Package[pkg_name]
+                    pkg = manifest.find_autobuild_package(pkg_name)
                     if !pkg
                         raise ConfigError.new, "selected package #{pkg_name} does not exist"
                     end
@@ -641,21 +664,33 @@ module Autoproj
                     raise ConfigError.new, "#{pkg.name} has no VCS, but is not checked out in #{pkg.srcdir}"
                 end
 
+                # Try to auto-exclude the package early. If the autobuild file
+                # contained some information that allows us to exclude it now,
+                # then let's just do it
+                import_next_step(manifest, pkg, reverse_dependencies)
+                if manifest.excluded?(pkg.name)
+                    selection.filter_excluded_and_ignored_packages(manifest)
+                    next
+                end
+
                 ## COMPLETELY BYPASS RAKE HERE
                 # The reason is that the ordering of import/prepare between
                 # packages is not important BUT the ordering of import vs.
                 # prepare in one package IS important: prepare is the method
                 # that takes into account dependencies.
-                pkg.import(only_local?)
+                pkg.import(import_options)
+                if pkg.updated?
+                    updated_packages << pkg.name
+                end
                 Rake::Task["#{pkg.name}-import"].instance_variable_set(:@already_invoked, true)
                 manifest.load_package_manifest(pkg.name)
 
                 # The package setup mechanisms might have added an exclusion
                 # on this package. Handle this.
-                if Autoproj.manifest.excluded?(pkg.name)
+                if manifest.excluded?(pkg.name)
                     mark_exclusion_along_revdeps(pkg.name, reverse_dependencies)
                     # Run a filter now, to have errors as early as possible
-                    selection.filter_excluded_and_ignored_packages(Autoproj.manifest)
+                    selection.filter_excluded_and_ignored_packages(manifest)
                     # Delete this package from the current_packages set
                     next
                 end
@@ -665,32 +700,17 @@ module Autoproj
                 end
                 pkg.update_environment
 
-                # Verify that its dependencies are there, and add
-                # them to the selected_packages set so that they get
-                # imported as well
-                new_packages = []
-                pkg.dependencies.each do |dep_name|
-                    reverse_dependencies[dep_name] << pkg.name
-                    new_packages << Autobuild::Package[dep_name]
+                new_packages = import_next_step(manifest, pkg, reverse_dependencies)
+                # Excluded dependencies might have caused the package to be
+                # excluded as well ... do not add any dependency to the
+                # processing queue if it is the case
+                if !manifest.excluded?(pkg.name)
+                    package_queue.concat(new_packages.sort_by(&:name))
                 end
-                pkg_opt_deps, _ = pkg.partition_optional_dependencies
-                pkg_opt_deps.each do |dep_name|
-                    new_packages << Autobuild::Package[dep_name]
-                end
-
-                new_packages.delete_if do |pkg|
-                    if Autoproj.manifest.excluded?(pkg.name)
-                        mark_exclusion_along_revdeps(pkg.name, reverse_dependencies)
-                        true
-                    elsif Autoproj.manifest.ignored?(pkg.name)
-                        true
-                    end
-                end
-                package_queue.concat(new_packages.sort_by(&:name))
 
                 # Verify that everything is still OK with the new
                 # exclusions/ignores
-                selection.filter_excluded_and_ignored_packages(Autoproj.manifest)
+                selection.filter_excluded_and_ignored_packages(manifest)
             end
 
 	    all_enabled_packages = Set.new
@@ -738,7 +758,7 @@ module Autoproj
             if options[:warn_about_excluded_packages]
                 selection.exclusions.each do |sel, pkg_names|
                     pkg_names.sort.each do |pkg_name|
-                        Autoproj.warn "#{pkg_name}, which was selected for #{sel}, cannot be built: #{Autoproj.manifest.exclusion_reason(pkg_name)}", :bold
+                        Autoproj.warn "#{pkg_name}, which was selected for #{sel}, cannot be built: #{manifest.exclusion_reason(pkg_name)}", :bold
                     end
                 end
             end
@@ -751,6 +771,19 @@ module Autoproj
             end
 
             return all_enabled_packages
+
+        ensure
+            if !updated_packages.empty?
+                failure_message =
+                    if $!
+                        " (#{$!.message.split("\n").first})"
+                    end
+                ops = Ops::Snapshot.new(manifest, keep_going: true)
+
+                ops.update_package_import_state(
+                    "#{$0} #{argv.join(" ")}#{failure_message}",
+                    updated_packages)
+            end
         end
 
         def self.build_packages(selected_packages, all_enabled_packages, phases = [])
@@ -798,6 +831,7 @@ module Autoproj
         def self.manifest; Autoproj.manifest end
         def self.only_status?; !!@only_status end
         def self.only_local?; !!@only_local end
+        def self.reset?; !!@reset end
         def self.check?; !!@check end
         def self.manifest_update?; !!@manifest_update end
         def self.only_config?; !!@only_config end
@@ -865,6 +899,7 @@ module Autoproj
             @force_re_build_with_depends = false
             force_re_build_with_depends = nil
             @only_config = false
+            @reset = false
             @color = true
             Autobuild.color = true
             Autobuild.do_update = nil
@@ -1016,9 +1051,13 @@ where 'mode' is one of:
                 opts.on("--none", "in osdeps mode, do not install any package but display information about them, regardless of the otherwise selected mode") do
                     @osdeps_forced_mode = 'none'
                 end
-                opts.on("--local", "for status, do not access the network") do
+                opts.on("--local", "in status and update modes, do not access the network") do
                     @only_local = true
                 end
+                opts.on("--reset", "in update mode, reset the repositories to the state requested by the VCS configuration") do
+                    @reset = true
+                end
+
                 opts.on('--exit-code', 'in status mode, exit with a code that reflects the status of the installation (see documentation for details)') do
                     @status_exit_code = true
                 end
@@ -1274,7 +1313,7 @@ where 'mode' is one of:
         end
 
         def self.status(packages)
-            pkg_sets = Autoproj.manifest.each_package_set.map(&:create_autobuild_package)
+            pkg_sets = manifest.each_package_set.map(&:create_autobuild_package)
             if !pkg_sets.empty?
                 Autoproj.message("autoproj: displaying status of configuration", :bold)
                 display_status(pkg_sets)
@@ -1289,7 +1328,7 @@ where 'mode' is one of:
         end
 
         def self.missing_dependencies(pkg)
-            manifest = Autoproj.manifest.package_manifests[pkg.name]
+            manifest = manifest.package_manifests[pkg.name]
             all_deps = pkg.dependencies.map do |dep_name|
                 dep_pkg = Autobuild::Package[dep_name]
                 if dep_pkg then dep_pkg.name
@@ -1317,7 +1356,7 @@ where 'mode' is one of:
                 result = []
 
                 pkg = Autobuild::Package[pkg_name]
-                manifest = Autoproj.manifest.package_manifests[pkg.name]
+                manifest = manifest.package_manifests[pkg.name]
 
                 # Check if the manifest contains rosdep tags
                 # if manifest && !manifest.each_os_dependency.to_a.empty?
@@ -1339,7 +1378,7 @@ where 'mode' is one of:
         def self.manifest_update(packages)
             packages.sort.each do |pkg_name|
                 pkg = Autobuild::Package[pkg_name]
-                manifest = Autoproj.manifest.package_manifests[pkg.name]
+                manifest = manifest.package_manifests[pkg.name]
 
                 xml = 
                     if !manifest
@@ -1377,87 +1416,10 @@ where 'mode' is one of:
             end
         end
 
-        def self.snapshot(manifest, target_dir, packages)
-            # First, copy the configuration directory to create target_dir
-            if File.exists?(target_dir)
-                raise ArgumentError, "#{target_dir} already exists"
-            end
-            FileUtils.cp_r Autoproj.config_dir, target_dir
-            # Finally, remove the remotes/ directory from the generated
-            # buildconf, it is obsolete now
-            FileUtils.rm_rf File.join(target_dir, 'remotes')
-
-            # Pin package sets
-            package_sets = Array.new
-            manifest.each_package_set do |pkg_set|
-                next if pkg_set.name == 'local'
-                if pkg_set.local?
-                    package_sets << Pathname.new(pkg_set.local_dir).
-                        relative_path_from(Pathname.new(manifest.file).dirname).
-                        to_s
-                else
-                    vcs_info = pkg_set.vcs.to_hash
-                    if pin_info = pkg_set.snapshot(target_dir)
-                        vcs_info = vcs_info.merge(pin_info)
-                    end
-                    package_sets << vcs_info
-                end
-            end
-            manifest_path = File.join(target_dir, 'manifest')
-            manifest_data = YAML.load(File.read(manifest_path))
-            manifest_data['package_sets'] = package_sets
-            File.open(manifest_path, 'w') do |io|
-                YAML.dump(manifest_data, io)
-            end
-
-            # Now, create snapshot information for each of the packages
-            version_control_info = []
-            overrides_info = []
-            packages.each do |package_name|
-                package  = manifest.packages[package_name]
-                if !package
-                    raise ArgumentError, "#{package_name} is not a known package"
-                end
-                package_set = package.package_set
-                importer = package.autobuild.importer
-                if !importer
-                    Autoproj.message "cannot snapshot #{package_name} as it has no importer"
-                    next
-                elsif !importer.respond_to?(:snapshot)
-                    Autoproj.message "cannot snapshot #{package_name} as the #{importer.class} importer does not support it"
-                    next
-                end
-
-                vcs_info = importer.snapshot(package.autobuild, target_dir)
-                if vcs_info
-                    if package_set.name == 'local'
-                        version_control_info << Hash[package_name, vcs_info]
-                    else
-                        overrides_info << Hash[package_name, vcs_info]
-                    end
-                end
-            end
-
-            overrides_path = File.join(target_dir, 'overrides.yml')
-            if File.exists?(overrides_path)
-                overrides = YAML.load(File.read(overrides_path))
-            end
-            # In Ruby 1.9, an empty file results in YAML.load returning false
-            overrides ||= Hash.new
-            (overrides['version_control'] ||= Array.new).
-                concat(version_control_info)
-            (overrides['overrides'] ||= Array.new).
-                concat(overrides_info)
-
-            File.open(overrides_path, 'w') do |io|
-                io.write YAML.dump(overrides)
-            end
-        end
-
         # Displays the reverse OS dependencies (i.e. for each osdeps package,
         # who depends on it and where it is defined)
         def self.revshow_osdeps(packages)
-            _, ospkg_to_pkg = Autoproj.manifest.list_os_dependencies(packages)
+            _, ospkg_to_pkg = manifest.list_os_dependencies(packages)
 
             # A mapping from a package name to
             #   [is_os_pkg, is_gem_pkg, definitions, used_by]
@@ -1508,7 +1470,7 @@ where 'mode' is one of:
 
         # Displays the OS dependencies required by the given packages
         def self.show_osdeps(packages)
-            _, ospkg_to_pkg = Autoproj.manifest.list_os_dependencies(packages)
+            _, ospkg_to_pkg = manifest.list_os_dependencies(packages)
 
             # ospkg_to_pkg is the reverse mapping to what we want. Invert it
             mapping = Hash.new { |h, k| h[k] = Set.new }
@@ -1564,6 +1526,7 @@ where 'mode' is one of:
             Autoproj::CmdLine.load_configuration
             Autoproj::CmdLine.setup_all_package_directories
             Autoproj::CmdLine.finalize_package_setup
+
 
             load_all_available_package_manifests
             update_environment
@@ -1628,7 +1591,7 @@ where 'mode' is one of:
 
         def self.export_installation_manifest
             File.open(File.join(Autoproj.root_dir, ".autoproj-installation-manifest"), 'w') do |io|
-                Autoproj.manifest.all_selected_packages.each do |pkg_name|
+                manifest.all_selected_packages.each do |pkg_name|
                     pkg = Autobuild::Package[pkg_name]
                     io.puts "#{pkg_name},#{pkg.srcdir},#{pkg.prefix}"
                 end
@@ -1637,12 +1600,12 @@ where 'mode' is one of:
 
         def self.report(options = Hash.new)
             options = Kernel.validate_options options,
-                report_success: true
+                silent: false
 
             Autobuild::Reporting.report do
                 yield
             end
-            if options[:report_success]
+            if !options[:silent]
                 Autobuild::Reporting.success
             end
 

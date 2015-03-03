@@ -1,0 +1,20 @@
+#! /usr/bin/env ruby
+require 'autoproj/cli/versions'
+
+args = ARGV.map do |arg|
+    if File.directory?(arg)
+        File.expand_path(arg)
+    else arg
+    end
+end
+
+Autoproj::CmdLine.report(silent: true) do
+    Autoproj.silent do
+        Autoproj::CmdLine.initialize_root_directory
+        Autoproj::CmdLine.initialize_and_load([])
+    end
+
+    cli = Autoproj::CLI::Versions.new(Autoproj.manifest)
+    user_selection, options = cli.parse_options(args)
+    cli.run(user_selection, options)
+end

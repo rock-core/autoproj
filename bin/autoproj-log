@@ -1,0 +1,5 @@
+#! /bin/sh
+
+set -e
+cd $(autolocate)/autoproj
+git reflog autoproj --format="%Cgreen%gd %Cblue%cr %Creset%gs"

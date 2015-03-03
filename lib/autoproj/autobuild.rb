@@ -222,14 +222,14 @@ module Autoproj
     class Reporter < Autobuild::Reporter
         def error(error)
             error_lines = error.to_s.split("\n")
-            Autoproj.message("Build failed", :bold, :red)
-            Autoproj.message("#{error_lines.shift}", :bold, :red)
+            Autoproj.message("Command failed", :bold, :red, STDERR)
+            Autoproj.message("#{error_lines.shift}", :bold, :red, STDERR)
             error_lines.each do |line|
-                Autoproj.message line
+                Autoproj.message line, STDERR
             end
         end
         def success
-            Autoproj.message("Build finished successfully at #{Time.now}", :bold, :green)
+            Autoproj.message("Command finished successfully at #{Time.now}", :bold, :green)
             if Autobuild.post_success_message
                 Autoproj.message Autobuild.post_success_message
             end
@@ -570,21 +570,44 @@ def user_config(key)
 end
 
 class Autobuild::Git
-    def snapshot(package, target_dir)
-        Dir.chdir(package.srcdir) do
-            head_commit   = `git rev-parse #{branch}`.chomp
-            { 'commit' => head_commit }
+    # get version information from the importer
+    def snapshot(package, target_dir = nil)
+        info = Hash.new
+        if local_branch != remote_branch
+            info['local_branch'] = local_branch
+            info['remote_branch'] = remote_branch
+        else
+            info['branch'] = branch
+        end
+
+        begin
+            tag = run_git_bare(package, 'describe', '--tags', '--exact-match', 'HEAD').first.strip
+            info.merge('tag' => tag.encode('UTF-8'), 'commit' => nil)
+        rescue Autobuild::SubcommandFailed
+            head_commit = rev_parse(package, 'HEAD')
+            info.merge('tag' => nil, 'commit' => head_commit.encode('UTF-8'))
         end
     end
 end
 
-class Autobuild::ArchiveImporter
-    def snapshot(package, target_dir)
-        archive_dir = File.join(target_dir, 'archives')
-        FileUtils.mkdir_p archive_dir
-        FileUtils.cp @cachefile, archive_dir
+class Autobuild::SVN
+    def snapshot(package, target_dir = nil)
+        version = svn_revision(package)
+        Hash['revision' => version]
+    end
+end
 
-        { 'url' =>  "file://$AUTOPROJ_SOURCE_DIR/archives/#{File.basename(@cachefile)}" }
+class Autobuild::ArchiveImporter
+    def snapshot(package, target_dir = nil)
+        if target_dir
+            archive_dir = File.join(target_dir, 'archives')
+            FileUtils.mkdir_p archive_dir
+            FileUtils.cp @cachefile, archive_dir
+
+            { 'url' =>  "file://$AUTOPROJ_SOURCE_DIR/archives/#{File.basename(@cachefile)}" }
+        else
+            { 'url' => @url.to_s }
+        end
     end
 end
 

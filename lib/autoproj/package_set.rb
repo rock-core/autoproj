@@ -56,6 +56,9 @@ module Autoproj
         attr_reader :source_definition
         attr_reader :constants_definitions
 
+        # The set of overrides defined in this package set
+        attr_reader :overrides
+
         # Sets the auto_imports flag
         #
         # @see auto_imports?
@@ -89,6 +92,7 @@ module Autoproj
             @vcs = vcs
             @osdeps = OSDependencies.new
             @all_osdeps = []
+            @overrides = Array.new
 
             @provides = Set.new
             @imports  = Set.new
@@ -114,11 +118,14 @@ module Autoproj
         # True if this source has already been checked out on the local autoproj
         # installation
         def present?; File.directory?(raw_local_dir) end
+        # True if this is the main package set (i.e. the main autoproj
+        # configuration)
+        def main?; false end
         # True if this source is local, i.e. is not under a version control
         def local?; vcs.local? end
         # True if this source defines nothing
         def empty?
-            !source_definition['version_control'] && !source_definition['overrides']
+            !source_definition['version_control'] && overrides.empty?
                 !each_package.find { true } &&
                 !File.exists?(File.join(raw_local_dir, "overrides.rb")) &&
                 !File.exists?(File.join(raw_local_dir, "init.rb"))
@@ -133,7 +140,9 @@ module Autoproj
                 Hash.new
             else
                 package = create_autobuild_package
-                package.importer.snapshot(package, target_dir)
+                if package.importer.respond_to?(:snapshot)
+                    package.importer.snapshot(package, target_dir)
+                end
             end
         end
 
@@ -326,6 +335,15 @@ module Autoproj
             end
 
             parse_source_definition
+            @overrides = load_overrides
+        end
+
+        def load_overrides
+            if data = source_definition['overrides']
+                [[source_file, data]]
+            else
+                []
+            end
         end
 
         def parse_source_definition
@@ -377,6 +395,10 @@ module Autoproj
         #
         # The returned value is a VCSDefinition object.
         def version_control_field(package_name, section_name, validate = true)
+            vcs_field( source_definition, package_name, section_name, validate )
+        end
+
+        def vcs_field( source_definition, package_name, section_name, validate )
             urls = source_definition['urls'] || Hash.new
             urls['HOME'] = ENV['HOME']
 
@@ -395,6 +417,10 @@ module Autoproj
             if all_vcs
                 all_vcs.each do |spec|
                     spec = spec.dup
+                    if !spec.kind_of?(Hash)
+                        raise ConfigError.new, "wrong format for the #{spec} entry, expected #{spec} followed by a colon and one importer option per following line"
+                    end
+
                     if spec.values.size != 1
                         # Maybe the user wrote the spec like
                         #   - package_name:
@@ -495,16 +521,23 @@ module Autoproj
         # @param [VCSDefinition] the vcs to be updated
         # @return [VCSDefinition] the new, updated vcs object
         def overrides_for(package_name, vcs)
-            new_spec, new_raw_entry = version_control_field(package_name, 'overrides', false)
-            return vcs if !new_spec
+            overrides.each do |file, override|
+                new_spec, new_raw_entry = 
+                    Autoproj.in_file file do
+                        vcs_field(Hash['overrides' => override], package_name, 'overrides', false)
+                    end
 
-            Autoproj.in_file source_file do
-                begin
-                    vcs.update(new_spec, new_raw_entry)
-                rescue ConfigError => e
-                    raise ConfigError.new, "invalid resulting VCS specification in the overrides section for package #{package_name}: #{e.message}"
+                if new_spec
+                    Autoproj.in_file file do
+                        begin
+                            vcs = vcs.update(new_spec, new_raw_entry)
+                        rescue ConfigError => e
+                            raise ConfigError.new, "invalid resulting VCS specification in the overrides section for package #{package_name}: #{e.message}"
+                        end
+                    end
                 end
             end
+            vcs
         end
 
         # Enumerates the Autobuild::Package instances that are defined in this
@@ -547,6 +580,10 @@ module Autoproj
             'main configuration'
         end
 
+        def main?
+            true
+        end
+
         def local?
             true
         end
@@ -563,12 +600,12 @@ module Autoproj
             File.join(Autoproj.config_dir, "manifest")
         end
 
-        def overrides_yml_path
+        def overrides_file_path
             File.join(Autoproj.config_dir, "overrides.yml")
         end
 
         def source_file
-            overrides_yml_path
+            manifest_path
         end
 
         # Returns the default importer for this package set
@@ -580,21 +617,41 @@ module Autoproj
         def load_description_file
             @source_definition = raw_description_file
             parse_source_definition
+            @overrides = load_overrides
+        end
+
+        def load_overrides
+            files = Dir.glob(File.join( Autoproj.overrides_dir, "*.yml" ) ).sort
+            overrides = files.map do |file|
+                source_data = Autoproj.in_file(file, Autoproj::YAML_LOAD_ERROR) do
+                    YAML.load(File.read(file)) || Array.new
+                end
+                source_data =
+                    if source_data.respond_to?(:to_ary)
+                        source_data
+                    else source_data['overrides'] || Array.new
+                    end
+                [file, source_data]
+            end
+            overrides + super
         end
 
         def raw_description_file
-            if File.file?(overrides_yml_path)
-                description = Autoproj.in_file(overrides_yml_path, Autoproj::YAML_LOAD_ERROR) do
-                    YAML.load(File.read(overrides_yml_path)) || Hash.new
+            description = Hash[
+                'imports' => Array.new,
+                'version_control' => Array.new,
+                'overrides' => Array.new]
+            if File.file?(overrides_file_path)
+                overrides_data = Autoproj.in_file(overrides_file_path, Autoproj::YAML_LOAD_ERROR) do
+                    YAML.load(File.read(overrides_file_path)) || Hash.new
                 end
-            else
-                description = Hash.new
+                description = description.merge(overrides_data)
             end
 
             manifest_data = Autoproj.in_file(manifest_path, Autoproj::YAML_LOAD_ERROR) do
                 YAML.load(File.read(manifest_path)) || Hash.new
             end
-            description['imports'] = (description['imports'] || Array.new).
+            description['imports'] = description['imports'].
                 concat(manifest_data['package_sets'] || Array.new)
             description['name'] = name
             description

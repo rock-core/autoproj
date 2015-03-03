@@ -96,7 +96,7 @@ module Autoproj
                     fake_package.update = false
                 end
             end
-            fake_package.import(only_local)
+            fake_package.import(only_local: only_local)
 
         rescue Autobuild::ConfigException => e
             raise ConfigError.new, "cannot import #{name}: #{e.message}", e.backtrace
@@ -177,9 +177,11 @@ module Autoproj
             pkg_set
         end
 
-        def queue_auto_imports_if_needed(queue, pkg_set)
+        def queue_auto_imports_if_needed(queue, pkg_set, root_set)
             if pkg_set.auto_imports?
                 pkg_set.each_raw_imported_set do |import_vcs, import_options|
+                    repository_id = repository_id_of(import_vcs)
+                    import_vcs = root_set.overrides_for("pkg_set:#{repository_id}", import_vcs)
                     queue << [import_vcs, import_options, pkg_set]
                 end
             end
@@ -191,10 +193,7 @@ module Autoproj
                 return "local:#{vcs.url}"
             end
 
-            name = PackageSet.name_of(manifest, vcs)
-            raw_local_dir = PackageSet.raw_local_dir_of(vcs)
-            fake_package = Tools.create_autobuild_package(vcs, name, raw_local_dir)
-            fake_package.importer.repository_id
+            vcs.create_autobuild_importer.repository_id
         end
 
         # Load the package set information
@@ -210,7 +209,7 @@ module Autoproj
             by_repository_id = Hash.new
             by_name = Hash.new
 
-            queue = queue_auto_imports_if_needed(Array.new, root_pkg_set)
+            queue = queue_auto_imports_if_needed(Array.new, root_pkg_set, root_pkg_set)
             while !queue.empty?
                 vcs, options, imported_from = queue.shift
                 repository_id = repository_id_of(vcs)
@@ -258,7 +257,7 @@ module Autoproj
                 by_name[pkg_set.name] = [pkg_set, vcs, options, imported_from]
 
                 # Finally, queue the imports
-                queue_auto_imports_if_needed(queue, pkg_set)
+                queue_auto_imports_if_needed(queue, pkg_set, root_pkg_set)
             end
 
             cleanup_remotes_dir(package_sets)

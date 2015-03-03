@@ -37,7 +37,7 @@ module Autoproj
                     FileUtils.mkdir_p File.dirname(pkg.importdir)
                     Autobuild::Subprocess.run("autoproj-cache", "import", Autobuild.tool(:git), "--git-dir", pkg.importdir, 'init', "--bare")
                 end
-                pkg.importer.update_remotes_configuration(pkg, 'autoproj-cache')
+                pkg.importer.update_remotes_configuration(pkg)
 
                 with_retry(10) do
                     Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', pkg.importdir, 'remote', 'update', 'autobuild')
