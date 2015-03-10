@@ -555,16 +555,7 @@ fi
                 # Now, reset the directories in our own RubyGems instance
                 Gem.paths = ENV
 
-                # If there is a cache directory, make sure .gems/cache points to
-                # it (there are no programmatic ways to override this)
-                if cache = cache_dir
-                    gem_cache_dir = File.join(gem_home, 'cache')
-                    if !File.symlink?(gem_cache_dir) || File.readlink(gem_cache_dir) != cache
-                        FileUtils.mkdir_p gem_home
-                        FileUtils.rm_rf gem_cache_dir
-                        Autoproj.create_symlink(cache, gem_cache_dir)
-                    end
-                end
+                use_cache_dir
             end
 
             # A global cache directory that should be used to avoid
@@ -574,6 +565,19 @@ fi
                     dir = File.join(dir, 'gems')
                     FileUtils.mkdir_p dir
                     dir
+                end
+            end
+
+            def self.use_cache_dir
+                # If there is a cache directory, make sure .gems/cache points to
+                # it (there are no programmatic ways to override this)
+                if cache = cache_dir
+                    gem_cache_dir = File.join(gem_home, 'cache')
+                    if !File.symlink?(gem_cache_dir) || File.readlink(gem_cache_dir) != cache
+                        FileUtils.mkdir_p gem_home
+                        FileUtils.rm_rf gem_cache_dir
+                        Autoproj.create_symlink(cache, gem_cache_dir)
+                    end
                 end
             end
 

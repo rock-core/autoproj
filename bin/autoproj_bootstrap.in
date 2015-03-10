@@ -5,17 +5,6 @@ if RUBY_VERSION < "1.9.2"
     exit 1
 end
 
-if defined? Encoding # This is a 1.9-only thing
-    Encoding.default_internal = Encoding::UTF_8
-    Encoding.default_external = Encoding::UTF_8
-end
-
-if ENV['AUTOPROJ_CURRENT_ROOT'] && ENV['AUTOPROJ_CURRENT_ROOT'] != Dir.pwd
-    STDERR.puts "the env.sh from #{ENV['AUTOPROJ_CURRENT_ROOT']} seem to already be sourced"
-    STDERR.puts "start a new shell and try to bootstrap again"
-    exit 1
-end
-
 require 'rbconfig'
 module Autobuild
     @windows = RbConfig::CONFIG["host_os"] =~ %r!(msdos|mswin|djgpp|mingw|[Ww]indows)!
@@ -28,38 +17,6 @@ module Autobuild
         @macos
     end
 end
-
-require 'set'
-curdir_entries = Dir.entries('.').to_set - [".", "..", "autoproj_bootstrap", ".gems", 'env.sh'].to_set
-if !curdir_entries.empty? && ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] != '1'
-    while true
-        print "The current directory is not empty, continue bootstrapping anyway ? [yes] "
-        STDOUT.flush 
-        answer = STDIN.readline.chomp
-        if answer == "no"
-            exit
-        elsif answer == "" || answer == "yes"
-            # Set the environment variable since we might restart the
-            # autoproj_bootstrap script and -- anyway -- will run "autoproj
-            # bootstrap" later on
-            break
-        else
-            STDOUT.puts "invalid answer. Please answer 'yes' or 'no'"
-            STDOUT.flush
-        end
-    end
-end
-
-# Environment is clean, so just mark it as so unconditionally
-ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] = '1'
-
-gem_home = ENV['AUTOPROJ_GEM_HOME'] || File.join(Dir.pwd, '.gems')
-gem_path = ([gem_home] + Gem.default_path).join(":")
-Gem.paths = Hash['GEM_HOME' => gem_home, 'GEM_PATH' => gem_path]
-
-ENV['GEM_HOME'] = gem_home
-ENV['GEM_PATH'] = gem_path
-ENV['PATH']     = "#{ENV['GEM_HOME']}/bin:#{ENV['PATH']}"
 
 require 'yaml'
 require 'set'
@@ -140,6 +97,10 @@ TOOLS_CODE
 OPTIONS_CODE
 SYSTEM_CODE
 
+DEFS = <<EODEFS
+OSDEPS_DEFAULTS
+EODEFS
+
 # Override Autoproj.root_dir
 module Autoproj
     def self.root_dir
@@ -148,9 +109,56 @@ module Autoproj
     @root_dir = Dir.pwd
 end
 
-DEFS = <<EODEFS
-OSDEPS_DEFAULTS
-EODEFS
+if File.directory?(File.join(Autoproj.root_dir, 'autoproj'))
+    STDERR.puts "there is already an autoproj/ directory here, cannot bootstrap"
+    STDERR.puts "Either delete it and attempt bootstrapping again, or source env.sh"
+    STDERR.puts "and use the usual autoproj workflow"
+    exit 1
+end
+
+if defined? Encoding # This is a 1.9-only thing
+    Encoding.default_internal = Encoding::UTF_8
+    Encoding.default_external = Encoding::UTF_8
+end
+
+if ENV['AUTOPROJ_CURRENT_ROOT'] && ENV['AUTOPROJ_CURRENT_ROOT'] != Dir.pwd
+    STDERR.puts "the env.sh from #{ENV['AUTOPROJ_CURRENT_ROOT']} seem to already be sourced"
+    STDERR.puts "start a new shell and try to bootstrap again"
+    exit 1
+end
+
+require 'set'
+curdir_entries = Dir.entries('.').to_set - [".", "..", "autoproj_bootstrap", ".gems", 'env.sh'].to_set
+if !curdir_entries.empty? && ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] != '1'
+    while true
+        print "The current directory is not empty, continue bootstrapping anyway ? [yes] "
+        STDOUT.flush 
+        answer = STDIN.readline.chomp
+        if answer == "no"
+            exit
+        elsif answer == "" || answer == "yes"
+            # Set the environment variable since we might restart the
+            # autoproj_bootstrap script and -- anyway -- will run "autoproj
+            # bootstrap" later on
+            break
+        else
+            STDOUT.puts "invalid answer. Please answer 'yes' or 'no'"
+            STDOUT.flush
+        end
+    end
+end
+
+# Environment is clean, so just mark it as so unconditionally
+ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] = '1'
+
+gem_home = ENV['AUTOPROJ_GEM_HOME'] || File.join(Dir.pwd, '.gems')
+gem_path = ([gem_home] + Gem.default_path).join(":")
+Gem.paths = Hash['GEM_HOME' => gem_home, 'GEM_PATH' => gem_path]
+
+ENV['GEM_HOME'] = gem_home
+ENV['GEM_PATH'] = gem_path
+ENV['PATH']     = "#{ENV['GEM_HOME']}/bin:#{ENV['PATH']}"
+
 
 Autoproj::OSDependencies.define_osdeps_mode_option
 osdeps_mode = Autoproj::OSDependencies.osdeps_mode.join(",")
@@ -170,6 +178,7 @@ osdeps_management =
         Autoproj::OSDependencies.new(YAML.load(DEFS))
     end
 osdeps_management.silent = false
+Autoproj::PackageManagers::GemManager.use_cache_dir
 
 begin
     STDERR.puts "autoproj: installing a proper Ruby environment (this can take a long time)"
