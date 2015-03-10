@@ -1276,11 +1276,24 @@ fi
             Autobuild.progress :operating_system_autodetection, "autodetecting the operating system"
             names, versions = os_from_os_release
 
-            # Don't use the os-release information on Debian, since they
-            # refuse to put enough information to detect 'unstable'
-            # reliably. So, we use the heuristic method for it
-            if !names || names[0] == 'debian'
+            if !names
                 names, versions = guess_operating_system
+            end
+
+            # on Debian, they refuse to put enough information to detect
+            # 'unstable' reliably. So, we use the heuristic method for it
+            if names[0] = "debian"
+                # check if we actually got a debian with the "unstable" (sid)
+                # flavour. it seems that "/etc/debian_version" does not contain
+                # "sid" (but "8.0" for example) during the feature freeze
+                # phase...
+                if File.exists?('/etc/debian_version')
+                    debian_versions = [File.read('/etc/debian_version').strip]
+                    if debian_versions.first =~ /sid/
+                        versions = ["unstable", "sid"]
+                    end
+                end
+                # otherwise "versions" contains the result it previously had
             end
             return if !names
 
