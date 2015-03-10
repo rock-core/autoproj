@@ -1322,8 +1322,7 @@ fi
                 return
             end
 
-            distributor = `lsb_release -i -s`
-            distributor = distributor.strip.downcase
+            distributor = [`lsb_release -i -s`.strip.downcase]
             codename    = `lsb_release -c -s`.strip.downcase
             version     = `lsb_release -r -s`.strip.downcase
 
