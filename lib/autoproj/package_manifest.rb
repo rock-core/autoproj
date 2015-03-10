@@ -76,11 +76,17 @@ module Autoproj
             depend_nodes = xml.elements.to_a('package/depend') +
                 xml.elements.to_a('package/depend_optional') +
                 xml.elements.to_a('package/rosdep')
+            in_modes.each do |m|
+                depend_nodes += xml.elements.to_a("package/#{m}_depend")
+            end
 
             depend_nodes.each do |node|
                 dependency = node.attributes['package'] || node.attributes['name']
                 optional   = (node.attributes['optional'].to_s == '1' || node.name == "depend_optional")
                 modes      = node.attributes['modes'].to_s.split(',')
+                if node.name =~ /^(\w+)_depend$/
+                    modes << $1
+                end
                 if !modes.empty? && modes.none? { |m| in_modes.include?(m) }
                     next
                 end
