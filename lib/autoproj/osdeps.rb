@@ -876,9 +876,9 @@ fi
     # Manager for packages provided by external package managers
     class OSDependencies
 	class << self
-	    # When requested to load a file called X.Y, the osdeps code will
-	    # also look for files called X-suffix.Y, where 'suffix' is an
-	    # element in +osdeps_suffixes+
+	    # When requested to load a file called '$FILE', the osdeps code will
+	    # also look for files called '$FILE-suffix', where 'suffix' is an
+	    # element in +suffixes+
 	    #
 	    # A usage of this functionality is to make loading conditional to
 	    # the available version of certain tools, namely Ruby. Autoproj for
