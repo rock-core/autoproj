@@ -444,12 +444,107 @@ module Autoproj
             end
         end
 
+        # Returns true if packages and prefixes should be auto-generated, based
+        # on the SHA of the package names. This is meant to be used for build
+        # services that want to check that dependencies are properly set
+        #
+        # The default is false (disabled)
+        #
+        # @return [Boolean]
         def randomize_layout?
             get('randomize_layout', false)
         end
 
+        # Sets whether the layout should be randomized
+        #
+        # @return [Boolean]
+        # @see randomize_layout?
         def randomize_layout=(value)
             set('randomize_layout', value, true)
+        end
+
+        DEFAULT_UTILITY_SETUP = Hash[
+            'doc' => true,
+            'test' => false]
+
+        # The configuration key that should be used to store the utility
+        # enable/disable information 
+        #
+        # @param [String] the utility name
+        # @return [String] the config key
+        def utility_key(utility)
+            "autoproj_#{utility}_utility"
+        end
+
+        # Returns whether a given utility is enabled for the package
+        #
+        # If there is no specific configuration for the package, uses the global
+        # default set with utility_enable_all or utility_disable_all. If none of
+        # these methods has been called, uses the default in
+        # {DEFAULT_UTILITY_SETUP}
+        #
+        # @param [String] utility the utility name (e.g. 'doc' or 'test')
+        # @param [String] package the package name
+        # @return [Boolean] true if the utility should be enabled for the
+        #   requested package and false otherwise
+        def utility_enabled_for?(utility, package)
+            utility_config = get(utility_key(utility), Hash.new)
+            if utility_config.has_key?(package)
+                utility_config[package]
+            else get("#{utility_key(utility)}_default", DEFAULT_UTILITY_SETUP[utility])
+            end
+        end
+
+        # Enables a utility for all packages
+        #
+        # This both sets the default value for all packages and resets all
+        # package-specific values set with {utility_enable_for} and
+        # {utility_disable_for}
+        #
+        # @param [String] utility the utility name (e.g. 'doc' or 'test')
+        # @return [void]
+        def utility_enable_all(utility)
+            reset(utility_key(utility))
+            set("#{utility_key(utility)}_default", true)
+        end
+
+        # Enables a utility for a specific package
+        #
+        # Note that if the default for this utility is to be enabled, this is
+        # essentially a no-op.
+        #
+        # @param [String] utility the utility name (e.g. 'doc' or 'test')
+        # @param [String] package the package name
+        # @return [void]
+        def utility_enable_for(utility, package)
+            utility_config = get(utility_key(utility), Hash.new)
+            set(utility_key(utility), utility_config.merge(package => true))
+        end
+
+        # Disables a utility for all packages
+        #
+        # This both sets the default value for all packages and resets all
+        # package-specific values set with {utility_enable_for} and
+        # {utility_disable_for}
+        #
+        # @param [String] utility the utility name (e.g. 'doc' or 'test')
+        # @return [void]
+        def utility_disable_all(utility)
+            reset(utility_key(utility))
+            set("#{utility_key(utility)}_default", false)
+        end
+
+        # Disables a utility for a specific package
+        #
+        # Note that if the default for this utility is to be disabled, this is
+        # essentially a no-op.
+        #
+        # @param [String] utility the utility name (e.g. 'doc' or 'test')
+        # @param [String] package the package name
+        # @return [void]
+        def utility_disable_for(utility, package)
+            utility_config = get(utility_key(utility), Hash.new)
+            set(utility_key(utility), utility_config.merge(package => false))
         end
     end
 end
@@ -832,6 +927,17 @@ fi
                         "zypper -n install '%s'")
             end
 
+            def filter_uptodate_packages(packages)
+                result = `LANG=C rpm -q --whatprovides '#{packages.join("' '")}'`
+                has_all_pkgs = $?.success?
+
+                if !has_all_pkgs
+                    return packages # let zypper filter, we need root now anyways
+                else 
+                    return []
+                end
+            end
+
             def install(packages)
                 patterns, packages = packages.partition { |pkg| pkg =~ /^@/ }
                 patterns = patterns.map { |str| str[1..-1] }
@@ -864,21 +970,21 @@ fi
                 result = `LANG=C rpm -q --queryformat "%{NAME}\n" '#{packages.join("' '")}'`
 
                 installed_packages = []
-		new_packages = []
+                new_packages = []
                 result.split("\n").each_with_index do |line, index|
-		    line = line.strip
+                    line = line.strip
                     if line =~ /package (.*) is not installed/
-			package_name = $1
-			if !packages.include?(package_name) # something is wrong, fallback to installing everything
-			    return packages
-			end
+                        package_name = $1
+                        if !packages.include?(package_name) # something is wrong, fallback to installing everything
+                            return packages
+                        end
                         new_packages << package_name
-		    else 
-			package_name = line.strip
-			if !packages.include?(package_name) # something is wrong, fallback to installing everything
-			    return packages
-			end
-		        installed_packages << package_name
+                    else 
+                        package_name = line.strip
+                        if !packages.include?(package_name) # something is wrong, fallback to installing everything
+                            return packages
+                        end
+                        installed_packages << package_name
                     end
                 end
                 new_packages
@@ -996,13 +1102,13 @@ fi
                 Autoproj.manifest.each_reused_autoproj_installation do |p|
                     p_gems = File.join(p, '.gems')
                     if File.directory?(p_gems)
-                        Autobuild.env_add_path 'GEM_PATH', p_gems
-                        Autobuild.env_add_path 'PATH', File.join(p_gems, 'bin')
+                        Autobuild.env_push_path 'GEM_PATH', p_gems
+                        Autobuild.env_push_path 'PATH', File.join(p_gems, 'bin')
                     end
                 end
-                Autobuild.env_add_path 'GEM_PATH', gem_home
+                Autobuild.env_push_path 'GEM_PATH', gem_home
                 Autobuild.env_set 'GEM_HOME', gem_home
-                Autobuild.env_add_path 'PATH', "#{gem_home}/bin"
+                Autobuild.env_push_path 'PATH', "#{gem_home}/bin"
 
                 # Now, reset the directories in our own RubyGems instance
                 Gem.paths = ENV
@@ -1012,6 +1118,7 @@ fi
                 if cache = cache_dir
                     gem_cache_dir = File.join(gem_home, 'cache')
                     if !File.symlink?(gem_cache_dir) || File.readlink(gem_cache_dir) != cache
+                        FileUtils.mkdir_p gem_home
                         FileUtils.rm_rf gem_cache_dir
                         Autoproj.create_symlink(cache, gem_cache_dir)
                     end
@@ -2423,7 +2530,7 @@ module Autobuild
 
         def find_in_path(file)
             path = ENV['PATH'].split(File::PATH_SEPARATOR).
-                find { |dir| File.exists?(File.join(dir, file)) }
+                find { |dir| File.exist?(File.join(dir, file)) }
             if path
                 return File.join(path, file)
             end
@@ -2563,23 +2670,26 @@ module Autoproj
             return @root_dir
         end
 
-        root_dir_rx =
-            if Autobuild.windows? then /^[a-zA-Z]:\\\\$/
-            else /^\/$/
+        path = Pathname.pwd
+        while !path.root?
+            if (path + "autoproj" + 'manifest').file?
+                break
             end
-
-        while root_dir_rx !~ dir && !File.directory?(File.join(dir, "autoproj"))
-            dir = File.dirname(dir)
+            path = path.parent
         end
-        if root_dir_rx =~ dir
+
+        if path.root?
             raise UserError, "not in a Autoproj installation"
         end
 
-        #Preventing backslashed in path, that might be confusing on some path compares
+        result = path.to_s
+        # I don't know if this is still useful or not ... but it does not hurt
+        #
+        # Preventing backslashed in path, that might be confusing on some path compares
         if Autobuild.windows?
-            dir = dir.gsub(/\\/,'/')
+            result = result.gsub(/\\/,'/')
         end
-        dir
+        result
     end
 
     # Returns the configuration directory for this autoproj installation.
@@ -2588,6 +2698,16 @@ module Autoproj
     # raises UserError.
     def self.config_dir
         File.join(root_dir, "autoproj")
+    end
+
+    OVERRIDES_DIR = "overrides.d"
+
+    # Returns the directory containing overrides files
+    #
+    # If the current directory is not in an autoproj installation,
+    # raises UserError.
+    def self.overrides_dir
+        File.join(config_dir, OVERRIDES_DIR)
     end
 
     # @deprecated use Autobuild.find_in_path instead
@@ -2945,6 +3065,8 @@ pip:
   arch: python2-pip
   opensuse: python-pip
   fedora: python-pip
+sudo:
+  default: sudo
 
 EODEFS
 
@@ -2976,7 +3098,7 @@ rescue Autoproj::ConfigError => e
 end
 
 # Now try to find out the name of the gem binary
-PACKAGES      = []
+PACKAGES      = ['build-essential', 'sudo']
 
 STDERR.puts "autoproj: installing autoproj and its dependencies (this can take a long time)"
 # First install the dependencies of autoproj, as we don't want them to be
@@ -3009,7 +3131,6 @@ if ARGV.first != "localdev"
         ARGV.shift
     end
     begin
-        osdeps_management.install(['build-essential'])
         osdeps_management.install(['autobuild'])
         osdeps_management.install(['autoproj'])
     rescue Autoproj::ConfigError => e
