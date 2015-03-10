@@ -74,12 +74,11 @@ module Autoproj
             end
 
             def run(user_selection, options = Hash.new)
-                resolved_selection = resolve_selection(
+                packages = resolve_selection(
                     user_selection,
                     recursive: options[:recursive],
                     ignore_non_imported_packages: true)
                 # This calls #prepare, which is required to run build_packages
-                packages = Autoproj::CmdLine.import_packages(resolved_selection)
                 packages.each do |pkg|
                     Autobuild::Package[pkg].disable_phases('import', 'prepare', 'install')
                 end
