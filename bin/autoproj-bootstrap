@@ -7,7 +7,10 @@ if File.exists?(File.join(root_dir, 'autoproj', "manifest"))
     raise ConfigError.new, "this installation is already bootstrapped. Remove the autoproj directory if it is not the case"
 end
 
+Autoproj.root_dir = root_dir
+Autoproj.manifest = Autoproj::Manifest.new
 Ops::Tools.load_autoprojrc
+Autoproj.prepare_environment
 
 # Check if the .autoprojrc changed the PATH and therefore which autoproj script
 # should be executed ... and restart if it did
