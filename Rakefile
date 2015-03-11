@@ -18,7 +18,7 @@ Utilrb::Rake.hoe do
             license 'BSD'
 
             extra_deps << 
-                ['autobuild',   '~> 1.9', '>= 1.9.0'] <<
+                ['autobuild',   '>= 1.9.0.b1', '< 2.0.0'] <<
                 ['utilrb', '>= 1.6.0'] <<
                 ['highline', '>= 1.5.0']
         end
