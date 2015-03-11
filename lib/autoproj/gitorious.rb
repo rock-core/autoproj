@@ -25,35 +25,51 @@ module Autoproj
             :http_url => "https://git.#{base_url}",
             :ssh_url  => "git@#{base_url}:",
             :fallback_to_http => true,
-            :default => 'git,ssh'
-
-        gitorious_long_doc = [
-            "How should I interact with #{base_url} (git, http or ssh)",
-            "If you give two values, comma-separated, the first one will be",
-            "used for pulling and the second one for pushing"]
+            :default => 'http,ssh',
+            :disabled_methods => []
+            
+        disabled_methods = Array(options[:disabled_methods])
 
         access_methods = Hash[
             'git' => 'git,ssh',
             'ssh' => 'ssh,ssh',
             'http' => 'http,http']
 
-        configuration_option name, 'string',
-            :default => options[:default],
-            :doc => gitorious_long_doc do |value|
-                if value =~ /,/
-                    value.split(',').each do |method|
-                        if !access_methods.has_key?(method)
-                            raise Autoproj::InputError, "#{method} is not a known access method"
-                        end
-                    end
-                elsif !access_methods.has_key?(value)
-                    raise Autoproj::InputError, "#{value} is not a known access method"
-                end
+        gitorious_long_doc = [
+            "How should I interact with #{base_url} (#{(access_methods.keys - disabled_methods).sort.join(", ")})",
+            "If you give two values, comma-separated, the first one will be",
+            "used for pulling and the second one for pushing"]
 
-                value
+        validator = lambda do |value|
+            if value =~ /,/
+                value.split(',').each do |method|
+                    if !access_methods.has_key?(method)
+                        raise Autoproj::InputError, "#{method} is not a known access method"
+                    elsif disabled_methods.include?(method)
+                        raise Autoproj::InputError, "#{method} is disabled on #{base_url}"
+                    end
+                end
+            elsif !access_methods.has_key?(value)
+                raise Autoproj::InputError, "#{value} is not a known access method"
+            elsif disabled_methods.include?(value)
+                raise Autoproj::InputError, "#{method} is disabled on #{base_url}"
             end
 
-        access_mode = Autoproj.user_config(name)
+            value
+        end
+
+        configuration_option name, 'string',
+            :default => options[:default],
+            :doc => gitorious_long_doc, &validator
+
+        access_mode = Autoproj.config.get(name)
+        begin
+            validator[access_mode]
+        rescue Autoproj::InputError => e
+            Autoproj.warn e.message
+            Autoproj.config.reset(name)
+            access_mode = Autoproj.config.get(name)
+        end
         access_mode = access_methods[access_mode] || access_mode
         pull, push = access_mode.split(',')
         [[pull, "_ROOT"], [push, "_PUSH_ROOT"]].each do |method, var_suffix|
@@ -82,6 +98,6 @@ module Autoproj
     end
 end
 
-Autoproj.gitorious_server_configuration('GITORIOUS', 'gitorious.org')
+Autoproj.gitorious_server_configuration('GITORIOUS', 'gitorious.org', :default => 'http,ssh', :disabled_methods => 'git')
 Autoproj.gitorious_server_configuration('GITHUB', 'github.com', :http_url => 'https://github.com', :default => 'http,ssh')
 
