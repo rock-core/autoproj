@@ -31,9 +31,9 @@ module Autoproj
         end
 
         def sort_versions(versions)
-            pkg_sets, pkgs = versions.partition { |n, _| n =~ /^pkg_set:/ }
-            pkg_sets.sort_by { |n, _| n.keys.first } +
-                pkgs.sort_by { |n, _| n.keys.first }
+            pkg_sets, pkgs = versions.partition { |vcs| vcs.keys.first =~ /^pkg_set:/ }
+            pkg_sets.sort_by { |vcs| vcs.keys.first } +
+                pkgs.sort_by { |vcs| vcs.keys.first }
         end
 
         def save_versions( versions, versions_file, options = Hash.new )
