@@ -229,6 +229,8 @@ module Autoproj
                 cacheinfo = cacheinfo.join(",")
             end
 
+            parent_id ||= importer.rev_parse(pkg, 'HEAD')
+
             # Create the tree using a temporary index in order to not mess with
             # the user's index state. read-tree initializes the new index and
             # then we add the overrides file with update-index / write-tree
@@ -236,7 +238,7 @@ module Autoproj
             FileUtils.rm_f our_index
             begin
                 ENV['GIT_INDEX_FILE'] = our_index
-                importer.run_git_bare(pkg, 'read-tree', 'HEAD')
+                importer.run_git_bare(pkg, 'read-tree', parent_id)
                 # And add the new file
                 importer.run_git_bare(
                     pkg, 'update-index',
@@ -246,8 +248,6 @@ module Autoproj
                 ENV.delete('GIT_INDEX_FILE')
                 FileUtils.rm_f our_index
             end
-
-            parent_id ||= importer.rev_parse(pkg, 'HEAD')
 
             importer.run_git_bare(
                 pkg, 'commit-tree',
