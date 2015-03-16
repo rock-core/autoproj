@@ -929,6 +929,7 @@ module Autoproj
                         "manifest #{manifest_path} of #{package.name} from #{package_set.name} lists '#{name}' as dependency, but it is neither a normal package nor an osdeps package. osdeps reports: #{e.message}", e.backtrace
                 end
             end
+            manifest
         end
 
         # Loads the manifests for all packages known to this project.
