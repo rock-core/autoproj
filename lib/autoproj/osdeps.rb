@@ -1286,7 +1286,7 @@ fi
 
             # on Debian, they refuse to put enough information to detect
             # 'unstable' reliably. So, we use the heuristic method for it
-            if names[0] = "debian"
+            if names[0] == "debian"
                 # check if we actually got a debian with the "unstable" (sid)
                 # flavour. it seems that "/etc/debian_version" does not contain
                 # "sid" (but "8.0" for example) during the feature freeze
