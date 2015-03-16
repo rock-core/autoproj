@@ -599,15 +599,22 @@ end
 
 class Autobuild::ArchiveImporter
     def snapshot(package, target_dir = nil)
+        result = Hash[
+            'mode' => mode,
+            'no_subdirectory' => !has_subdirectory?,
+            'archive_dir' => archive_dir || tardir]
+
         if target_dir
             archive_dir = File.join(target_dir, 'archives')
             FileUtils.mkdir_p archive_dir
             FileUtils.cp @cachefile, archive_dir
 
-            { 'url' =>  "file://$AUTOPROJ_SOURCE_DIR/archives/#{File.basename(@cachefile)}" }
+            result['url'] = "file://$AUTOPROJ_SOURCE_DIR/archives/#{File.basename(@cachefile)}"
         else
-            { 'url' => @url.to_s }
+            result['url'] = @url.to_s
         end
+        
+        result
     end
 end
 
