@@ -214,7 +214,7 @@ module Autoproj
         #   the root of the git repository
         # @param [String] the commit message
         # @return [String] the commit ID
-        def self.create_commit(pkg, path, message)
+        def self.create_commit(pkg, path, message, parent_id = nil)
             importer = pkg.importer
             object_id = Tempfile.open 'autoproj-versions' do |io|
                 yield(io)
@@ -247,11 +247,11 @@ module Autoproj
                 FileUtils.rm_f our_index
             end
 
-            head_id = importer.rev_parse(pkg, 'HEAD')
+            parent_id ||= importer.rev_parse(pkg, 'HEAD')
 
             importer.run_git_bare(
                 pkg, 'commit-tree',
-                tree_id, '-p', head_id, input_streams: [message]).first
+                tree_id, '-p', parent_id, input_streams: [message]).first
         end
     end
     end
