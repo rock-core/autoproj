@@ -142,10 +142,10 @@ cmake:
 
 autotools:
   debian,ubuntu:
-  - "automake1.9"
+  - automake
   - autoconf
   gentoo:
-  - "sys-devel/automake:1.9"
+  - "sys-devel/automake"
   - sys-devel/autoconf
   arch: 
   - automake 
