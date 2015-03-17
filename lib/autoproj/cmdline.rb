@@ -558,7 +558,7 @@ module Autoproj
                             send(handler, relative_to_root.to_s)
                         end
                         setup_package_directories(pkg)
-                        selected_packages.select(sel, pkg.name)
+                        selected_packages.select(sel, pkg.name, true)
                         break(true)
                     end
 

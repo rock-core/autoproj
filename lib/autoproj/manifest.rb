@@ -1069,7 +1069,7 @@ module Autoproj
                     find_all { |pkg_name| pkg_name =~ match_pkg_name }.
                     to_set
                 if !packages.empty?
-                    result.select(sel, packages)
+                    result.select(sel, packages, true)
                 end
 
                 each_metapackage do |pkg|
@@ -1114,7 +1114,7 @@ module Autoproj
                         next
                     end
 
-                    result.select(sel, pkg_name)
+                    result.select(sel, pkg_name, true)
                 end
             end
 
@@ -1124,7 +1124,7 @@ module Autoproj
             nonresolved = selection - result.matches.keys
             nonresolved.delete_if do |sel|
                 if pkg_name = pending_selections[sel]
-                    result.select(sel, pkg_name)
+                    result.select(sel, pkg_name, true)
                     true
                 end
             end
