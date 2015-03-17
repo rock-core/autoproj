@@ -52,9 +52,12 @@ module Autoproj
                 flexmock_teardown
             end
             super
-            # Teardown code for all the tests
+            Autobuild::Package.clear
         end
     end
 end
 
+class Minitest::Test
+    include Autoproj::SelfTest
+end
 

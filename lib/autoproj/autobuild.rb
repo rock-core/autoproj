@@ -118,6 +118,12 @@ module Autobuild
             depends_on(name)
         end
 
+        def remove_dependency(name)
+            dependencies.delete name
+            optional_dependencies.delete name
+            os_packages.delete name
+        end
+
         def optional_dependency(name)
             if Autoproj::CmdLine.ignore_dependencies?
                 return
