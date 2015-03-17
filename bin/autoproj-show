@@ -158,7 +158,10 @@ packages.each do |name|
                 puts "    #{path.join(">")}"
             end
         end
-        puts "  directly depends on: #{Autobuild::Package[pkg_name].dependencies.sort.join(", ")}"
+
+        pkg = Autobuild::Package[pkg_name]
+        puts "  directly depends on: #{pkg.dependencies.sort.join(", ")}"
+        puts "  OS dependencies: #{pkg.os_packages.sort.join(", ")}"
     end
 
     osdeps.each do |pkg_name|
