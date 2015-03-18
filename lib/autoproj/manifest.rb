@@ -231,6 +231,16 @@ module Autoproj
             end
         end
 
+        # Returns true if the given package name has been explicitely added to
+        # the layout (not indirectly)
+        #
+        # @param [String] package_name
+        # @return [Boolean]
+        def explicitely_selected_in_layout?(package_name)
+            package_name = package_name.to_str
+            normalized_layout.has_key?(package_name)
+        end
+
         # True if the given package should not be built and its dependencies
         # should be considered as met.
         #
@@ -239,7 +249,7 @@ module Autoproj
         def excluded?(package_name)
             package_name = package_name.to_str
 
-            if normalized_layout.has_key?(package_name)
+            if explicitely_selected_in_layout?(package_name)
                 false
             elsif excluded_in_manifest?(package_name)
                 true

@@ -687,3 +687,12 @@ def remove_from_default(*names)
     end
 end
 
+def renamed_package(current_name, old_name, options)
+    if options[:obsolete] && !Autoproj.manifest.explicitely_selected_in_layout?(old_name)
+        import_package old_name
+        Autoproj.manifest.add_exclusion old_name, "#{old_name} has been renamed to #{current_name}, you still have the option of using the old name by adding '- #{old_name}' explicitely in the layout in autoproj/manifest, but be warned that the name will stop being usable at all in the near future"
+    else
+        metapackage old_name, current_name
+    end
+end
+
