@@ -243,7 +243,7 @@ module Autoproj
                 next if source_name && source.name != source_name
                 done_something = true
 
-                Dir.glob(File.join(source.local_dir, "*.autobuild")).each do |file|
+                Dir.glob(File.join(source.local_dir, "*.autobuild")).sort.each do |file|
                     yield(source, file)
                 end
             end
