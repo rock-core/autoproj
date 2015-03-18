@@ -68,6 +68,18 @@ def vcs_to_array(vcs)
     end
 end
 
+def compute_all_revdeps(pkg_revdeps, revdeps)
+    pkg_revdeps = pkg_revdeps.dup
+    all_revdeps = Array.new
+    while !pkg_revdeps.empty?
+        parent_name = pkg_revdeps.shift
+        next if all_revdeps.include?(parent_name)
+        all_revdeps << parent_name
+        pkg_revdeps.concat(revdeps[parent_name].to_a)
+    end
+    all_revdeps
+end
+
 packages.each do |name|
     result = Autoproj.manifest.resolve_package_name(name, :filter => false)
     packages, osdeps = result.partition { |type, name| type == :package }
@@ -129,25 +141,21 @@ packages.each do |name|
         if !File.directory?(Autobuild::Package[pkg_name].srcdir)
             puts Autobuild.color("  this package is not checked out yet, the dependency information will probably be incomplete", :magenta)
         end
-        all_reverse_dependencies = Set.new
-        pkg_revdeps = revdeps[pkg_name].dup.to_a
-        while !pkg_revdeps.empty?
-            parent_name = pkg_revdeps.shift
-            next if all_reverse_dependencies.include?(parent_name)
-            all_reverse_dependencies << parent_name
-            pkg_revdeps.concat(revdeps[parent_name].to_a)
-        end
-        if all_reverse_dependencies.empty?
+
+        pkg_revdeps = revdeps[pkg_name].to_a
+        all_revdeps = compute_all_revdeps(pkg_revdeps, revdeps)
+        if pkg_revdeps.empty?
             puts "  no reverse dependencies"
         else
-            puts "  reverse dependencies: #{all_reverse_dependencies.sort.join(", ")}"
+            puts "  direct reverse dependencies: #{pkg_revdeps.sort.join(", ")}"
+            puts "  recursive reverse dependencies: #{all_revdeps.sort.join(", ")}"
         end
 
         selections = Set.new
-        all_reverse_dependencies = all_reverse_dependencies.to_a.sort
-        all_reverse_dependencies.each do |parent_name|
-            if default_packages.include?(parent_name)
-                selections |= default_packages.selection[parent_name]
+        all_revdeps = all_revdeps.to_a.sort
+        all_revdeps.each do |revdep_parent_name|
+            if default_packages.include?(revdep_parent_name)
+                selections |= default_packages.selection[revdep_parent_name]
             end
         end
 
@@ -161,13 +169,23 @@ packages.each do |name|
 
         pkg = Autobuild::Package[pkg_name]
         puts "  directly depends on: #{pkg.dependencies.sort.join(", ")}"
-        puts "  OS dependencies: #{pkg.os_packages.sort.join(", ")}"
+        puts "  optionally depends on: #{pkg.optional_dependencies.sort.join(", ")}"
+        puts "  dependencies on OS packages: #{pkg.os_packages.sort.join(", ")}"
     end
 
     osdeps.each do |pkg_name|
         puts Autoproj.color("the osdep '#{pkg_name}'", :bold)
         Autoproj.osdeps.resolve_os_dependencies([pkg_name]).each do |manager, packages|
             puts "  #{manager.names.first}: #{packages.map { |*subnames| subnames.join(" ") }.join(", ")}"
+        end
+
+        pkg_revdeps = revdeps[pkg_name].dup.to_a
+        all_revdeps = compute_all_revdeps(pkg_revdeps, revdeps)
+        if pkg_revdeps.empty?
+            puts "  no reverse dependencies"
+        else
+            puts "  direct reverse dependencies: #{pkg_revdeps.sort.join(", ")}"
+            puts "  recursive reverse dependencies: #{all_revdeps.sort.join(", ")}"
         end
     end
 end

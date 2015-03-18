@@ -1159,6 +1159,12 @@ module Autoproj
                 pkg.dependencies.each do |pkg_name|
                     result[pkg_name] << pkg.name
                 end
+                pkg.optional_dependencies.each do |pkg_name|
+                    result[pkg_name] << pkg.name
+                end
+                pkg.os_packages.each do |pkg_name|
+                    result[pkg_name] << pkg.name
+                end
             end
             result
         end
