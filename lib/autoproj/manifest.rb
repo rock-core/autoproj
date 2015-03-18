@@ -893,13 +893,15 @@ module Autoproj
         #
         # Right now, the absence of a manifest makes autoproj only issue a
         # warning. This will later be changed into an error.
-        def load_package_manifest(pkg_name)
-            pkg = packages.values.
-                find { |pkg| pkg.autobuild.name == pkg_name }
+        def load_package_manifest(pkg)
+            if pkg.respond_to?(:to_str)
+                pkg = packages.values.
+                    find { |p| p.autobuild.name == pkg }
+            end
             package, package_set, file = pkg.autobuild, pkg.package_set, pkg.file
 
-            if !pkg_name
-                raise ArgumentError, "package #{pkg_name} is not defined"
+            if !pkg
+                raise ArgumentError, "package #{pkg} is not defined"
             end
 
             manifest_paths =
