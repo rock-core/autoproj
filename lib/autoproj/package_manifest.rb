@@ -115,11 +115,19 @@ module Autoproj
             return each_dependency(modes, &block)
         end
 
-        def each_maintainer
-            if !block_given?
-                return enum_for(:each_maintainer)
+        def each_rock_maintainer
+            return enum_for(__method__) if !block_given?
+            xml.elements.each('package/rock_maintainer') do |maintainer|
+                (maintainer.text || "").strip.split(',').each do |str|
+                    name, email = str.split('/').map(&:strip)
+                    email = nil if email && email.empty?
+                    yield(name, email)
+                end
             end
+        end
 
+        def each_maintainer
+            return enum_for(__method__) if !block_given?
             xml.elements.each('package/maintainer') do |maintainer|
                 (maintainer.text || "").strip.split(',').each do |str|
                     name, email = str.split('/').map(&:strip)
