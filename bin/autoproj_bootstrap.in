@@ -216,11 +216,13 @@ end
 # version of autoproj. If it is "localdev", expect him to install autoproj and
 # run autoproj bootstrap manually.
 if ARGV.first != "localdev"
-    if ARGV.first == "dev" || (ENV['AUTOPROJ_USE_PRERELEASE'] == '1')
+    if ARGV.first == "dev"
         ENV['AUTOPROJ_USE_PRERELEASE'] = '1'
-        Autoproj::PackageManagers::GemManager.with_prerelease = true
         ARGV.shift
     end
+
+    Autoproj::PackageManagers::GemManager.with_prerelease =
+        (ENV['AUTOPROJ_USE_PRERELEASE'] == '1')
     begin
         osdeps_management.install(['autobuild'])
         osdeps_management.install(['autoproj'])
