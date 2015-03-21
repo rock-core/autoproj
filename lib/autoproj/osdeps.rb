@@ -312,12 +312,7 @@ fi
                 packages = packages.uniq
                 result = `brew info --json=v1 '#{packages.join("' '")}'`
                 result = begin
-                             result = JSON.parse(result)
-                             if packages.size == 1
-                                 [result]
-                             else
-                                 result
-                             end
+                             JSON.parse(result)
                          rescue JSON::ParserError
                              if result && !result.empty?
                                  Autoproj.warn "Error while parsing result of brew info --json=v1"
