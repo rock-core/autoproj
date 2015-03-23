@@ -360,6 +360,15 @@ fi
                         "emerge --noreplace '%s'")
             end
         end
+	# Package manager interface for systems that use pkg (i.e. FreeBSD) as
+        # their package manager
+        class PkgManager < ShellScriptManager
+            def initialize
+                super(['pkg'], true,
+                        "pkg install -y '%s'",
+                        "pkg install -y '%s'")
+            end
+        end
 
         #Package manger for OpenSuse and Suse (untested)
         class ZypperManager < ShellScriptManager
@@ -957,7 +966,8 @@ fi
             PackageManagers::YumManager,
             PackageManagers::PortManager,
             PackageManagers::ZypperManager,
-            PackageManagers::PipManager]
+            PackageManagers::PipManager ,
+            PackageManagers::PkgManager]
         
         # Mapping from OS name to package manager name
         #
@@ -977,7 +987,8 @@ fi
             'fedora' => 'yum',
             'macos-port' => 'macports',
             'macos-brew' => 'brew',
-            'opensuse' => 'zypper'
+            'opensuse' => 'zypper',
+            'freebsd' => 'pkg'
         }
 
         # The information contained in the OSdeps files, as a hash
@@ -1184,6 +1195,9 @@ fi
                 version =~/.*VERSION\s+=\s+([^\s]+)/
                 version = $1
                 [['opensuse'], [version.strip]]
+            elsif Autobuild.freebsd? 
+		version = `uname -r`.strip.split("-")[0]
+		[['freebsd'],[version]]
             end
         end
 
