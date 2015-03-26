@@ -249,9 +249,7 @@ module Autoproj
         def excluded?(package_name)
             package_name = package_name.to_str
 
-            if explicitely_selected_in_layout?(package_name)
-                false
-            elsif excluded_in_manifest?(package_name)
+            if excluded_in_manifest?(package_name)
                 true
             elsif automatic_exclusions.any? { |pkg_name, | pkg_name == package_name }
                 true
