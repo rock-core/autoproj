@@ -73,12 +73,18 @@ module Autoproj
         def self.vcs_definition_to_hash(spec)
             plain = Array.new
             filtered_spec = Hash.new
-            spec.each do |key, value|
-                keys = key.to_s.split(/\s+/)
-                plain.concat(keys[0..-2])
-                filtered_spec[keys[-1].to_sym] = value
+
+            if spec.respond_to?(:to_str)
+                plain << spec
+                spec = Hash.new
+            else
+                Array(spec).each do |key, value|
+                    keys = key.to_s.split(/\s+/)
+                    plain.concat(keys[0..-2])
+                    filtered_spec[keys[-1].to_sym] = value
+                end
+                spec = filtered_spec
             end
-            spec = filtered_spec
 
             if plain.size > 1
                 raise ConfigError.new, "invalid syntax"
@@ -94,9 +100,14 @@ module Autoproj
                 elsif Autoproj.has_source_handler?(vcs)
                     spec = Autoproj.call_source_handler(vcs, url.join(':'), spec)
                 else
-                    source_dir = File.expand_path(File.join(Autoproj.config_dir, short_url))
+                    source_dir =
+                        if Pathname.new(short_url).absolute?
+                            File.expand_path(short_url)
+                        else
+                            File.expand_path(File.join(Autoproj.config_dir, short_url))
+                        end
                     if !File.directory?(source_dir)
-                        raise ConfigError.new, "'#{spec.inspect}' is neither a remote source specification, nor a local source definition"
+                        raise ConfigError.new, "'#{spec.inspect}' is neither a remote source specification, nor an existing local directory"
                     end
                     spec.merge!(:type => 'local', :url => source_dir)
                 end
@@ -168,12 +179,17 @@ module Autoproj
             url
         end
 
+        # Whether the underlying package needs to be imported
+        def needs_import?
+            type != 'none' && type != 'local'
+        end
+
         # Returns a properly configured instance of a subclass of
         # Autobuild::Importer that match this VCS definition
         #
-        # Returns nil if the VCS type is 'none'
+        # @return [Autobuild::Importer,nil] the autobuild importer
         def create_autobuild_importer
-            return if type == "none"
+            return if !needs_import?
 
             url = VCSDefinition.to_absolute_url(self.url)
             Autobuild.send(type, url, options)
