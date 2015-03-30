@@ -113,7 +113,7 @@ module Autoproj
         attr_reader :metapackages
 
         # The VCS object for the main configuration itself
-        attr_reader :vcs
+        attr_accessor :vcs
 
         # The definition of all OS packages available on this installation
         attr_reader :osdeps
@@ -141,6 +141,7 @@ module Autoproj
             if Autoproj.has_config_key?('manifest_source')
                 @vcs = VCSDefinition.from_raw(Autoproj.user_config('manifest_source'))
             end
+            @package_sets << LocalPackageSet.new(self, vcs)
 	end
 
 

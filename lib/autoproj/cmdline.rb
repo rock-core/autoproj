@@ -773,7 +773,7 @@ module Autoproj
             return all_enabled_packages
 
         ensure
-            if Autoproj.config.import_log_enabled? && !updated_packages.empty?
+            if Autoproj.config.import_log_enabled? && !updated_packages.empty? && Autoproj::Ops::Snapshot.update_log_available?(manifest)
                 failure_message =
                     if $!
                         " (#{$!.message.split("\n").first})"
