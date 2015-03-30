@@ -773,13 +773,12 @@ module Autoproj
             return all_enabled_packages
 
         ensure
-            if !updated_packages.empty?
+            if Autoproj.config.import_log_enabled? && !updated_packages.empty?
                 failure_message =
                     if $!
                         " (#{$!.message.split("\n").first})"
                     end
                 ops = Ops::Snapshot.new(manifest, keep_going: true)
-
                 ops.update_package_import_state(
                     "#{$0} #{argv.join(" ")}#{failure_message}",
                     updated_packages)
