@@ -59,6 +59,10 @@ module Autoproj
             Autoproj.config.ruby_executable
         end
 
+        def self.env
+            Autoproj.env
+        end
+
         def self.install_ruby_shims
             install_suffix = ""
             if match = /ruby(.*)$/.match(RbConfig::CONFIG['RUBY_INSTALL_NAME'])
@@ -67,7 +71,7 @@ module Autoproj
 
             bindir = File.join(Autoproj.build_dir, 'bin')
             FileUtils.mkdir_p bindir
-            Autoproj.env_add 'PATH', bindir
+            env.add 'PATH', bindir
 
             File.open(File.join(bindir, 'ruby'), 'w') do |io|
                 io.puts "#! /bin/sh"
@@ -120,7 +124,6 @@ module Autoproj
 
             manifest = Manifest.new
             Autoproj.manifest = manifest
-            Autoproj.prepare_environment
             Autobuild.prefix  = Autoproj.build_dir
             Autobuild.srcdir  = Autoproj.root_dir
             Autobuild.logdir = File.join(Autobuild.prefix, 'log')
@@ -129,6 +132,9 @@ module Autoproj
 
             config.each_reused_autoproj_installation do |p|
                 manifest.reuse(p)
+            end
+            Autoproj::OSDependencies::PACKAGE_HANDLERS.each do |pkg_mng|
+                pkg_mng.initialize_environment(env, manifest)
             end
 
             # We load the local init.rb first so that the manifest loading

@@ -200,6 +200,14 @@ module Autoproj
             use_prerelease
         end
 
+        def shell_helpers?
+            get 'shell_helpers', true
+        end
+
+        def shell_helpers=(flag)
+            set 'shell_helpers', flag, true
+        end
+
         def apply_autobuild_configuration
             if has_value_for?('autobuild')
                 params = get('autobuild')
