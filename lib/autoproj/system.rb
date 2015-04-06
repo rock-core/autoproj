@@ -133,87 +133,16 @@ module Autoproj
             raise "failed to run #{args.join(" ")} as root"
         end
     end
-
     # Return the directory in which remote package set definition should be
     # checked out
     def self.remotes_dir
         File.join(root_dir, ".remotes")
     end
-
-
-    def self.env_inherit(*names)
-        Autobuild.env_inherit(*names)
-    end
-
-    # @deprecated use isolate_environment instead
-    def self.set_initial_env
-        isolate_environment
-    end
-
-    # Initializes the environment variables to a "sane default"
-    #
-    # Use this in autoproj/init.rb to make sure that the environment will not
-    # get polluted during the build.
-    def self.isolate_environment
-        Autobuild.env_inherit = false
-        Autobuild.env_push_path 'PATH', "/usr/local/bin", "/usr/bin", "/bin"
-    end
-
-    def self.prepare_environment
-        # Set up some important autobuild parameters
-        env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB', \
-            'LD_LIBRARY_PATH', 'CMAKE_PREFIX_PATH', 'PYTHONPATH'
-        
-        env_set 'AUTOPROJ_CURRENT_ROOT', Autoproj.root_dir
-        env_set 'RUBYOPT', "-rubygems"
-        Autoproj::OSDependencies::PACKAGE_HANDLERS.each do |pkg_mng|
-            pkg_mng.initialize_environment
-        end
-    end
-
-    class << self
-        attr_writer :shell_helpers
-        def shell_helpers?; !!@shell_helpers end
-    end
-    @shell_helpers = true
-
-    # Create the env.sh script in +subdir+. In general, +subdir+ should be nil.
-    def self.export_env_sh(subdir = nil)
-        # Make sure that we have as much environment as possible
-        Autoproj::CmdLine.update_environment
-
-        filename = if subdir
-               File.join(Autoproj.root_dir, subdir, ENV_FILENAME)
-           else
-               File.join(Autoproj.root_dir, ENV_FILENAME)
-           end
-
-        shell_dir = File.expand_path(File.join("..", "..", "shell"), File.dirname(__FILE__))
-        if Autoproj.shell_helpers?
-            Autoproj.message "sourcing autoproj shell helpers"
-            Autoproj.message "add \"Autoproj.shell_helpers = false\" in autoproj/init.rb to disable"
-            Autobuild.env_source_after(File.join(shell_dir, "autoproj_sh"))
-        end
-
-        File.open(filename, "w") do |io|
-            if Autobuild.env_inherit
-                io.write <<-EOF
-                if test -n "$AUTOPROJ_CURRENT_ROOT" && test "$AUTOPROJ_CURRENT_ROOT" != "#{Autoproj.root_dir}"; then
-                    echo "the env.sh from $AUTOPROJ_CURRENT_ROOT is already loaded. Start a new shell before sourcing this one"
-                    return
-                fi
-                EOF
-            end
-            Autobuild.export_env_sh(io)
-        end
-    end
-
     # @deprecated use Ops.loader.load or add a proper Loader object to your
     #   class
     def self.load(package_set, *path)
         Ops.loader.load(package_set, *path)
     end
-
     # @deprecated use Ops.loader.load_if_present or add a proper Loader object
     #   to your class
     def self.load_if_present(package_set, *path)

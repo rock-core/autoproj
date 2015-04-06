@@ -41,7 +41,7 @@ module Autoproj
             # order to have a properly functioning package manager
             #
             # This is e.g. needed for python pip or rubygems
-            def self.initialize_environment
+            def self.initialize_environment(_env = nil, _manifest = nil, _root_dir = Autoproj.root_dir)
             end
         end
 
@@ -533,31 +533,33 @@ fi
 
             # Filters all paths that come from other autoproj installations out
             # of GEM_PATH
-            def self.initialize_environment
-                Autobuild::ORIGINAL_ENV['GEM_PATH'] =
-                    (ENV['GEM_PATH'] || "").split(File::PATH_SEPARATOR).find_all do |p|
+            def self.initialize_environment(env = Autobuild.env, manifest = Autoproj.manifest, root_dir = Autoproj.root_dir)
+                env.original_env['GEM_PATH'] =
+                    (env['GEM_PATH'] || "").split(File::PATH_SEPARATOR).find_all do |p|
                         !Autoproj.in_autoproj_installation?(p)
                     end.join(File::PATH_SEPARATOR)
-                Autobuild.env_inherit 'GEM_PATH'
-                Autobuild.env_init_from_env 'GEM_PATH'
+                env.inherit 'GEM_PATH'
+                env.init_from_env 'GEM_PATH'
 
-                orig_gem_path = Autobuild::ORIGINAL_ENV['GEM_PATH'].split(File::PATH_SEPARATOR)
-                Autobuild::SYSTEM_ENV['GEM_PATH'] = Gem.default_path
-                Autobuild::ORIGINAL_ENV['GEM_PATH'] = orig_gem_path.join(File::PATH_SEPARATOR)
+                orig_gem_path = env.original_env['GEM_PATH'].split(File::PATH_SEPARATOR)
+                env.system_env['GEM_PATH'] = Gem.default_path
+                env.original_env['GEM_PATH'] = orig_gem_path.join(File::PATH_SEPARATOR)
 
-                Autoproj.manifest.each_reused_autoproj_installation do |p|
+                manifest.each_reused_autoproj_installation do |p|
                     p_gems = File.join(p, '.gems')
                     if File.directory?(p_gems)
-                        Autobuild.env_push_path 'GEM_PATH', p_gems
-                        Autobuild.env_push_path 'PATH', File.join(p_gems, 'bin')
+                        env.push_path 'GEM_PATH', p_gems
+                        env.push_path 'PATH', File.join(p_gems, 'bin')
                     end
                 end
-                Autobuild.env_push_path 'GEM_PATH', gem_home
-                Autobuild.env_set 'GEM_HOME', gem_home
-                Autobuild.env_push_path 'PATH', "#{gem_home}/bin"
+
+                @gem_home = (ENV['AUTOPROJ_GEM_HOME'] || File.join(root_dir, ".gems"))
+                env.push_path 'GEM_PATH', gem_home
+                env.set 'GEM_HOME', gem_home
+                env.push_path 'PATH', "#{gem_home}/bin"
 
                 # Now, reset the directories in our own RubyGems instance
-                Gem.paths = ENV
+                Gem.paths = env.resolved_env
 
                 use_cache_dir
             end
@@ -587,7 +589,7 @@ fi
 
             # Return the directory in which RubyGems package should be installed
             def self.gem_home
-                ENV['AUTOPROJ_GEM_HOME'] || File.join(Autoproj.root_dir, ".gems")
+                @gem_home
             end
             
             # Returns the set of default options that are added to gem
@@ -799,14 +801,14 @@ fi
 
             attr_reader :installed_gems
 
-            def self.initialize_environment
-                Autoproj.env_set 'PYTHONUSERBASE', pip_home
+            def self.initialize_environment(env = Autobuild.env, _manifest = nil, root_dir = Autoproj.root_dir)
+                env.set 'PYTHONUSERBASE', pip_home(env, root_dir)
             end
 
             # Return the directory where python packages are installed to.
             # The actual path is pip_home/lib/pythonx.y/site-packages.
-            def self.pip_home
-                ENV['AUTOPROJ_PYTHONUSERBASE'] || File.join(Autoproj.root_dir,".pip")
+            def self.pip_home(env = Autobuild.env, root_dir = Autobuild.root_dir)
+                env['AUTOPROJ_PYTHONUSERBASE'] || File.join(root_dir,".pip")
             end
 
 
@@ -1254,10 +1256,12 @@ fi
             # validate_options is not available)
             options =
                 if Kernel.respond_to?(:validate_options)
-                    Kernel.validate_options options, :force => false
+                    Kernel.validate_options options, force: false, config: Autoproj.config
                 else
-                    options.dup
+                    Hash[config: Autoproj.config].
+                        merge(options)
                 end
+            config = options.fetch(:config)
 
             if user_os = ENV['AUTOPROJ_OS']
                 @operating_system =
@@ -1274,8 +1278,8 @@ fi
                 @operating_system = nil
             elsif !@operating_system.nil? # @operating_system can be set to false to simulate an unknown OS
                 return @operating_system
-            elsif Autoproj.has_config_key?('operating_system')
-                os = Autoproj.user_config('operating_system')
+            elsif config.has_value_for?('operating_system')
+                os = config.get('operating_system')
                 if os.respond_to?(:to_ary)
                     if os[0].respond_to?(:to_ary) && os[0].all? { |s| s.respond_to?(:to_str) } &&
                        os[1].respond_to?(:to_ary) && os[1].all? { |s| s.respond_to?(:to_str) }
@@ -1314,7 +1318,7 @@ fi
             names, versions = normalize_os_representation(names, versions)
 
             @operating_system = [names, versions]
-            Autoproj.change_option('operating_system', @operating_system, true)
+            config.set('operating_system', @operating_system, true)
             Autobuild.progress :operating_system_autodetection, "operating system: #{(names - ['default']).join(",")} - #{(versions - ['default']).join(",")}"
             @operating_system
         ensure
@@ -1700,7 +1704,7 @@ fi
         HANDLE_OS   = 'os'
         HANDLE_NONE = 'none'
 
-        def self.osdeps_mode_option_unsupported_os
+        def self.osdeps_mode_option_unsupported_os(config = Autoproj.config)
             long_doc =<<-EOT
 The software packages that autoproj will have to build may require other
 prepackaged softwares (a.k.a. OS dependencies) to be installed (RubyGems
@@ -1731,13 +1735,13 @@ So, what do you want ? (all, none or a comma-separated list of: gem pip)
             EOT
             message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (all, none or a comma-separated list of: gem pip) ?", long_doc.strip ]
 
-	    Autoproj.configuration_option 'osdeps_mode', 'string',
+	    config.declare 'osdeps_mode', 'string',
 		:default => 'ruby',
 		:doc => message,
                 :lowercase => true
         end
 
-        def self.osdeps_mode_option_supported_os
+        def self.osdeps_mode_option_supported_os(config = Autoproj.config)
             long_doc =<<-EOT
 The software packages that autoproj will have to build may require other
 prepackaged softwares (a.k.a. OS dependencies) to be installed (RubyGems
@@ -1772,17 +1776,17 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             EOT
             message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (all, none or a comma-separated list of: os gem pip) ?", long_doc.strip ]
 
-	    Autoproj.configuration_option 'osdeps_mode', 'string',
+	    config.declare 'osdeps_mode', 'string',
 		:default => 'all',
 		:doc => message,
                 :lowercase => true
         end
 
-        def self.define_osdeps_mode_option
+        def self.define_osdeps_mode_option(config = Autoproj.config)
             if supported_operating_system?
-                osdeps_mode_option_supported_os
+                osdeps_mode_option_supported_os(config)
             else
-                osdeps_mode_option_unsupported_os
+                osdeps_mode_option_unsupported_os(config)
             end
         end
 
@@ -1834,10 +1838,10 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             @osdeps_mode = OSDependencies.osdeps_mode
         end
 
-        def self.osdeps_mode
+        def self.osdeps_mode(config = Autoproj.config)
             while true
                 mode =
-                    if !Autoproj.has_config_key?('osdeps_mode') &&
+                    if !config.has_value_for?('osdeps_mode') &&
                         mode_name = ENV['AUTOPROJ_OSDEPS_MODE']
                         begin OSDependencies.osdeps_mode_string_to_value(mode_name)
                         rescue ArgumentError
@@ -1845,7 +1849,7 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
                             nil
                         end
                     else
-                        mode_name = Autoproj.user_config('osdeps_mode')
+                        mode_name = config.get('osdeps_mode')
                         begin OSDependencies.osdeps_mode_string_to_value(mode_name)
                         rescue ArgumentError
                             Autoproj.warn "invalid osdeps mode stored in configuration file"
@@ -1855,12 +1859,12 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
 
                 if mode
                     @osdeps_mode = mode
-                    Autoproj.change_option('osdeps_mode', mode_name, true)
+                    config.set('osdeps_mode', mode_name, true)
                     return mode
                 end
 
                 # Invalid configuration values. Retry
-                Autoproj.reset_option('osdeps_mode')
+                config.reset('osdeps_mode')
                 ENV['AUTOPROJ_OSDEPS_MODE'] = nil
             end
         end

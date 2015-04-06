@@ -35,6 +35,14 @@ module Autoproj
     def self.has_config_key?(name)
         config.has_value_for?(name)
     end
+    # @deprecated use config.shell_helpers? instead
+    def self.shell_helpers?
+        config.shell_helpers?
+    end
+    # @deprecated use config.shell_helpers= instead
+    def self.shell_helpers=(flag)
+        config.shell_helpers = flag
+    end
 
     def self.save_config
         config.save(File.join(Autoproj.config_dir, "config.yml"))

@@ -434,10 +434,10 @@ def autotools_package(options, &block)
 end
 
 def env_set(name, value)
-    Autoproj.env_set(name, value)
+    Autoproj.env.set(name, value)
 end
 def env_add(name, value)
-    Autoproj.env_add(name, value)
+    Autoproj.env.add(name, value)
 end
 
 

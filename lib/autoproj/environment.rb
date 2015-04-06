@@ -1,79 +1,99 @@
 module Autoproj
-    # Sets an environment variable
-    #
-    # This sets (or resets) the environment variable +name+ to the given value.
-    # If multiple values are given, they are joined with File::PATH_SEPARATOR
-    #
-    # The values can contain configuration parameters using the
-    # $CONF_VARIABLE_NAME syntax.
+    class Environment < Autobuild::Environment
+        def prepare(manifest = Autoproj.manifest)
+            set 'AUTOPROJ_CURRENT_ROOT', Autoproj.root_dir
+        end
+
+        def expand(value)
+            Autoproj.expand_environment(value)
+        end
+
+        def export_env_sh(subdir)
+            # Make sure that we have as much environment as possible
+            Autoproj::CmdLine.update_environment
+
+            filename = if subdir
+                   File.join(Autoproj.root_dir, subdir, ENV_FILENAME)
+               else
+                   File.join(Autoproj.root_dir, ENV_FILENAME)
+               end
+
+            shell_dir = File.expand_path(File.join("..", "..", "shell"), File.dirname(__FILE__))
+            if Autoproj.shell_helpers?
+                Autoproj.message "sourcing autoproj shell helpers"
+                Autoproj.message "add \"Autoproj.shell_helpers = false\" in autoproj/init.rb to disable"
+                source_after(File.join(shell_dir, "autoproj_sh"))
+            end
+
+            File.open(filename, "w") do |io|
+                if inherit?
+                    io.write <<-EOF
+                    if test -n "$AUTOPROJ_CURRENT_ROOT" && test "$AUTOPROJ_CURRENT_ROOT" != "#{Autoproj.root_dir}"; then
+                        echo "the env.sh from $AUTOPROJ_CURRENT_ROOT is already loaded. Start a new shell before sourcing this one"
+                        return
+                    fi
+                    EOF
+                end
+                super(io)
+            end
+        end
+    end
+
+    def self.env
+        if !@env
+            @env = Environment.new
+            @env.prepare
+            Autobuild.env = @env
+        end
+        @env
+    end
+
+    # @deprecated call Autoproj.env.set instead
     def self.env_set(name, *value)
-        Autobuild.env_clear(name)
-        env_add(name, *value)
+        Autoproj.env.set(name, *value)
     end
-
-    # Adds new values to a given environment variable
-    #
-    # Adds the given value(s) to the environment variable named +name+. The
-    # values are added using the File::PATH_SEPARATOR marker
-    #
-    # The values can contain configuration parameters using the
-    # $CONF_VARIABLE_NAME syntax.
+    # @deprecated call Autoproj.env.add instead
     def self.env_add(name, *value)
-        value = value.map { |v| expand_environment(v) }
-        Autobuild.env_add(name, *value)
+        Autoproj.env.add(name, *value)
     end
-
-    # Sets an environment variable which is a path search variable (such as
-    # PATH, RUBYLIB, PYTHONPATH)
-    #
-    # This sets (or resets) the environment variable +name+ to the given value.
-    # If multiple values are given, they are joined with File::PATH_SEPARATOR.
-    # Unlike env_set, duplicate values will be removed.
-    #
-    # The values can contain configuration parameters using the
-    # $CONF_VARIABLE_NAME syntax.
+    # @deprecated call Autoproj.env.set_path instead
     def self.env_set_path(name, *value)
-        Autobuild.env_clear(name)
-        env_add_path(name, *value)
+        Autoproj.env.set_path(name, *value)
     end
-
-    # Adds new values to a given environment variable, which is a path search
-    # variable (such as PATH, RUBYLIB, PYTHONPATH)
-    #
-    # Adds the given value(s) to the environment variable named +name+. The
-    # values are added using the File::PATH_SEPARATOR marker. Unlike env_set,
-    # duplicate values
-    # will be removed.
-    #
-    # The values can contain configuration parameters using the
-    # $CONF_VARIABLE_NAME syntax.
-    #
-    # This is usually used in package configuration blocks to add paths
-    # dependent on the place of install, such as
-    #
-    #   cmake_package 'test' do |pkg|
-    #     Autoproj.env_add_path 'RUBYLIB', File.join(pkg.srcdir, 'bindings', 'ruby')
-    #   end
+    # @deprecated call Autoproj.env.add_path instead
     def self.env_add_path(name, *value)
-        value = value.map { |v| expand_environment(v) }
-        Autobuild.env_add_path(name, *value)
+        Autoproj.env.add_path(name, *value)
     end
-
-    # Requests that autoproj source the given shell script in its own env.sh
-    # script
+    # @deprecated call Autoproj.env.source_after instead
     def self.env_source_file(file)
-        Autobuild.env_source_file(file)
+        Autoproj.env.source_after(file)
     end
-
-    # Requests that autoproj source the given shell script in its own env.sh
-    # script
+    # @deprecated call Autoproj.env.source_after instead
     def self.env_source_after(file)
-        Autobuild.env_source_after(file)
+        Autoproj.env.source_after(file)
     end
-
-    # Requests that autoproj source the given shell script in its own env.sh
-    # script
+    # @deprecated call Autoproj.env.source_before instead
     def self.env_source_before(file)
-        Autobuild.env_source_before(file)
+        Autoproj.env.source_before(file)
+    end
+    # @deprecated call Autoproj.env.inherit instead
+    def self.env_inherit(*names)
+        Autoproj.env.inherit(*names)
+    end
+    # @deprecated use Autoproj.env.isolate instead
+    def self.set_initial_env
+        isolate_environment
+    end
+    # @deprecated use Autoproj.env.isolate instead
+    def self.isolate_environment
+        Autoproj.env.isolate
+    end
+    # @deprecated call Autoproj.env.prepare directly
+    def self.prepare_environment(env = Autoproj.env, manifest = Autoproj.manifest)
+        env.prepare(manifest)
+    end
+    # @deprecated use Autoproj.env.export_env_sh instead
+    def self.export_env_sh(subdir = nil)
+        Autoproj.env.export_env_sh(subdir)
     end
 end
