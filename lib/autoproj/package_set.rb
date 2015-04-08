@@ -194,7 +194,7 @@ module Autoproj
             # either vcs_type:url or just url. In the latter case, we expect
             # 'url' to be a path to a local directory
             vcs_spec = Autoproj.expand(vcs_spec, manifest.constant_definitions)
-            return VCSDefinition.from_raw(vcs_spec, [[nil, raw_spec]]), options
+            return VCSDefinition.from_raw(vcs_spec, raw: [[nil, raw_spec]]), options
         end
 
         # Returns a string that uniquely represents the version control
@@ -464,7 +464,7 @@ module Autoproj
                         name_match = Regexp.new("^" + name_match)
                     end
                     if name_match === package_name
-                        raw << [self.name, spec]
+                        raw << [self, spec]
                         vcs_spec =
                             begin
                                 VCSDefinition.update_raw_vcs_spec(vcs_spec, spec)
@@ -510,7 +510,7 @@ module Autoproj
             Autoproj.in_file source_file do
                 vcs_spec, raw = version_control_field(package_name, 'version_control')
                 if vcs_spec
-                    VCSDefinition.from_raw(vcs_spec, raw)
+                    VCSDefinition.from_raw(vcs_spec, raw: raw, from: self)
                 end
             end
         end
@@ -524,13 +524,14 @@ module Autoproj
             overrides.each do |file, override|
                 new_spec, new_raw_entry = 
                     Autoproj.in_file file do
-                        vcs_field(Hash['overrides' => override], package_name, 'overrides', false)
+                        vcs_field(Hash['overrides' => override],
+                                              package_name, 'overrides', false)
                     end
 
                 if new_spec
                     Autoproj.in_file file do
                         begin
-                            vcs = vcs.update(new_spec, new_raw_entry)
+                            vcs = vcs.update(new_spec, raw: new_raw_entry, from: self)
                         rescue ConfigError => e
                             raise ConfigError.new, "invalid resulting VCS specification in the overrides section for package #{package_name}: #{e.message}"
                         end
@@ -565,15 +566,8 @@ module Autoproj
 
     # Specialization of the PackageSet class for the overrides listed in autoproj/
     class LocalPackageSet < PackageSet
-        def initialize(manifest, vcs = nil)
-            if !vcs
-                if Autoproj.has_config_key?('manifest_source')
-                    vcs = VCSDefinition.from_raw(Autoproj.user_config('manifest_source'))
-                else
-                    vcs = VCSDefinition.from_raw(:type => 'local', :url => Autoproj.config_dir)
-                end
-            end
-            super(manifest, vcs)
+        def initialize(manifest)
+            super(manifest, manifest.vcs)
         end
 
         def name
