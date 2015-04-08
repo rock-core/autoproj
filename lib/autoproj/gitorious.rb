@@ -26,8 +26,10 @@ module Autoproj
             :ssh_url  => "git@#{base_url}:",
             :fallback_to_http => true,
             :default => 'http,ssh',
-            :disabled_methods => []
-            
+            :disabled_methods => [],
+            config: Autoproj.config
+
+        config = options.delete(:config)
         disabled_methods = Array(options[:disabled_methods])
 
         access_methods = Hash[
@@ -58,17 +60,17 @@ module Autoproj
             value
         end
 
-        configuration_option name, 'string',
+        config.declare name, 'string',
             :default => options[:default],
             :doc => gitorious_long_doc, &validator
 
-        access_mode = Autoproj.config.get(name)
+        access_mode = config.get(name)
         begin
             validator[access_mode]
         rescue Autoproj::InputError => e
             Autoproj.warn e.message
-            Autoproj.config.reset(name)
-            access_mode = Autoproj.config.get(name)
+            config.reset(name)
+            access_mode = config.get(name)
         end
         access_mode = access_methods[access_mode] || access_mode
         pull, push = access_mode.split(',')
@@ -77,7 +79,7 @@ module Autoproj
                   elsif method == "http" then options[:http_url]
                   elsif method == "ssh" then options[:ssh_url]
                   end
-            Autoproj.change_option("#{name}#{var_suffix}", url)
+            config.set("#{name}#{var_suffix}", url)
         end
 
         Autoproj.add_source_handler name.downcase do |url, vcs_options|
@@ -87,8 +89,8 @@ module Autoproj
             if url !~ /^\//
                 url = "/#{url}"
             end
-            pull_base_url = Autoproj.user_config("#{name}_ROOT")
-            push_base_url = Autoproj.user_config("#{name}_PUSH_ROOT")
+            pull_base_url = config.get("#{name}_ROOT")
+            push_base_url = config.get("#{name}_PUSH_ROOT")
             Hash[type: 'git',
                  url: "#{pull_base_url}#{url}",
                  push_to: "#{push_base_url}#{url}",

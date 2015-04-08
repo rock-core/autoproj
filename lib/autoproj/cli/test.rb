@@ -6,9 +6,11 @@ module Autoproj
             include Ops::Tools
 
             attr_reader :manifest
+            attr_reader :config
 
-            def initialize(manifest)
+            def initialize(manifest, config = Autoproj.config)
                 @manifest = manifest
+                @config = config
             end
 
             def parse_options(args)
@@ -20,17 +22,17 @@ module Autoproj
                 option_parser = OptionParser.new do |opt|
                     opt.on '--enable[=PACKAGE,PACKAGE]', Array, 'enable tests for all packages or for specific packages (does not run the tests)' do |packages|
                         if !packages
-                            Autoproj.config.utility_enable_all('test')
+                            config.utility_enable_all('test')
                         else
-                            Autoproj.config.utility_enable_for('test', *packages)
+                            config.utility_enable_for('test', *packages)
                         end
                         modified_config = true
                     end
                     opt.on '--disable[=PACKAGE,PACKAGE]', Array, 'disable tests for all packages or for specific packages (does not run the tests)' do |packages|
                         if !packages
-                            Autoproj.config.utility_disable_all('test')
+                            config.utility_disable_all('test')
                         else
-                            Autoproj.config.utility_disable_for('test', *packages)
+                            config.utility_disable_for('test', *packages)
                         end
                         modified_config = true
                     end
@@ -48,7 +50,7 @@ module Autoproj
                 end
 
                 if modified_config
-                    Autoproj.save_config
+                    config.save
                 end
                 return mode, user_selection, options
             end

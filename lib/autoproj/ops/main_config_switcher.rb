@@ -4,9 +4,11 @@ module Autoproj
         # and switch-config)
         class MainConfigSwitcher
             attr_reader :root_dir
+            attr_reader :config
 
-            def initialize(root_dir)
+            def initialize(root_dir, config = Autoproj.config)
                 @root_dir = root_dir
+                @config = config
             end
 
             # Set of directory entries that are expected to be present in the
@@ -109,7 +111,7 @@ module Autoproj
                 manifest.osdeps.osdeps_mode
 
                 CmdLine.update_myself :force => true, :restart_on_update => false
-                Autoproj.change_option 'reused_autoproj_installations', reuse, true
+                config.set 'reused_autoproj_installations', reuse, true
                 Autoproj.export_env_sh
 
                 # If we are not getting the installation setup from a VCS, copy the template
@@ -138,13 +140,13 @@ module Autoproj
                     url = VCSDefinition.to_absolute_url(url, Dir.pwd)
                     do_switch_config(false, type, url, *options)
                 end
-                Autoproj.save_config
+                config.save
             end
 
             def switch_config(*args)
                 Autoproj.load_config
-                if Autoproj.has_config_key?('manifest_source')
-                    vcs = VCSDefinition.from_raw(Autoproj.user_config('manifest_source'))
+                if config.has_value_for?('manifest_source')
+                    vcs = VCSDefinition.from_raw(config.get('manifest_source'))
                 end
 
                 if args.first =~ /^(\w+)=/
@@ -161,15 +163,15 @@ module Autoproj
                 if vcs && (vcs.type == type && vcs.url == url)
                     # Don't need to do much: simply change the options and save the config
                     # file, the VCS handler will take care of the actual switching
-                    vcs_def = Autoproj.user_config('manifest_source')
+                    vcs_def = config.get('manifest_source')
                     options.each do |opt|
                         opt_name, opt_value = opt.split('=')
                         vcs_def[opt_name] = opt_value
                     end
                     # Validate the VCS definition, but save the hash as-is
                     VCSDefinition.from_raw(vcs_def)
-                    Autoproj.change_option "manifest_source", vcs_def.dup, true
-                    Autoproj.save_config
+                    config.set "manifest_source", vcs_def.dup, true
+                    config.save
                     true
 
                 else
@@ -243,8 +245,8 @@ module Autoproj
                 # Validate the option hash, just in case
                 VCSDefinition.from_raw(vcs_def)
                 # Save the new options
-                Autoproj.change_option "manifest_source", vcs_def.dup, true
-                Autoproj.save_config
+                config.set "manifest_source", vcs_def.dup, true
+                config.save
 
             rescue Exception => e
                 Autoproj.error "switching configuration failed: #{e.message}"
