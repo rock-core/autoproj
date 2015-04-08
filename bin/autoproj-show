@@ -82,7 +82,7 @@ end
 
 packages.each do |name|
     result = Autoproj.manifest.resolve_package_name(name, :filter => false)
-    packages, osdeps = result.partition { |type, name| type == :package }
+    packages, osdeps = result.partition { |pkg_type, _| pkg_type == :package }
     packages = packages.map(&:last)
     osdeps   = osdeps.map(&:last)
 

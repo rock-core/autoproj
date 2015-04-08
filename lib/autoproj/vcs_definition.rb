@@ -6,20 +6,32 @@ module Autoproj
         attr_reader :url
         attr_reader :options
 
+        # This VCSDefinition history, i.e. the list of VCSDefinition objects
+        # that led to this one by means of calls to {#update}
+        attr_reader :history
         # The original spec in hash form. Set if this VCSDefinition object has
         # been created using VCSDefinition.from_raw
         attr_reader :raw
 
-        def initialize(type, url, options, raw = nil)
+        def initialize(type, url, vcs_options, options = Hash.new)
             if raw && !raw.respond_to?(:to_ary)
                 raise ArgumentError, "wrong format for the raw field (#{raw.inspect})"
             end
+            if !options.kind_of?(Hash)
+                options = Hash[raw: options]
+            end
+            if vcs_options[:raw]
+                raise
+            end
+            options = validate_options options, from: nil, raw: nil, history: nil
 
-            @type, @url, @options = type, url, options
+            @type, @url, @options = type, url, vcs_options
             if type != "none" && type != "local" && !Autobuild.respond_to?(type)
                 raise ConfigError.new, "version control #{type} is unknown to autoproj"
             end
-            @raw = raw
+
+            @history = (options[:history] || Array.new) + [[options[:from], self]]
+            @raw = options[:raw] || [[options[:from], to_hash]]
         end
 
         def local?
@@ -34,15 +46,24 @@ module Autoproj
         # the updated definition
         #
         # @return [VCSDefinition]
-        def update(spec, new_raw_entry)
-            new = self.class.vcs_definition_to_hash(spec)
-            if new.has_key?(:type) && (type != new[:type])
-                # The type changed. We replace the old definition by the new one
-                # completely
-                self.class.from_raw(new, new_raw_entry)
-            else
-                self.class.from_raw(to_hash.merge(new), raw + new_raw_entry)
+        def update(spec, options = Hash.new)
+            if !options.kind_of?(Hash)
+                options = Hash[raw: options]
             end
+            from, options = filter_options options, from: nil, raw: nil
+            from = from[:from]
+            new = self.class.vcs_definition_to_hash(spec)
+            new_raw  = options[:raw] || [[from, spec]]
+            new_history = Array.new
+
+            # If the type changed, we replace the old definition by the new one
+            # completely. Otherwise, we append it to the current one
+            if !new.has_key?(:type) || (type == new[:type])
+                new = to_hash.merge(new)
+                new_raw = self.raw + new_raw
+                new_history = self.history
+            end
+            self.class.from_raw(new, from: from, history: new_history, raw: new_raw)
         end
 
         # Updates the VCS specification +old+ by the information contained in
@@ -50,7 +71,7 @@ module Autoproj
         #
         # Both +old+ and +new+ are supposed to be in hash form. It is assumed
         # that +old+ has already been normalized by a call to
-        # Autoproj.vcs_definition_to_hash. +new+ can be in "raw" form.
+        # {.vcs_definition_to_hash}. +new+ can be in "raw" form.
         def self.update_raw_vcs_spec(old, new)
             new = vcs_definition_to_hash(new)
             if new.has_key?(:type) && (old[:type] != new[:type])
@@ -131,21 +152,32 @@ module Autoproj
             spec
         end
 
-        # Autoproj configuration files accept VCS definitions in three forms:
+        # Converts a 'raw' VCS representation to a normalized hash.
+        #
+        # The raw definition can have three forms:
         #  * as a plain string, which is a relative/absolute path
         #  * as a plain string, which is a vcs_type:url string
         #  * as a hash
         #
-        # This method returns the VCSDefinition object matching one of these
-        # specs. It raises ConfigError if there is no type and/or url
-        def self.from_raw(spec, raw_spec = [[nil, spec]])
+        # @return [VCSDefinition]
+        # @raise ArgumentError if the raw specification does not match an
+        #   expected format
+        def self.from_raw(spec, options = Hash.new)
+            if !options.kind_of?(Hash)
+                options = Hash[raw: options]
+            end
+            options = validate_options options, from: nil, raw: nil, history: nil
+            from = options[:from]
+            history = options[:history] || Array.new
+            raw = options[:raw] || [[from, spec]]
+
             spec = vcs_definition_to_hash(spec)
             if !(spec[:type] && (spec[:type] == 'none' || spec[:url]))
                 raise ConfigError.new, "the source specification #{spec.inspect} misses either the VCS type or an URL"
             end
 
             spec, vcs_options = Kernel.filter_options spec, :type => nil, :url => nil
-            return VCSDefinition.new(spec[:type], spec[:url], vcs_options, raw_spec)
+            return VCSDefinition.new(spec[:type], spec[:url], vcs_options, from: from, history: history, raw: raw)
         end
 
         def ==(other_vcs)
@@ -192,7 +224,15 @@ module Autoproj
             return if !needs_import?
 
             url = VCSDefinition.to_absolute_url(self.url)
-            Autobuild.send(type, url, options)
+            importer = Autobuild.send(type, url, options)
+            if importer.respond_to?(:declare_alternate_repository)
+                history.each do |from, vcs|
+                    next if !from || from.main?
+                    url = VCSDefinition.to_absolute_url(vcs.url)
+                    importer.declare_alternate_repository(from.name, url, vcs.options)
+                end
+            end
+            importer
         end
 
         # Returns a pretty representation of this VCS definition
