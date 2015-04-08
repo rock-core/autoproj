@@ -98,6 +98,9 @@ packages.each do |name|
             first = true
             fragments << [nil, vcs_to_array(vcs)]
             vcs.raw.each do |pkg_set, vcs_info|
+                pkg_set = if pkg_set then pkg_set.name
+                          end
+
                 title = if first
                             "first match: in #{pkg_set}"
                         else "overriden in #{pkg_set}"

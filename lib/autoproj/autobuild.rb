@@ -3,9 +3,9 @@ require 'fileutils'
 require 'autobuild'
 require 'set'
 
-def explicit_osdeps_selection(name)
-    if !Autoproj.declared_option?("osdeps_#{name}")
-	if Autoproj.has_config_key?("osdeps_#{name}")
+def explicit_osdeps_selection(name, config = Autoproj.config)
+    if !config.declared?("osdeps_#{name}")
+	if config.has_value_for?("osdeps_#{name}")
 	    doc_string = "install #{name} from source ?"
 	else
 	    # Declare the option
@@ -18,12 +18,12 @@ Do you want me to build #{name} from source ? If you say 'no', you will have to 
 	    EOT
 	end
 
-	Autoproj.configuration_option(
+	config.declare(
 	    "osdeps_#{name}", "boolean",
 	    :default => "yes",
 	    :doc => doc_string)
     end
-    !Autoproj.user_config("osdeps_#{name}")
+    !config.get("osdeps_#{name}")
 end
 
 module Autobuild
@@ -563,16 +563,16 @@ end
 
 # Define a configuration option
 #
-# See Autoproj.configuration_option
+# @see Autoproj::Configuration#declare
 def configuration_option(*opts, &block)
-    Autoproj.configuration_option(*opts, &block)
+    Autoproj.config.declare(*opts, &block)
 end
 
 # Retrieves the configuration value for the given option
 #
 # See Autoproj.user_config
 def user_config(key)
-    Autoproj.user_config(key)
+    Autoproj.config.get(key)
 end
 
 class Autobuild::Git

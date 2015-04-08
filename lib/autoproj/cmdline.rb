@@ -165,7 +165,7 @@ module Autoproj
             # Do that AFTER we have properly setup Autoproj.osdeps as to avoid
             # unnecessarily redetecting the operating system
             if update_os_dependencies? || osdeps?
-                Autoproj.change_option('operating_system', Autoproj::OSDependencies.operating_system(:force => true), true)
+                config.set('operating_system', Autoproj::OSDependencies.operating_system(:force => true), true)
             end
         end
 
@@ -204,7 +204,7 @@ module Autoproj
                 # We updated autobuild or autoproj themselves ... Restart !
                 #
                 # ...But first save the configuration (!)
-                Autoproj.save_config
+                config.save
                 ENV['AUTOPROJ_RESTARTING'] = '1'
                 require 'rbconfig'
                 exec(ruby_executable, $0, *argv)
@@ -272,7 +272,7 @@ module Autoproj
             # We finished loading the configuration files. Not all configuration
             # is done (since we need to process the package setup blocks), but
             # save the current state of the configuration anyway.
-            Autoproj.save_config
+            config.save
         end
 
         def self.update_configuration
@@ -354,7 +354,7 @@ module Autoproj
 
             # We now have processed the process setup blocks. All configuration
             # should be done and we can save the configuration data.
-            Autoproj.save_config
+            config.save
         end
 
         # This is a bit of a killer. It loads all available package manifests,

@@ -14,12 +14,15 @@ module Autoproj
         attr_reader :declared_options
         # The options that have already been shown to the user
         attr_reader :displayed_options
+        # The path to the underlying configuration file
+        attr_reader :path
 
-        def initialize
+        def initialize(path = nil)
             @config = Hash.new
             @overrides = Hash.new
             @declared_options = Hash.new
             @displayed_options = Hash.new
+            @path = path
         end
 
         # Deletes the current value for an option
@@ -141,15 +144,19 @@ module Autoproj
             end
         end
 
-        def load(path, reconfigure = false)
-            if h = YAML.load(File.read(path))
+        def load(options = Hash.new)
+            options = validate_options options,
+                path: self.path,
+                reconfigure: false
+
+            if h = YAML.load(File.read(options[:path]))
                 h.each do |key, value|
-                    set(key, value, !reconfigure)
+                    set(key, value, !options[:reconfigure])
                 end
             end
         end
 
-        def save(path)
+        def save(path = self.path)
             File.open(path, "w") do |io|
                 h = Hash.new
                 config.each do |key, value|

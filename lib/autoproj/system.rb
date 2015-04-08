@@ -99,7 +99,7 @@ module Autoproj
         # Change the value of 'prefix'
         def prefix=(new_path)
             @prefix = new_path
-            Autoproj.change_option('prefix', new_path, true)
+            Autoproj.config.set('prefix', new_path, true)
         end
     end
     @prefix = "install"

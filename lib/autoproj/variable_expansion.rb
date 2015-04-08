@@ -45,7 +45,7 @@ module Autoproj
             end
 
             if !(value = definitions[constant_name])
-                if !(value = Autoproj.user_config(constant_name))
+                if !(value = config.get(constant_name))
                     if !block_given? || !(value = yield(constant_name))
                         raise ArgumentError, "cannot find a definition for $#{constant_name}"
                     end

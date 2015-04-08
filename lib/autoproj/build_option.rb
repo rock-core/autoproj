@@ -2,7 +2,7 @@ module Autoproj
     class InputError < RuntimeError; end
 
     # Definition of an autoproj option as defined by
-    # {Configuration#configuration_option}
+    # {Configuration#declare}
     class BuildOption
         attr_reader :name
         attr_reader :type
