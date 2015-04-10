@@ -101,7 +101,7 @@ module Autoproj
                 ws.setup
                 ws.config.validate_ruby_executable
 
-                PackageManagers::GemManager.with_prerelease do
+                PackageManagers::GemManager.with_prerelease(ws.config.use_prerelease?) do
                     ws.osdeps.install(%w{autobuild autoproj})
                 end
                 ws.config.set 'reused_autoproj_installations', reuse, true
