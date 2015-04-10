@@ -19,11 +19,16 @@ module Autoproj
         false
     end
 
+    class WorkspaceAlreadyCreated < RuntimeError; end
+
     # Forcefully sets the root directory
     #
     # This is mostly useful during bootstrapping (i.e. when the search would
     # fail)
     def self.root_dir=(dir)
+        if @workspace && dir != @workspace.root_dir
+            raise WorkspaceAlreadyCreated, "cannot switch global root directory after a workspace object got created"
+        end
         @root_dir = dir
     end
 
@@ -58,66 +63,69 @@ module Autoproj
         result
     end
 
-    # Returns the configuration directory for this autoproj installation.
-    #
-    # If the current directory is not in an autoproj installation,
-    # raises UserError.
+    # @deprecated use workspace.config_dir instead
     def self.config_dir
-        File.join(root_dir, "autoproj")
+        Autoproj.warn "#{__method__} is deprecated, use workspace.config_dir instead"
+        caller.each { |l| Autoproj.warn "  #{l}" }
+        workspace.config_dir
     end
-
-    OVERRIDES_DIR = "overrides.d"
-
-    # Returns the directory containing overrides files
-    #
-    # If the current directory is not in an autoproj installation,
-    # raises UserError.
+    # @deprecated use workspace.overrides_dir instead
     def self.overrides_dir
-        File.join(config_dir, OVERRIDES_DIR)
+        Autoproj.warn "#{__method__} is deprecated, use workspace.overrides_dir instead"
+        caller.each { |l| Autoproj.warn "  #{l}" }
+        workspace.overrides_dir
     end
-
     # @deprecated use Autobuild.find_in_path instead
     #
     # Warning: the autobuild method returns nil (instead of raising) if the
     # argument cannot be found
     def self.find_in_path(name)
+        Autoproj.warn "#{__method__} is deprecated, use Autobuild.find_in_path instead"
+        caller.each { |l| Autoproj.warn "  #{l}" }
         if path = Autobuild.find_in_path(name)
             return path
         else raise ArgumentError, "cannot find #{name} in PATH (#{ENV['PATH']})"
         end
     end
-
-    class << self
-        # The directory in which packages will be installed.
-        #
-        # If it is a relative path, it is relative to the root dir of the
-        # installation.
-        #
-        # The default is "install"
-        attr_reader :prefix
-
-        # Change the value of 'prefix'
-        def prefix=(new_path)
-            @prefix = new_path
-            Autoproj.config.set('prefix', new_path, true)
-        end
+    # @deprecated use workspace.prefix_dir instead
+    def self.prefix
+        Autoproj.warn_deprecated(__method__, 'workspace.prefix_dir')
+        workspace.prefix_dir
     end
-    @prefix = "install"
-
-    # Returns the build directory (prefix) for this autoproj installation.
-    #
-    # If the current directory is not in an autoproj installation, raises
-    # UserError.
+    # @deprecated use workspace.prefix_dir= instead
+    def self.prefix=(path)
+        Autoproj.warn_deprecated(__method__, 'workspace.prefix_dir=')
+        workspace.prefix_dir = path
+    end
+    # @deprecated use workspace.prefix_dir instead
     def self.build_dir
-        File.expand_path(Autoproj.prefix, root_dir)
+        Autoproj.warn_deprecated(__method__, 'workspace.prefix_dir')
+        workspace.prefix_dir
     end
-
-    # Returns the path to the provided configuration file.
-    #
-    # If the current directory is not in an autoproj installation, raises
-    # UserError.
+    # @deprecated compute the full path with File.join(config_dir, file)
+    #   directly instead
     def self.config_file(file)
+        Autoproj.warn_deprecated(__method__, 'compute the full path with File.join(config_dir, ...) instead')
         File.join(config_dir, file)
+    end
+    # @deprecated use workspace.remotes_dir instead
+    def self.remotes_dir
+        Autoproj.warn_deprecated(__method__, 'use workspace.remotes_dir instead')
+        workspace.remotes_dir
+    end
+    # @deprecated use workspace.load or add a separate Loader object to your class
+    def self.load(package_set, *path)
+        Autoproj.warn_deprecated(
+            __method__,
+            'use workspace.load or add a separate Loader object to your class')
+        workspace.load(package_set, *path)
+    end
+    # @deprecated use workspace.load_if_present or add a separate Loader object to your class
+    def self.load_if_present(package_set, *path)
+        Autoproj.warn_deprecated(
+            __method__,
+            'use workspace.load_if_present or add a separate Loader object to your class')
+        workspace.load_if_present(package_set, *path)
     end
 
     # Run the provided command as user
@@ -126,27 +134,11 @@ module Autoproj
             raise "failed to run #{args.join(" ")}"
         end
     end
-
     # Run the provided command as root, using sudo to gain root access
     def self.run_as_root(*args)
         if !system(Autobuild.tool_in_path('sudo'), *args)
             raise "failed to run #{args.join(" ")} as root"
         end
-    end
-    # Return the directory in which remote package set definition should be
-    # checked out
-    def self.remotes_dir
-        File.join(root_dir, ".remotes")
-    end
-    # @deprecated use Ops.loader.load or add a proper Loader object to your
-    #   class
-    def self.load(package_set, *path)
-        Ops.loader.load(package_set, *path)
-    end
-    # @deprecated use Ops.loader.load_if_present or add a proper Loader object
-    #   to your class
-    def self.load_if_present(package_set, *path)
-        Ops.loader.load_if_present(package_set, *path)
     end
 
     # Look into +dir+, searching for shared libraries. For each library, display

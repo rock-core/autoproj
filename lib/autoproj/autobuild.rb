@@ -252,22 +252,20 @@ module Autoproj
         end
     end
 
-    # @deprecated use Ops.loader.in_package_set or add a proper Loader object to your
+    # @deprecated use workspace.in_package_set or add a proper Loader object to your
     #   class
     def self.in_package_set(package_set, path, &block)
-        Ops.loader.in_package_set(package_set, path, &block)
+        workspace.in_package_set(package_set, path, &block)
     end
-
-    # @deprecated use Ops.loader.current_file or add a proper Loader object to your
+    # @deprecated use workspace.current_file or add a proper Loader object to your
     #   class
     def self.current_file
-        Ops.loader.current_file
+        workspace.current_file
     end
-
-    # @deprecated use Ops.loader.current_package_set or add a proper Loader object to your
+    # @deprecated use workspace.current_package_set or add a proper Loader object to your
     #   class
     def self.current_package_set
-        Ops.loader.current_package_set
+        workspace.current_package_set
     end
 
     def self.define(package_type, spec, &block)
@@ -276,16 +274,12 @@ module Autoproj
         package
     end
 
-    @loaded_autobuild_files = Set.new
-
-    class << self
-        attr_reader :loaded_autobuild_files
+    def self.loaded_autobuild_files
+        workspace.loaded_autobuild_files
     end
 
     def self.import_autobuild_file(package_set, path)
-        return if @loaded_autobuild_files.include?(path)
-        Autoproj.load(package_set, path)
-        @loaded_autobuild_files << path
+        workspace.import_autobuild_file(package_set, path)
     end
 
     def self.find_topmost_directory_containing(dir, glob_pattern = nil)

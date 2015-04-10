@@ -38,7 +38,7 @@ module Autoproj
                     versions = Versions.new(manifest)
                     versions_file = File.join(
                         target_dir,
-                        OVERRIDES_DIR,
+                        Workspace::OVERRIDES_DIR,
                         Versions::DEFAULT_VERSIONS_FILE_BASENAME)
 
                     versions.run([],

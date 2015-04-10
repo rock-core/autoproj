@@ -346,7 +346,9 @@ module Autoproj
 
         # Load the package set information
         def load_and_update_package_sets
-            Ops::Configuration.new(self, Ops.loader).load_and_update_package_sets
+            Autoproj.warn_deprecated __method__,
+                "use Ops::Configuration instead"
+            Ops::Configuration.new(Autoproj.workspace).load_and_update_package_sets
         end
 
         # Returns a package set that is used by autoproj for its own purposes
@@ -445,16 +447,19 @@ module Autoproj
         # @deprecated use Ops::Tools.create_autobuild_package or include
         #   Ops::Tools into your class to get it as instance method
         def self.create_autobuild_package(vcs, text_name, into)
+            Autoproj.warn_deprecated __method__, "use Ops::Tools.create_autobuild_package instead"
             Ops::Tools.create_autobuild_package(vcs, text_name, into)
         end
 
         # @deprecated use Ops::Configuration#update_main_configuration
         def update_yourself(only_local = false)
-            Ops::Configuration.new(self, Ops.loader).update_main_configuration(only_local)
+            Autoproj.warn_deprecated __method__, "use Ops::Configuration instead"
+            Ops::Configuration.new(Autoproj.workspace).update_main_configuration(only_local)
         end
 
         # @deprecated use Ops::Configuration.update_remote_package_set
         def update_remote_set(vcs, only_local = false)
+            Autoproj.warn_deprecated __method__, "use Ops::Configuration instead"
             Ops::Configuration.update_remote_package_set(vcs, only_local)
         end
 

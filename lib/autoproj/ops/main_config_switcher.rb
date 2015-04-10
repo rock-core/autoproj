@@ -4,11 +4,10 @@ module Autoproj
         # and switch-config)
         class MainConfigSwitcher
             attr_reader :root_dir
-            attr_reader :config
+            attr_reader :workspace
 
-            def initialize(root_dir, config = Autoproj.config)
+            def initialize(root_dir)
                 @root_dir = root_dir
-                @config = config
             end
 
             # Set of directory entries that are expected to be present in the
@@ -27,7 +26,8 @@ module Autoproj
                 return if ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] == '1'
 
                 require 'set'
-                curdir_entries = Dir.entries('.').to_set - EXPECTED_ROOT_ENTRIES
+                curdir_entries = Dir.entries(root_dir).map { |p| File.basename(p) } - 
+                    EXPECTED_ROOT_ENTRIES
                 return if curdir_entries.empty?
 
                 while true
@@ -97,22 +97,15 @@ module Autoproj
                 args, reuse = handle_bootstrap_options(args)
                 validate_autoproj_current_root(reuse)
 
-                Autoproj.root_dir = root_dir
-                Autobuild.prefix  = Autoproj.build_dir
-                Autobuild.srcdir  = Autoproj.root_dir
-                Autobuild.logdir = File.join(Autobuild.prefix, 'log')
+                ws = Workspace.new(root_dir)
+                ws.setup
+                ws.config.validate_ruby_executable
 
-                manifest = Autoproj.manifest = Manifest.new
-                Tools.load_autoprojrc
-                Autoproj.prepare_environment
-
-                Autoproj::OSDependencies.define_osdeps_mode_option
-                manifest.osdeps.load_default
-                manifest.osdeps.osdeps_mode
-
-                CmdLine.update_myself :force => true, :restart_on_update => false
-                config.set 'reused_autoproj_installations', reuse, true
-                Autoproj.export_env_sh
+                PackageManagers::GemManager.with_prerelease do
+                    ws.osdeps.install(%w{autobuild autoproj})
+                end
+                ws.config.set 'reused_autoproj_installations', reuse, true
+                ws.env.export_env_sh(nil, shell_helpers: config.shell_helpers?)
 
                 # If we are not getting the installation setup from a VCS, copy the template
                 # files
@@ -138,17 +131,16 @@ module Autoproj
                 elsif args.size >= 2 # is a VCS definition for the manifest itself ...
                     type, url, *options = *args
                     url = VCSDefinition.to_absolute_url(url, Dir.pwd)
-                    do_switch_config(false, type, url, *options)
+                    do_switch_config(ws, false, type, url, *options)
                 end
-                config.save
+                ws.env.export_env_sh(nil, shell_helpers: config.shell_helpers?)
+                ws.config.save
             end
 
             def switch_config(*args)
-                Autoproj.load_config
-                if config.has_value_for?('manifest_source')
-                    vcs = VCSDefinition.from_raw(config.get('manifest_source'))
-                end
-
+                ws = Workspace.new(root_dir)
+                ws.setup
+                vcs = ws.config.get('manifest_source', nil)
                 if args.first =~ /^(\w+)=/
                     # First argument is an option string, we are simply setting the
                     # options without changing the type/url
@@ -161,17 +153,14 @@ module Autoproj
                 url = VCSDefinition.to_absolute_url(url)
 
                 if vcs && (vcs.type == type && vcs.url == url)
-                    # Don't need to do much: simply change the options and save the config
-                    # file, the VCS handler will take care of the actual switching
-                    vcs_def = config.get('manifest_source')
                     options.each do |opt|
                         opt_name, opt_value = opt.split('=')
-                        vcs_def[opt_name] = opt_value
+                        vcs[opt_name] = opt_value
                     end
                     # Validate the VCS definition, but save the hash as-is
-                    VCSDefinition.from_raw(vcs_def)
-                    config.set "manifest_source", vcs_def.dup, true
-                    config.save
+                    VCSDefinition.from_raw(vcs)
+                    ws.config.set "manifest_source", vcs.dup, true
+                    ws.config.save
                     true
 
                 else
@@ -182,14 +171,15 @@ module Autoproj
 
                     return if !opt.ask(nil)
 
-                    Dir.chdir(Autoproj.root_dir) do
-                        do_switch_config(true, type, url, *options)
+                    Dir.chdir(root_dir) do
+                        do_switch_config(ws, true, type, url, *options)
                     end
                     false
                 end
             end
 
-            def do_switch_config(delete_current, type, url, *options)
+            # @api private
+            def do_switch_config(ws, delete_current, type, url, *options)
                 vcs_def = Hash.new
                 vcs_def[:type] = type
                 vcs_def[:url]  = VCSDefinition.to_absolute_url(url)
@@ -205,13 +195,10 @@ module Autoproj
                 vcs = VCSDefinition.from_raw(vcs_def)
 
                 # Install the OS dependencies required for this VCS
-                Autoproj::OSDependencies.define_osdeps_mode_option
-                osdeps = Autoproj::OSDependencies.load_default
-                osdeps.osdeps_mode
-                osdeps.install([vcs.type])
+                ws.osdeps.install([vcs.type])
 
                 # Now check out the actual configuration
-                config_dir = File.join(Dir.pwd, "autoproj")
+                config_dir = File.join(root_dir, "autoproj")
                 if delete_current
                     # Find a backup name for it
                     backup_base_name = backup_name = "#{config_dir}.bak"
@@ -223,14 +210,16 @@ module Autoproj
                         
                     FileUtils.mv config_dir, backup_name
                 end
-                Ops::Configuration.update_configuration_repository(
+
+                ops = Ops::Configuration.new(ws)
+                ops.update_configuration_repository(
                     vcs,
                     "autoproj main configuration",
                     config_dir)
 
                 # If the new tree has a configuration file, load it and set
                 # manifest_source
-                Autoproj.load_config
+                ws.load_config
 
                 # And now save the options: note that we keep the current option set even
                 # though we switched configuration. This is not a problem as undefined
@@ -245,8 +234,8 @@ module Autoproj
                 # Validate the option hash, just in case
                 VCSDefinition.from_raw(vcs_def)
                 # Save the new options
-                config.set "manifest_source", vcs_def.dup, true
-                config.save
+                ws.config.set "manifest_source", vcs_def.dup, true
+                ws.config.save
 
             rescue Exception => e
                 Autoproj.error "switching configuration failed: #{e.message}"

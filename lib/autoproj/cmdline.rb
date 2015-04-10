@@ -51,16 +51,20 @@ module Autoproj
             end
         end
 
+        def self.ws
+            Autoproj.workspace
+        end
+
         def self.config
-            Autoproj.config
+            ws.config
         end
 
         def self.ruby_executable
-            Autoproj.config.ruby_executable
+            ws.config.ruby_executable
         end
 
         def self.env
-            Autoproj.env
+            ws.env
         end
 
         def self.install_ruby_shims
@@ -276,7 +280,7 @@ module Autoproj
         end
 
         def self.update_configuration
-            Ops::Configuration.new(manifest, Ops.loader).update_configuration(only_local?)
+            Ops::Configuration.new(ws).update_configuration(only_local?)
         end
 
         def self.setup_package_directories(pkg)
