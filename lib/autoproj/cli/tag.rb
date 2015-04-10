@@ -40,7 +40,7 @@ module Autoproj
                 end
 
                 versions_file = File.join(
-                    OVERRIDES_DIR,
+                    Workspace::OVERRIDES_DIR,
                     Versions::DEFAULT_VERSIONS_FILE_BASENAME)
 
                 if tag_name.nil?

@@ -48,7 +48,7 @@ module Autoproj
 
                 # Checkout the version file
                 versions_file = File.join(
-                    OVERRIDES_DIR,
+                    Workspace::OVERRIDES_DIR,
                     Versions::DEFAULT_VERSIONS_FILE_BASENAME)
                 begin
                     file_data = importer.show(pkg, ref_name, versions_file)
@@ -58,7 +58,7 @@ module Autoproj
                         FileUtils.rm_f old_versions_path
                         FileUtils.cp versions_path, old_versions_path
                     end
-                    FileUtils.mkdir_p File.join(Autoproj.config_dir, OVERRIDES_DIR)
+                    FileUtils.mkdir_p File.join(Autoproj.config_dir, Workspace::OVERRIDES_DIR)
                     File.open(versions_path, 'w') do |io|
                         io.write file_data
                     end

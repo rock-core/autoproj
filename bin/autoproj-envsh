@@ -7,7 +7,7 @@ Autoproj::CmdLine.report do
         Autoproj::CmdLine.initialize_root_directory
         Autoproj::CmdLine.initialize_and_load(ARGV)
     end
-    Autoproj.export_env_sh
+    Autoproj.env.export_env_sh(shell_helpers: Autoproj.config.shell_helpers?)
     Autoproj::CmdLine.export_installation_manifest
     Autoproj.message "autoproj: updated #{Autoproj.root_dir}/#{Autoproj::ENV_FILENAME}", :green
 end

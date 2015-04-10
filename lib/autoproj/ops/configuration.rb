@@ -26,7 +26,7 @@ module Autoproj
 
         # The object that allows us to install OS dependencies
         def osdeps
-            Autoproj.osdeps
+            ws.osdeps
         end
 
         # The path in which remote package sets should be exposed to the
@@ -34,7 +34,7 @@ module Autoproj
         #
         # @return [String]
         def remotes_dir
-            Autoproj.remotes_dir
+            ws.remotes_dir
         end
 
         # The path in which remote package sets should be exposed to the
@@ -58,13 +58,11 @@ module Autoproj
         # @option options [InstallationManifest] :update_from
         #   (CmdLine.update_from) another autoproj installation from which we
         #   should update (instead of the normal VCS)
-        def initialize(manifest, loader, options = Hash.new)
+        def initialize(workspace, options = Hash.new)
             options = Kernel.validate_options options,
                 :update_from => CmdLine.update_from
-            @manifest = manifest
-            @loader = loader
+            @ws = workspace
             @update_from = options[:update_from]
-            @config_dir = Autoproj.config_dir
             @remote_update_message_displayed = false
         end
 
@@ -110,7 +108,7 @@ module Autoproj
             self.class.update_configuration_repository(
                 manifest.vcs,
                 "autoproj main configuration",
-                config_dir,
+                ws.config_dir,
                 update_from: update_from,
                 only_local: only_local)
         end

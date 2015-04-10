@@ -73,13 +73,11 @@ module Autoproj
     end
 
     def self.config
-        @config ||= Configuration.new(File.join(Autoproj.config_dir, "config.yml"))
+        workspace.config
     end
 
     def self.load_config
-        if File.exists?(config.path)
-            config.load(reconfigure: reconfigure?)
-        end
+        workspace.load_config
     end
 
     class << self

@@ -172,7 +172,7 @@ module Autoproj
         DEFAULT_VERSIONS_FILE_BASENAME = "50-versions.yml"
 
         def import_state_log_file
-            File.join(OVERRIDES_DIR, DEFAULT_VERSIONS_FILE_BASENAME)
+            File.join(Workspace::OVERRIDES_DIR, DEFAULT_VERSIONS_FILE_BASENAME)
         end
 
         def current_import_state

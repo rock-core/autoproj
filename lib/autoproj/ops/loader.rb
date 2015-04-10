@@ -1,15 +1,21 @@
 module Autoproj
     module Ops
     class Loader
+        # The path w.r.t. which we should resolve relative paths
+        #
+        # @return [String]
+        attr_reader :root_dir
         # @return [Array<String>] information about what is being loaded
         attr_reader :file_stack
 
-        def initialize
+        def initialize(root_dir)
+            @root_dir = root_dir
             @file_stack = Array.new
+            @loaded_autobuild_files = Set.new
         end
 
         def in_package_set(pkg_set, path)
-            @file_stack.push([pkg_set, File.expand_path(path).gsub(/^#{Regexp.quote(Autoproj.root_dir)}\//, '')])
+            @file_stack.push([pkg_set, File.expand_path(path).gsub(/^#{Regexp.quote(root_dir)}\//, '')])
             yield
         ensure
             @file_stack.pop
@@ -61,7 +67,7 @@ module Autoproj
         # @param [Array<String>] path
         def load(pkg_set, *path)
             path = File.join(*path)
-            in_package_set(pkg_set, File.expand_path(path).gsub(/^#{Regexp.quote(Autoproj.root_dir)}\//, '')) do
+            in_package_set(pkg_set, File.expand_path(path).gsub(/^#{Regexp.quote(root_dir)}\//, '')) do
                 begin
                     Kernel.load path
                 rescue Interrupt
@@ -83,14 +89,18 @@ module Autoproj
                 load(pkg_set, *path)
             end
         end
+
+        def import_autobuild_file(package_set, path)
+            return if @loaded_autobuild_files.include?(path)
+            Autoproj.load(package_set, path)
+            @loaded_autobuild_files << path
+        end
     end
 
-    # Singleton object that maintains the loading state
-    #
-    # Note that it is here hopefully temporarily. All the Ops classes should
-    # have their loader object given at construction time
+    # @deprecated use Autoproj.workspace, or better make sure all ops classes
+    #   get their own workspace object as argument
     def self.loader
-        @loader ||= Loader.new
+        Autoproj.workspace
     end
     end
 end
