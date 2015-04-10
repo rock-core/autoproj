@@ -525,11 +525,25 @@ fi
         # Package manager interface for the RubyGems system
         class GemManager < Manager
             class << self
-                attr_accessor :with_prerelease
+                attr_writer :with_prerelease
                 attr_accessor :with_doc
             end
             @with_prerelease = false
             @with_doc = false
+
+            def self.with_prerelease(*value)
+                if value.empty?
+                    @with_prerelease
+                else
+                    begin
+                        saved_flag = @with_prerelease
+                        @with_prerelease = value.first
+                        yield
+                    ensure
+                        @with_prerelease = saved_flag
+                    end
+                end
+            end
 
             # Filters all paths that come from other autoproj installations out
             # of GEM_PATH

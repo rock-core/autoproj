@@ -69,16 +69,17 @@ module Autoproj
         # Imports or updates a source (remote or otherwise).
         #
         # See create_autobuild_package for informations about the arguments.
-        def self.update_configuration_repository(vcs, name, into, options = Hash.new)
-            options = Kernel.validate_options options, update_from: nil, only_local: false
-            update_from, only_local = options.values_at(:update_from, :only_local)
+        def update_configuration_repository(vcs, name, into, options = Hash.new)
+            options = Kernel.validate_options options,
+                only_local: false,
+                checkout_only: !Autobuild.do_update
 
             fake_package = Tools.create_autobuild_package(vcs, name, into)
             if update_from
                 # Define a package in the installation manifest that points to
                 # the desired folder in other_root
                 relative_path = Pathname.new(into).
-                    relative_path_from(Pathname.new(Autoproj.root_dir)).to_s
+                    relative_path_from(Pathname.new(root_dir)).to_s
                 other_dir = File.join(update_from.path, relative_path)
                 if File.directory?(other_dir)
                     update_from.packages.unshift(
@@ -94,7 +95,7 @@ module Autoproj
                     fake_package.update = false
                 end
             end
-            fake_package.import(only_local: only_local)
+            fake_package.import(options)
 
         rescue Autobuild::ConfigException => e
             raise ConfigError.new, "cannot import #{name}: #{e.message}", e.backtrace
@@ -104,13 +105,19 @@ module Autoproj
         #
         # @return [Boolean] true if something got updated or checked out,
         #   and false otherwise
-        def update_main_configuration(only_local = false)
-            self.class.update_configuration_repository(
+        def update_main_configuration(options = Hash.new)
+            if !options.kind_of?(Hash)
+                options = Hash[only_local: options]
+            end
+            options = validate_options options,
+                only_local: false,
+                checkout_only: !Autobuild.do_update
+
+            update_configuration_repository(
                 manifest.vcs,
                 "autoproj main configuration",
                 ws.config_dir,
-                update_from: update_from,
-                only_local: only_local)
+                options)
         end
 
         # Update or checkout a remote package set, based on its VCS definition
@@ -118,11 +125,19 @@ module Autoproj
         # @param [VCSDefinition] vcs the package set VCS
         # @return [Boolean] true if something got updated or checked out,
         #   and false otherwise
-        def update_remote_package_set(vcs, only_local = false)
+        def update_remote_package_set(vcs, options = Hash.new)
+            # BACKWARD
+            if !options.kind_of?(Hash)
+                options = Hash[only_local: options]
+            end
+            options = validate_options options,
+                only_local: false,
+                checkout_only: !Autobuild.do_update
+
             name = PackageSet.name_of(manifest, vcs)
             raw_local_dir = PackageSet.raw_local_dir_of(vcs)
 
-            return if !Autobuild.do_update && File.exists?(raw_local_dir)
+            return if !options[:checkout_only] && File.exists?(raw_local_dir)
 
             # YUK. I am stopping there in the refactoring
             # TODO: figure out a better way
@@ -131,10 +146,8 @@ module Autoproj
                 @remote_update_message_displayed = true
             end
             osdeps.install([vcs.type])
-            self.class.update_configuration_repository(
-                vcs, name, raw_local_dir,
-                update_from: update_from,
-                only_local: only_local)
+            update_configuration_repository(
+                vcs, name, raw_local_dir, options)
         end
 
         # Create the user-visible directory for a remote package set
@@ -202,7 +215,14 @@ module Autoproj
         #
         # @yieldparam [String] osdep the name of an osdep required to import the
         #   package sets
-        def load_and_update_package_sets(root_pkg_set, only_local = false)
+        def load_and_update_package_sets(root_pkg_set, options = Hash.new)
+            if !options.kind_of?(Hash)
+                options = Hash[only_local: options]
+            end
+            options = validate_options options,
+                only_local: false,
+                checkout_only: !Autobuild.do_update
+
             package_sets = [root_pkg_set]
             by_repository_id = Hash.new
             by_name = Hash.new
@@ -226,7 +246,7 @@ module Autoproj
                 by_repository_id[repository_id] = [vcs, imported_from]
 
                 if !vcs.local?
-                    update_remote_package_set(vcs, only_local)
+                    update_remote_package_set(vcs, options)
                     create_remote_set_user_dir(vcs)
                 end
 
@@ -328,12 +348,19 @@ module Autoproj
             sorted
         end
 
-        def update_configuration(only_local = false)
+        def update_configuration(options = Hash.new)
+            if !options.kind_of?(Hash)
+                options = Hash[only_local: options]
+            end
+            options = validate_options options,
+                only_local: false,
+                checkout_only: !Autobuild.do_update
+
             # Load the installation's manifest a first time, to check if we should
             # update it ... We assume that the OS dependencies for this VCS is already
             # installed (i.e. that the user did not remove it)
             if manifest.vcs && !manifest.vcs.local?
-                update_main_configuration(only_local)
+                update_main_configuration(options)
             end
             Tools.load_main_initrb(manifest)
             manifest.load(manifest_path)
@@ -341,7 +368,7 @@ module Autoproj
             root_pkg_set = manifest.local_package_set
             root_pkg_set.load_description_file
             root_pkg_set.explicit = true
-            package_sets = load_and_update_package_sets(root_pkg_set, only_local)
+            package_sets = load_and_update_package_sets(root_pkg_set, options)
             root_pkg_set.imports.each do |pkg_set|
                 pkg_set.explicit = true
             end
