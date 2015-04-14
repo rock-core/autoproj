@@ -46,10 +46,11 @@ end
 # Find the autoproj root dir
 Autoproj::CmdLine.report do
     selected_packages = Autoproj::CmdLine.parse_arguments(ARGV.dup)
+    ws = Autoproj.workspace
+    Autoproj::CmdLine.initialize(ws)
 
     # Expand directories in the selected_packages set, before we chdir to the
     # autoproj root
-    root_dir = Autoproj.root_dir
     selected_packages.map! do |name|
         if File.directory?(name)
             File.expand_path(name) + File::SEPARATOR
@@ -60,19 +61,16 @@ Autoproj::CmdLine.report do
 
     needs_update_config = false
     selected_packages.delete_if do |name|
-        if name =~ /^#{Regexp.quote(Autoproj.config_dir + File::SEPARATOR)}/ ||
-            name =~ /^#{Regexp.quote(Autoproj.remotes_dir + File::SEPARATOR)}/
+        if name =~ /^#{Regexp.quote(ws.config_dir + File::SEPARATOR)}/ ||
+            name =~ /^#{Regexp.quote(ws.remotes_dir + File::SEPARATOR)}/
             needs_update_config = true
-        elsif (Autoproj.config_dir + File::SEPARATOR) =~ /^#{Regexp.quote(name)}/
+        elsif (ws.config_dir + File::SEPARATOR) =~ /^#{Regexp.quote(name)}/
             needs_update_config = true
             false
         end
     end
 
-    Dir.chdir(root_dir)
-
     # Basic initialization
-    Autoproj::CmdLine.initialize
     if needs_update_config
         Autoproj::CmdLine.update_configuration
         if selected_packages.empty?
@@ -91,7 +89,7 @@ Autoproj::CmdLine.report do
         end
     end
     Autoproj::CmdLine.load_configuration
-    manifest = Autoproj.manifest
+    manifest = ws.manifest
 
     Autoproj::CmdLine.setup_all_package_directories
     # resolve_user_selection auto-adds packages present on disk but not listed
@@ -114,7 +112,7 @@ Autoproj::CmdLine.report do
     else
         command_line_selection = Array.new
     end
-    Autoproj.manifest.explicit_selection = resolved_selected_packages
+    ws.manifest.explicit_selection = resolved_selected_packages
     selected_packages = resolved_selected_packages
 
     if other_root = Autoproj::CmdLine.update_from
@@ -188,7 +186,7 @@ Autoproj::CmdLine.report do
     # Install prepackaged dependencies needed to import and build the packages.
     # The required information is in the package sets configuration.
     if Autoproj::CmdLine.update_os_dependencies?
-        Autoproj.osdeps.install(Autoproj.build_system_dependencies)
+        ws.osdeps.install(Autoproj.build_system_dependencies)
     end
 
     # Now, we actually do the import. Unfortunately, at this stage, we need to
@@ -217,8 +215,8 @@ Autoproj::CmdLine.report do
     end
 
     if Autoproj::CmdLine.update_envsh?
-        Autoproj.export_env_sh
-        Autoproj.message "autoproj: updated #{Autoproj.root_dir}/#{Autoproj::ENV_FILENAME}", :green
+        ws.env.export_env_sh
+        Autoproj.message "autoproj: updated #{ws.root_dir}/#{Autoproj::ENV_FILENAME}", :green
     end
 
     if Autoproj::CmdLine.show_statistics?
@@ -228,7 +226,7 @@ Autoproj::CmdLine.report do
         Autoproj.message
         Autoproj.message "statistics about the build", :bold
 
-        Autoproj.manifest.each_autobuild_package.sort_by(&:name).each do |pkg|
+        ws.manifest.each_autobuild_package.sort_by(&:name).each do |pkg|
             next if pkg.statistics.empty?
 
             if per_phase.empty?
