@@ -92,7 +92,7 @@ module Autoproj
 
         def import_autobuild_file(package_set, path)
             return if @loaded_autobuild_files.include?(path)
-            Autoproj.load(package_set, path)
+            load(package_set, path)
             @loaded_autobuild_files << path
         end
     end

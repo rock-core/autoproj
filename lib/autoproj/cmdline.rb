@@ -847,7 +847,7 @@ module Autoproj
             Autobuild.apply(all_enabled_packages, "autoproj-build", phases - ['build'])
         end
 
-        def self.manifest; Autoproj.manifest end
+        def self.manifest; ws.manifest end
         def self.only_status?; !!@only_status end
         def self.only_local?; !!@only_local end
         def self.all_known_package?; !!@all_known_package end
@@ -863,7 +863,7 @@ module Autoproj
             end
 
             # Now look for what the user wants
-            Autoproj.osdeps.osdeps_mode != 'none' || !Autoproj.osdeps.silent?
+            ws.osdeps.osdeps_mode != 'none' || !ws.osdeps.silent?
         end
         class << self
             attr_accessor :update_os_dependencies
@@ -1458,13 +1458,13 @@ where 'mode' is one of:
             used_by = Hash.new { |h, k| h[k] = Array.new }
             ospkg_to_pkg.each do |pkg_osdep, pkgs|
                 used_by[pkg_osdep].concat(pkgs)
-                packages = Autoproj.osdeps.resolve_package(pkg_osdep)
+                packages = ws.osdeps.resolve_package(pkg_osdep)
                 packages.each do |handler, status, entries|
                     entries.each do |entry|
                         if entry.respond_to?(:join)
                             entry = entry.join(", ")
                         end
-                        mapping[entry] << [pkg_osdep, handler, Autoproj.osdeps.source_of(pkg_osdep)]
+                        mapping[entry] << [pkg_osdep, handler, ws.osdeps.source_of(pkg_osdep)]
                     end
                 end
             end
@@ -1514,7 +1514,7 @@ where 'mode' is one of:
                     next
                 end
 
-                packages = Autoproj.osdeps.resolve_os_dependencies(pkg_osdeps)
+                packages = ws.osdeps.resolve_os_dependencies(pkg_osdeps)
                 puts pkg_name
                 packages.each do |handler, packages|
                     puts "  #{handler.name}: #{packages.sort.join(", ")}"

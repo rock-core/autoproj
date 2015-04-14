@@ -612,7 +612,7 @@ module Autoproj
 	    osdeps_availability = osdeps.availability_of(name)
             available_as_source = Autobuild::Package[name]
 
-            osdeps_overrides = Autoproj.manifest.osdeps_overrides[name]
+            osdeps_overrides = self.osdeps_overrides[name]
             if osdeps_overrides
                 source_packages    = osdeps_overrides[:packages].dup
                 force_source_usage = osdeps_overrides[:force]
