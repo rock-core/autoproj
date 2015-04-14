@@ -4,7 +4,6 @@ module Autoproj
         # and switch-config)
         class MainConfigSwitcher
             attr_reader :root_dir
-            attr_reader :workspace
 
             def initialize(root_dir)
                 @root_dir = root_dir
@@ -105,7 +104,7 @@ module Autoproj
                     ws.osdeps.install(%w{autobuild autoproj})
                 end
                 ws.config.set 'reused_autoproj_installations', reuse, true
-                ws.env.export_env_sh(nil, shell_helpers: config.shell_helpers?)
+                ws.env.export_env_sh(nil, shell_helpers: ws.config.shell_helpers?)
 
                 # If we are not getting the installation setup from a VCS, copy the template
                 # files
@@ -133,7 +132,7 @@ module Autoproj
                     url = VCSDefinition.to_absolute_url(url, Dir.pwd)
                     do_switch_config(ws, false, type, url, *options)
                 end
-                ws.env.export_env_sh(nil, shell_helpers: config.shell_helpers?)
+                ws.env.export_env_sh(nil, shell_helpers: ws.config.shell_helpers?)
                 ws.config.save
             end
 
@@ -176,6 +175,7 @@ module Autoproj
                     end
                     false
                 end
+                ws.config.save
             end
 
             # @api private
