@@ -138,9 +138,6 @@ module Autoproj
             @manifest_exclusions = Set.new
 
             @constant_definitions = Hash.new
-            if Autoproj.config.has_value_for?('manifest_source')
-                @vcs = VCSDefinition.from_raw(Autoproj.config.get('manifest_source'), from: main_package_set)
-            end
             @package_sets << LocalPackageSet.new(self)
 	end
 

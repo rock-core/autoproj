@@ -40,27 +40,11 @@ module Autoproj
         if @root_dir
             return @root_dir
         end
-
-        path = Pathname.pwd
-        while !path.root?
-            if (path + "autoproj" + 'manifest').file?
-                break
-            end
-            path = path.parent
-        end
-
-        if path.root?
+        path = Workspace.find_root_dir(dir)
+        if !path
             raise UserError, "not in a Autoproj installation"
         end
-
-        result = path.to_s
-        # I don't know if this is still useful or not ... but it does not hurt
-        #
-        # Preventing backslashed in path, that might be confusing on some path compares
-        if Autobuild.windows?
-            result = result.gsub(/\\/,'/')
-        end
-        result
+        path
     end
 
     # @deprecated use workspace.config_dir instead

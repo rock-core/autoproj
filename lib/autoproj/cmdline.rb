@@ -68,32 +68,7 @@ module Autoproj
         end
 
         def self.install_ruby_shims
-            install_suffix = ""
-            if match = /ruby(.*)$/.match(RbConfig::CONFIG['RUBY_INSTALL_NAME'])
-                install_suffix = match[1]
-            end
-
-            bindir = File.join(Autoproj.build_dir, 'bin')
-            FileUtils.mkdir_p bindir
-            env.add 'PATH', bindir
-
-            File.open(File.join(bindir, 'ruby'), 'w') do |io|
-                io.puts "#! /bin/sh"
-                io.puts "exec #{ruby_executable} \"$@\""
-            end
-            FileUtils.chmod 0755, File.join(bindir, 'ruby')
-
-            ['gem', 'irb', 'testrb'].each do |name|
-                # Look for the corresponding gem program
-                prg_name = "#{name}#{install_suffix}"
-                if File.file?(prg_path = File.join(RbConfig::CONFIG['bindir'], prg_name))
-                    File.open(File.join(bindir, name), 'w') do |io|
-                        io.puts "#! #{ruby_executable}"
-                        io.puts "exec \"#{prg_path}\", *ARGV"
-                    end
-                    FileUtils.chmod 0755, File.join(bindir, name)
-                end
-            end
+            ws.install_ruby_shims
         end
 
         def self.validate_current_root
@@ -103,78 +78,26 @@ module Autoproj
             end
         end
 
-        def self.initialize
-            Encoding.default_internal = Encoding::UTF_8
-            Encoding.default_external = Encoding::UTF_8
+        def self.initialize(ws = Autoproj.workspace)
+            Ops::Tools.basic_setup
 
-            Autobuild::Reporting << Autoproj::Reporter.new
-            if mail_config[:to]
-                Autobuild::Reporting << Autobuild::MailReporter.new(mail_config)
-            end
-
-            validate_current_root
-
-            # Remove from LOADED_FEATURES everything that is coming from our
-            # configuration directory
-            Autobuild::Package.clear
-            Autoproj.loaded_autobuild_files.clear
-            Autoproj.load_config
-
-            config.validate_ruby_executable
-            install_ruby_shims
-
-            config.apply_autobuild_configuration
-            config.apply_autoproj_prefix
-
-            manifest = Manifest.new
-            Autoproj.manifest = manifest
-            Autobuild.prefix  = Autoproj.build_dir
-            Autobuild.srcdir  = Autoproj.root_dir
-            Autobuild.logdir = File.join(Autobuild.prefix, 'log')
-
-            Ops::Tools.load_autoprojrc
-
-            config.each_reused_autoproj_installation do |p|
-                manifest.reuse(p)
-            end
-            Autoproj::OSDependencies::PACKAGE_HANDLERS.each do |pkg_mng|
-                pkg_mng.initialize_environment(env, manifest)
-            end
-
-            # We load the local init.rb first so that the manifest loading
-            # process can use options defined there for the autoproj version
-            # control information (for instance)
-            Ops::Tools.load_main_initrb(manifest)
-
-            manifest_path = File.join(Autoproj.config_dir, 'manifest')
-            manifest.load(manifest_path)
-
-            # Initialize the Autoproj.osdeps object by loading the default. The
-            # rest is loaded later
-            manifest.osdeps.load_default
-            manifest.osdeps.silent = !osdeps?
-            manifest.osdeps.filter_uptodate_packages = osdeps_filter_uptodate?
+            ws = Workspace.from_environment
+            ws.set_as_main_workspace
+            ws.osdeps.silent = Autoproj.silent?
+            ws.osdeps.filter_uptodate_packages = osdeps_filter_uptodate?
             if osdeps_forced_mode
-                manifest.osdeps.osdeps_mode = osdeps_forced_mode
+                ws.osdeps.osdeps_mode = osdeps_forced_mode
             end
+            ws.setup
+            ws.install_ruby_shims
 
-            # Define the option NOW, as update_os_dependencies? needs to know in
-            # what mode we are.
-            #
-            # It might lead to having multiple operating system detections, but
-            # that's the best I can do for now.
-	    Autoproj::OSDependencies.define_osdeps_mode_option
-            manifest.osdeps.osdeps_mode
-
-            # Do that AFTER we have properly setup Autoproj.osdeps as to avoid
+            # Do that AFTER we have properly setup ws.osdeps as to avoid
             # unnecessarily redetecting the operating system
             if update_os_dependencies? || osdeps?
-                config.set('operating_system', Autoproj::OSDependencies.operating_system(:force => true), true)
+                ws.config.set('operating_system',
+                           Autoproj::OSDependencies.operating_system(:force => true),
+                           true)
             end
-        end
-
-        def self.load_autoprojrc
-            Ops::Tools.load_autoprojrc
         end
 
         def self.update_myself(options = Hash.new)
@@ -216,149 +139,23 @@ module Autoproj
         end
 
         def self.load_configuration(silent = false)
-            manifest.each_package_set do |pkg_set|
-                if Gem::Version.new(pkg_set.required_autoproj_version) > Gem::Version.new(Autoproj::VERSION)
-                    raise ConfigError.new(pkg_set.source_file), "the #{pkg_set.name} package set requires autoproj v#{pkg_set.required_autoproj_version} but this is v#{Autoproj::VERSION}"
-                end
-            end
-
-            # Loads OS package definitions once and for all
-            Autoproj.load_osdeps_from_package_sets
-
-            # Load the required autobuild definitions
-            if !silent
-                Autoproj.message("autoproj: loading ...", :bold)
-                if !Autoproj.reconfigure?
-                    Autoproj.message("run 'autoproj reconfigure' to change configuration options", :bold)
-                    Autoproj.message("and use 'autoproj switch-config' to change the remote source for", :bold)
-                    Autoproj.message("autoproj's main build configuration", :bold)
-                end
-            end
-            manifest.each_autobuild_file do |source, name|
-                Autoproj.import_autobuild_file source, name
-            end
-
-            # Now, load the package's importer configurations (from the various
-            # source.yml files)
-            manifest.load_importers
-
-            # Auto-add packages that are
-            #  * present on disk
-            #  * listed in the layout part of the manifest
-            #  * but have no definition
-            explicit = manifest.normalized_layout
-            explicit.each do |pkg_or_set, layout_level|
-                next if Autobuild::Package[pkg_or_set]
-                next if manifest.has_package_set?(pkg_or_set)
-
-                # This is not known. Check if we can auto-add it
-                full_path = File.expand_path(File.join(Autoproj.root_dir, layout_level, pkg_or_set))
-                next if !File.directory?(full_path)
-
-                handler, srcdir = Autoproj.package_handler_for(full_path)
-                if handler
-                    Autoproj.message "  auto-adding #{pkg_or_set} #{"in #{layout_level} " if layout_level != "/"}using the #{handler.gsub(/_package/, '')} package handler"
-                    Autoproj.in_package_set(manifest.local_package_set, manifest.file) do
-                        send(handler, pkg_or_set)
-                    end
-                else
-                    Autoproj.warn "cannot auto-add #{pkg_or_set}: unknown package type"
-                end
-            end
-
-            manifest.each_autobuild_package do |pkg|
-                Autobuild.each_utility do |uname, _|
-                    pkg.utility(uname).enabled =
-                        config.utility_enabled_for?(uname, pkg.name)
-                end
-            end
-
-            # We finished loading the configuration files. Not all configuration
-            # is done (since we need to process the package setup blocks), but
-            # save the current state of the configuration anyway.
-            config.save
+            ws.load_package_sets(silent: silent, reconfigure: reconfigure?)
         end
 
         def self.update_configuration
-            Ops::Configuration.new(ws).update_configuration(only_local?)
+            Ops::Configuration.new(ws).update_configuration(only_local: only_local?)
         end
 
         def self.setup_package_directories(pkg)
-            pkg_name = pkg.name
-
-            layout =
-                if config.randomize_layout?
-                    Digest::SHA256.hexdigest(pkg_name)[0, 12]
-                else manifest.whereis(pkg_name)
-                end
-
-            place =
-                if target = manifest.moved_packages[pkg_name]
-                    File.join(layout, target)
-                else
-                    File.join(layout, pkg_name)
-                end
-
-            pkg = Autobuild::Package[pkg_name]
-            pkg.srcdir = File.join(Autoproj.root_dir, place)
-            pkg.prefix = File.join(Autoproj.build_dir, layout)
-            pkg.doc_target_dir = File.join(Autoproj.build_dir, 'doc', pkg_name)
-            pkg.logdir = File.join(pkg.prefix, "log")
+            ws.setup_package_directories(pkg)
         end
 
-
         def self.setup_all_package_directories
-            # Override the package directories from our reused installations
-            imported_packages = Set.new
-            manifest.reused_installations.each do |imported_manifest|
-                imported_manifest.each do |imported_pkg|
-                    imported_packages << imported_pkg.name
-                    if pkg = manifest.find_package(imported_pkg.name)
-                        pkg.autobuild.srcdir = imported_pkg.srcdir
-                        pkg.autobuild.prefix = imported_pkg.prefix
-                    end
-                end
-            end
-
-            manifest.packages.each_value do |pkg_def|
-                pkg = pkg_def.autobuild
-                next if imported_packages.include?(pkg_def.name)
-                setup_package_directories(pkg)
-            end
+            ws.setup_all_package_directories
         end
 
         def self.finalize_package_setup
-            # Now call the blocks that the user defined in the autobuild files. We do it
-            # now so that the various package directories are properly setup
-            manifest.packages.each_value do |pkg|
-                pkg.user_blocks.each do |blk|
-                    blk[pkg.autobuild]
-                end
-                pkg.setup = true
-            end
-
-            manifest.each_package_set do |source|
-                Autoproj.load_if_present(source, source.local_dir, "overrides.rb")
-            end
-
-            # Resolve optional dependencies
-            manifest.resolve_optional_dependencies
-
-            # And, finally, disable all ignored packages on the autobuild side
-            manifest.each_ignored_package do |pkg_name|
-                pkg = Autobuild::Package[pkg_name]
-                if !pkg
-                    Autoproj.warn "ignore line #{pkg_name} does not match anything"
-                else
-                    pkg.disable
-                end
-            end
-
-            update_environment
-
-            # We now have processed the process setup blocks. All configuration
-            # should be done and we can save the configuration data.
-            config.save
+            ws.finalize_package_setup
         end
 
         # This is a bit of a killer. It loads all available package manifests,
@@ -382,20 +179,7 @@ module Autoproj
         end
 
         def self.update_environment
-            manifest.reused_installations.each do |reused_manifest|
-                reused_manifest.each do |pkg|
-                    # The reused installations might have packages we do not
-                    # know about, just ignore them
-                    if pkg = manifest.find_autobuild_package(pkg)
-                        pkg.update_environment
-                    end
-                end
-            end
-
-            # Make sure that we have the environment of all selected packages
-            manifest.all_selected_packages(false).each do |pkg_name|
-                Autobuild::Package[pkg_name].update_environment
-            end
+            ws.setup_environment_from_packages
         end
 
         def self.display_configuration(manifest, package_list = nil)
@@ -1544,12 +1328,11 @@ where 'mode' is one of:
                 parse_arguments(cmdline_arguments, false)
 
             Autoproj::CmdLine.update_os_dependencies = false
+            ws = Workspace.from_environment
             Autoproj::CmdLine.initialize
-            Autoproj::CmdLine.update_configuration
-            Autoproj::CmdLine.load_configuration
-            Autoproj::CmdLine.setup_all_package_directories
-            Autoproj::CmdLine.finalize_package_setup
-
+            ws.load_package_sets(silent: silent, reconfigure: reconfigure?)
+            ws.setup_all_package_directories
+            ws.finalize_package_setup
 
             load_all_available_package_manifests
             update_environment
