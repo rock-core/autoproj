@@ -40,9 +40,20 @@ module Autoproj
     logger.formatter = lambda { |severity, time, progname, msg| "#{severity}: #{msg}\n" }
     extend Logger::Forward
 
-    def self.warn_deprecated(method, msg)
-        Autoproj.warn "#{method} is deprecated, #{msg}"
-        caller.each { |l| Autoproj.warn "  #{l}" }
+    def self.warn_deprecated_level
+        @warn_deprecated_level
+    end
+
+    def self.warn_deprecated_level=(level)
+        @warn_deprecated_level = level
+    end
+    @warn_deprecated_level = 0
+
+    def self.warn_deprecated(method, msg, level = 0)
+        if level >= @warn_deprecated_level
+            Autoproj.warn "#{method} is deprecated, #{msg}"
+            caller.each { |l| Autoproj.warn "  #{l}" }
+        end
     end
 end
 
