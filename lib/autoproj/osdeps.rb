@@ -306,7 +306,7 @@ fi
                         false)
             end
 
-            def filter_uptodate_packages(packages)
+            def filter_uptodate_packages(packages, options = Hash.new)
                 # TODO there might be duplicates in packages which should be fixed
                 # somewhere else
                 packages = packages.uniq
@@ -373,7 +373,7 @@ fi
                         "zypper -n install '%s'")
             end
 
-            def filter_uptodate_packages(packages)
+            def filter_uptodate_packages(packages, options = Hash.new)
                 result = `LANG=C rpm -q --whatprovides '#{packages.join("' '")}'`
                 has_all_pkgs = $?.success?
 
@@ -412,7 +412,7 @@ fi
                       "yum install -y '%s'")
             end
 
-            def filter_uptodate_packages(packages)
+            def filter_uptodate_packages(packages, options = Hash.new)
                 result = `LANG=C rpm -q --queryformat "%{NAME}\n" '#{packages.join("' '")}'`
 
                 installed_packages = []
@@ -515,7 +515,7 @@ fi
                 end
             end
             
-            def filter_uptodate_packages(packages)
+            def filter_uptodate_packages(packages, options = Hash.new)
                 packages.find_all do |package_name|
                     !installed?(package_name)
                 end
@@ -708,7 +708,10 @@ fi
 
             # Returns the set of RubyGem packages in +packages+ that are not already
             # installed, or that can be upgraded
-            def filter_uptodate_packages(gems)
+            def filter_uptodate_packages(gems, options = Hash.new)
+                options = validate_options options,
+                    install_only: !Autobuild.do_update
+
                 # Don't install gems that are already there ...
                 gems = gems.dup
                 gems.delete_if do |name, version|
@@ -726,7 +729,7 @@ fi
                             Gem.source_index.find_name(name, version_requirements)
                         end
 
-                    if !installed.empty? && Autobuild.do_update
+                    if !installed.empty? && !options[:install_only]
                         # Look if we can update the package ...
                         dep = Gem::Dependency.new(name, version_requirements)
                         available =
@@ -1914,7 +1917,8 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
         def setup_package_handlers(options = Hash.new)
             options =
                 if Kernel.respond_to?(:validate_options)
-                    Kernel.validate_options options, :osdeps_mode => osdeps_mode
+                    Kernel.validate_options options,
+                        osdeps_mode: osdeps_mode
                 else
                     options = options.dup
                     options[:osdeps_mode] ||= osdeps_mode
@@ -1975,12 +1979,16 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             packages = packages.to_set - installed_packages
             return false if packages.empty?
 
+            filter_options, options =
+                filter_options options, install_only: !Autobuild.do_update
             setup_package_handlers(options)
 
             packages = resolve_os_dependencies(packages)
+
+            needs_filter = (filter_uptodate_packages? || filter_options[:install_only])
             packages = packages.map do |handler, list|
-                if filter_uptodate_packages? && handler.respond_to?(:filter_uptodate_packages)
-                    list = handler.filter_uptodate_packages(list)
+                if needs_filter && handler.respond_to?(:filter_uptodate_packages)
+                    list = handler.filter_uptodate_packages(list, filter_options)
                 end
 
                 if !list.empty?

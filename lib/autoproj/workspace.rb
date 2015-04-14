@@ -202,9 +202,9 @@ module Autoproj
         def update_autoproj(options = Hash.new)
             options = validate_options options,
                 force: false, restart_on_update: true
-            return if !options[:force] && !Autoproj::CmdLine.update_os_dependencies?
+            return if !options[:force]
 
-            Autoproj.config.validate_ruby_executable
+            config.validate_ruby_executable
 
             # This is a guard to avoid infinite recursion in case the user is
             # running autoproj osdeps --force
@@ -216,7 +216,7 @@ module Autoproj
                 begin
                     saved_flag = PackageManagers::GemManager.with_prerelease
                     PackageManagers::GemManager.with_prerelease = Autoproj.config.use_prerelease?
-                    OSDependencies.load_default.install(%w{autobuild autoproj})
+                    osdeps.install(%w{autobuild autoproj})
                 ensure
                     PackageManagers::GemManager.with_prerelease = saved_flag
                 end
@@ -288,12 +288,14 @@ module Autoproj
 
         def load_package_sets(options = Hash.new)
             options = validate_options options,
+                only_local: false,
                 checkout_only: true,
                 silent: false, # NOTE: this is ignored, enclose call with Autoproj.silent { }
                 reconfigure: false
 
             Ops::Configuration.new(self).
-                load_package_sets(checkout_only: options[:checkout_only])
+                load_package_sets(only_local: options[:only_local],
+                                  checkout_only: options[:checkout_only])
 
             manifest.each_package_set do |pkg_set|
                 if Gem::Version.new(pkg_set.required_autoproj_version) > Gem::Version.new(Autoproj::VERSION)
@@ -453,6 +455,15 @@ module Autoproj
             # Make sure that we have the environment of all selected packages
             manifest.all_selected_packages(false).each do |pkg_name|
                 manifest.find_autobuild_package(pkg_name).update_environment
+            end
+        end
+
+        def export_installation_manifest
+            File.open(File.join(root_dir, ".autoproj-installation-manifest"), 'w') do |io|
+                manifest.all_selected_packages.each do |pkg_name|
+                    pkg = manifest.find_autobuild_package(pkg_name)
+                    io.puts "#{pkg_name},#{pkg.srcdir},#{pkg.prefix}"
+                end
             end
         end
     end

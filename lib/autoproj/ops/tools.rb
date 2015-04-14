@@ -68,6 +68,10 @@ module Autoproj
         end
 
         def common_options(parser)
+            parser.on '--silent' do
+                Autoproj.silent = true
+            end
+
             parser.on '--verbose' do
                 Autoproj.verbose  = true
                 Autobuild.verbose = true

@@ -1,0 +1,10 @@
+#! /usr/bin/env ruby
+
+require 'autoproj/cli/update'
+
+ops = Autoproj::CLI::Update.new
+args, options = ops.parse_options(ARGV)
+
+Autoproj::CmdLine.report do
+    ops.run(args, options)
+end

@@ -7,24 +7,6 @@ require 'rexml/document'
 require 'win32/dir' if RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)! 
 
 module Autoproj
-    @build_system_dependencies = Set.new
-
-    # Declare OS packages that are required to import and build the packages
-    #
-    # It is used by autoproj itself to install the importers and/or the build
-    # systems for the packages.
-    def self.add_build_system_dependency(*names)
-        @build_system_dependencies |= names.to_set
-    end
-
-    class << self
-        # Returns the set of OS packages that are needed to build and/or import
-        # the packages
-        #
-        # See Autoproj.add_build_system_dependency
-        attr_reader :build_system_dependencies
-    end
-
     # The Manifest class represents the information included in the main
     # manifest file, and allows to manipulate it
     class Manifest
@@ -507,7 +489,6 @@ module Autoproj
                     pkg.package_set.default_importer
 
                 if vcs
-                    Autoproj.add_build_system_dependency vcs.type
                     pkg.vcs = vcs
                     pkg.autobuild.importer = vcs.create_autobuild_importer
                 else
@@ -1011,11 +992,11 @@ module Autoproj
         end
 
         # Installs the OS dependencies that are required by the given packages
-        def install_os_dependencies(packages)
+        def install_os_dependencies(packages, options = Hash.new)
             required_os_packages, package_os_deps = list_os_dependencies(packages)
             required_os_packages =
                 filter_os_dependencies(required_os_packages, package_os_deps)
-            osdeps.install(required_os_packages)
+            osdeps.install(required_os_packages, options)
         end
 
         # The set of overrides added with #add_osdeps_overrides
