@@ -4,6 +4,8 @@ module Autoproj
     # The method will expand in +value+ patterns of the form $NAME, replacing
     # them with the corresponding build option.
     def self.expand_environment(value)
+        return value if !contains_expansion?(value)
+
         # Perform constant expansion on the defined environment variables,
         # including the option set
         options = Autoproj.option_set
