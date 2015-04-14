@@ -88,6 +88,8 @@ module Autoproj
                 return args, reuse
             end
 
+            MAIN_CONFIGURATION_TEMPLATE = File.expand_path(File.join("..", "..", "..", "samples", 'autoproj'), File.dirname(__FILE__))
+
             def bootstrap(*args)
                 check_root_dir_empty
                 args, reuse = handle_bootstrap_options(args)
@@ -113,8 +115,7 @@ module Autoproj
                 # If we are not getting the installation setup from a VCS, copy the template
                 # files
                 if args.empty? || args.size == 1
-                    sample_dir = File.expand_path(File.join("..", "..", "..", "samples"), File.dirname(__FILE__))
-                    FileUtils.cp_r File.join(sample_dir, "autoproj"), "autoproj"
+                    FileUtils.cp_r MAIN_CONFIGURATION_TEMPLATE, "autoproj"
                 end
 
                 if args.size == 1 # the user asks us to download a manifest
