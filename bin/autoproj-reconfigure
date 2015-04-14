@@ -1,6 +1,10 @@
 #! /usr/bin/env ruby
 
 require 'autoproj/cli/reconfigure'
-Autoproj::CLI::Reconfigure.new.run
+ops = Autoproj::CLI::Reconfigure.new
+options = ops.parse_options(ARGV)
+Autoproj::CmdLine.report(silent: true) do
+    ops.run(options)
+end
 
 
