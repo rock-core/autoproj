@@ -113,7 +113,7 @@ module Autoproj
 
                 ws.load_package_sets(
                     only_local: options[:only_local],
-                    checkout_only: options[:checkout_only])
+                    checkout_only: !options[:config] || options[:checkout_only])
                 if selected_packages.empty? && options[:config_explicitely_selected]
                     return
                 end
