@@ -1,0 +1,6 @@
+#! /usr/bin/env ruby
+
+require 'autoproj/cli/reconfigure'
+Autoproj::CLI::Reconfigure.new.run
+
+

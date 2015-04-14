@@ -92,8 +92,10 @@ module Autoproj
             end
         end
 
-        def resolve_selection(user_selection, options = Hash.new)
+        def resolve_selection(manifest, user_selection, options = Hash.new)
             options = Kernel.validate_options options,
+                checkout_only: true,
+                only_local: false,
                 recursive: true,
                 ignore_non_imported_packages: false
 
@@ -112,12 +114,14 @@ module Autoproj
                 if options[:recursive]
                     CmdLine.import_packages(
                         resolved_selection,
+                        checkout_only: options[:checkout_only],
+                        only_local: options[:only_local],
                         warn_about_ignored_packages: false)
                 else
                     resolved_selection.to_a
                 end
 
-            packages
+            return packages, resolved_selection
         end
 
         extend Tools

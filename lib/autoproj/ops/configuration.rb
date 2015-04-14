@@ -336,6 +336,12 @@ module Autoproj
             sorted
         end
 
+        def load_package_sets(options = Hash.new)
+            options = validate_options options,
+                checkout_only: true
+            update_configuration(options)
+        end
+
         def update_configuration(options = Hash.new)
             if !options.kind_of?(Hash)
                 options = Hash[only_local: options]
