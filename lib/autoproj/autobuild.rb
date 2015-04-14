@@ -111,7 +111,7 @@ module Autobuild
             end
             @os_packages |= pkg_os.to_set
         rescue Autoproj::OSDependencies::MissingOSDep
-            Autoproj.manifest.add_exclusion(self.name, "it depends on #{name}, which is neither the name of a source package, nor an osdep that is available on this operating system")
+            Autoproj.workspace.manifest.add_exclusion(self.name, "it depends on #{name}, which is neither the name of a source package, nor an osdep that is available on this operating system")
         end
 
         def depends_on_os_package(name)
@@ -134,7 +134,7 @@ module Autobuild
 
         def partition_package(pkg_name)
             pkg_autobuild, pkg_osdeps = [], []
-            Autoproj.manifest.resolve_package_name(pkg_name).each do |type, dep_name|
+            Autoproj.workspace.manifest.resolve_package_name(pkg_name).each do |type, dep_name|
                 if type == :osdeps
                     pkg_osdeps << dep_name
                 elsif type == :package
@@ -148,14 +148,14 @@ module Autobuild
         def partition_optional_dependencies
             packages, osdeps, disabled = [], [], []
             optional_dependencies.each do |name|
-                if !Autoproj.manifest.package_enabled?(name, false)
+                if !Autoproj.workspace.manifest.package_enabled?(name, false)
                     disabled << name
                     next
                 end
 
                 pkg_autobuild, pkg_osdeps = partition_package(name)
-                valid = pkg_autobuild.all? { |pkg| Autoproj.manifest.package_enabled?(pkg) } &&
-                    pkg_osdeps.all? { |pkg| Autoproj.manifest.package_enabled?(pkg) }
+                valid = pkg_autobuild.all? { |pkg| Autoproj.workspace.manifest.package_enabled?(pkg) } &&
+                    pkg_osdeps.all? { |pkg| Autoproj.workspace.manifest.package_enabled?(pkg) }
 
                 if valid
                     packages.concat(pkg_autobuild)
@@ -252,34 +252,34 @@ module Autoproj
         end
     end
 
-    # @deprecated use workspace.in_package_set or add a proper Loader object to your
+    # @deprecated use Autoproj.workspace.in_package_set or add a proper Loader object to your
     #   class
     def self.in_package_set(package_set, path, &block)
-        workspace.in_package_set(package_set, path, &block)
+        Autoproj.workspace.in_package_set(package_set, path, &block)
     end
-    # @deprecated use workspace.current_file or add a proper Loader object to your
+    # @deprecated use Autoproj.workspace.current_file or add a proper Loader object to your
     #   class
     def self.current_file
-        workspace.current_file
+        Autoproj.workspace.current_file
     end
-    # @deprecated use workspace.current_package_set or add a proper Loader object to your
+    # @deprecated use Autoproj.workspace.current_package_set or add a proper Loader object to your
     #   class
     def self.current_package_set
-        workspace.current_package_set
+        Autoproj.workspace.current_package_set
     end
 
     def self.define(package_type, spec, &block)
         package = Autobuild.send(package_type, spec)
-        Autoproj.manifest.register_package(package, block, *current_file)
+        Autoproj.workspace.manifest.register_package(package, block, *current_file)
         package
     end
 
     def self.loaded_autobuild_files
-        workspace.loaded_autobuild_files
+        Autoproj.workspace.loaded_autobuild_files
     end
 
     def self.import_autobuild_file(package_set, path)
-        workspace.import_autobuild_file(package_set, path)
+        Autoproj.workspace.import_autobuild_file(package_set, path)
     end
 
     def self.find_topmost_directory_containing(dir, glob_pattern = nil)
@@ -338,7 +338,7 @@ def setup_package(package_name, &block)
         raise ConfigError.new, "you must give a block to #setup_package"
     end
 
-    package_definition = Autoproj.manifest.package(package_name)
+    package_definition = Autoproj.workspace.manifest.package(package_name)
     if !package_definition
         raise ConfigError.new, "#{package_name} is not a known package"
     elsif package_definition.autobuild.kind_of?(Autobuild::DummyPackage)
@@ -354,7 +354,7 @@ def package_common(package_type, spec, &block)
 
     if Autobuild::Package[package_name]
         current_file = Autoproj.current_file[1]
-        old_file     = Autoproj.manifest.definition_file(package_name)
+        old_file     = Autoproj.workspace.manifest.definition_file(package_name)
         Autoproj.warn "#{package_name} from #{current_file} is overridden by the definition in #{old_file}"
 
         return Autobuild::Package[package_name]
@@ -542,7 +542,7 @@ def not_on(*architectures)
         current_packages
 
     new_packages.each do |pkg_name|
-        Autoproj.manifest.add_exclusion(pkg_name, "#{pkg_name} is disabled on this operating system")
+        Autoproj.workspace.manifest.add_exclusion(pkg_name, "#{pkg_name} is disabled on this operating system")
     end
 end
 
@@ -625,36 +625,36 @@ end
 # Returns true if +name+ is a valid package and is neither excluded nor ignored
 # from the build
 def package_selected?(name)
-    Autoproj.manifest.package_selected?(name, false)
+    Autoproj.workspace.manifest.package_selected?(name, false)
 end
 
 # Returns true if +name+ is a valid package and is included in the build
 def package_enabled?(name)
-    Autoproj.manifest.package_enabled?(name, false)
+    Autoproj.workspace.manifest.package_enabled?(name, false)
 end
 
 # If used in init.rb, allows to disable automatic imports from specific package
 # sets
 def disable_imports_from(name)
-    Autoproj.manifest.disable_imports_from(name)
+    Autoproj.workspace.manifest.disable_imports_from(name)
 end
 
 # Moves the given package to a new subdirectory
 def move_package(name, new_dir)
-    Autoproj.manifest.move_package(name, new_dir)
+    Autoproj.workspace.manifest.move_package(name, new_dir)
 end
 
 # Removes all the packages currently added from the given metapackage
 #
 # Calling this function will make sure that the given metapackage is now empty.
 def clear_metapackage(name)
-    meta = Autoproj.manifest.metapackage(name)
+    meta = Autoproj.workspace.manifest.metapackage(name)
     meta.packages.clear
 end
 
 # Declares a new metapackage, or adds packages to an existing one
 def metapackage(name, *packages)
-    Autoproj.manifest.metapackage(name, *packages)
+    Autoproj.workspace.manifest.metapackage(name, *packages)
 end
 
 # This can be used only during the load of a package set
@@ -676,15 +676,15 @@ end
 # their dependencies) are.
 def remove_from_default(*names)
     pkg_set = Autoproj.current_package_set
-    Autoproj.manifest.metapackage(pkg_set.name).packages.delete_if do |pkg|
+    Autoproj.workspace.manifest.metapackage(pkg_set.name).packages.delete_if do |pkg|
         names.include?(pkg.name)
     end
 end
 
 def renamed_package(current_name, old_name, options)
-    if options[:obsolete] && !Autoproj.manifest.explicitely_selected_in_layout?(old_name)
+    if options[:obsolete] && !Autoproj.workspace.manifest.explicitely_selected_in_layout?(old_name)
         import_package old_name
-        Autoproj.manifest.add_exclusion old_name, "#{old_name} has been renamed to #{current_name}, you still have the option of using the old name by adding '- #{old_name}' explicitely in the layout in autoproj/manifest, but be warned that the name will stop being usable at all in the near future"
+        Autoproj.workspace.manifest.add_exclusion old_name, "#{old_name} has been renamed to #{current_name}, you still have the option of using the old name by adding '- #{old_name}' explicitely in the layout in autoproj/manifest, but be warned that the name will stop being usable at all in the near future"
     else
         metapackage old_name, current_name
     end

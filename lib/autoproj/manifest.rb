@@ -1219,34 +1219,31 @@ module Autoproj
         end
     end
 
-    class << self
-        # The singleton manifest object that represents the current build
-        # configuration
-        #
-        # @return [Manifest]
-        attr_accessor :manifest
+    def self.manifest
+        Autoproj.warn_deprecated(
+            __method__, "use workspace.manifest instead")
 
-        # The known osdeps definitions
-        #
-        # @return [OSDependencies]
-        # @see load_osdeps_from_package_sets
-        def osdeps
-            manifest.osdeps
-        end
+        workspace.manifest
+    end
 
-        def osdeps=(osdeps)
-            raise ArgumentError, "cannot set the osdeps object explicitely anymore. Use osdeps.clear and osdeps.merge"
-        end
+    def self.osdeps
+        Autoproj.warn_deprecated(
+            __method__, "use workspace.osdeps instead")
 
-        # The configuration file
-        # @return [Configuration]
-        attr_accessor :config
+        workspace.osdeps
+    end
+
+    def self.config
+        Autoproj.warn_deprecated(
+            __method__, "use workspace.config instead")
+
+        workspace.config
     end
 
     # Load the osdeps files contained in {manifest} into {osdeps}
     def self.load_osdeps_from_package_sets
-        manifest.load_osdeps_from_package_sets(osdeps)
-        osdeps
+        workspace.load_osdeps_from_package_sets(osdeps)
+        workspace.osdeps
     end
 
     def self.add_osdeps_overrides(*args, &block)
