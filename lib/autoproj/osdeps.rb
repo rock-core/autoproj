@@ -578,6 +578,12 @@ fi
                 use_cache_dir
             end
 
+            # Override the gem home detected by {initialize_environment}, or set
+            # it in cases where calling {initialize_environment} is not possible
+            def self.gem_home=(gem_home)
+                @gem_home = gem_home
+            end
+
             # A global cache directory that should be used to avoid
             # re-downloading gems
             def self.cache_dir
@@ -1271,14 +1277,8 @@ fi
             # Validate the options. We check on the availability of
             # validate_options as to not break autoproj_bootstrap (in which
             # validate_options is not available)
-            options =
-                if Kernel.respond_to?(:validate_options)
-                    Kernel.validate_options options, force: false, config: Autoproj.config
-                else
-                    Hash[config: Autoproj.config].
-                        merge(options)
-                end
-            config = options.fetch(:config)
+            options = validate_options options, force: false, config: Autoproj.config
+            config  = options.fetch(:config)
 
             if user_os = ENV['AUTOPROJ_OS']
                 @operating_system =

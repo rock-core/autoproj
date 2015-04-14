@@ -94,7 +94,6 @@ end
 
 OSDEPS_CODE
 TOOLS_CODE
-OPTIONS_CODE
 SYSTEM_CODE
 
 DEFS = <<EODEFS
@@ -148,6 +147,24 @@ if !curdir_entries.empty? && ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] != '1
     end
 end
 
+# While in here, we don't have utilrb
+module Kernel
+    def filter_options(options, defaults)
+        options = options.dup
+        filtered = Hash.new
+        defaults.each do |k, v|
+            filtered[k] =
+                if options.has_key?(k) then options.delete(k)
+                else v
+                end
+        end
+        return filtered, options
+    end
+    def validate_options(options, defaults)
+        defaults.merge(options)
+    end
+end
+
 # Environment is clean, so just mark it as so unconditionally
 ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] = '1'
 
@@ -158,7 +175,6 @@ Gem.paths = Hash['GEM_HOME' => gem_home, 'GEM_PATH' => gem_path]
 ENV['GEM_HOME'] = gem_home
 ENV['GEM_PATH'] = gem_path
 ENV['PATH']     = "#{ENV['GEM_HOME']}/bin:#{ENV['PATH']}"
-
 
 Autoproj::OSDependencies.define_osdeps_mode_option
 osdeps_mode = Autoproj::OSDependencies.osdeps_mode.join(",")
@@ -178,6 +194,7 @@ osdeps_management =
         Autoproj::OSDependencies.new(YAML.load(DEFS))
     end
 osdeps_management.silent = false
+Autoproj::PackageManagers::GemManager.gem_home = gem_home
 Autoproj::PackageManagers::GemManager.use_cache_dir
 
 begin
