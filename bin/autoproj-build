@@ -1,0 +1,11 @@
+#! /usr/bin/env ruby
+
+require 'autoproj/cli/build'
+
+ops = Autoproj::CLI::Build.new
+args, options = ops.parse_options(ARGV)
+
+Autoproj::CmdLine.report do
+    ops.run(args, options)
+end
+

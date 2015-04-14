@@ -63,13 +63,6 @@ module Autoproj
                     options[:autoproj] = selected_packages.empty?
                 end
 
-                selected_packages = selected_packages.map do |pkg|
-                    if File.directory?(pkg)
-                        File.expand_path(pkg)
-                    else pkg
-                    end
-                end
-
                 config_selected = false
                 selected_packages.delete_if do |name|
                     if name =~ /^#{Regexp.quote(ws.config_dir)}(?:#{File::SEPARATOR}|$)/ ||
@@ -95,6 +88,13 @@ module Autoproj
             end
 
             def run(selected_packages, options)
+                selected_packages = selected_packages.map do |pkg|
+                    if File.directory?(pkg)
+                        File.expand_path(pkg)
+                    else pkg
+                    end
+                end
+
                 ws.setup
                 ws.install_ruby_shims
 
