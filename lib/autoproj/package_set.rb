@@ -574,6 +574,10 @@ module Autoproj
             'main configuration'
         end
 
+        def vcs
+            manifest.vcs
+        end
+
         def main?
             true
         end
@@ -583,19 +587,23 @@ module Autoproj
         end
 
         def local_dir
-            Autoproj.config_dir
+            if manifest.file
+                File.dirname(manifest.file)
+            end
         end
 
         def raw_local_dir
-            Autoproj.config_dir
+            local_dir
         end
 
         def manifest_path
-            File.join(Autoproj.config_dir, "manifest")
+            manifest.file
         end
 
         def overrides_file_path
-            File.join(Autoproj.config_dir, "overrides.yml")
+            if d = local_dir
+                File.join(d, "overrides.yml")
+            end
         end
 
         def source_file

@@ -1,5 +1,7 @@
 module Autoproj
     class Environment < Autobuild::Environment
+        attr_reader :root_dir
+
         def prepare(root_dir)
             @root_dir = root_dir
             set 'AUTOPROJ_CURRENT_ROOT', root_dir
@@ -20,9 +22,9 @@ module Autoproj
             Autoproj::CmdLine.update_environment
 
             filename = if subdir
-                   File.join(Autoproj.root_dir, subdir, ENV_FILENAME)
+                   File.join(root_dir, subdir, ENV_FILENAME)
                else
-                   File.join(Autoproj.root_dir, ENV_FILENAME)
+                   File.join(root_dir, ENV_FILENAME)
                end
 
             shell_dir = File.expand_path(File.join("..", "..", "shell"), File.dirname(__FILE__))
@@ -35,7 +37,7 @@ module Autoproj
             File.open(filename, "w") do |io|
                 if inherit?
                     io.write <<-EOF
-                    if test -n "$AUTOPROJ_CURRENT_ROOT" && test "$AUTOPROJ_CURRENT_ROOT" != "#{Autoproj.root_dir}"; then
+                    if test -n "$AUTOPROJ_CURRENT_ROOT" && test "$AUTOPROJ_CURRENT_ROOT" != "#{root_dir}"; then
                         echo "the env.sh from $AUTOPROJ_CURRENT_ROOT is already loaded. Start a new shell before sourcing this one"
                         return
                     fi
