@@ -56,7 +56,8 @@ module Autoproj
             end
 
             def list(user_selection, options = Hash.new)
-                resolved_selection = resolve_selection(
+                resolved_selection, _ = resolve_selection(
+                    manifest,
                     user_selection,
                     recursive: options[:recursive],
                     ignore_non_imported_packages: true)
@@ -76,7 +77,8 @@ module Autoproj
             end
 
             def run(user_selection, options = Hash.new)
-                packages = resolve_selection(
+                packages, _ = resolve_selection(
+                    manifest,
                     user_selection,
                     recursive: options[:recursive],
                     ignore_non_imported_packages: true)

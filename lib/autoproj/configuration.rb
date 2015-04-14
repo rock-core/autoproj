@@ -156,6 +156,14 @@ module Autoproj
             end
         end
 
+        def reconfigure!
+            new_config = Hash.new
+            config.each do |key, (value, user_validated)|
+                new_config[key] = [value, false]
+            end
+            @config = new_config
+        end
+
         def save(path = self.path)
             File.open(path, "w") do |io|
                 h = Hash.new
