@@ -13,11 +13,6 @@ module Autoproj
         # @return [nil,InstallationManifest]
         attr_reader :update_from
 
-        # The object that allows us to install OS dependencies
-        def osdeps
-            ws.osdeps
-        end
-
         # The path in which remote package sets should be exposed to the
         # user
         #
@@ -125,7 +120,7 @@ module Autoproj
             name = PackageSet.name_of(ws.manifest, vcs)
             raw_local_dir = PackageSet.raw_local_dir_of(vcs)
 
-            return if !options[:checkout_only] && File.exists?(raw_local_dir)
+            return if options[:checkout_only] && File.exists?(raw_local_dir)
 
             # YUK. I am stopping there in the refactoring
             # TODO: figure out a better way
@@ -133,7 +128,7 @@ module Autoproj
                 Autoproj.message("autoproj: updating remote definitions of package sets", :bold)
                 @remote_update_message_displayed = true
             end
-            osdeps.install([vcs.type])
+            ws.osdeps.install([vcs.type])
             update_configuration_repository(
                 vcs, name, raw_local_dir, options)
         end
