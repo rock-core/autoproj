@@ -393,16 +393,23 @@ module Autoproj
                 else manifest.whereis(pkg_name)
                 end
 
-            place =
+            srcdir =
                 if target = manifest.moved_packages[pkg_name]
                     File.join(layout, target)
                 else
                     File.join(layout, pkg_name)
                 end
 
+            prefixdir =
+                if config.separate_prefixes?
+                    pkg_name
+                else
+                    layout
+                end
+
             pkg = Autobuild::Package[pkg_name]
-            pkg.srcdir = File.join(root_dir, place)
-            pkg.prefix = File.join(prefix_dir, layout)
+            pkg.srcdir = File.join(root_dir, srcdir)
+            pkg.prefix = File.join(prefix_dir, prefixdir)
             pkg.doc_target_dir = File.join(prefix_dir, 'doc', pkg_name)
             pkg.logdir = File.join(pkg.prefix, "log")
         end

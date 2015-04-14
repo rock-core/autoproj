@@ -238,6 +238,22 @@ module Autoproj
             get('prefix', 'install')
         end
 
+        # Returns true if there should be one prefix per package
+        #
+        # The default is false (disabled)
+        #
+        # @return [Boolean]
+        def separate_prefixes?
+            get('separate_prefixes', false)
+        end
+
+        # Controls whether there should be one prefix per package
+        #
+        # @see separate_prefixes?
+        def separate_prefixes=(flag)
+            set('separate_prefixes', flag, true)
+        end
+
         # Returns true if packages and prefixes should be auto-generated, based
         # on the SHA of the package names. This is meant to be used for build
         # services that want to check that dependencies are properly set
