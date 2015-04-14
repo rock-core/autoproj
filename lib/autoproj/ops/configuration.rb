@@ -6,18 +6,7 @@ module Autoproj
 
     # Implementation of the operations to manage the configuration
     class Configuration
-        # The manifest object that represents the autoproj configuration
-        #
-        # @return [Manifest]
-        attr_reader :manifest
-
-        # The loader object that should be used to load files such as init.rb
-        attr_reader :loader
-
-        # The main configuration directory
-        #
-        # @return [String]
-        attr_reader :config_dir
+        attr_reader :ws
 
         # The autoproj install we should update from (if any)
         #
@@ -42,16 +31,15 @@ module Autoproj
         #
         # @return [String]
         def remotes_user_dir
-            File.join(config_dir, "remotes")
+            File.join(ws.config_dir, "remotes")
         end
 
         # The path to the main manifest file
         #
         # @return [String]
         def manifest_path
-            File.join(config_dir, 'manifest')
+            File.join(ws.config_dir, 'manifest')
         end
-
 
         # @param [Manifest] manifest
         # @param [Loader] loader
@@ -114,7 +102,7 @@ module Autoproj
                 checkout_only: !Autobuild.do_update
 
             update_configuration_repository(
-                manifest.vcs,
+                ws.manifest.vcs,
                 "autoproj main configuration",
                 ws.config_dir,
                 options)
@@ -134,7 +122,7 @@ module Autoproj
                 only_local: false,
                 checkout_only: !Autobuild.do_update
 
-            name = PackageSet.name_of(manifest, vcs)
+            name = PackageSet.name_of(ws.manifest, vcs)
             raw_local_dir = PackageSet.raw_local_dir_of(vcs)
 
             return if !options[:checkout_only] && File.exists?(raw_local_dir)
@@ -155,7 +143,7 @@ module Autoproj
         # @param [VCSDefinition] vcs the package set VCS
         # @return [String] the full path to the created user dir
         def create_remote_set_user_dir(vcs)
-            name = PackageSet.name_of(manifest, vcs)
+            name = PackageSet.name_of(ws.manifest, vcs)
             raw_local_dir = PackageSet.raw_local_dir_of(vcs)
             FileUtils.mkdir_p(remotes_user_dir)
             symlink_dest = File.join(remotes_user_dir, name)
@@ -177,9 +165,9 @@ module Autoproj
         end
 
         def load_package_set(vcs, options, imported_from)
-            pkg_set = PackageSet.new(manifest, vcs)
+            pkg_set = PackageSet.new(ws.manifest, vcs)
             pkg_set.auto_imports = options[:auto_imports]
-            loader.load_if_present(pkg_set, pkg_set.local_dir, 'init.rb')
+            ws.load_if_present(pkg_set, pkg_set.local_dir, 'init.rb')
             pkg_set.load_description_file
             if imported_from
                 pkg_set.imported_from << imported_from
@@ -229,7 +217,7 @@ module Autoproj
 
             queue = queue_auto_imports_if_needed(Array.new, root_pkg_set, root_pkg_set)
             while !queue.empty?
-                vcs, options, imported_from = queue.shift
+                vcs, import_options, imported_from = queue.shift
                 repository_id = repository_id_of(vcs)
                 if already_processed = by_repository_id[repository_id]
                     already_processed_vcs, already_processed_from, pkg_set = *already_processed
@@ -250,7 +238,7 @@ module Autoproj
                     create_remote_set_user_dir(vcs)
                 end
 
-                name = PackageSet.name_of(manifest, vcs)
+                name = PackageSet.name_of(ws.manifest, vcs)
                 if already_loaded = by_name[name]
                     already_loaded_pkg_set, already_loaded_vcs = *already_loaded
                     if already_loaded_vcs != vcs
@@ -268,7 +256,7 @@ module Autoproj
                     next
                 end
 
-                pkg_set = load_package_set(vcs, options, imported_from)
+                pkg_set = load_package_set(vcs, import_options, imported_from)
                 by_repository_id[repository_id][2] = pkg_set
                 package_sets << pkg_set
 
@@ -285,7 +273,7 @@ module Autoproj
 
         # Removes from {remotes_dir} the directories that do not match a package
         # set
-        def cleanup_remotes_dir(package_sets = manifest.package_sets)
+        def cleanup_remotes_dir(package_sets = ws.manifest.package_sets)
             # Cleanup the .remotes and remotes_symlinks_dir directories
             Dir.glob(File.join(remotes_dir, '*')).each do |dir|
                 dir = File.expand_path(dir)
@@ -297,7 +285,7 @@ module Autoproj
 
         # Removes from {remotes_user_dir} the directories that do not match a
         # package set
-        def cleanup_remotes_user_dir(package_sets = manifest.package_sets)
+        def cleanup_remotes_user_dir(package_sets = ws.manifest.package_sets)
             Dir.glob(File.join(remotes_user_dir, '*')).each do |file|
                 file = File.expand_path(file)
                 if File.symlink?(file) && !package_sets.find { |pkg_set| pkg_set.user_local_dir == file }
@@ -359,13 +347,13 @@ module Autoproj
             # Load the installation's manifest a first time, to check if we should
             # update it ... We assume that the OS dependencies for this VCS is already
             # installed (i.e. that the user did not remove it)
-            if manifest.vcs && !manifest.vcs.local?
+            if ws.manifest.vcs && !ws.manifest.vcs.local?
                 update_main_configuration(options)
             end
-            Tools.load_main_initrb(manifest)
-            manifest.load(manifest_path)
+            ws.load_main_initrb
+            ws.manifest.load(manifest_path)
 
-            root_pkg_set = manifest.local_package_set
+            root_pkg_set = ws.manifest.local_package_set
             root_pkg_set.load_description_file
             root_pkg_set.explicit = true
             package_sets = load_and_update_package_sets(root_pkg_set, options)
@@ -374,7 +362,7 @@ module Autoproj
             end
             package_sets = sort_package_sets_by_import_order(package_sets, root_pkg_set)
             package_sets.each do |pkg_set|
-                manifest.register_package_set(pkg_set)
+                ws.manifest.register_package_set(pkg_set)
             end
             # YUK. I am stopping there in the refactoring
             # TODO: figure out a better way
