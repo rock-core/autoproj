@@ -619,7 +619,7 @@ class Autobuild::ArchiveImporter
 end
 
 def package(name)
-    Autobuild::Package[name]
+    Autoproj.workspace.manifest.find_autobuild_package(name)
 end
 
 # Returns true if +name+ is a valid package and is neither excluded nor ignored
