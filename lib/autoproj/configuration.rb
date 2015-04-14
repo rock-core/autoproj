@@ -226,11 +226,8 @@ module Autoproj
             end
         end
 
-        def apply_autoproj_prefix
-            if has_value_for?('prefix')
-                Autoproj.prefix = get('prefix')
-            else Autoproj.prefix = 'install'
-            end
+        def prefix_dir
+            get('prefix', 'install')
         end
 
         # Returns true if packages and prefixes should be auto-generated, based

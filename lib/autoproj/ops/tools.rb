@@ -32,6 +32,16 @@ module Autoproj
             end
         end
 
+        # This performs the very basic setup that should be done once, and only
+        # once, in an autoproj-based CLI tool
+        def basic_setup
+            Encoding.default_internal = Encoding::UTF_8
+            Encoding.default_external = Encoding::UTF_8
+
+            Autobuild::Reporting << Autoproj::Reporter.new
+            Autobuild::Package.clear
+        end
+
         # Creates an autobuild package whose job is to allow the import of a
         # specific repository into a given directory.
         #
@@ -48,23 +58,13 @@ module Autoproj
         end
 
         def load_autoprojrc
-            # Load the user-wide autoproj RC file
-            home_dir =
-                begin Dir.home
-                rescue ArgumentError
-                end
-
-            if home_dir
-                rcfile = File.join(home_dir, '.autoprojrc')
-                if File.file?(rcfile)
-                    Kernel.load rcfile
-                end
-            end
+            Autoproj.warn_deprecated __method__, "use workspace.load_autoprojrc instead"
+            Autoproj.workspace.load_autoprojrc
         end
 
-        def load_main_initrb(manifest = Autoproj.manifest)
-            local_source = LocalPackageSet.new(manifest)
-            Autoproj.load_if_present(local_source, local_source.local_dir, "init.rb")
+        def load_main_initrb(*args)
+            Autoproj.warn_deprecated __method__, "use workspace.load_main_initrb instead"
+            Autoproj.workspace.load_main_initrb
         end
 
         def common_options(parser)
