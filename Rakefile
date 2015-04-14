@@ -32,7 +32,6 @@ namespace 'dist' do
         build_option_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'build_option.rb'))
         config_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'configuration.rb'))
         osdeps_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'osdeps.rb'))
-        options_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'options.rb'))
         system_code = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'system.rb'))
         osdeps_defaults = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'default.osdeps'))
         require 'autobuild'
@@ -51,7 +50,7 @@ namespace 'dist' do
         osdeps_defaults = YAML.dump(osdeps)
         # Since we are using gsub to replace the content in the bootstrap file,
         # we have to quote all \
-        [osdeps_code, options_code, system_code, osdeps_defaults, tools_code].each do |text|
+        [osdeps_code, system_code, osdeps_defaults, tools_code].each do |text|
             text.gsub! /\\/, '\\\\\\\\'
         end
 
@@ -59,7 +58,6 @@ namespace 'dist' do
             gsub('BUILD_OPTION_CODE', build_option_code).
             gsub('CONFIG_CODE', config_code).
             gsub('OSDEPS_CODE', osdeps_code).
-            gsub('OPTIONS_CODE', options_code).
             gsub('SYSTEM_CODE', system_code).
             gsub('OSDEPS_DEFAULTS', osdeps_defaults).
             gsub('TOOLS_CODE', tools_code)
