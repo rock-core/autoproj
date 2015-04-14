@@ -338,6 +338,7 @@ module Autoproj
 
         def load_package_sets(options = Hash.new)
             options = validate_options options,
+                only_local: false,
                 checkout_only: true
             update_configuration(options)
         end

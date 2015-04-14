@@ -420,10 +420,14 @@ module Autoproj
 
         def self.import_packages(selection, options = Hash.new)
             options, import_options = Kernel.filter_options options,
+                workspace: Autoproj.workspace,
                 warn_about_ignored_packages: true,
                 warn_about_excluded_packages: true
             import_options = Hash[only_local: only_local?, reset: reset?, checkout_only: !Autobuild.do_update].
                 merge(import_options)
+
+            ws = options[:workspace]
+            manifest = ws.manifest
 
             updated_packages = Array.new
             selected_packages = selection.packages.
@@ -515,7 +519,7 @@ module Autoproj
 		next if all_enabled_packages.include?(pkg_name)
 		all_enabled_packages << pkg_name
 
-		pkg = Autobuild::Package[pkg_name]
+		pkg = manifest.find_autobuild_package(pkg_name)
 		pkg.resolve_optional_dependencies
 
                 pkg.prepare if !pkg.disabled?
@@ -526,27 +530,6 @@ module Autoproj
 
             if Autoproj.verbose
                 Autoproj.message "autoproj: finished importing packages"
-            end
-
-            if Autoproj::CmdLine.list_newest?
-                fields = []
-                Rake::Task.tasks.each do |task|
-                    if task.kind_of?(Autobuild::SourceTreeTask)
-                        task.timestamp
-                        fields << ["#{task.name}:", task.newest_file, task.newest_time.to_s]
-                    end
-                end
-
-                field_sizes = fields.inject([0, 0, 0]) do |sizes, line|
-                    3.times do |i|
-                        sizes[i] = [sizes[i], line[i].length].max
-                    end
-                    sizes
-                end
-                format = "  %-#{field_sizes[0]}s %-#{field_sizes[1]}s at %-#{field_sizes[2]}s"
-                fields.each do |line|
-                    Autoproj.message(format % line)
-                end
             end
 
             if options[:warn_about_excluded_packages]
@@ -567,12 +550,12 @@ module Autoproj
             return all_enabled_packages
 
         ensure
-            if Autoproj.config.import_log_enabled? && !updated_packages.empty? && Autoproj::Ops::Snapshot.update_log_available?(manifest)
+            if ws.config.import_log_enabled? && !updated_packages.empty? && Autoproj::Ops::Snapshot.update_log_available?(manifest)
                 failure_message =
                     if $!
                         " (#{$!.message.split("\n").first})"
                     end
-                ops = Ops::Snapshot.new(manifest, keep_going: true)
+                ops = Ops::Snapshot.new(ws.manifest, keep_going: true)
                 ops.update_package_import_state(
                     "#{$0} #{argv.join(" ")}#{failure_message}",
                     updated_packages)
@@ -1381,12 +1364,7 @@ where 'mode' is one of:
         end
 
         def self.export_installation_manifest
-            File.open(File.join(Autoproj.root_dir, ".autoproj-installation-manifest"), 'w') do |io|
-                manifest.all_selected_packages.each do |pkg_name|
-                    pkg = Autobuild::Package[pkg_name]
-                    io.puts "#{pkg_name},#{pkg.srcdir},#{pkg.prefix}"
-                end
-            end
+            ws.export_installation_manifest
         end
 
         def self.report(options = Hash.new)
