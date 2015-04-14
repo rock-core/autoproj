@@ -1,4 +1,31 @@
 module Autoproj
+    # Flattens a hash whose keys are strings and values are either plain values,
+    # arrays or hashes
+    #
+    # The keys in the flattened hash are made hierarchical by appending ".".
+    # Array values are ignored.
+    #
+    # @example
+    #    h = Hash['test' => 10, 'h' => Hash['value' => '20']]
+    #    options_to_flat_hash(h)
+    #    # Hash['test' => '10',
+    #    #      'h.value' => 20]
+    #
+    #
+    # @param [{[String,Symbol]=>[String,Numeric,Array,Hash]}]
+    # @return [{String=>String}]
+    def self.flatten_recursive_hash(hash, prefix = "")
+        result = Hash.new
+        hash.each do |k, v|
+            if v.kind_of?(Hash)
+                result.merge!(flatten_recursive_hash(v, "#{prefix}#{k}."))
+            elsif !v.respond_to?(:to_ary)
+                result["#{prefix}#{k}"] = v.to_s
+            end
+        end
+        result
+    end
+
     # Expand build options in +value+.
     #
     # The method will expand in +value+ patterns of the form $NAME, replacing
@@ -8,13 +35,10 @@ module Autoproj
 
         # Perform constant expansion on the defined environment variables,
         # including the option set
-        options = Autoproj.option_set
-        options.each_key do |k|
-            options[k] = options[k].to_s
-        end
+        options = flatten_recursive_hash(config.validated_values)
 
         loop do
-            new_value = Autoproj.single_expansion(value, options)
+            new_value = single_expansion(value, options)
             if new_value == value
                 break
             else
