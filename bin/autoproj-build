@@ -1,11 +1,13 @@
 #! /usr/bin/env ruby
 
+ORIGINAL_ARGV = ARGV.dup
+
 require 'autoproj/cli/build'
+Autoproj::Ops::Tools.basic_setup
 
 ops = Autoproj::CLI::Build.new
-args, options = ops.parse_options(ARGV)
-
 Autoproj::CmdLine.report do
+    args, options = ops.parse_options(ARGV)
     ops.run(args, options)
 end
 

@@ -1,85 +1,9 @@
 #! /usr/bin/env ruby
 
-require 'autoproj'
-require 'autoproj/cmdline'
+ORIGINAL_ARGV = ARGV.dup
 
-root_dir  = Autoproj::CmdLine.initialize_root_directory
-
-manifest = Autoproj::InstallationManifest.new(root_dir)
-if !File.file?(manifest.default_manifest_path)
-    Autoproj.error "the installation manifest is not present, please run autoproj envsh to generate it"
-end
-manifest.load
-
-if ARGV.empty?
-    puts root_dir
-    exit 0
-elsif ARGV.size > 1
-    Autoproj.error "more than one name given on the command line"
-    exit 1
-end
-selection = ARGV.first
-
-selection_rx = Regexp.new(Regexp.quote(selection))
-candidates = []
-manifest.each do |pkg|
-    name = pkg.name
-    srcdir = pkg.srcdir
-    if name == selection
-        puts srcdir
-        exit(0)
-    elsif name =~ selection_rx
-        candidates << srcdir
-    end
-end
-
-if candidates.empty?
-    # Try harder. Match directory prefixes
-    directories = selection.split('/')
-    rx = directories.
-        map { |d| "#{Regexp.quote(d)}\\w*" }.
-        join("/")
-    rx = Regexp.new(rx)
-
-    rx_strict = directories[0..-2].
-        map { |d| "#{Regexp.quote(d)}\\w*" }.
-        join("/")
-    rx_strict = Regexp.new("#{rx_strict}/#{Regexp.quote(directories.last)}$")
-
-    candidates_strict = []
-    manifest.each do |pkg|
-        name = pkg.name
-        srcdir = pkg.srcdir
-        if name =~ rx
-            candidates << srcdir
-        end
-        if name =~ rx_strict
-            candidates_strict << srcdir
-        end
-    end
-
-    if candidates.size > 1 && candidates_strict.size == 1
-        candidates = candidates_strict
-    end
-end
-
-if candidates.size > 1
-    # If there is more than one candidate, check if there are some that are not
-    # present on disk
-    present = candidates.find_all { |dir| File.directory?(dir) }
-    if present.size == 1
-        candidates = present
-    end
-end
-
-if candidates.empty?
-    Autoproj.error "cannot find #{selection} in the current autoproj installation"
-    exit 1
-elsif candidates.size > 1
-    Autoproj.error "multiple packages match #{selection} in the current autoproj installation: #{candidates.join(", ")}"
-    exit 1
-else
-    puts candidates.first
-    exit(0)
-end
+require 'autoproj/cli/locate'
+cli = Autoproj::CLI::Locate.new
+filter = cli.parse_options(ARGV)
+cli.run(filter)
 

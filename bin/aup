@@ -1,52 +1,11 @@
 #! /usr/bin/env ruby
-require 'optparse'
-require 'autoproj'
-
-build_all = (Dir.pwd == Autoproj.root_dir)
-parser = OptionParser.new do |opt|
-    opt.banner = "aup [options] [dir_or_package]
-Runs autoproj update for the given directory or package name.
-Selects the current directory if none is given. Override by
-passing the --all option.
-
-Accepts all options from autoproj update plus the following options:
-
-"
-    opt.on('--all', 'runs autoproj build without arguments (does not add the current directory)') do
-        build_all = true
-    end
-    opt.on('--help', 'shows this help message') do
-        puts parser
-        exit(0)
-    end
-end
-
-# Accept options that are invalid in +parser+, to pass them on to autoproj
-# itself
-options = ARGV.dup
-remaining = []
-while !options.empty?
-    begin
-        head = options.shift
-        remaining.concat(parser.parse([head]))
-    rescue OptionParser::InvalidOption
-        remaining << head
-        retry
-    end
-end
-
-
-# If --all is not given *and* there is no non-option argument (i.e. no directory
-# / package name), add the current directory to the command line
-#
-# BUT make running 'aup' in the root directory the equivalent of aup --all
-if remaining.grep(/^-/).size == remaining.size && !build_all
-    remaining.push '.'
-end
-remaining.unshift 'update'
 
 ORIGINAL_ARGV = ARGV.dup # This is used in case autoproj needs to update itself
-ARGV.clear
-ARGV.concat(remaining)
-load File.expand_path('autoproj', File.dirname(__FILE__))
 
+require 'autoproj/cli/update'
+Autoproj::Ops::Tools.basic_setup
+ops = Autoproj::CLI::Update.new
+Autoproj::CmdLine.report do
+    args, options = ops.parse_aup_options(ARGV)
+    ops.run(args, options)
+end

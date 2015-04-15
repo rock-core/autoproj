@@ -1994,6 +1994,17 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             end
             true
         end
+
+        def reinstall(options = Hash.new)
+            # We also reinstall the osdeps that provide the
+            # functionality
+            managers = setup_package_handlers(options)
+            managers.each do |mng|
+                if mng.enabled? && mng.respond_to?(:reinstall)
+                    mng.reinstall
+                end
+            end
+        end
     end
 end
 

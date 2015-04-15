@@ -1,113 +1,110 @@
-require 'autoproj/cli'
-require 'autoproj/cli/base'
+require 'autoproj/cli/update'
 
 module Autoproj
     module CLI
-        class Update < Base
-            def parse_options(args)
+        class Build < Update
+            def parse_amake_options(args)
+                parse_options(args, true)
+            end
+
+            def parse_options(args, amake = false)
                 options = Hash[
                     keep_going: false,
+                    osdeps: true,
                     nice: nil]
+
+                build_all = false
                 parser = OptionParser.new do |opt|
-                    opt.banner = ["autoproj builds", "builds the autoproj workspace"].join("\n")
+                    if amake
+                        opt.banner = ["amake", "builds packages within the autoproj workspace"].join("\n")
+                        opt.on '--all', 'build the whole workspace instead of only the current package and its dependencies' do
+                            build_all = true
+                        end
+                    else
+                        opt.banner = ["autoproj builds", "builds packages within the autoproj workspace"].join("\n")
+                    end
+
+                    
+                    opt.on '-k', '--keep-going' do
+                        options[:keep_going] = true
+                    end
+                    opt.on '--force' do
+                        options[:forced_build] = true
+                        options[:rebuild] = false
+                    end
+                    opt.on '--rebuild' do
+                        options[:forced_build] = false
+                        options[:rebuild] = true
+                    end
+                    opt.on '--[no-]osdeps', 'controls whether missing osdeps should be installed. In rebuild mode, also controls whether the osdeps should be reinstalled or not (the default is to reinstall them)' do |flag|
+                        options[:osdeps] = flag
+                    end
+                    opt.on '--[no-]deps' do |flag|
+                        options[:with_deps] = flag
+                    end
                 end
                 common_options(parser)
+
+                if !options.has_key?(:with_deps)
+                    options[:with_deps] = 
+                        !(options[:rebuild] || options[:forced_build])
+                end
                 selected_packages = parser.parse(args)
+                if amake && !build_all && selected_packages.empty?
+                    selected_packages << '.'
+                end
 
                 ws.osdeps.silent = Autoproj.silent?
                 return selected_packages, options
             end
 
             def run(selected_packages, options)
-                ws.setup
-                ws.install_ruby_shims
+                build_options, options = filter_options options,
+                    forced_build: false,
+                    rebuild: false
 
-                # Do that AFTER we have properly setup ws.osdeps as to avoid
-                # unnecessarily redetecting the operating system
-                if options[:osdeps]
-                    ws.config.set(
-                        'operating_system',
-                        Autoproj::OSDependencies.operating_system(:force => true),
-                        true)
-                end
+                Autobuild.ignore_errors = options[:keep_going]
 
-                ws.load_package_sets(checkout_only: true)
-                ws.setup_all_package_directories
-                # Call resolve_user_selection once to auto-add packages
-                resolve_user_selection(selected_packages)
-                # Now we can finalize and re-resolve the selection since the
-                # overrides.rb files might have changed it
-                ws.finalize_package_setup
-                # Finally, filter out exclusions
-                resolved_selected_packages =
-                    resolve_user_selection(selected_packages)
-                validate_user_selection(selected_packages, resolved_selected_packages)
+                command_line_selection, all_enabled_packages =
+                    super(selected_packages, options.merge(checkout_only: true))
 
-                if !selected_packages.empty?
-                    command_line_selection = resolved_selected_packages.dup
-                else
-                    command_line_selection = Array.new
-                end
-                ws.manifest.explicit_selection = resolved_selected_packages
-                selected_packages = resolved_selected_packages
-
-                if options[:osdeps]
-                    install_vcs_osdeps
-                    # Install the osdeps for the version control
-                    vcs_to_install = Set.new
-                    selected_packages.each do |pkg_name|
-                        pkg = ws.manifest.find_package(pkg_name)
-                        vcs_to_install << pkg.importer.vcs.type
-                    end
-                    ws.osdeps.install(
-                        vcs_to_install,
-                        osdeps_mode: options[:osdeps_mode],
-                        upgrade: false)
-                end
-
-                all_enabled_packages =
-                    Autoproj::CmdLine.import_packages(selected_packages,
-                                    workspace: ws,
-                                    checkout_only: true,
-                                    reset: options[:reset])
-
-                load_all_available_package_manifests
-                ws.export_installation_manifest
-
-                if options[:osdeps] && !all_enabled_packages.empty?
-                    ws.manifest.install_os_dependencies(
-                        all_enabled_packages,
-                        osdeps_mode: options[:osdeps_mode],
-                        upgrade: false)
-                end
-            end
-
-            def load_all_available_package_manifests
-                # Load the manifest for packages that are already present on the
-                # file system
-                ws.manifest.packages.each_value do |pkg|
-                    if File.directory?(pkg.autobuild.srcdir)
-                        begin
-                            ws.manifest.load_package_manifest(pkg.autobuild.name)
-                        rescue Interrupt
-                            raise
-                        rescue Exception => e
-                            Autoproj.warn "cannot load package manifest for #{pkg.autobuild.name}: #{e.message}"
+                ops = Ops::Build.new(ws.manifest)
+                if build_options[:rebuild] || build_options[:forced_build]
+                    packages_to_rebuild =
+                        if options[:with_deps] || command_line_selection.empty?
+                            all_enabled_packages
+                        else command_line_selection
                         end
-                    end
-                end
-            end
 
-            def setup_update_from(other_root)
-                manifest.each_autobuild_package do |pkg|
-                    if pkg.importer.respond_to?(:pick_from_autoproj_root)
-                        if !pkg.importer.pick_from_autoproj_root(pkg, other_root)
-                            pkg.update = false
+                    if command_line_selection.empty?
+                        # If we don't have an explicit package selection, we want to
+                        # make sure that the user really wants this
+                        mode_name = if options[:rebuild] then 'rebuild'
+                                    else 'force-build'
+                                    end
+                        opt = BuildOption.new("", "boolean", {:doc => "this is going to trigger a #{mode_name} of all packages. Is that really what you want ?"}, nil)
+                        if !opt.ask(false)
+                            raise Interrupt
                         end
+                        if build_options[:rebuild]
+                            if options[:osdeps]
+                                ws.osdeps.reinstall
+                            end
+                            ops.rebuild_all
+                        else
+                            ops.force_build_all
+                        end
+                    elsif build_options[:rebuild]
+                        ops.rebuild_packages(packages_to_rebuild, all_enabled_packages)
                     else
-                        pkg.update = false
+                        ops.force_build_packages(packages_to_rebuild, all_enabled_packages)
                     end
+                    return
                 end
+
+                Autobuild.do_build = true
+                ops.build_packages(all_enabled_packages)
+                Autobuild.apply(all_enabled_packages, "autoproj-build", ['install'])
             end
         end
     end

@@ -71,30 +71,14 @@ module Autoproj
                 end
             end
 
-            def handle_bootstrap_options(args)
-                reuse = []
-                parser = OptionParser.new do |opt|
-                    opt.on '--reuse [DIR]', "reuse the given autoproj installation (can be given multiple times). If given without arguments, reuse the currently active install (#{ENV['AUTOPROJ_CURRENT_ROOT']})" do |path|
-                        path ||= ENV['AUTOPROJ_CURRENT_ROOT']
-
-                        path = File.expand_path(path)
-                        if !File.directory?(path) || !File.directory?(File.join(path, 'autoproj'))
-                            raise ConfigError.new, "#{path} does not look like an autoproj installation"
-                        end
-                        reuse << path
-                    end
-                end
-                Tools.common_options(parser)
-                args = parser.parse(args)
-                return args, reuse
-            end
-
             MAIN_CONFIGURATION_TEMPLATE = File.expand_path(File.join("..", "..", "..", "samples", 'autoproj'), File.dirname(__FILE__))
 
-            def bootstrap(*args)
+            def bootstrap(buildconf_info, options = Hash.new)
+                options = validate_options options,
+                    reuse: Array.new
+
                 check_root_dir_empty
-                args, reuse = handle_bootstrap_options(args)
-                validate_autoproj_current_root(reuse)
+                validate_autoproj_current_root(options[:reuse])
 
                 ws = Workspace.new(root_dir)
                 ws.setup
@@ -103,7 +87,7 @@ module Autoproj
                 PackageManagers::GemManager.with_prerelease(ws.config.use_prerelease?) do
                     ws.osdeps.install(%w{autobuild autoproj})
                 end
-                ws.config.set 'reused_autoproj_installations', reuse, true
+                ws.config.set 'reused_autoproj_installations', options[:reuse], true
                 ws.env.export_env_sh(nil, shell_helpers: ws.config.shell_helpers?)
 
                 # If we are not getting the installation setup from a VCS, copy the template

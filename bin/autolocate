@@ -1,3 +1,12 @@
 #! /usr/bin/env ruby
-load File.expand_path('autoproj-locate', File.dirname(__FILE__))
+
+ORIGINAL_ARGV = ARGV.dup
+
+require 'autoproj/cli/locate'
+cli = Autoproj::CLI::Locate.new
+Autoproj::CmdLine.report do
+    filter = cli.parse_options(ARGV)
+    cli.run(filter)
+end
+
 

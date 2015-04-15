@@ -9,14 +9,9 @@ module Autoproj
             # The manifest on which we operate
             # @return [Manifest]
             attr_reader :manifest
-            # Whether we should update the OS dependencies before building. It
-            # controls the behaviour of {rebuild_all} as well as
-            # {build_packages}
-            attr_predicate :update_os_dependencies?, true
 
-            def initialize(manifest, update_os_dependencies = true)
+            def initialize(manifest)
                 @manifest = manifest
-                self.update_os_dependencies = update_os_dependencies
             end
 
             # Triggers a rebuild of all packages
@@ -26,17 +21,6 @@ module Autoproj
             # non-OS-specific managers that support it (e.g. RubyGems) if
             # {update_os_dependencies?} is set to true (the default)
             def rebuild_all
-                if update_os_dependencies?
-                    # We also reinstall the osdeps that provide the
-                    # functionality
-                    managers = Autoproj.osdeps.setup_package_handlers
-                    managers.each do |mng|
-                        if mng.respond_to?(:reinstall)
-                            mng.reinstall
-                        end
-                    end
-                end
-
                 packages = manifest.all_layout_packages
                 manifest.pristine_os_dependencies(packages)
                 rebuild_packages(packages, packages)

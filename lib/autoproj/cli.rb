@@ -1,3 +1,4 @@
+require 'autobuild'
 module Autoproj
     module CLI
         class InvalidArguments < Autobuild::Exception

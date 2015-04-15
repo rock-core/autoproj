@@ -1,3 +1,6 @@
+require 'autoproj'
+require 'autoproj/autobuild'
+
 module Autoproj
     module CLI
         class Base
