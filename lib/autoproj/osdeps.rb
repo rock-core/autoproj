@@ -703,7 +703,9 @@ fi
                     Autoproj.message "  installing/updating RubyGems dependencies: #{gems.map { |g| g.join(" ") }.sort.join(", ")}"
 
                     cmdlines.each do |c|
-                        Autobuild::Subprocess.run 'autoproj', 'osdeps', *c
+                        Autobuild::Subprocess.run 'autoproj', 'osdeps', *c,
+                            env: Hash['GEM_HOME' => Gem.paths.home,
+                                      'GEM_PATH' => Gem.paths.path.join(":")]
                     end
                     gems.each do |name, v|
                         installed_gems << name
