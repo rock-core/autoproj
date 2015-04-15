@@ -1,7 +1,5 @@
 #! /usr/bin/env ruby
 
-ORIGINAL_ARGV = ARGV.dup
-
 require 'autoproj/cli/bootstrap'
 Autoproj::Ops::Tools.basic_setup
 
