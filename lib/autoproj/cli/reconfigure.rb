@@ -12,10 +12,11 @@ module Autoproj
                 parser = OptionParser.new do |opt|
                     opt.banner = ["autoproj reconfigure",
                                   "asks the configuration questions from the build configuration, and allows to set parameters that influence autoproj through command-line options"]
-                    opt.on '--[no-]separate-layout' do
-                        options['separate_layout'] = true
+                    opt.on '--[no-]separate-prefixes' do |flag|
+                        options['separate_prefixes'] = flag
                     end
                 end
+                parser.parse(argv)
                 options
             end
 
