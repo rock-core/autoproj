@@ -82,7 +82,6 @@ module Autoproj
                     user_selection,
                     recursive: options[:recursive],
                     ignore_non_imported_packages: true)
-                # This calls #prepare, which is required to run build_packages
                 packages.each do |pkg|
                     Autobuild::Package[pkg].disable_phases('import', 'prepare', 'install')
                 end
