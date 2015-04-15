@@ -67,6 +67,28 @@ module Autoproj
             Autoproj.workspace.load_main_initrb
         end
 
+        def handle_common_options(options)
+            Autoproj.silent = options.delete(:silent)
+            if options.delete(:verbose)
+                Autoproj.verbose  = true
+                Autobuild.verbose = true
+                Rake.application.options.trace = false
+                Autobuild.debug = false
+            end
+
+            if options.delete(:debug)
+                Autoproj.verbose  = true
+                Autobuild.verbose = true
+                Rake.application.options.trace = true
+                Autobuild.debug = true
+            end
+
+            Autobuild.color =
+                Autoproj::CmdLine.color = options.delete(:color)
+
+            Autobuild.progress_display_enabled = options.delete(:progress)
+        end
+
         def common_options(parser)
             parser.on '--silent' do
                 Autoproj.silent = true
