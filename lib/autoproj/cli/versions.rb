@@ -24,7 +24,6 @@ module Autoproj
                 resolved_selection = CmdLine.
                     resolve_user_selection(user_selection, :filter => false)
                 resolved_selection.filter_excluded_and_ignored_packages(manifest)
-                # This calls #prepare, which is required to run build_packages
                 packages = CmdLine.import_packages(resolved_selection)
 
                 # Remove non-existing packages
