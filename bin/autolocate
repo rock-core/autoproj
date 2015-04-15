@@ -1,7 +1,5 @@
 #! /usr/bin/env ruby
 
-ORIGINAL_ARGV = ARGV.dup
-
 require 'autoproj/cli/locate'
 cli = Autoproj::CLI::Locate.new
 Autoproj::CmdLine.report do

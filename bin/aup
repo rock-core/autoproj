@@ -1,7 +1,5 @@
 #! /usr/bin/env ruby
 
-ORIGINAL_ARGV = ARGV.dup # This is used in case autoproj needs to update itself
-
 require 'autoproj/cli/update'
 Autoproj::Ops::Tools.basic_setup
 ops = Autoproj::CLI::Update.new
