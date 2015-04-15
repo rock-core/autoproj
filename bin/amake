@@ -1,56 +1,12 @@
 #! /usr/bin/env ruby
 
-require 'optparse'
-
-build_all = false
-mode = "build"
-
-parser = OptionParser.new do |opt|
-    opt.banner = "amake [options] [dir_or_package]
-Runs autoproj build for the given directory or package name.
-Selects the current directory if none is given
-
-Accepts all options from autoproj build plus the following options:
-
-"
-    opt.on('--all', 'runs autoproj build without arguments (does not add the current directory)') do
-        build_all = true
-    end
-    opt.on('--force', 'runs autoproj force-build instead of autoproj build') do
-        mode = "force-build"
-    end
-    opt.on('--rebuild', 'runs autoproj force-build instead of autoproj build') do
-        mode = "rebuild"
-    end
-    opt.on('--help', 'shows this help message') do
-        puts parser
-        exit(0)
-    end
-end
-
-# Accept options that are invalid in +parser+, to pass them on to autoproj
-# itself
-options = ARGV.dup
-remaining = []
-while !options.empty?
-    begin
-        head = options.shift
-        remaining.concat(parser.parse([head]))
-    rescue OptionParser::InvalidOption
-        remaining << head
-        retry
-    end
-end
-
-# If --all is not given *and* there is no non-option argument (i.e. no directory
-# / package name), add the current directory to the command line
-if remaining.grep(/^-/).size == remaining.size && !build_all
-    remaining.push '.'
-end
-
-remaining.unshift mode
 ORIGINAL_ARGV = ARGV.dup # This is used in case autoproj needs to update itself
-ARGV.clear
-ARGV.concat(remaining)
-load File.expand_path('autoproj', File.dirname(__FILE__))
+
+require 'autoproj/cli/build'
+Autoproj::Ops::Tools.basic_setup
+ops = Autoproj::CLI::Build.new
+args, options = ops.parse_amake_options(remaining)
+Autoproj::CmdLine.report do
+    ops.run(args, options)
+end
 

@@ -1,18 +1,13 @@
 #! /usr/bin/env ruby
 
-require 'autoproj'
-require 'autoproj/ops/cache'
+ORIGINAL_ARGV = ARGV.dup
 
-root_dir = Autoproj::CmdLine.initialize_root_directory
+require 'autoproj/cli/cache'
+Autoproj::Ops::Tools.basic_setup
 
+ops = Autoproj::CLI::Cache.new
 Autoproj::CmdLine.report do
-    cache_dir, *_ =
-        Autoproj.silent do
-            Autoproj::CmdLine.initialize_and_load(ARGV)
-        end
-    cache_dir = File.expand_path(cache_dir, root_dir)
-
-    cache_op = Autoproj::Ops::Cache.new(cache_dir, Autoproj.manifest)
-    cache_op.create_or_update(Autobuild.ignore_errors)
+    args, options = ops.parse_options(ARGV)
+    ops.run(args, options)
 end
 

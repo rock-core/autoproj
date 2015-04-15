@@ -4,7 +4,11 @@ require 'autoproj/cli/base'
 module Autoproj
     module CLI
         class Update < Base
-            def parse_options(args)
+            def parse_aup_options(args)
+                parse_options(args, true)
+            end
+
+            def parse_options(args, aup = false)
                 options = Hash[
                     config: nil,
                     autoproj: nil,
@@ -14,8 +18,18 @@ module Autoproj
                     checkout_only: false,
                     local: false,
                     nice: nil]
+
+                build_all = false
                 parser = OptionParser.new do |opt|
-                    opt.banner = ["autoproj update", "updates the autoproj workspace"].join("\n")
+                    if aup
+                        opt.banner = ["aup", "updates packages within the autoproj workspace"].join("\n")
+                        build_all = false
+                        opt.on '--all', 'build the whole workspace instead of only the current package and its dependencies' do
+                            build_all = true
+                        end
+                    else
+                        opt.banner = ["autoproj update", "updates packages within the autoproj workspace"].join("\n")
+                    end
                     opt.on "--[no-]config", "(do not) update configuration. The default is to update configuration if explicitely selected or if no additional arguments are given on the command line, and to not do it if packages are explicitely selected on the command line" do |flag|
                         options[:config] = flag
                     end
@@ -58,6 +72,10 @@ module Autoproj
                 end
                 common_options(parser)
                 selected_packages = parser.parse(args)
+
+                if aup && !build_all && selected_packages.empty?
+                    selected_packages << '.'
+                end
 
                 if options[:autoproj].nil?
                     options[:autoproj] = selected_packages.empty?
@@ -171,6 +189,11 @@ module Autoproj
                     ws.manifest.install_os_dependencies(
                         all_enabled_packages, osdeps_options)
                 end
+
+                ws.env.export_env_sh
+                Autoproj.message "autoproj: updated #{ws.root_dir}/#{Autoproj::ENV_FILENAME}", :green
+
+                return command_line_selection, all_enabled_packages
             end
 
             def load_all_available_package_manifests

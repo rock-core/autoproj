@@ -1,3 +1,5 @@
+require 'autoproj/cli/base'
+
 module Autoproj
     module CLI
         # Base class for CLI tools that do not change the state of the installed
@@ -8,7 +10,6 @@ module Autoproj
             attr_reader :ws
 
             def initialize_and_load
-                Ops::Tools.basic_setup
                 Autoproj.silent do
                     ws = Workspace.from_environment
                     ws.setup

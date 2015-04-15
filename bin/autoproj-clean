@@ -1,13 +1,13 @@
 #! /usr/bin/env ruby
 
-require 'autoproj'
-require 'autoproj/cmdline'
+ORIGINAL_ARGV = ARGV.dup
 
-Autoproj.silent = true
-root_dir  = Autoproj::CmdLine.initialize_root_directory
-Autoproj::CmdLine.initialize_and_load(ARGV)
+require 'autoproj/cli/clean'
+Autoproj::Ops::Tools.basic_setup
 
-Autoproj.manifest.each_autobuild_package do |pkg|
-    pkg.prepare_for_rebuild
+ops = Autoproj::CLI::Clean.new
+Autoproj::CmdLine.report do
+    args, options = ops.parse_options(ARGV)
+    ops.run(args, options)
 end
 
