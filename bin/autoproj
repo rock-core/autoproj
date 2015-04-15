@@ -1,5 +1,15 @@
 #! /usr/bin/env ruby
 
+ORIGINAL_ARGV = ARGV.dup
+
+require 'autoproj'
+require 'autoproj/autobuild'
+Autoproj::Ops::Tools.basic_setup
+require 'autoproj/cli/main'
+Autoproj::CmdLine.report(silent: true) do
+    Autoproj::CLI::Main.start(ARGV)
+end
+
 # Check the first element of ARGV. If a tool called autoproj-VALUE exists, just
 # pass the hand to it
 prefix = File.expand_path(__FILE__)

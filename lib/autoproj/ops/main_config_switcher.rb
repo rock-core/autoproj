@@ -3,10 +3,10 @@ module Autoproj
         # Operations that modify the source of the main configuration (bootstrap
         # and switch-config)
         class MainConfigSwitcher
-            attr_reader :root_dir
+            attr_reader :ws
 
-            def initialize(root_dir)
-                @root_dir = root_dir
+            def initialize(ws)
+                @ws = ws
             end
 
             # Set of directory entries that are expected to be present in the
@@ -25,7 +25,7 @@ module Autoproj
                 return if ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] == '1'
 
                 require 'set'
-                curdir_entries = Dir.entries(root_dir).map { |p| File.basename(p) } - 
+                curdir_entries = Dir.entries(ws.root_dir).map { |p| File.basename(p) }.to_set - 
                     EXPECTED_ROOT_ENTRIES
                 return if curdir_entries.empty?
 
@@ -53,14 +53,14 @@ module Autoproj
             # bootstrap
             #
             # AUTOPROJ_CURRENT_ROOT must be set to either the new root
-            # ({root_dir}) or a root that we are reusing
+            # ({ws.root_dir}) or a root that we are reusing
             #
             # @param [Array<String>] reuse set of autoproj roots that are being reused
             # @raise ConfigError
             def validate_autoproj_current_root(reuse)
                 if current_root = ENV['AUTOPROJ_CURRENT_ROOT']
                     # Allow having a current root only if it is being reused
-                    if (current_root != root_dir) && !reuse.include?(current_root)
+                    if (current_root != ws.root_dir) && !reuse.include?(current_root)
                         Autoproj.error "the env.sh from #{ENV['AUTOPROJ_CURRENT_ROOT']} seem to already be sourced"
                         Autoproj.error "start a new shell and try to bootstrap again"
                         Autoproj.error ""
@@ -80,8 +80,6 @@ module Autoproj
                 check_root_dir_empty
                 validate_autoproj_current_root(options[:reuse])
 
-                ws = Workspace.new(root_dir)
-                ws.setup
                 ws.config.validate_ruby_executable
 
                 PackageManagers::GemManager.with_prerelease(ws.config.use_prerelease?) do
@@ -92,12 +90,12 @@ module Autoproj
 
                 # If we are not getting the installation setup from a VCS, copy the template
                 # files
-                if args.empty? || args.size == 1
+                if buildconf_info.empty? || buildconf_info.size == 1
                     FileUtils.cp_r MAIN_CONFIGURATION_TEMPLATE, "autoproj"
                 end
 
-                if args.size == 1 # the user asks us to download a manifest
-                    manifest_url = args.first
+                if buildconf_info.size == 1 # the user asks us to download a manifest
+                    manifest_url = buildconf_info.first
                     Autoproj.message("autoproj: downloading manifest file #{manifest_url}", :bold)
                     manifest_data =
                         begin open(manifest_url) { |file| file.read }
@@ -111,18 +109,16 @@ module Autoproj
                         io.write(manifest_data)
                     end
 
-                elsif args.size >= 2 # is a VCS definition for the manifest itself ...
-                    type, url, *options = *args
+                elsif buildconf_info.size >= 2 # is a VCS definition for the manifest itself ...
+                    type, url, *options = *buildconf_info
                     url = VCSDefinition.to_absolute_url(url, Dir.pwd)
-                    do_switch_config(ws, false, type, url, *options)
+                    do_switch_config(false, type, url, *options)
                 end
                 ws.env.export_env_sh(nil, shell_helpers: ws.config.shell_helpers?)
                 ws.config.save
             end
 
             def switch_config(*args)
-                ws = Workspace.new(root_dir)
-                ws.setup
                 vcs = ws.config.get('manifest_source', nil)
                 if args.first =~ /^(\w+)=/
                     # First argument is an option string, we are simply setting the
@@ -154,16 +150,14 @@ module Autoproj
 
                     return if !opt.ask(nil)
 
-                    Dir.chdir(root_dir) do
-                        do_switch_config(ws, true, type, url, *options)
-                    end
+                    do_switch_config(true, type, url, *options)
                     false
                 end
                 ws.config.save
             end
 
             # @api private
-            def do_switch_config(ws, delete_current, type, url, *options)
+            def do_switch_config(delete_current, type, url, *options)
                 vcs_def = Hash.new
                 vcs_def[:type] = type
                 vcs_def[:url]  = VCSDefinition.to_absolute_url(url)
@@ -182,7 +176,7 @@ module Autoproj
                 ws.osdeps.install([vcs.type])
 
                 # Now check out the actual configuration
-                config_dir = File.join(root_dir, "autoproj")
+                config_dir = File.join(ws.root_dir, "autoproj")
                 if delete_current
                     # Find a backup name for it
                     backup_base_name = backup_name = "#{config_dir}.bak"

@@ -16,21 +16,20 @@ module Autoproj
                 @root_dir = root_dir
             end
 
-            def parse_options(args)
-                options = Hash[reuse: Array.new]
-                parser = OptionParser.new do |opt|
-                    opt.on '--reuse [DIR]', "reuse the given autoproj installation (can be given multiple times). If given without arguments, reuse the currently active install (#{ENV['AUTOPROJ_CURRENT_ROOT']})" do |path|
-                        path ||= ENV['AUTOPROJ_CURRENT_ROOT']
-
-                        path = File.expand_path(path)
-                        if !File.directory?(path) || !File.directory?(File.join(path, 'autoproj'))
-                            raise ConfigError.new, "#{path} does not look like an autoproj installation"
-                        end
-                        options[:reuse] << path
+            def validate_options(args, options)
+                if path = options[:reuse]
+                    if path == 'reuse'
+                        path = ENV['AUTOPROJ_CURRENT_ROOT']
                     end
+
+                    path = File.expand_path(path)
+                    if !File.directory?(path) || !File.directory?(File.join(path, 'autoproj'))
+                        raise ArgumentError, "#{path} does not look like an autoproj installation"
+                    end
+                    options[:reuse] = [path]
                 end
-                common_options(parser)
-                args = parser.parse(args)
+
+                handle_common_options(options)
                 return args, options
             end
             
@@ -46,7 +45,7 @@ module Autoproj
                     else
                         require 'rbconfig'
                         ws.config.save
-                        exec(ws.config.ruby_executable, autoproj_path, *Autoproj::CmdLine.argv)
+                        exec(ws.config.ruby_executable, autoproj_path, *ARGV)
                     end
                 end
             end
@@ -56,44 +55,42 @@ module Autoproj
                 ws.setup
                 restart_if_needed
 
-                CmdLine.report do
-                    switcher = Ops::MainConfigSwitcher.new(ws)
-                    begin
-                        switcher.bootstrap(buildconf_info, options)
+                switcher = Ops::MainConfigSwitcher.new(ws)
+                begin
+                    switcher.bootstrap(buildconf_info, options)
 
-                        STDERR.puts <<-EOTEXT
+                    STDERR.puts <<-EOTEXT
 
 
 #{Autoproj.color('autoproj bootstrap successfully finished', :green, :bold)}
 
 #{Autoproj.color('To further use autoproj and the installed software', :bold)}, you
 must add the following line at the bottom of your .bashrc:
-  source #{root_dir}/#{Autoproj::ENV_FILENAME}
+source #{root_dir}/#{Autoproj::ENV_FILENAME}
 
 WARNING: autoproj will not work until your restart all
 your consoles, or run the following in them:
-  $ source #{root_dir}/#{Autoproj::ENV_FILENAME}
+$ source #{root_dir}/#{Autoproj::ENV_FILENAME}
 
 #{Autoproj.color('To import and build the packages', :bold)}, you can now run
-  aup
-  amake
+aup
+amake
 
 The resulting software is installed in
-  #{root_dir}/install
+#{root_dir}/install
 
-                        EOTEXT
+                    EOTEXT
 
-                    rescue RuntimeError
-                        STDERR.puts <<-EOTEXT
+                rescue RuntimeError
+                    STDERR.puts <<-EOTEXT
 #{Autoproj.color('autoproj bootstrap failed', :red, :bold)}
 To retry, first source the #{Autoproj::ENV_FILENAME} script with
-  source #{root_dir}/#{Autoproj::ENV_FILENAME}
+source #{root_dir}/#{Autoproj::ENV_FILENAME}
 and then re-run autoproj bootstrap
-  autoproj bootstrap '#{ARGV.join("'")}'
-                        EOTEXT
+autoproj bootstrap '#{ARGV.join("'")}'
+                    EOTEXT
 
-                        raise
-                    end
+                    raise
                 end
             end
         end
