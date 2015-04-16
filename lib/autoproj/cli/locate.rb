@@ -20,13 +20,18 @@ module Autoproj
             end
 
             def parse_options(args)
-                if args.size != 1
+                if args.size > 1
                     raise ConfigError, "expected exactly one argument, got #{args.size}"
                 end
                 args.first
             end
 
             def run(selection)
+                if !selection
+                    puts ws.root_dir
+                    return
+                end
+
                 selection_rx = Regexp.new(Regexp.quote(selection))
                 candidates = []
                 installation_manifest.each do |pkg|
