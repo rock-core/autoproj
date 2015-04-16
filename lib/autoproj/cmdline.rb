@@ -2,45 +2,6 @@ require 'highline'
 require 'utilrb/module/attr_predicate'
 require 'autoproj/ops/build'
 module Autoproj
-    class << self
-        attr_accessor :verbose
-        attr_reader :console
-        def silent?
-            Autobuild.silent?
-        end
-        def silent=(value)
-            Autobuild.silent = value
-        end
-    end
-    @verbose = false
-    @console = HighLine.new
-    ENV_FILENAME =
-        if Autobuild.windows? then "env.bat"
-        else "env.sh"
-        end
-	
-
-    def self.silent(&block)
-        Autobuild.silent(&block)
-    end
-
-    def self.message(*args)
-        Autobuild.message(*args)
-    end
-
-    def self.color(*args)
-        Autobuild.color(*args)
-    end
-
-    # Displays an error message
-    def self.error(message)
-        Autobuild.error(message)
-    end
-
-    # Displays a warning message
-    def self.warn(message, *style)
-        Autobuild.warn(message, *style)
-    end
 
     module CmdLine
         def self.argv
@@ -1382,36 +1343,8 @@ where 'mode' is one of:
             ws.export_installation_manifest
         end
 
-        def self.report(options = Hash.new)
-            options = Kernel.validate_options options,
-                silent: false
-
-            Autobuild::Reporting.report do
-                yield
-            end
-            if !options[:silent]
-                Autobuild::Reporting.success
-            end
-
-        rescue ConfigError => e
-            STDERR.puts
-            STDERR.puts Autoproj.color(e.message, :red, :bold)
-            if Autoproj.in_autoproj_installation?(Dir.pwd)
-                root_dir = /#{Regexp.quote(Autoproj.root_dir)}(?!\/\.gems)/
-                e.backtrace.find_all { |path| path =~ root_dir }.
-                    each do |path|
-                        STDERR.puts Autoproj.color("  in #{path}", :red, :bold)
-                    end
-            end
-            if Autobuild.debug then raise
-            else exit 1
-            end
-        rescue Interrupt
-            STDERR.puts
-            STDERR.puts Autoproj.color("Interrupted by user", :red, :bold)
-            if Autobuild.debug then raise
-            else exit 1
-            end
+        def self.report(options = Hash.new, &block)
+            Autoproj.report(options, &block)
         end
     end
 end

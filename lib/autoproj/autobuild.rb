@@ -223,25 +223,6 @@ module Autobuild
 end
 
 module Autoproj
-    # Subclass of Autobuild::Reporter, used to display a message when the build
-    # finishes/fails.
-    class Reporter < Autobuild::Reporter
-        def error(error)
-            error_lines = error.to_s.split("\n")
-            Autoproj.message("Command failed", :bold, :red, STDERR)
-            Autoproj.message("#{error_lines.shift}", :bold, :red, STDERR)
-            error_lines.each do |line|
-                Autoproj.message line, STDERR
-            end
-        end
-        def success
-            Autoproj.message("Command finished successfully at #{Time.now}", :bold, :green)
-            if Autobuild.post_success_message
-                Autoproj.message Autobuild.post_success_message
-            end
-        end
-    end
-
     @file_stack       = Array.new
 
     def self.package_name_from_options(spec)

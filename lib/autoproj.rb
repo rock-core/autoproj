@@ -2,6 +2,7 @@ require "enumerator"
 require 'autobuild'
 require 'autoproj/base'
 require 'autoproj/version'
+require 'autoproj/reporter'
 require 'autoproj/environment'
 require 'autoproj/variable_expansion'
 require 'autoproj/vcs_definition'
