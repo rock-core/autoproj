@@ -24,8 +24,18 @@ module Autoproj
                 require 'autoproj/cli/bootstrap'
                 cli = Autoproj::CLI::Bootstrap.new
                 Autoproj::CmdLine.report do
-                    args, options = cli.validate_options(args, self.options.dup)
+                    args, options = cli.validate_options(args, self.options)
                     cli.run(args, options)
+                end
+            end
+
+            desc 'envsh', 'update the env.sh file'
+            def envsh
+                require 'autoproj/cli/envsh'
+                cli = Autoproj::CLI::Envsh.new
+                Autoproj::CmdLine.report do
+                    options = cli.validate_options(self.options)
+                    cli.run(options)
                 end
             end
         end
