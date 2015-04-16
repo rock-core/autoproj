@@ -50,9 +50,29 @@ module Autoproj
                 end
             end
 
+            def install_autoproj_gem_in_new_root(ws)
+                # Install the autoproj/autobuild gem explicitely in the new
+                # root.
+                original_env =
+                    Hash['GEM_HOME' => Gem.paths.home,
+                         'GEM_PATH' => Gem.paths.path]
+
+                begin
+                    Gem.paths =
+                        Hash['GEM_HOME' => File.join(root_dir, '.gems'),
+                             'GEM_PATH' => []]
+                    PackageManagers::GemManager.with_prerelease(ws.config.use_prerelease?) do
+                        ws.osdeps.install(%w{autobuild autoproj})
+                    end
+                ensure
+                    Gem.paths = original_env
+                end
+            end
+
             def run(buildconf_info, options)
                 ws = Workspace.new(root_dir)
                 ws.setup
+                install_autoproj_gem_in_new_root(ws)
                 restart_if_needed
 
                 switcher = Ops::MainConfigSwitcher.new(ws)
