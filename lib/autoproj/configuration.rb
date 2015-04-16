@@ -356,6 +356,10 @@ module Autoproj
             utility_config = get(utility_key(utility), Hash.new)
             set(utility_key(utility), utility_config.merge(package => false))
         end
+
+        def merge(conf)
+            config.merge!(conf.config)
+        end
     end
 end
 

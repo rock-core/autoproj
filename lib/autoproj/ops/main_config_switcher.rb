@@ -195,9 +195,12 @@ module Autoproj
                     "autoproj main configuration",
                     config_dir)
 
-                # If the new tree has a configuration file, load it and set
+                # If the new tree has a configuration file, load it but override
+                # the already known parameters once it is loaded
+                current_config = ws.config
                 # manifest_source
                 ws.load_config
+                ws.config.merge(current_config)
 
                 # And now save the options: note that we keep the current option set even
                 # though we switched configuration. This is not a problem as undefined
