@@ -81,36 +81,16 @@ module Autoproj
                     options[:autoproj] = selected_packages.empty?
                 end
 
-                config_selected = false
-                selected_packages.delete_if do |name|
-                    if name =~ /^#{Regexp.quote(ws.config_dir)}(?:#{File::SEPARATOR}|$)/ ||
-                        name =~ /^#{Regexp.quote(ws.remotes_dir)}(?:#{File::SEPARATOR}|$)/
-                        config_selected = true
-                    elsif (ws.config_dir + File::SEPARATOR) =~ /^#{Regexp.quote(name)}/
-                        config_selected = true
-                        false
-                    end
-                end
-
-                if options[:config].nil?
-                    if selected_packages.empty?
-                        options[:config] = true
-                    else
-                        options[:config] = config_selected
-                    end
-                end
-                options[:config_explicitely_selected] = config_selected
                 ws.osdeps.silent = Autoproj.silent?
-
                 return selected_packages, options
             end
 
             def run(selected_packages, options)
-                selected_packages = selected_packages.map do |pkg|
-                    if File.directory?(pkg)
-                        File.expand_path(pkg)
-                    else pkg
-                    end
+                selected_packages, config_selected =
+                    normalize_command_line_package_selection(selected_packages)
+
+                if options[:config].nil?
+                    options[:config] = selected_packages.empty? || config_selected
                 end
 
                 ws.setup
@@ -132,7 +112,7 @@ module Autoproj
                 ws.load_package_sets(
                     only_local: options[:only_local],
                     checkout_only: !options[:config] || options[:checkout_only])
-                if selected_packages.empty? && options[:config_explicitely_selected]
+                if selected_packages.empty? && config_selected
                     return
                 end
 
