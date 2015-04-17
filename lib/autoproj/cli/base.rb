@@ -29,11 +29,11 @@ module Autoproj
                         if handler
                             Autoproj.message "  auto-adding #{srcdir} using the #{handler.gsub(/_package/, '')} package handler"
                             srcdir = File.expand_path(srcdir)
-                            relative_to_root = Pathname.new(srcdir).relative_path_from(Pathname.new(root_dir))
-                            pkg = in_package_set(ws.manifest.main_package_set, ws.manifest.file) do
+                            relative_to_root = Pathname.new(srcdir).relative_path_from(Pathname.new(ws.root_dir))
+                            pkg = ws.in_package_set(ws.manifest.main_package_set, ws.manifest.file) do
                                 send(handler, relative_to_root.to_s)
                             end
-                            setup_package_directories(pkg)
+                            ws.setup_package_directories(pkg)
                             selected_packages.select(sel, pkg.name, true)
                             break(true)
                         end
