@@ -22,8 +22,8 @@ module Autoproj
                 desc: 'reuse packages already built within the DIR autoproj workspace in this installation, if DIR is not given, reuses the installation whose env.sh is currently sourced'
             def bootstrap(*args)
                 require 'autoproj/cli/bootstrap'
-                cli = Autoproj::CLI::Bootstrap.new
                 Autoproj::CmdLine.report do
+                cli = CLI::Bootstrap.new
                     args, options = cli.validate_options(args, self.options)
                     cli.run(args, options)
                 end
@@ -32,8 +32,8 @@ module Autoproj
             desc 'envsh', 'update the env.sh file'
             def envsh
                 require 'autoproj/cli/envsh'
-                cli = Autoproj::CLI::Envsh.new
                 Autoproj::CmdLine.report do
+                cli = CLI::Envsh.new
                     options = cli.validate_options(self.options)
                     cli.run(options)
                 end
