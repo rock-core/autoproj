@@ -3,11 +3,6 @@ require 'autoproj/cli/inspection_tool'
 module Autoproj
     module CLI
         class Status < InspectionTool
-            def validate_options(selection, options)
-                options = handle_common_options(options)
-                return selection, options
-            end
-
             def run(selected_packages, options = Hash.new)
                 selected_packages, config_selected =
                     normalize_command_line_package_selection(selected_packages)

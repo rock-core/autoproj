@@ -39,11 +39,11 @@ module Autoproj
         # @param [Manifest] manifest
         # @param [Loader] loader
         # @option options [InstallationManifest] :update_from
-        #   (CmdLine.update_from) another autoproj installation from which we
+        #   another autoproj installation from which we
         #   should update (instead of the normal VCS)
         def initialize(workspace, options = Hash.new)
-            options = Kernel.validate_options options,
-                :update_from => CmdLine.update_from
+            options = validate_options options,
+                update_from: nil
             @ws = workspace
             @update_from = options[:update_from]
             @remote_update_message_displayed = false

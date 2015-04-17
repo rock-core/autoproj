@@ -18,6 +18,17 @@ module Autoproj
                 end
             end
 
+            def finalize_setup
+                Autoproj.silent do
+                    ws.manifest.default_packages(false).each do |pkg_name|
+                        ws.manifest.load_package_manifest(pkg_name)
+                    end
+
+                    ws.finalize_package_setup
+                    ws.export_installation_manifest
+                end
+            end
+
             def load_all_available_package_manifests
                 # Load the manifest for packages that are already present on the
                 # file system

@@ -1,65 +1,39 @@
-require 'autoproj/ops/tools'
+require 'autoproj/ops/inspection_tool'
 
 module Autoproj
     module CLI
-        class Test
-            include Ops::Tools
-
-            attr_reader :manifest
-            attr_reader :config
-
-            def initialize(manifest, config = Autoproj.config)
-                @manifest = manifest
-                @config = config
+        class Test < InspectionTool
+            def enable(user_selection, options = Hash.new)
+                if user_selection.empty?
+                    ws.config.utility_enable_all('test')
+                else
+                    selection, _ = resolve_selection(
+                        user_selection,
+                        recursive: options[:deps],
+                        ignore_non_imported_packages: true)
+                    ws.config.utility_enable('test', *selection)
+                end
+                ws.config.save
             end
 
-            def parse_options(args)
-                Autoproj.load_config
-
-                modified_config = false
-                mode = nil
-                options = Hash.new
-                option_parser = OptionParser.new do |opt|
-                    opt.on '--enable[=PACKAGE,PACKAGE]', Array, 'enable tests for all packages or for specific packages (does not run the tests)' do |packages|
-                        if !packages
-                            config.utility_enable_all('test')
-                        else
-                            config.utility_enable_for('test', *packages)
-                        end
-                        modified_config = true
-                    end
-                    opt.on '--disable[=PACKAGE,PACKAGE]', Array, 'disable tests for all packages or for specific packages (does not run the tests)' do |packages|
-                        if !packages
-                            config.utility_disable_all('test')
-                        else
-                            config.utility_disable_for('test', *packages)
-                        end
-                        modified_config = true
-                    end
-                    opt.on '--list', 'list the test availability and enabled/disabled state information' do
-                        mode = 'list'
-                    end
-                    opt.on '--[no-]recursion', '(do not) run or list the tests of the dependencies of the packages given on the command line (the default is false)' do |flag|
-                        options[:recursive] = flag
-                    end
+            def disable(user_selection, options = Hash.new)
+                if user_selection.empty?
+                    ws.config.utility_disable_all('test')
+                else
+                    selection, _ = resolve_selection(
+                        user_selection,
+                        recursive: options[:deps],
+                        ignore_non_imported_packages: true)
+                    ws.config.utility_disable('test', *selection)
                 end
-
-                user_selection = option_parser.parse(ARGV)
-                if !mode && !(modified_config && user_selection.empty?)
-                    mode = 'run'
-                end
-
-                if modified_config
-                    config.save
-                end
-                return mode, user_selection, options
+                ws.config.save
             end
 
             def list(user_selection, options = Hash.new)
                 resolved_selection, _ = resolve_selection(
                     manifest,
                     user_selection,
-                    recursive: options[:recursive],
+                    recursive: options[:deps],
                     ignore_non_imported_packages: true)
 
                 lines = Array.new
@@ -82,6 +56,7 @@ module Autoproj
                     user_selection,
                     recursive: options[:recursive],
                     ignore_non_imported_packages: true)
+
                 packages.each do |pkg|
                     Autobuild::Package[pkg].disable_phases('import', 'prepare', 'install')
                 end

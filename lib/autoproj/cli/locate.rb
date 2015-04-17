@@ -19,14 +19,12 @@ module Autoproj
                 installation_manifest.load
             end
 
-            def parse_options(args)
-                if args.size > 1
-                    raise ConfigError, "expected exactly one argument, got #{args.size}"
-                end
-                args.first
+            def validate_options(selected, options)
+                selected, options = super
+                return selected.first, options
             end
 
-            def run(selection)
+            def run(selection, options = Hash.new)
                 if !selection
                     puts ws.root_dir
                     return

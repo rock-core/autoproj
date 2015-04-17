@@ -100,10 +100,6 @@ module Autobuild
                 name = name.name
             end
 
-            if Autoproj::CmdLine.ignore_dependencies?
-                return
-            end
-
             @os_packages ||= Set.new
             pkg_autobuild, pkg_os = partition_package(name)
             pkg_autobuild.each do |pkg|
@@ -125,10 +121,6 @@ module Autobuild
         end
 
         def optional_dependency(name)
-            if Autoproj::CmdLine.ignore_dependencies?
-                return
-            end
-
             optional_dependencies << name
         end
 
@@ -168,12 +160,10 @@ module Autobuild
         end
 
         def resolve_optional_dependencies
-            if !Autoproj::CmdLine.ignore_dependencies?
-                packages, osdeps, disabled = partition_optional_dependencies
-                packages.each { |pkg| depends_on(pkg) }
-                @os_packages ||= Set.new
-                @os_packages |= osdeps.to_set
-            end
+            packages, osdeps, disabled = partition_optional_dependencies
+            packages.each { |pkg| depends_on(pkg) }
+            @os_packages ||= Set.new
+            @os_packages |= osdeps.to_set
         end
 
         def optional_dependencies

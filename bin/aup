@@ -1,9 +1,5 @@
 #! /usr/bin/env ruby
 
-require 'autoproj/cli/update'
 Autoproj::Ops::Tools.basic_setup
-ops = Autoproj::CLI::Update.new
-Autoproj::CmdLine.report do
-    args, options = ops.parse_aup_options(ARGV)
-    ops.run(args, options)
-end
+require 'autoproj/cli/main'
+Autoproj::CLI::Main.start(['update', '--aup', *ARGV])

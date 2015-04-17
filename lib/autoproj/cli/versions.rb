@@ -1,30 +1,18 @@
 require 'autoproj'
-require 'autoproj/cmdline'
 require 'autoproj/ops/tools'
 require 'autoproj/ops/snapshot'
 
 module Autoproj
     module CLI
-        class Versions
-            include Ops::Tools
-
+        class Versions < Base
             DEFAULT_VERSIONS_FILE_BASENAME = Ops::Snapshot::DEFAULT_VERSIONS_FILE_BASENAME
 
             def default_versions_file
                 File.join( Autoproj.overrides_dir, DEFAULT_VERSIONS_FILE_BASENAME )
             end
 
-            attr_reader :manifest
-
-            def initialize(manifest)
-                @manifest = manifest
-            end
-
-            def resolve_selection( user_selection )
-                resolved_selection = CmdLine.
-                    resolve_user_selection(user_selection, :filter => false)
-                resolved_selection.filter_excluded_and_ignored_packages(manifest)
-                packages = CmdLine.import_packages(resolved_selection)
+            def resolve_selection(user_selection)
+                packages = resolve_selection(user_selection)
 
                 # Remove non-existing packages
                 packages.each do |pkg|
@@ -70,7 +58,7 @@ module Autoproj
                     do_package_sets = true
                 end
 
-                CmdLine.report(silent: true) do
+                Autoproj.report(silent: true) do
                     packages = resolve_selection user_selection
                     ops = Ops::Snapshot.new(manifest, keep_going: options[:keep_going])
 

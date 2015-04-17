@@ -17,6 +17,7 @@ module Autoproj
             end
 
             def validate_options(args, options)
+                args, options = super
                 if path = options[:reuse]
                     if path == 'reuse'
                         path = ENV['AUTOPROJ_CURRENT_ROOT']
@@ -28,8 +29,6 @@ module Autoproj
                     end
                     options[:reuse] = [path]
                 end
-
-                options = handle_common_options(options)
                 return args, options
             end
             
