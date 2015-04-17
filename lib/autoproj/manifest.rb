@@ -385,17 +385,25 @@ module Autoproj
         end
 
         def find_package(name)
-            packages[name]
+            if name.respond_to?(:name)
+                name = name.name
+            end
+
+            packages[name.to_str]
         end
 
         def find_autobuild_package(name)
-            if pkg = packages[name]
+            if name.respond_to?(:name)
+                name = name.name
+            end
+
+            if pkg = packages[name.to_str]
                 pkg.autobuild
             end
         end
 
         def package(name)
-            packages[name]
+            find_package(name)
         end
 
         # @deprecated use {each_autobuild_package} instead
@@ -816,7 +824,7 @@ module Autoproj
             result = Set.new
             root = default_packages(validate).packages.to_set
             root.each do |pkg_name|
-                Autobuild::Package[pkg_name].all_dependencies(result)
+                find_autobuild_package(pkg_name).all_dependencies(result)
             end
             result | root
         end
