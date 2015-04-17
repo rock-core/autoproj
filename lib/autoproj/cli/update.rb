@@ -1,5 +1,6 @@
 require 'autoproj/cli'
 require 'autoproj/cli/base'
+require 'autoproj/ops/import'
 
 module Autoproj
     module CLI
@@ -154,8 +155,9 @@ module Autoproj
                     ws.osdeps.install(vcs_to_install, osdeps_options)
                 end
 
+                ops = Autoproj::Ops::Import.new(ws)
                 all_enabled_packages = 
-                    Autoproj::CmdLine.import_packages(selected_packages,
+                    ops.import_packages(selected_packages,
                                     workspace: ws,
                                     checkout_only: options[:checkout_only],
                                     only_local: options[:only_local],
