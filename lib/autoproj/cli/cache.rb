@@ -25,7 +25,7 @@ module Autoproj
             end
 
             def run(cache_dir, options = Hash.new)
-                options = validate_options options,
+                options = Kernel.validate_options options,
                     keep_going: false
 
                 cache_op = Autoproj::Ops::Cache.new(cache_dir, ws.manifest)

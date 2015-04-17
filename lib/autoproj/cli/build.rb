@@ -3,58 +3,16 @@ require 'autoproj/cli/update'
 module Autoproj
     module CLI
         class Build < Update
-            def parse_amake_options(args)
-                parse_options(args, true)
-            end
-
-            def parse_options(args, amake = false)
-                options = Hash[
-                    keep_going: false,
-                    osdeps: true,
-                    nice: nil]
-
-                build_all = false
-                parser = OptionParser.new do |opt|
-                    if amake
-                        opt.banner = ["amake", "builds packages within the autoproj workspace"].join("\n")
-                        opt.on '--all', 'build the whole workspace instead of only the current package and its dependencies' do
-                            build_all = true
-                        end
-                    else
-                        opt.banner = ["autoproj builds", "builds packages within the autoproj workspace"].join("\n")
-                    end
-
-                    
-                    opt.on '-k', '--keep-going' do
-                        options[:keep_going] = true
-                    end
-                    opt.on '--force' do
-                        options[:forced_build] = true
-                        options[:rebuild] = false
-                    end
-                    opt.on '--rebuild' do
-                        options[:forced_build] = false
-                        options[:rebuild] = true
-                    end
-                    opt.on '--[no-]osdeps', 'controls whether missing osdeps should be installed. In rebuild mode, also controls whether the osdeps should be reinstalled or not (the default is to reinstall them)' do |flag|
-                        options[:osdeps] = flag
-                    end
-                    opt.on '--[no-]deps' do |flag|
-                        options[:with_deps] = flag
-                    end
+            def validate_options(selected_packages, options)
+                selected_packages, options = super
+                if options[:amake] && selected_packages.empty? && !options[:all]
+                    selected_packages = ['.']
                 end
-                common_options(parser)
 
-                if !options.has_key?(:with_deps)
-                    options[:with_deps] = 
+                if !options.has_key?(:deps)
+                    options[:deps] = 
                         !(options[:rebuild] || options[:forced_build])
                 end
-                selected_packages = parser.parse(args)
-                if amake && !build_all && selected_packages.empty?
-                    selected_packages << '.'
-                end
-
-                ws.osdeps.silent = Autoproj.silent?
                 return selected_packages, options
             end
 
@@ -71,7 +29,7 @@ module Autoproj
                 ops = Ops::Build.new(ws.manifest)
                 if build_options[:rebuild] || build_options[:forced_build]
                     packages_to_rebuild =
-                        if options[:with_deps] || command_line_selection.empty?
+                        if options[:deps] || command_line_selection.empty?
                             all_enabled_packages
                         else command_line_selection
                         end

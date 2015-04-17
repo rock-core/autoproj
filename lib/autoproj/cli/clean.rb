@@ -3,30 +3,19 @@ require 'autoproj/cli/inspection_tool'
 module Autoproj
     module CLI
         class Clean < InspectionTool
-            def parse_options(argv)
-                options = Hash.new
-
-                bypass_clean_all_check = false
-                parser = OptionParser.new do |opt|
-                    opt.banner = "autoproj clean [PACKAGES]"
-                    opt.on '--all', 'bypass the interactive question when you mean to clean all packages' do
-                        bypass_clean_all_check = true
-                    end
-                end
-
-                selection = parser.parse(argv)
-
-                if selection.empty? && !bypass_clean_all_check
+            def validate_options(packages, options)
+                packages, options = super
+                if packages.empty? && !options[:all]
                     opt = BuildOption.new("", "boolean", {:doc => "this is going to clean all packages. Is that really what you want ?"}, nil)
                     if !opt.ask(false)
                         raise Interrupt
                     end
                 end
-
-                return parser.parse(argv), options
+                return packages, options
             end
 
             def run(selection, options = Hash.new)
+                packages, _ = normalize_command_line_package_selection(selection)
                 packages, resolved_selection = resolve_selection(
                     ws.manifest,
                     selection,

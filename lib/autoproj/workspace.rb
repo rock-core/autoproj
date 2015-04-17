@@ -1,3 +1,5 @@
+require 'autoproj/ops/import'
+
 module Autoproj
     class Workspace < Ops::Loader
         attr_reader :root_dir
@@ -361,7 +363,8 @@ module Autoproj
         def load_packages(selection, options = Hash.new)
             options = Hash[warn_about_ignored_packages: true, checkout_only: true].
                 merge(options)
-            CmdLine.import_packages(selection, options)
+            ops = Ops::Import.new(ws)
+            ops.import_packages(selection, options)
         end
         
         def setup_all_package_directories

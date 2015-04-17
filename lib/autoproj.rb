@@ -1,4 +1,5 @@
 require "enumerator"
+require 'utilrb/module/attr_predicate'
 require 'autobuild'
 require 'autoproj/base'
 require 'autoproj/version'
@@ -18,9 +19,10 @@ require 'autoproj/system'
 require 'autoproj/build_option'
 require 'autoproj/configuration'
 require 'autoproj/options'
+# Required by Workspace
+require 'autoproj/ops/import'
 # Required for auto-saving in import_packages
 require 'autoproj/ops/snapshot'
-require 'autoproj/cmdline'
 require 'autoproj/query'
 
 require 'autoproj/ops/tools'

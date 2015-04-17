@@ -5,85 +5,27 @@ require 'autoproj/ops/import'
 module Autoproj
     module CLI
         class Update < Base
-            def parse_aup_options(args)
-                parse_options(args, true)
-            end
+            def validate_options(packages, options)
+                packages, options = super
 
-            def parse_options(args, aup = false)
-                options = Hash[
-                    config: nil,
-                    autoproj: nil,
-                    osdeps: true,
-                    keep_going: false,
-                    update_from: nil,
-                    checkout_only: false,
-                    local: false,
-                    nice: nil]
-
-                build_all = false
-                parser = OptionParser.new do |opt|
-                    if aup
-                        opt.banner = ["aup", "updates packages within the autoproj workspace"].join("\n")
-                        build_all = false
-                        opt.on '--all', 'build the whole workspace instead of only the current package and its dependencies' do
-                            build_all = true
-                        end
-                    else
-                        opt.banner = ["autoproj update", "updates packages within the autoproj workspace"].join("\n")
-                    end
-                    opt.on "--[no-]config", "(do not) update configuration. The default is to update configuration if explicitely selected or if no additional arguments are given on the command line, and to not do it if packages are explicitely selected on the command line" do |flag|
-                        options[:config] = flag
-                    end
-
-                    opt.on "--(no-)autoproj", "(do not) update autoproj. This is automatically enabled only if no arguments are given on the command line" do |flag|
-                        options[:autoproj] = flag
-                    end
-                    opt.on "--[no-]osdeps", "enable or disable osdeps handling" do |flag|
-                        options[:osdeps] = false
-                        if !flag
-                            options[:osdeps_mode] = Array.new
-                        end
-                    end
-                    opt.on "--osdeps=NAME[,NAME]", Array, "only update the given osdeps handlers" do |handlers|
-                        options[:osdeps_mode] = handlers
-                    end
-                    opt.on "-k", "--keep-going", "go on updating even in the presence of errors" do
-                        options[:keep_going] = true
-                    end
-                    opt.on('--from PATH', 'use this existing autoproj installation to check out the packages (for importers that support this)') do |path|
-                        options[:update_from] = Autoproj::InstallationManifest.from_root(File.expand_path(path))
-                    end
-                    opt.on("--[no-]update", "Deprecated, use --checkout-only instead") do |flag|
-                        options[:checkout_only] = flag
-                    end
-                    opt.on("-c", "--checkout-only", "only checkout packages, do not update existing ones") do
-                        options[:checkout_only] = true
-                    end
-                    opt.on("--local", "use only local information for the update (for importers that support it)") do
-                        options[:local] = true
-                    end
-                    opt.on('--nice NICE', Integer, 'nice the subprocesses to the given value') do |value|
-                        options[:nice] = value
-                    end
-                    opt.on('--[no-]osdeps-filter-uptodate', 'controls whether the osdeps subsystem should filter up-to-date packages or not') do |flag|
-                        ws.osdeps.filter_uptodate_packages = flag
-                    end
-                    opt.on('--osdeps-mode=MODE', 'override the current osdeps configuration mode') do |forced_mode|
-                    end
+                if !options[:osdeps]
+                    options[:osdeps_mode] = Array.new
                 end
-                common_options(parser)
-                selected_packages = parser.parse(args)
 
-                if aup && !build_all && selected_packages.empty?
-                    selected_packages << '.'
+                if from = options[:from]
+                    options[:from] = Autoproj::InstallationManifest.from_root(options[:from])
+                end
+                ws.osdeps.filter_uptodate_packages = options[:osdeps_filter_uptodate]
+
+                if options[:aup] && !options[:all] && packages.empty?
+                    packages = ['.']
                 end
 
                 if options[:autoproj].nil?
-                    options[:autoproj] = selected_packages.empty?
+                    options[:autoproj] = packages.empty?
                 end
 
-                ws.osdeps.silent = Autoproj.silent?
-                return selected_packages, options
+                return packages, options
             end
 
             def run(selected_packages, options)
@@ -136,7 +78,7 @@ module Autoproj
                 ws.manifest.explicit_selection = resolved_selected_packages
                 selected_packages = resolved_selected_packages
 
-                if other_root = options[:update_from]
+                if other_root = options[:from]
                     setup_update_from(other_root)
                 end
 
@@ -150,7 +92,9 @@ module Autoproj
                     vcs_to_install = Set.new
                     selected_packages.each do |pkg_name|
                         pkg = ws.manifest.find_package(pkg_name)
-                        vcs_to_install << pkg.vcs.type
+                        if pkg.vcs
+                            vcs_to_install << pkg.vcs.type
+                        end
                     end
                     ws.osdeps.install(vcs_to_install, osdeps_options)
                 end
@@ -165,7 +109,7 @@ module Autoproj
                                     ignore_errors: options[:keep_going])
 
                 load_all_available_package_manifests
-                Autoproj::CmdLine.export_installation_manifest
+                ws.export_installation_manifest
 
                 if options[:osdeps] && !all_enabled_packages.empty?
                     ws.manifest.install_os_dependencies(

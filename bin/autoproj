@@ -6,27 +6,7 @@ require 'autoproj'
 require 'autoproj/autobuild'
 Autoproj::Ops::Tools.basic_setup
 require 'autoproj/cli/main'
-Autoproj::CmdLine.report(silent: true) do
+Autoproj.report(silent: true) do
     Autoproj::CLI::Main.start(ARGV)
-end
-
-# Check the first element of ARGV. If a tool called autoproj-VALUE exists, just
-# pass the hand to it
-prefix = File.expand_path(__FILE__)
-if File.file?("#{prefix}-#{ARGV.first}")
-    binary = "#{prefix}-#{ARGV.shift}"
-    # RubyGems have a BIG performance problem when $LOADED_PATH starts to be
-    # big. 
-    #
-    # So, if the sub-script is Ruby-based, just load it and exit
-    if File.readlines(binary).first =~ /ruby/
-        load binary
-        exit
-    else
-        exec(binary, *ARGV)
-    end
-else
-    require 'autoproj'
-    Autoproj.error "unknown subcommand #{ARGV.first}"
 end
 

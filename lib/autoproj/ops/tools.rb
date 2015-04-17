@@ -67,36 +67,6 @@ module Autoproj
             Autoproj.workspace.load_main_initrb
         end
 
-        def handle_common_options(options)
-            options, remaining = filter_options options,
-                silent: false,
-                verbose: false,
-                debug: false,
-                color: true,
-                progress: true
-
-            Autoproj.silent = options[:silent]
-            if options.delete(:verbose)
-                Autoproj.verbose  = true
-                Autobuild.verbose = true
-                Rake.application.options.trace = false
-                Autobuild.debug = false
-            end
-
-            if options[:debug]
-                Autoproj.verbose  = true
-                Autobuild.verbose = true
-                Rake.application.options.trace = true
-                Autobuild.debug = true
-            end
-
-            Autobuild.color =
-                Autoproj::CmdLine.color = options[:color]
-
-            Autobuild.progress_display_enabled = options[:progress]
-            remaining
-        end
-
         def common_options(parser)
             parser.on '--silent' do
                 Autoproj.silent = true
@@ -117,45 +87,13 @@ module Autoproj
             end
 
             parser.on("--[no-]color", "enable or disable color in status messages (enabled by default)") do |flag|
-                Autoproj::CmdLine.color = flag
+                Autoproj.color = flag
                 Autobuild.color = flag
             end
 
             parser.on("--[no-]progress", "enable or disable progress display (enabled by default)") do |flag|
                 Autobuild.progress_display_enabled = flag
             end
-        end
-
-        def resolve_selection(manifest, user_selection, options = Hash.new)
-            options = Kernel.validate_options options,
-                checkout_only: true,
-                only_local: false,
-                recursive: true,
-                ignore_non_imported_packages: false
-
-            resolved_selection = CmdLine.
-                resolve_user_selection(user_selection, filter: false)
-            if options[:ignore_non_imported_packages]
-                manifest.each_autobuild_package do |pkg|
-                    if !File.directory?(pkg.srcdir)
-                        manifest.ignore_package(pkg.name)
-                    end
-                end
-            end
-            resolved_selection.filter_excluded_and_ignored_packages(manifest)
-
-            packages =
-                if options[:recursive]
-                    CmdLine.import_packages(
-                        resolved_selection,
-                        checkout_only: options[:checkout_only],
-                        only_local: options[:only_local],
-                        warn_about_ignored_packages: false)
-                else
-                    resolved_selection.to_a
-                end
-
-            return packages, resolved_selection
         end
 
         extend Tools

@@ -71,6 +71,36 @@ module Autoproj
                 selected_packages
             end
 
+            def resolve_selection(manifest, user_selection, options = Hash.new)
+                options = Kernel.validate_options options,
+                    checkout_only: true,
+                    only_local: false,
+                    recursive: true,
+                    ignore_non_imported_packages: false
+
+                resolved_selection = resolve_user_selection(user_selection, filter: false)
+                if options[:ignore_non_imported_packages] || !options[:recursive]
+                    manifest.each_autobuild_package do |pkg|
+                        if !File.directory?(pkg.srcdir)
+                            manifest.ignore_package(pkg.name)
+                        end
+                    end
+                end
+                resolved_selection.filter_excluded_and_ignored_packages(manifest)
+
+                ops = Ops::Import.new(ws)
+                packages = ops.import_packages(
+                    resolved_selection,
+                    checkout_only: options[:checkout_only],
+                    only_local: options[:only_local],
+                    warn_about_ignored_packages: false)
+
+                if !options[:recursive]
+                    packages = resolved_selection.to_a
+                end
+                return packages, resolved_selection
+            end
+
             def validate_user_selection(user_selection, resolved_selection)
                 not_matched = user_selection.find_all do |pkg_name|
                     !resolved_selection.has_match_for?(pkg_name)
@@ -78,6 +108,35 @@ module Autoproj
                 if !not_matched.empty?
                     raise ConfigError.new, "autoproj: wrong package selection on command line, cannot find a match for #{not_matched.to_a.sort.join(", ")}"
                 end
+            end
+
+            def validate_options(args, options)
+                options, remaining = filter_options options,
+                    silent: false,
+                    verbose: false,
+                    debug: false,
+                    color: true,
+                    progress: true
+
+                Autoproj.silent = options[:silent]
+                if options.delete(:verbose)
+                    Autoproj.verbose  = true
+                    Autobuild.verbose = true
+                    Rake.application.options.trace = false
+                    Autobuild.debug = false
+                end
+
+                if options[:debug]
+                    Autoproj.verbose  = true
+                    Autobuild.verbose = true
+                    Rake.application.options.trace = true
+                    Autobuild.debug = true
+                end
+
+                Autobuild.color = options[:color]
+
+                Autobuild.progress_display_enabled = options[:progress]
+                return args, remaining
             end
         end
     end
