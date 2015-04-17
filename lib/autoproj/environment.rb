@@ -23,9 +23,6 @@ module Autoproj
             options = validate_options options,
                 shell_helpers: true
 
-            # Make sure that we have as much environment as possible
-            Autoproj::CmdLine.update_environment
-
             filename = if subdir
                    File.join(root_dir, subdir, ENV_FILENAME)
                else
