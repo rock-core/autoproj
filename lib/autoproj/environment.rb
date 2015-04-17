@@ -1,4 +1,9 @@
 module Autoproj
+    ENV_FILENAME =
+        if Autobuild.windows? then "env.bat"
+        else "env.sh"
+        end
+
     class Environment < Autobuild::Environment
         attr_reader :root_dir
 
