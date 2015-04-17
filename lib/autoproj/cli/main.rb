@@ -38,6 +38,18 @@ module Autoproj
                     cli.run(options)
                 end
             end
+
+            desc 'status', 'displays synchronization status between this workspace and the package(s) source'
+            option :only_local,
+                desc: 'only use locally available information (mainly for distributed version control systems such as git)'
+            def status(*packages)
+                require 'autoproj/cli/status'
+                cli = CLI::Status.new
+                Autoproj.report do
+                    packages, options = cli.validate_options(packages, self.options)
+                    cli.run(packages, options)
+                end
+            end
         end
     end
 end
