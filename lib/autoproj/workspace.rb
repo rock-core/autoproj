@@ -467,9 +467,10 @@ module Autoproj
 
         def export_installation_manifest
             File.open(File.join(root_dir, ".autoproj-installation-manifest"), 'w') do |io|
-                manifest.all_selected_packages.each do |pkg_name|
-                    pkg = manifest.find_autobuild_package(pkg_name)
-                    io.puts "#{pkg_name},#{pkg.srcdir},#{pkg.prefix}"
+                manifest.all_selected_packages(false).each do |pkg_name|
+                    if pkg = manifest.find_autobuild_package(pkg_name)
+                        io.puts "#{pkg_name},#{pkg.srcdir},#{pkg.prefix}"
+                    end
                 end
             end
         end
