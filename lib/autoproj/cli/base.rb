@@ -12,6 +12,29 @@ module Autoproj
                 @ws = (ws || Workspace.from_environment)
             end
 
+            def normalize_command_line_package_selection(selection)
+                selection = selection.map do |name|
+                    if File.directory?(name)
+                        File.expand_path(name)
+                    else
+                        name
+                    end
+                end
+
+                config_selected = false
+                selection.delete_if do |name|
+                    if name =~ /^#{Regexp.quote(ws.config_dir)}(?:#{File::SEPARATOR}|$)/ ||
+                        name =~ /^#{Regexp.quote(ws.remotes_dir)}(?:#{File::SEPARATOR}|$)/
+                        config_selected = true
+                    elsif (ws.config_dir + File::SEPARATOR) =~ /^#{Regexp.quote(name)}/
+                        config_selected = true
+                        false
+                    end
+                end
+
+                return selection, config_selected
+            end
+
             def resolve_user_selection(selected_packages, options = Hash.new)
                 if selected_packages.empty?
                     return ws.manifest.default_packages
