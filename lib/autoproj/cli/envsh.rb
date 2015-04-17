@@ -4,7 +4,6 @@ module Autoproj
         class Envsh < InspectionTool
             def validate_options(options)
                 handle_common_options(options)
-                options
             end
 
             def run(options = Hash.new)

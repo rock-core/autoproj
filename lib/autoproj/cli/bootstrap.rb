@@ -29,7 +29,7 @@ module Autoproj
                     options[:reuse] = [path]
                 end
 
-                handle_common_options(options)
+                options = handle_common_options(options)
                 return args, options
             end
             
