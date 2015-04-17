@@ -4,18 +4,17 @@ module Autoproj
     module CLI
         # Base class for CLI tools that do not change the state of the installed
         # system
-        class InspectionTool
-            include Ops::Tools
-
-            attr_reader :ws
+        class InspectionTool < Base
+            def initialize(ws = nil)
+                super(ws)
+                initialize_and_load
+            end
 
             def initialize_and_load
                 Autoproj.silent do
-                    ws = Workspace.from_environment
                     ws.setup
                     ws.load_package_sets
                     ws.setup_all_package_directories
-                    return ws
                 end
             end
 
@@ -33,13 +32,6 @@ module Autoproj
                         end
                     end
                 end
-            end
-
-            def initialize(ws = nil)
-                if !ws
-                    ws = initialize_and_load
-                end
-                @ws = ws
             end
         end
     end
