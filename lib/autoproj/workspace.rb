@@ -415,6 +415,7 @@ module Autoproj
         end
 
         def finalize_package_setup
+            set_as_main_workspace
             # Now call the blocks that the user defined in the autobuild files. We do it
             # now so that the various package directories are properly setup
             manifest.packages.each_value do |pkg|
@@ -449,6 +450,7 @@ module Autoproj
         end
 
         def setup_environment_from_packages
+            set_as_main_workspace
             manifest.reused_installations.each do |reused_manifest|
                 reused_manifest.each do |pkg|
                     # The reused installations might have packages we do not
