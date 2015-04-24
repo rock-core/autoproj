@@ -3,6 +3,14 @@ require 'fileutils'
 require 'autobuild'
 require 'set'
 
+module Autoproj
+    module CmdLine
+        def self.ruby_executable
+            Autoproj.workspace.config.ruby_executable
+        end
+    end
+end
+
 def explicit_osdeps_selection(name, config = Autoproj.config)
     if !config.declared?("osdeps_#{name}")
 	if config.has_value_for?("osdeps_#{name}")
