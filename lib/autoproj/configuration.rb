@@ -191,7 +191,13 @@ module Autoproj
         end
 
         def ruby_executable
-            @ruby_executable ||= OSDependencies.autodetect_ruby_program
+            if path = get('ruby_executable', nil)
+                path
+            else
+                path = OSDependencies.autodetect_ruby_program
+                set('ruby_executable', path, true)
+                path
+            end
         end
 
         def validate_ruby_executable
