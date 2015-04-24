@@ -4,28 +4,18 @@ require 'autoproj/cli/inspection_tool'
 module Autoproj
     module CLI
         class Show < InspectionTool
-            def parse_options(args)
-                options = Hash.new
-                parser = OptionParser.new
-                common_options(parser)
-                remaining_args = parser.parse(args)
-                return remaining_args, options
-            end
-
             def run(user_selection, options = Hash.new)
                 default_packages = ws.manifest.default_packages
 
-                packages, resolved_selection = resolve_selection(
-                    ws.manifest,
-                    user_selection,
-                    recursive: false,
-                    ignore_non_imported_packages: true)
+                packages, resolved_selection, _ =
+                    finalize_setup(user_selection,
+                                   recursive: false,
+                                   ignore_non_imported_packages: true)
+
                 if packages.empty?
                     Autoproj.error "no packages or OS packages match #{user_selection.join(" ")}"
                     return
                 end
-                ws.load_packages(resolved_selection)
-                ws.finalize_package_setup
                 revdeps = ws.manifest.compute_revdeps
 
                 packages.each do |name|
