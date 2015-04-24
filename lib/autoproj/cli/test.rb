@@ -1,4 +1,4 @@
-require 'autoproj/ops/inspection_tool'
+require 'autoproj/cli/inspection_tool'
 
 module Autoproj
     module CLI
@@ -30,10 +30,9 @@ module Autoproj
             end
 
             def list(user_selection, options = Hash.new)
-                resolved_selection, _ = resolve_selection(
-                    manifest,
+                resolved_selection, _ = finalize_setup(
                     user_selection,
-                    recursive: options[:deps],
+                    recursive: options[:dep],
                     ignore_non_imported_packages: true)
 
                 lines = Array.new
@@ -51,11 +50,7 @@ module Autoproj
             end
 
             def run(user_selection, options = Hash.new)
-                packages, _ = resolve_selection(
-                    manifest,
-                    user_selection,
-                    recursive: options[:recursive],
-                    ignore_non_imported_packages: true)
+                packages, _ = finalize_setup(user_selection)
 
                 packages.each do |pkg|
                     Autobuild::Package[pkg].disable_phases('import', 'prepare', 'install')

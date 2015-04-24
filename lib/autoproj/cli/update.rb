@@ -53,7 +53,7 @@ module Autoproj
                 end
 
                 ws.load_package_sets(
-                    only_local: options[:only_local],
+                    only_local: options[:local],
                     checkout_only: !options[:config] || options[:checkout_only])
                 if selected_packages.empty? && config_selected
                     return
@@ -102,9 +102,8 @@ module Autoproj
                 ops = Autoproj::Ops::Import.new(ws)
                 all_enabled_packages = 
                     ops.import_packages(selected_packages,
-                                    workspace: ws,
                                     checkout_only: options[:checkout_only],
-                                    only_local: options[:only_local],
+                                    only_local: options[:local],
                                     reset: options[:reset],
                                     ignore_errors: options[:keep_going])
 

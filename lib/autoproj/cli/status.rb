@@ -3,21 +3,26 @@ require 'autoproj/cli/inspection_tool'
 module Autoproj
     module CLI
         class Status < InspectionTool
-            def run(selected_packages, options = Hash.new)
-                selected_packages, config_selected =
-                    normalize_command_line_package_selection(selected_packages)
+            def validate_options(packages, options)
+                packages, options = super
+                if options[:dep].nil? && packages.empty?
+                    options[:dep] = true
+                end
+                return packages, options
+            end
+
+            def run(user_selection, options = Hash.new)
+                packages, resolved_selection, config_selected = finalize_setup(
+                    user_selection,
+                    recursive: options[:dep],
+                    ignore_non_imported_packages: true)
 
                 if options[:config].nil?
-                    options[:config] = selected_packages.empty? || config_selected
+                    options[:config] = user_selection.empty? || config_selected
                 end
 
-                packages, resolved_selection = resolve_selection(
-                    ws.manifest,
-                    selected_packages,
-                    recursive: false,
-                    ignore_non_imported_packages: true)
                 if packages.empty?
-                    Autoproj.error "no packages or OS packages match #{selected_packages.join(" ")}"
+                    Autoproj.error "no packages or OS packages match #{user_selection.join(" ")}"
                     return
                 end
 
