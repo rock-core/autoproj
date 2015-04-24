@@ -360,10 +360,10 @@ module Autoproj
             config.save
         end
 
-        def load_packages(selection, options = Hash.new)
+        def load_packages(selection = manifest.default_packages(false), options = Hash.new)
             options = Hash[warn_about_ignored_packages: true, checkout_only: true].
                 merge(options)
-            ops = Ops::Import.new(ws)
+            ops = Ops::Import.new(self)
             ops.import_packages(selection, options)
         end
         
