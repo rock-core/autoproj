@@ -18,14 +18,30 @@ module Autoproj
                 end
             end
 
-            def finalize_setup
-                Autoproj.silent do
-                    ws.manifest.default_packages(false).each do |pkg_name|
-                        ws.manifest.load_package_manifest(pkg_name)
-                    end
+            # Finish loading the package information
+            #
+            # @param [Array<String>] packages the list of package names
+            # @option options ignore_non_imported_packages (true) whether
+            #   packages that are not present on disk should be ignored (true in
+            #   most cases)
+            # @option options recursive (true) whether the package resolution
+            #   should return the package(s) and their dependencies
+            #
+            # @return [(Array<String>,PackageSelection,Boolean)] the list of
+            #   selected packages, the PackageSelection representing the
+            #   selection resolution itself, and a flag telling whether some of
+            #   the arguments were pointing within the configuration area
+            def finalize_setup(packages, options = Hash.new)
+                options = Kernel.validate_options options,
+                    ignore_non_imported_packages: true,
+                    recursive: true
 
+                Autoproj.silent do
+                    packages, config_selected = normalize_command_line_package_selection(packages)
+                    selected_packages, resolved_selection = resolve_selection(ws.manifest, packages, options)
                     ws.finalize_package_setup
                     ws.export_installation_manifest
+                    return selected_packages, resolved_selection, config_selected
                 end
             end
 
