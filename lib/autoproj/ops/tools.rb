@@ -32,16 +32,6 @@ module Autoproj
             end
         end
 
-        # This performs the very basic setup that should be done once, and only
-        # once, in an autoproj-based CLI tool
-        def basic_setup
-            Encoding.default_internal = Encoding::UTF_8
-            Encoding.default_external = Encoding::UTF_8
-
-            Autobuild::Reporting << Autoproj::Reporter.new
-            Autobuild::Package.clear
-        end
-
         # Creates an autobuild package whose job is to allow the import of a
         # specific repository into a given directory.
         #

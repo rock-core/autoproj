@@ -1,6 +1,6 @@
 #! /usr/bin/env ruby
 
-Autoproj::Ops::Tools.basic_setup
 require 'autoproj/cli/main'
+Autoproj::CLI.basic_setup
 Autoproj::CLI::Main.start(['build', '--amake', *ARGV])
 

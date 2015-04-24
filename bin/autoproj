@@ -4,8 +4,8 @@ ORIGINAL_ARGV = ARGV.dup
 
 require 'autoproj'
 require 'autoproj/autobuild'
-Autoproj::Ops::Tools.basic_setup
 require 'autoproj/cli/main'
+Autoproj::CLI.basic_setup
 Autoproj.report(silent: true) do
     Autoproj::CLI::Main.start(ARGV)
 end
