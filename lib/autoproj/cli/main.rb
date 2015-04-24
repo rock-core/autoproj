@@ -104,7 +104,7 @@ module Autoproj
             option :deps, type: :boolean,
                 desc: 'in force or rebuild modes, control whether the force/rebuild action should apply only on the packages given on the command line, or on their dependencies as well (the default is --no-deps)'
             def build(*packages)
-                run_autoproj_cli(:build, :Build, Hash[], *packages)
+                run_autoproj_cli(:build, :Build, Hash[silent: false], *packages)
             end
 
             desc 'cache CACHE_DIR', 'create or update a cache directory that can be given to AUTOBUILD_CACHE_DIR'

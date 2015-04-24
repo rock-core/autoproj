@@ -6,7 +6,7 @@ module Autoproj
                 desc: 'controls whether the dependencies of the packages given on the command line should be enabled as well (the default is not)'
             def enable(*packages)
                 require 'autoproj/cli/test'
-                Autoproj.report do
+                Autoproj.report(silent: true) do
                     cli = Test.new
                     args = cli.validate_options(packages, options)
                     cli.enable(*args)
@@ -18,7 +18,7 @@ module Autoproj
                 desc: 'controls whether the dependencies of the packages given on the command line should be disabled as well (the default is not)'
             def disable(*packages)
                 require 'autoproj/cli/test'
-                Autoproj.report do
+                Autoproj.report(silent: true) do
                     cli = Test.new
                     args = cli.validate_options(packages, options)
                     cli.disable(*args)
@@ -30,7 +30,7 @@ module Autoproj
                 desc: 'controls whether the dependencies of the packages given on the command line should be disabled as well (the default is not)'
             def list(*packages)
                 require 'autoproj/cli/test'
-                Autoproj.report do
+                Autoproj.report(silent: true) do
                     cli = Test.new
                     args = cli.validate_options(packages, options)
                     cli.list(*args)
