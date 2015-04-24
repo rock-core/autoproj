@@ -108,7 +108,7 @@ module Autoproj
             end
 
             desc 'cache CACHE_DIR', 'create or update a cache directory that can be given to AUTOBUILD_CACHE_DIR'
-            option :keep_going, alias: :k,
+            option :keep_going, aliases: :k,
                 desc: 'do not stop on errors'
             def cache(cache_dir)
                 run_autoproj_cli(:cache, :Cache, Hash[], cache_dir)
