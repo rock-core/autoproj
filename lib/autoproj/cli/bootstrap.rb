@@ -76,7 +76,6 @@ module Autoproj
 
                 switcher = Ops::MainConfigSwitcher.new(ws)
                 begin
-                    binding.pry
                     switcher.bootstrap(buildconf_info, options)
 
                     STDERR.puts <<-EOTEXT
