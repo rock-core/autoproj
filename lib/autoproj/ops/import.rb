@@ -184,7 +184,7 @@ module Autoproj
                         end
                     ops = Ops::Snapshot.new(ws.manifest, keep_going: true)
                     ops.update_package_import_state(
-                        "#{$0} #{argv.join(" ")}#{failure_message}",
+                        "#{$0} #{ARGV.join(" ")}#{failure_message}",
                         updated_packages)
                 end
             end

@@ -1,7 +1,5 @@
 #! /usr/bin/env ruby
 
-ORIGINAL_ARGV = ARGV.dup
-
 require 'autoproj'
 require 'autoproj/autobuild'
 require 'autoproj/cli/main'
