@@ -111,6 +111,10 @@ module Autoproj
             end
 
             def validate_options(args, options)
+                self.class.validate_options(args, options)
+            end
+
+            def self.validate_options(args, options)
                 options, remaining = filter_options options,
                     silent: false,
                     verbose: false,

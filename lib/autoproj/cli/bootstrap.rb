@@ -1,4 +1,5 @@
 require 'autoproj'
+require 'autoproj/cli/base'
 require 'autoproj/ops/tools'
 require 'autoproj/ops/main_config_switcher'
 
@@ -17,7 +18,7 @@ module Autoproj
             end
 
             def validate_options(args, options)
-                args, options = super
+                args, options = Base.validate_options(args, options)
                 if path = options[:reuse]
                     if path == 'reuse'
                         path = ENV['AUTOPROJ_CURRENT_ROOT']
