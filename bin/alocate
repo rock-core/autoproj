@@ -1,7 +1,6 @@
 #! /usr/bin/env ruby
 
 require 'autoproj/cli/locate'
-cli = Autoproj::CLI::Locate.new
-filter = cli.parse_options(ARGV)
-cli.run(filter)
+Autoproj::CLI.basic_setup
+Autoproj::CLI::Main.start(['locate', *ARGV])
 
