@@ -119,7 +119,7 @@ module Autoproj
                     progress: true
 
                 Autoproj.silent = options[:silent]
-                if options.delete(:verbose)
+                if options[:verbose]
                     Autoproj.verbose  = true
                     Autobuild.verbose = true
                     Rake.application.options.trace = false
