@@ -12,6 +12,15 @@ module Autoproj
                 @ws = (ws || Workspace.from_environment)
             end
 
+            # Normalizes the arguments given by the user on the command line
+            #
+            # This converts relative paths to full paths, and removes mentions
+            # of the configuration directory (as it is handled separately in
+            # autoproj)
+            #
+            # @return [(Array<String>,Boolean)] the normalized arguments that
+            #   could e.g. be passed to {#resolve_selection}, as well as whether
+            #   the config directory was selected or not
             def normalize_command_line_package_selection(selection)
                 selection = selection.map do |name|
                     if File.directory?(name)
