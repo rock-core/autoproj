@@ -15,7 +15,7 @@ module Autoproj
             def normalize_command_line_package_selection(selection)
                 selection = selection.map do |name|
                     if File.directory?(name)
-                        File.expand_path(name)
+                        File.expand_path(name) + "/"
                     else
                         name
                     end
