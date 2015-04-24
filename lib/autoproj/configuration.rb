@@ -61,14 +61,14 @@ module Autoproj
         end
 
         # Get the value for a given option
-        def get(key, default_value = nil)
+        def get(key, *default_value)
             if overrides.has_key?(key)
                 return overrides[key]
             end
 
             value, validated = config[key]
-            if value.nil? && !declared?(key) && !default_value.nil?
-                default_value
+            if value.nil? && !declared?(key) && !default_value.empty?
+                default_value.first
             elsif value.nil? || (declared?(key) && !validated)
                 value = configure(key)
             else
