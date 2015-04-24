@@ -195,7 +195,6 @@ module Autoproj
                     "autoproj main configuration",
                     config_dir)
 
-                binding.pry
                 # If the new tree has a configuration file, load it but override
                 # the already known parameters once it is loaded
                 current_config = ws.config
