@@ -1,4 +1,5 @@
 require 'thor'
+require 'autoproj'
 require 'autoproj/cli/main_test'
 
 module Autoproj
@@ -135,6 +136,11 @@ module Autoproj
 
             desc 'test', 'interface for running tests'
             subcommand 'test', MainTest
+
+            desc 'show', 'show informations about package(s)'
+            def show(*packages)
+                run_autoproj_cli(:show, :Show, Hash[], *packages)
+            end
         end
     end
 end
