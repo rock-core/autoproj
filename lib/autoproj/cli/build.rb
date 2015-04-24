@@ -1,4 +1,5 @@
 require 'autoproj/cli/update'
+require 'autoproj/ops/build'
 
 module Autoproj
     module CLI
@@ -11,14 +12,14 @@ module Autoproj
 
                 if !options.has_key?(:deps)
                     options[:deps] = 
-                        !(options[:rebuild] || options[:forced_build])
+                        !(options[:rebuild] || options[:force])
                 end
                 return selected_packages, options
             end
 
             def run(selected_packages, options)
                 build_options, options = filter_options options,
-                    forced_build: false,
+                    force: false,
                     rebuild: false
 
                 Autobuild.ignore_errors = options[:keep_going]
@@ -27,7 +28,7 @@ module Autoproj
                     super(selected_packages, options.merge(checkout_only: true))
 
                 ops = Ops::Build.new(ws.manifest)
-                if build_options[:rebuild] || build_options[:forced_build]
+                if build_options[:rebuild] || build_options[:force]
                     packages_to_rebuild =
                         if options[:deps] || command_line_selection.empty?
                             all_enabled_packages
@@ -37,7 +38,7 @@ module Autoproj
                     if command_line_selection.empty?
                         # If we don't have an explicit package selection, we want to
                         # make sure that the user really wants this
-                        mode_name = if options[:rebuild] then 'rebuild'
+                        mode_name = if build_options[:rebuild] then 'rebuild'
                                     else 'force-build'
                                     end
                         opt = BuildOption.new("", "boolean", {:doc => "this is going to trigger a #{mode_name} of all packages. Is that really what you want ?"}, nil)

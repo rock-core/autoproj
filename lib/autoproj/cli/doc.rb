@@ -3,11 +3,6 @@ require 'autoproj/cli/inspection_tool'
 module Autoproj
     module CLI
         class Doc < InspectionTool
-            def validate_options(arguments, options)
-                arguments, options = super
-                return arguments, options
-            end
-
             def run(selected_packages, options = Hash.new)
                 options = Kernel.validate_options options,
                     with_deps: true
