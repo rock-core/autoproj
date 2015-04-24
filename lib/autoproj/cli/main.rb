@@ -55,11 +55,12 @@ module Autoproj
             end
 
             desc 'update', 'update packages'
-            option :aup, default: false, hide: true,
+            option :aup, default: false, hide: true, type: :boolean,
                 desc: 'behave like aup'
-            option :all, default: false, hide: true,
+            option :all, default: false, hide: true, type: :boolean,
                 desc: 'when in aup mode, update all packages instead of only the local one'
-            option :keep_going, alias: :k,
+            option :keep_going, aliases: :k, type: :boolean,
+                banner: '',
                 desc: 'do not stop on build or checkout errors'
             option :config, type: :boolean,
                 desc: "(do not) update configuration. The default is to update configuration if explicitely selected or if no additional arguments are given on the command line, and to not do it if packages are explicitely selected on the command line"
@@ -67,28 +68,28 @@ module Autoproj
                 desc: "(do not) update autoproj. This is automatically enabled only if no arguments are given on the command line"
             option :osdeps, type: :boolean,
                 desc: "enable or disable osdeps handling"
-            option :from,
+            option :from, type: :string,
                 desc: 'use this existing autoproj installation to check out the packages (for importers that support this)'
-            option :checkout_only, alias: :c,
+            option :checkout_only, aliases: :c, type: :boolean, default: false,
                 desc: "only checkout packages, do not update existing ones"
-            option :local,
+            option :local, type: :boolean, default: false,
                 desc: "use only local information for the update (for importers that support it)"
-            option :osdeps_filter_uptodate, default: true,
+            option :osdeps_filter_uptodate, default: true, type: :boolean,
                 desc: 'controls whether the osdeps subsystem should filter up-to-date packages or not', default: true
             def update(*packages)
                 run_autoproj_cli(:update, :Update, Hash[silent: false], *packages)
             end
 
             desc 'build', 'build packages'
-            option :amake, default: false, hide: true,
+            option :amake, default: false, hide: true, type: :boolean,
                 desc: 'behave like amake'
-            option :all, default: false, hide: true,
+            option :all, default: false, hide: true, type: :boolean,
                 desc: 'when in amake mode, build all packages instead of only the local one'
-            option :keep_going, alias: :k,
+            option :keep_going, aliases: :k, type: :boolean, default: false,
                 desc: 'do not stop on build or checkout errors'
-            option :force,
+            option :force, type: :boolean, default: false,
                 desc: 'force reconfiguration-build cycle on the requested packages, even if they do not seem to need it'
-            option :rebuild,
+            option :rebuild, type: :boolean, default: false,
                 desc: 'clean and build the requested packages'
             option :osdeps, type: :boolean,
                 desc: 'controls whether missing osdeps should be installed. In rebuild mode, also controls whether the osdeps should be reinstalled or not (the default is to reinstall them)' 
