@@ -141,6 +141,13 @@ module Autoproj
             def show(*packages)
                 run_autoproj_cli(:show, :Show, Hash[], *packages)
             end
+
+            desc 'osdeps [PACKAGES]', 'install/update OS dependencies that are required by the given package (or for the whole installation if no packages are given'
+            option :update, type: :boolean, default: true,
+                desc: 'whether already installed packages should be updated or not'
+            def osdeps(*packages)
+                run_autoproj_cli(:osdeps, :OSDeps, Hash[], *packages)
+            end
         end
     end
 end
