@@ -31,7 +31,7 @@ module Autoproj
             #   selected packages, the PackageSelection representing the
             #   selection resolution itself, and a flag telling whether some of
             #   the arguments were pointing within the configuration area
-            def finalize_setup(packages, options = Hash.new)
+            def finalize_setup(packages = [], options = Hash.new)
                 options = Kernel.validate_options options,
                     ignore_non_imported_packages: true,
                     recursive: true
