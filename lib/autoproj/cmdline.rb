@@ -327,6 +327,11 @@ module Autoproj
                 pkg.setup = true
             end
 
+            Dir.glob(File.join( Autoproj.overrides_dir, "*.rb" ) ).sort.each do |file|
+                require file
+            end
+
+
             manifest.each_package_set do |source|
                 Autoproj.load_if_present(source, source.local_dir, "overrides.rb")
             end
