@@ -74,6 +74,13 @@ module Autobuild
 
     module Subprocess
         def self.run(name, phase, *cmd)
+            if cmd.last.kind_of?(Hash)
+                options = cmd.pop
+                (options[:env] || Hash.new).each do |k, v|
+                    ENV[k] = v
+                end
+            end
+
             output = `#{cmd.join(" ")}`
             if $?.exitstatus != 0
                 STDERR.puts "ERROR: failed to run #{cmd.join(" ")}"
@@ -88,7 +95,7 @@ module Autoproj
     class InputError < RuntimeError; end
 
     # Definition of an autoproj option as defined by
-    # {Configuration#configuration_option}
+    # {Configuration#declare}
     class BuildOption
         attr_reader :name
         attr_reader :type
@@ -205,12 +212,15 @@ module Autoproj
         attr_reader :declared_options
         # The options that have already been shown to the user
         attr_reader :displayed_options
+        # The path to the underlying configuration file
+        attr_reader :path
 
-        def initialize
+        def initialize(path = nil)
             @config = Hash.new
             @overrides = Hash.new
             @declared_options = Hash.new
             @displayed_options = Hash.new
+            @path = path
         end
 
         # Deletes the current value for an option
@@ -249,14 +259,14 @@ module Autoproj
         end
 
         # Get the value for a given option
-        def get(key, default_value = nil)
+        def get(key, *default_value)
             if overrides.has_key?(key)
                 return overrides[key]
             end
 
             value, validated = config[key]
-            if value.nil? && !declared?(key) && !default_value.nil?
-                default_value
+            if value.nil? && !declared?(key) && !default_value.empty?
+                default_value.first
             elsif value.nil? || (declared?(key) && !validated)
                 value = configure(key)
             else
@@ -332,15 +342,27 @@ module Autoproj
             end
         end
 
-        def load(path, reconfigure = false)
-            if h = YAML.load(File.read(path))
+        def load(options = Hash.new)
+            options = validate_options options,
+                path: self.path,
+                reconfigure: false
+
+            if h = YAML.load(File.read(options[:path]))
                 h.each do |key, value|
-                    set(key, value, !reconfigure)
+                    set(key, value, !options[:reconfigure])
                 end
             end
         end
 
-        def save(path)
+        def reconfigure!
+            new_config = Hash.new
+            config.each do |key, (value, user_validated)|
+                new_config[key] = [value, false]
+            end
+            @config = new_config
+        end
+
+        def save(path = self.path)
             File.open(path, "w") do |io|
                 h = Hash.new
                 config.each do |key, value|
@@ -358,8 +380,22 @@ module Autoproj
             end
         end
 
+        def import_log_enabled?
+            get('import_log_enabled', true)
+        end
+
+        def import_log_enabled=(value)
+            set('import_log_enabled', !!value)
+        end
+
         def ruby_executable
-            @ruby_executable ||= OSDependencies.autodetect_ruby_program
+            if path = get('ruby_executable', nil)
+                path
+            else
+                path = OSDependencies.autodetect_ruby_program
+                set('ruby_executable', path, true)
+                path
+            end
         end
 
         def validate_ruby_executable
@@ -383,6 +419,14 @@ module Autoproj
             use_prerelease
         end
 
+        def shell_helpers?
+            get 'shell_helpers', true
+        end
+
+        def shell_helpers=(flag)
+            set 'shell_helpers', flag, true
+        end
+
         def apply_autobuild_configuration
             if has_value_for?('autobuild')
                 params = get('autobuild')
@@ -394,11 +438,24 @@ module Autoproj
             end
         end
 
-        def apply_autoproj_prefix
-            if has_value_for?('prefix')
-                Autoproj.prefix = get('prefix')
-            else Autoproj.prefix = 'install'
-            end
+        def prefix_dir
+            get('prefix', 'install')
+        end
+
+        # Returns true if there should be one prefix per package
+        #
+        # The default is false (disabled)
+        #
+        # @return [Boolean]
+        def separate_prefixes?
+            get('separate_prefixes', false)
+        end
+
+        # Controls whether there should be one prefix per package
+        #
+        # @see separate_prefixes?
+        def separate_prefixes=(flag)
+            set('separate_prefixes', flag, true)
         end
 
         # Returns true if packages and prefixes should be auto-generated, based
@@ -465,17 +522,17 @@ module Autoproj
             set("#{utility_key(utility)}_default", true)
         end
 
-        # Enables a utility for a specific package
-        #
-        # Note that if the default for this utility is to be enabled, this is
-        # essentially a no-op.
+        # Enables a utility for a set of packages
         #
         # @param [String] utility the utility name (e.g. 'doc' or 'test')
-        # @param [String] package the package name
+        # @param [String] packages the package names
         # @return [void]
-        def utility_enable_for(utility, package)
+        def utility_enable(utility, *packages)
             utility_config = get(utility_key(utility), Hash.new)
-            set(utility_key(utility), utility_config.merge(package => true))
+            packages.each do |pkg_name|
+                utility_config[pkg_name] = true
+            end
+            set(utility_key(utility), utility_config)
         end
 
         # Disables a utility for all packages
@@ -497,11 +554,18 @@ module Autoproj
         # essentially a no-op.
         #
         # @param [String] utility the utility name (e.g. 'doc' or 'test')
-        # @param [String] package the package name
+        # @param [String] packages the package names
         # @return [void]
-        def utility_disable_for(utility, package)
+        def utility_disable(utility, *packages)
             utility_config = get(utility_key(utility), Hash.new)
-            set(utility_key(utility), utility_config.merge(package => false))
+            packages.each do |pkg_name|
+                utility_config[pkg_name] = false
+            end
+            set(utility_key(utility), utility_config)
+        end
+
+        def merge(conf)
+            config.merge!(conf.config)
         end
     end
 end
@@ -556,7 +620,7 @@ module Autoproj
             # order to have a properly functioning package manager
             #
             # This is e.g. needed for python pip or rubygems
-            def self.initialize_environment
+            def self.initialize_environment(_env = nil, _manifest = nil, _root_dir = Autoproj.root_dir)
             end
         end
 
@@ -821,7 +885,7 @@ fi
                         false)
             end
 
-            def filter_uptodate_packages(packages)
+            def filter_uptodate_packages(packages, options = Hash.new)
                 # TODO there might be duplicates in packages which should be fixed
                 # somewhere else
                 packages = packages.uniq
@@ -870,6 +934,15 @@ fi
                         "emerge --noreplace '%s'")
             end
         end
+	# Package manager interface for systems that use pkg (i.e. FreeBSD) as
+        # their package manager
+        class PkgManager < ShellScriptManager
+            def initialize
+                super(['pkg'], true,
+                        "pkg install -y '%s'",
+                        "pkg install -y '%s'")
+            end
+        end
 
         #Package manger for OpenSuse and Suse (untested)
         class ZypperManager < ShellScriptManager
@@ -879,7 +952,7 @@ fi
                         "zypper -n install '%s'")
             end
 
-            def filter_uptodate_packages(packages)
+            def filter_uptodate_packages(packages, options = Hash.new)
                 result = `LANG=C rpm -q --whatprovides '#{packages.join("' '")}'`
                 has_all_pkgs = $?.success?
 
@@ -918,7 +991,7 @@ fi
                       "yum install -y '%s'")
             end
 
-            def filter_uptodate_packages(packages)
+            def filter_uptodate_packages(packages, options = Hash.new)
                 result = `LANG=C rpm -q --queryformat "%{NAME}\n" '#{packages.join("' '")}'`
 
                 installed_packages = []
@@ -1021,7 +1094,7 @@ fi
                 end
             end
             
-            def filter_uptodate_packages(packages)
+            def filter_uptodate_packages(packages, options = Hash.new)
                 packages.find_all do |package_name|
                     !installed?(package_name)
                 end
@@ -1031,41 +1104,63 @@ fi
         # Package manager interface for the RubyGems system
         class GemManager < Manager
             class << self
-                attr_accessor :with_prerelease
+                attr_writer :with_prerelease
                 attr_accessor :with_doc
             end
             @with_prerelease = false
             @with_doc = false
 
-            # Filters all paths that come from other autoproj installations out
-            # of GEM_PATH
-            def self.initialize_environment
-                Autobuild::ORIGINAL_ENV['GEM_PATH'] =
-                    (ENV['GEM_PATH'] || "").split(File::PATH_SEPARATOR).find_all do |p|
-                        !Autoproj.in_autoproj_installation?(p)
-                    end.join(File::PATH_SEPARATOR)
-                Autobuild.env_inherit 'GEM_PATH'
-                Autobuild.env_init_from_env 'GEM_PATH'
-
-                orig_gem_path = Autobuild::ORIGINAL_ENV['GEM_PATH'].split(File::PATH_SEPARATOR)
-                Autobuild::SYSTEM_ENV['GEM_PATH'] = Gem.default_path
-                Autobuild::ORIGINAL_ENV['GEM_PATH'] = orig_gem_path.join(File::PATH_SEPARATOR)
-
-                Autoproj.manifest.each_reused_autoproj_installation do |p|
-                    p_gems = File.join(p, '.gems')
-                    if File.directory?(p_gems)
-                        Autobuild.env_push_path 'GEM_PATH', p_gems
-                        Autobuild.env_push_path 'PATH', File.join(p_gems, 'bin')
+            def self.with_prerelease(*value)
+                if value.empty?
+                    @with_prerelease
+                else
+                    begin
+                        saved_flag = @with_prerelease
+                        @with_prerelease = value.first
+                        yield
+                    ensure
+                        @with_prerelease = saved_flag
                     end
                 end
-                Autobuild.env_push_path 'GEM_PATH', gem_home
-                Autobuild.env_set 'GEM_HOME', gem_home
-                Autobuild.env_push_path 'PATH', "#{gem_home}/bin"
+            end
+
+            # Filters all paths that come from other autoproj installations out
+            # of GEM_PATH
+            def self.initialize_environment(env = Autobuild.env, manifest = Autoproj.manifest, root_dir = Autoproj.root_dir)
+                env.original_env['GEM_PATH'] =
+                    (env['GEM_PATH'] || "").split(File::PATH_SEPARATOR).find_all do |p|
+                        !Autoproj.in_autoproj_installation?(p)
+                    end.join(File::PATH_SEPARATOR)
+                env.inherit 'GEM_PATH'
+                env.init_from_env 'GEM_PATH'
+
+                orig_gem_path = env.original_env['GEM_PATH'].split(File::PATH_SEPARATOR)
+                env.system_env['GEM_PATH'] = Gem.default_path
+                env.original_env['GEM_PATH'] = orig_gem_path.join(File::PATH_SEPARATOR)
+
+                manifest.each_reused_autoproj_installation do |p|
+                    p_gems = File.join(p, '.gems')
+                    if File.directory?(p_gems)
+                        env.push_path 'GEM_PATH', p_gems
+                        env.push_path 'PATH', File.join(p_gems, 'bin')
+                    end
+                end
+
+                @gem_home = (ENV['AUTOPROJ_GEM_HOME'] || File.join(root_dir, ".gems"))
+                env.push_path 'GEM_PATH', gem_home
+                env.set 'GEM_HOME', gem_home
+                env.push_path 'PATH', "#{gem_home}/bin"
 
                 # Now, reset the directories in our own RubyGems instance
-                Gem.paths = ENV
+                Gem.paths = env.resolved_env
 
                 use_cache_dir
+            end
+
+            # Override the gem home detected by {initialize_environment}, or set
+            # it in cases where calling {initialize_environment} is not possible
+            def self.gem_home=(gem_home)
+                @gem_home = gem_home
             end
 
             # A global cache directory that should be used to avoid
@@ -1093,7 +1188,7 @@ fi
 
             # Return the directory in which RubyGems package should be installed
             def self.gem_home
-                ENV['AUTOPROJ_GEM_HOME'] || File.join(Autoproj.root_dir, ".gems")
+                @gem_home
             end
             
             # Returns the set of default options that are added to gem
@@ -1187,7 +1282,9 @@ fi
                     Autoproj.message "  installing/updating RubyGems dependencies: #{gems.map { |g| g.join(" ") }.sort.join(", ")}"
 
                     cmdlines.each do |c|
-                        Autobuild::Subprocess.run 'autoproj', 'osdeps', *c
+                        Autobuild::Subprocess.run 'autoproj', 'osdeps', *c,
+                            env: Hash['GEM_HOME' => Gem.paths.home,
+                                      'GEM_PATH' => Gem.paths.path.join(":")]
                     end
                     gems.each do |name, v|
                         installed_gems << name
@@ -1198,7 +1295,10 @@ fi
 
             # Returns the set of RubyGem packages in +packages+ that are not already
             # installed, or that can be upgraded
-            def filter_uptodate_packages(gems)
+            def filter_uptodate_packages(gems, options = Hash.new)
+                options = validate_options options,
+                    install_only: !Autobuild.do_update
+
                 # Don't install gems that are already there ...
                 gems = gems.dup
                 gems.delete_if do |name, version|
@@ -1216,7 +1316,7 @@ fi
                             Gem.source_index.find_name(name, version_requirements)
                         end
 
-                    if !installed.empty? && Autobuild.do_update
+                    if !installed.empty? && !options[:install_only]
                         # Look if we can update the package ...
                         dep = Gem::Dependency.new(name, version_requirements)
                         available =
@@ -1305,14 +1405,14 @@ fi
 
             attr_reader :installed_gems
 
-            def self.initialize_environment
-                Autoproj.env_set 'PYTHONUSERBASE', pip_home
+            def self.initialize_environment(env = Autobuild.env, _manifest = nil, root_dir = Autoproj.root_dir)
+                env.set 'PYTHONUSERBASE', pip_home(env, root_dir)
             end
 
             # Return the directory where python packages are installed to.
             # The actual path is pip_home/lib/pythonx.y/site-packages.
-            def self.pip_home
-                ENV['AUTOPROJ_PYTHONUSERBASE'] || File.join(Autoproj.root_dir,".pip")
+            def self.pip_home(env = Autobuild.env, root_dir = Autobuild.root_dir)
+                env['AUTOPROJ_PYTHONUSERBASE'] || File.join(root_dir,".pip")
             end
 
 
@@ -1483,7 +1583,8 @@ fi
             PackageManagers::YumManager,
             PackageManagers::PortManager,
             PackageManagers::ZypperManager,
-            PackageManagers::PipManager]
+            PackageManagers::PipManager ,
+            PackageManagers::PkgManager]
         
         # Mapping from OS name to package manager name
         #
@@ -1503,7 +1604,8 @@ fi
             'fedora' => 'yum',
             'macos-port' => 'macports',
             'macos-brew' => 'brew',
-            'opensuse' => 'zypper'
+            'opensuse' => 'zypper',
+            'freebsd' => 'pkg'
         }
 
         # The information contained in the OSdeps files, as a hash
@@ -1710,6 +1812,9 @@ fi
                 version =~/.*VERSION\s+=\s+([^\s]+)/
                 version = $1
                 [['opensuse'], [version.strip]]
+            elsif Autobuild.freebsd? 
+		version = `uname -r`.strip.split("-")[0]
+		[['freebsd'],[version]]
             end
         end
 
@@ -1753,12 +1858,8 @@ fi
             # Validate the options. We check on the availability of
             # validate_options as to not break autoproj_bootstrap (in which
             # validate_options is not available)
-            options =
-                if Kernel.respond_to?(:validate_options)
-                    Kernel.validate_options options, :force => false
-                else
-                    options.dup
-                end
+            options = validate_options options, force: false, config: Autoproj.config
+            config  = options.fetch(:config)
 
             if user_os = ENV['AUTOPROJ_OS']
                 @operating_system =
@@ -1775,8 +1876,8 @@ fi
                 @operating_system = nil
             elsif !@operating_system.nil? # @operating_system can be set to false to simulate an unknown OS
                 return @operating_system
-            elsif Autoproj.has_config_key?('operating_system')
-                os = Autoproj.user_config('operating_system')
+            elsif config.has_value_for?('operating_system')
+                os = config.get('operating_system')
                 if os.respond_to?(:to_ary)
                     if os[0].respond_to?(:to_ary) && os[0].all? { |s| s.respond_to?(:to_str) } &&
                        os[1].respond_to?(:to_ary) && os[1].all? { |s| s.respond_to?(:to_str) }
@@ -1815,7 +1916,7 @@ fi
             names, versions = normalize_os_representation(names, versions)
 
             @operating_system = [names, versions]
-            Autoproj.change_option('operating_system', @operating_system, true)
+            config.set('operating_system', @operating_system, true)
             Autobuild.progress :operating_system_autodetection, "operating system: #{(names - ['default']).join(",")} - #{(versions - ['default']).join(",")}"
             @operating_system
         ensure
@@ -2201,7 +2302,7 @@ fi
         HANDLE_OS   = 'os'
         HANDLE_NONE = 'none'
 
-        def self.osdeps_mode_option_unsupported_os
+        def self.osdeps_mode_option_unsupported_os(config = Autoproj.config)
             long_doc =<<-EOT
 The software packages that autoproj will have to build may require other
 prepackaged softwares (a.k.a. OS dependencies) to be installed (RubyGems
@@ -2232,13 +2333,13 @@ So, what do you want ? (all, none or a comma-separated list of: gem pip)
             EOT
             message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (all, none or a comma-separated list of: gem pip) ?", long_doc.strip ]
 
-	    Autoproj.configuration_option 'osdeps_mode', 'string',
+	    config.declare 'osdeps_mode', 'string',
 		:default => 'ruby',
 		:doc => message,
                 :lowercase => true
         end
 
-        def self.osdeps_mode_option_supported_os
+        def self.osdeps_mode_option_supported_os(config = Autoproj.config)
             long_doc =<<-EOT
 The software packages that autoproj will have to build may require other
 prepackaged softwares (a.k.a. OS dependencies) to be installed (RubyGems
@@ -2273,17 +2374,17 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             EOT
             message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (all, none or a comma-separated list of: os gem pip) ?", long_doc.strip ]
 
-	    Autoproj.configuration_option 'osdeps_mode', 'string',
+	    config.declare 'osdeps_mode', 'string',
 		:default => 'all',
 		:doc => message,
                 :lowercase => true
         end
 
-        def self.define_osdeps_mode_option
+        def self.define_osdeps_mode_option(config = Autoproj.config)
             if supported_operating_system?
-                osdeps_mode_option_supported_os
+                osdeps_mode_option_supported_os(config)
             else
-                osdeps_mode_option_unsupported_os
+                osdeps_mode_option_unsupported_os(config)
             end
         end
 
@@ -2335,10 +2436,10 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             @osdeps_mode = OSDependencies.osdeps_mode
         end
 
-        def self.osdeps_mode
+        def self.osdeps_mode(config = Autoproj.config)
             while true
                 mode =
-                    if !Autoproj.has_config_key?('osdeps_mode') &&
+                    if !config.has_value_for?('osdeps_mode') &&
                         mode_name = ENV['AUTOPROJ_OSDEPS_MODE']
                         begin OSDependencies.osdeps_mode_string_to_value(mode_name)
                         rescue ArgumentError
@@ -2346,7 +2447,7 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
                             nil
                         end
                     else
-                        mode_name = Autoproj.user_config('osdeps_mode')
+                        mode_name = config.get('osdeps_mode')
                         begin OSDependencies.osdeps_mode_string_to_value(mode_name)
                         rescue ArgumentError
                             Autoproj.warn "invalid osdeps mode stored in configuration file"
@@ -2356,12 +2457,12 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
 
                 if mode
                     @osdeps_mode = mode
-                    Autoproj.change_option('osdeps_mode', mode_name, true)
+                    config.set('osdeps_mode', mode_name, true)
                     return mode
                 end
 
                 # Invalid configuration values. Retry
-                Autoproj.reset_option('osdeps_mode')
+                config.reset('osdeps_mode')
                 ENV['AUTOPROJ_OSDEPS_MODE'] = nil
             end
         end
@@ -2383,7 +2484,8 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
         def setup_package_handlers(options = Hash.new)
             options =
                 if Kernel.respond_to?(:validate_options)
-                    Kernel.validate_options options, :osdeps_mode => osdeps_mode
+                    Kernel.validate_options options,
+                        osdeps_mode: osdeps_mode
                 else
                     options = options.dup
                     options[:osdeps_mode] ||= osdeps_mode
@@ -2444,12 +2546,16 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             packages = packages.to_set - installed_packages
             return false if packages.empty?
 
+            filter_options, options =
+                filter_options options, install_only: !Autobuild.do_update
             setup_package_handlers(options)
 
             packages = resolve_os_dependencies(packages)
+
+            needs_filter = (filter_uptodate_packages? || filter_options[:install_only])
             packages = packages.map do |handler, list|
-                if filter_uptodate_packages? && handler.respond_to?(:filter_uptodate_packages)
-                    list = handler.filter_uptodate_packages(list)
+                if needs_filter && handler.respond_to?(:filter_uptodate_packages)
+                    list = handler.filter_uptodate_packages(list, filter_options)
                 end
 
                 if !list.empty?
@@ -2468,6 +2574,17 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
                 end
             end
             true
+        end
+
+        def reinstall(options = Hash.new)
+            # We also reinstall the osdeps that provide the
+            # functionality
+            managers = setup_package_handlers(options)
+            managers.each do |mng|
+                if mng.enabled? && mng.respond_to?(:reinstall)
+                    mng.reinstall
+                end
+            end
         end
     end
 end
@@ -2541,66 +2658,6 @@ end
 
 
 module Autoproj
-    # @deprecated use config.override instead
-    def self.override_option(option_name, value)
-        config.override(option_name, value)
-    end
-    # @deprecated use config.reset instead
-    def self.reset_option(key)
-        config.reset(key)
-    end
-    # @deprecated use config.set(key, value, user_validated) instead
-    def self.change_option(key, value, user_validated = false)
-        config.set(key, value, user_validated)
-    end
-    # @deprecated use config.validated_values instead
-    def self.option_set
-        config.validated_values
-    end
-    # @deprecated use config.get(key) instead
-    def self.user_config(key)
-        config.get(key)
-    end
-    # @deprecated use config.declare(name, type, options, &validator) instead
-    def self.configuration_option(name, type, options, &validator)
-        config.declare(name, type, options, &validator)
-    end
-    # @deprecated use config.declared?(name, type, options, &validator) instead
-    def self.declared_option?(name)
-        config.declared?(name)
-    end
-    # @deprecated use config.configure(option_name) instead
-    def self.configure(option_name)
-        config.configure(option_name)
-    end
-    # @deprecated use config.has_value_for?(name)
-    def self.has_config_key?(name)
-        config.has_value_for?(name)
-    end
-
-    def self.save_config
-        config.save(File.join(Autoproj.config_dir, "config.yml"))
-    end
-
-    def self.config
-        @config ||= Configuration.new
-    end
-
-    def self.load_config
-        config_file = File.join(Autoproj.config_dir, "config.yml")
-        if File.exists?(config_file)
-            config.load(config_file, reconfigure?)
-        end
-    end
-
-    class << self
-        attr_accessor :reconfigure
-    end
-    def self.reconfigure?; @reconfigure end
-end
-
-
-module Autoproj
     class UserError < RuntimeError; end
 
     # OS-independent creation of symbolic links. Note that on windows, it only
@@ -2621,11 +2678,16 @@ module Autoproj
         false
     end
 
+    class WorkspaceAlreadyCreated < RuntimeError; end
+
     # Forcefully sets the root directory
     #
     # This is mostly useful during bootstrapping (i.e. when the search would
     # fail)
     def self.root_dir=(dir)
+        if @workspace && dir != @workspace.root_dir
+            raise WorkspaceAlreadyCreated, "cannot switch global root directory after a workspace object got created"
+        end
         @root_dir = dir
     end
 
@@ -2637,89 +2699,76 @@ module Autoproj
         if @root_dir
             return @root_dir
         end
-
-        path = Pathname.pwd
-        while !path.root?
-            if (path + "autoproj" + 'manifest').file?
-                break
-            end
-            path = path.parent
-        end
-
-        if path.root?
+        path = Workspace.find_root_dir(dir)
+        if !path
             raise UserError, "not in a Autoproj installation"
         end
-
-        result = path.to_s
-        # I don't know if this is still useful or not ... but it does not hurt
-        #
-        # Preventing backslashed in path, that might be confusing on some path compares
-        if Autobuild.windows?
-            result = result.gsub(/\\/,'/')
-        end
-        result
+        path
     end
 
-    # Returns the configuration directory for this autoproj installation.
-    #
-    # If the current directory is not in an autoproj installation,
-    # raises UserError.
+    # @deprecated use workspace.config_dir instead
     def self.config_dir
-        File.join(root_dir, "autoproj")
+        Autoproj.warn "#{__method__} is deprecated, use workspace.config_dir instead"
+        caller.each { |l| Autoproj.warn "  #{l}" }
+        workspace.config_dir
     end
-
-    OVERRIDES_DIR = "overrides.d"
-
-    # Returns the directory containing overrides files
-    #
-    # If the current directory is not in an autoproj installation,
-    # raises UserError.
+    # @deprecated use workspace.overrides_dir instead
     def self.overrides_dir
-        File.join(config_dir, OVERRIDES_DIR)
+        Autoproj.warn "#{__method__} is deprecated, use workspace.overrides_dir instead"
+        caller.each { |l| Autoproj.warn "  #{l}" }
+        workspace.overrides_dir
     end
-
     # @deprecated use Autobuild.find_in_path instead
     #
     # Warning: the autobuild method returns nil (instead of raising) if the
     # argument cannot be found
     def self.find_in_path(name)
+        Autoproj.warn "#{__method__} is deprecated, use Autobuild.find_in_path instead"
+        caller.each { |l| Autoproj.warn "  #{l}" }
         if path = Autobuild.find_in_path(name)
             return path
         else raise ArgumentError, "cannot find #{name} in PATH (#{ENV['PATH']})"
         end
     end
-
-    class << self
-        # The directory in which packages will be installed.
-        #
-        # If it is a relative path, it is relative to the root dir of the
-        # installation.
-        #
-        # The default is "install"
-        attr_reader :prefix
-
-        # Change the value of 'prefix'
-        def prefix=(new_path)
-            @prefix = new_path
-            Autoproj.change_option('prefix', new_path, true)
-        end
+    # @deprecated use workspace.prefix_dir instead
+    def self.prefix
+        Autoproj.warn_deprecated(__method__, 'workspace.prefix_dir')
+        workspace.prefix_dir
     end
-    @prefix = "install"
-
-    # Returns the build directory (prefix) for this autoproj installation.
-    #
-    # If the current directory is not in an autoproj installation, raises
-    # UserError.
+    # @deprecated use workspace.prefix_dir= instead
+    def self.prefix=(path)
+        Autoproj.warn_deprecated(__method__, 'workspace.prefix_dir=')
+        workspace.prefix_dir = path
+    end
+    # @deprecated use workspace.prefix_dir instead
     def self.build_dir
-        File.expand_path(Autoproj.prefix, root_dir)
+        Autoproj.warn_deprecated(__method__, 'workspace.prefix_dir')
+        workspace.prefix_dir
     end
-
-    # Returns the path to the provided configuration file.
-    #
-    # If the current directory is not in an autoproj installation, raises
-    # UserError.
+    # @deprecated compute the full path with File.join(config_dir, file)
+    #   directly instead
     def self.config_file(file)
+        Autoproj.warn_deprecated(__method__, 'compute the full path with File.join(config_dir, ...) instead')
         File.join(config_dir, file)
+    end
+    # @deprecated use workspace.remotes_dir instead
+    def self.remotes_dir
+        Autoproj.warn_deprecated(__method__, 'use workspace.remotes_dir instead')
+        workspace.remotes_dir
+    end
+    # @deprecated use workspace.load or add a separate Loader object to your class
+    def self.load(package_set, *path)
+        Autoproj.warn_deprecated(
+            __method__,
+            'use workspace.load or add a separate Loader object to your class')
+        workspace.load(package_set, *path)
+    end
+    # @deprecated use workspace.load_if_present or add a separate Loader object to your class
+    def self.load_if_present(package_set, *path)
+        Autoproj.warn_deprecated(
+            __method__,
+            'use workspace.load_if_present or add a separate Loader object to your class')
+        workspace.load_if_present(package_set, *path)
     end
 
     # Run the provided command as user
@@ -2728,98 +2777,11 @@ module Autoproj
             raise "failed to run #{args.join(" ")}"
         end
     end
-
     # Run the provided command as root, using sudo to gain root access
     def self.run_as_root(*args)
         if !system(Autobuild.tool_in_path('sudo'), *args)
             raise "failed to run #{args.join(" ")} as root"
         end
-    end
-
-    # Return the directory in which remote package set definition should be
-    # checked out
-    def self.remotes_dir
-        File.join(root_dir, ".remotes")
-    end
-
-
-    def self.env_inherit(*names)
-        Autobuild.env_inherit(*names)
-    end
-
-    # @deprecated use isolate_environment instead
-    def self.set_initial_env
-        isolate_environment
-    end
-
-    # Initializes the environment variables to a "sane default"
-    #
-    # Use this in autoproj/init.rb to make sure that the environment will not
-    # get polluted during the build.
-    def self.isolate_environment
-        Autobuild.env_inherit = false
-        Autobuild.env_push_path 'PATH', "/usr/local/bin", "/usr/bin", "/bin"
-    end
-
-    def self.prepare_environment
-        # Set up some important autobuild parameters
-        env_inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB', \
-            'LD_LIBRARY_PATH', 'CMAKE_PREFIX_PATH', 'PYTHONPATH'
-        
-        env_set 'AUTOPROJ_CURRENT_ROOT', Autoproj.root_dir
-        env_set 'RUBYOPT', "-rubygems"
-        Autoproj::OSDependencies::PACKAGE_HANDLERS.each do |pkg_mng|
-            pkg_mng.initialize_environment
-        end
-    end
-
-    class << self
-        attr_writer :shell_helpers
-        def shell_helpers?; !!@shell_helpers end
-    end
-    @shell_helpers = true
-
-    # Create the env.sh script in +subdir+. In general, +subdir+ should be nil.
-    def self.export_env_sh(subdir = nil)
-        # Make sure that we have as much environment as possible
-        Autoproj::CmdLine.update_environment
-
-        filename = if subdir
-               File.join(Autoproj.root_dir, subdir, ENV_FILENAME)
-           else
-               File.join(Autoproj.root_dir, ENV_FILENAME)
-           end
-
-        shell_dir = File.expand_path(File.join("..", "..", "shell"), File.dirname(__FILE__))
-        if Autoproj.shell_helpers?
-            Autoproj.message "sourcing autoproj shell helpers"
-            Autoproj.message "add \"Autoproj.shell_helpers = false\" in autoproj/init.rb to disable"
-            Autobuild.env_source_after(File.join(shell_dir, "autoproj_sh"))
-        end
-
-        File.open(filename, "w") do |io|
-            if Autobuild.env_inherit
-                io.write <<-EOF
-                if test -n "$AUTOPROJ_CURRENT_ROOT" && test "$AUTOPROJ_CURRENT_ROOT" != "#{Autoproj.root_dir}"; then
-                    echo "the env.sh from $AUTOPROJ_CURRENT_ROOT is already loaded. Start a new shell before sourcing this one"
-                    return
-                fi
-                EOF
-            end
-            Autobuild.export_env_sh(io)
-        end
-    end
-
-    # @deprecated use Ops.loader.load or add a proper Loader object to your
-    #   class
-    def self.load(package_set, *path)
-        Ops.loader.load(package_set, *path)
-    end
-
-    # @deprecated use Ops.loader.load_if_present or add a proper Loader object
-    #   to your class
-    def self.load_if_present(package_set, *path)
-        Ops.loader.load_if_present(package_set, *path)
     end
 
     # Look into +dir+, searching for shared libraries. For each library, display
@@ -2927,8 +2889,9 @@ build-essential:
   - glibc-devel
   darwin: ignore
   opensuse:
-  - '@devel_C_C++'
+  - "@devel_C_C++"
   - gcc-c++
+  default: clang
 autobuild:
 - gem: autobuild
 - osdep: readline
@@ -2953,6 +2916,7 @@ git:
   macos-port: git
   macos-brew: git
   opensuse: git
+  freebsd: git
 hg:
   debian,ubuntu: mercurial
   gentoo: dev-vcs/mercurial
@@ -2960,6 +2924,7 @@ hg:
   fedora: mercurial
   darwin: mercurial
   opensuse: mercurial
+  freebsd: mercurial
 svn:
   debian,ubuntu: subversion
   gentoo: dev-util/subversion
@@ -2967,6 +2932,7 @@ svn:
   fedora: subversion
   darwin: subversion
   opensuse: subversion
+  freebsd: subversion
 cmake:
   debian,ubuntu: cmake
   gentoo: dev-util/cmake
@@ -2974,6 +2940,7 @@ cmake:
   fedora: cmake
   darwin: cmake
   opensuse: cmake
+  freebsd: cmake
 autotools:
   debian,ubuntu:
   - automake
@@ -2991,6 +2958,9 @@ autotools:
   - automake
   - autoconf
   opensuse:
+  - automake
+  - autoconf
+  freebsd:
   - automake
   - autoconf
 archive:
@@ -3014,17 +2984,20 @@ archive:
   opensuse:
   - tar
   - unzip
+  default: ignore
 cvs:
   debian,ubuntu: cvs
   fedora: cvs
   darwin: cvs
   arch: cvs
   opensuse: cvs
+  freebsd: cvs
 pip:
   debian,ubuntu: python-pip
   arch: python2-pip
   opensuse: python-pip
   fedora: python-pip
+  freebsd: pip
 sudo:
   default: sudo
 
@@ -3077,6 +3050,24 @@ if !curdir_entries.empty? && ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] != '1
     end
 end
 
+# While in here, we don't have utilrb
+module Kernel
+    def filter_options(options, defaults)
+        options = options.dup
+        filtered = Hash.new
+        defaults.each do |k, v|
+            filtered[k] =
+                if options.has_key?(k) then options.delete(k)
+                else v
+                end
+        end
+        return filtered, options
+    end
+    def validate_options(options, defaults)
+        defaults.merge(options)
+    end
+end
+
 # Environment is clean, so just mark it as so unconditionally
 ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] = '1'
 
@@ -3087,7 +3078,6 @@ Gem.paths = Hash['GEM_HOME' => gem_home, 'GEM_PATH' => gem_path]
 ENV['GEM_HOME'] = gem_home
 ENV['GEM_PATH'] = gem_path
 ENV['PATH']     = "#{ENV['GEM_HOME']}/bin:#{ENV['PATH']}"
-
 
 Autoproj::OSDependencies.define_osdeps_mode_option
 osdeps_mode = Autoproj::OSDependencies.osdeps_mode.join(",")
@@ -3107,6 +3097,7 @@ osdeps_management =
         Autoproj::OSDependencies.new(YAML.load(DEFS))
     end
 osdeps_management.silent = false
+Autoproj::PackageManagers::GemManager.gem_home = gem_home
 Autoproj::PackageManagers::GemManager.use_cache_dir
 
 begin

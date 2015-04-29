@@ -74,6 +74,13 @@ module Autobuild
 
     module Subprocess
         def self.run(name, phase, *cmd)
+            if cmd.last.kind_of?(Hash)
+                options = cmd.pop
+                (options[:env] || Hash.new).each do |k, v|
+                    ENV[k] = v
+                end
+            end
+
             output = `#{cmd.join(" ")}`
             if $?.exitstatus != 0
                 STDERR.puts "ERROR: failed to run #{cmd.join(" ")}"
