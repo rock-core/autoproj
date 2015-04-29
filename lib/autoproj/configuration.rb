@@ -324,17 +324,17 @@ module Autoproj
             set("#{utility_key(utility)}_default", true)
         end
 
-        # Enables a utility for a specific package
-        #
-        # Note that if the default for this utility is to be enabled, this is
-        # essentially a no-op.
+        # Enables a utility for a set of packages
         #
         # @param [String] utility the utility name (e.g. 'doc' or 'test')
-        # @param [String] package the package name
+        # @param [String] packages the package names
         # @return [void]
-        def utility_enable_for(utility, package)
+        def utility_enable(utility, *packages)
             utility_config = get(utility_key(utility), Hash.new)
-            set(utility_key(utility), utility_config.merge(package => true))
+            packages.each do |pkg_name|
+                utility_config[pkg_name] = true
+            end
+            set(utility_key(utility), utility_config)
         end
 
         # Disables a utility for all packages
@@ -356,11 +356,14 @@ module Autoproj
         # essentially a no-op.
         #
         # @param [String] utility the utility name (e.g. 'doc' or 'test')
-        # @param [String] package the package name
+        # @param [String] packages the package names
         # @return [void]
-        def utility_disable_for(utility, package)
+        def utility_disable(utility, *packages)
             utility_config = get(utility_key(utility), Hash.new)
-            set(utility_key(utility), utility_config.merge(package => false))
+            packages.each do |pkg_name|
+                utility_config[pkg_name] = false
+            end
+            set(utility_key(utility), utility_config)
         end
 
         def merge(conf)
