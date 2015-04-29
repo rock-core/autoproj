@@ -83,9 +83,9 @@ module Autoproj
                 end
 
                 if candidates.empty?
-                    raise NotFound, "cannot find #{selection} in the current autoproj installation"
+                    Autoproj.error "cannot find #{selection} in the current autoproj installation"
                 elsif candidates.size > 1
-                    raise AmbiguousSelection, "multiple packages match #{selection} in the current autoproj installation: #{candidates.join(", ")}"
+                    Autoproj.error "multiple packages match #{selection} in the current autoproj installation: #{candidates.join(", ")}"
                 else
                     puts candidates.first
                 end
