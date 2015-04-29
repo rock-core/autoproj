@@ -52,7 +52,7 @@ module Autoproj
             elsif !access_methods.has_key?(value)
                 raise Autoproj::InputError, "#{value} is not a known access method"
             elsif disabled_methods.include?(value)
-                raise Autoproj::InputError, "#{method} is disabled on #{base_url}"
+                raise Autoproj::InputError, "#{value} is disabled on #{base_url}"
             end
 
             value
