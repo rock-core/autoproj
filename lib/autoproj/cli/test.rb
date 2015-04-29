@@ -7,7 +7,7 @@ module Autoproj
                 if user_selection.empty?
                     ws.config.utility_enable_all('test')
                 else
-                    selection, _ = resolve_selection(
+                    selection, _ = finalize_setup(
                         user_selection,
                         recursive: options[:deps],
                         ignore_non_imported_packages: true)
@@ -20,7 +20,7 @@ module Autoproj
                 if user_selection.empty?
                     ws.config.utility_disable_all('test')
                 else
-                    selection, _ = resolve_selection(
+                    selection, _ = finaliez_setup(
                         user_selection,
                         recursive: options[:deps],
                         ignore_non_imported_packages: true)
