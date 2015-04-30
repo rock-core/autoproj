@@ -435,6 +435,10 @@ module Autoproj
             # Resolve optional dependencies
             manifest.resolve_optional_dependencies
 
+            Dir.glob(File.join( Autoproj.overrides_dir, "*.rb" ) ).sort.each do |file|
+                load file
+            end
+
             # And, finally, disable all ignored packages on the autobuild side
             manifest.each_ignored_package do |pkg_name|
                 pkg = Autobuild::Package[pkg_name]
