@@ -537,6 +537,16 @@ module Autoproj
         # Returns the set of packages that are actually selected based on what
         # the user gave on the command line
         def self.resolve_user_selection(selected_packages, options = Hash.new)
+            if all_known_package?
+                result = PackageSelection.new
+                names = manifest.all_packages
+                names.delete_if { |pkg_name| manifest.excluded?(pkg_name) || manifest.ignored?(pkg_name) }
+                names.each do |pkg_name|
+                    result.select(pkg_name, pkg_name)
+                end
+                return result
+                #return manifest.metapackages#.collect {|m| m[0] }
+            end
             if selected_packages.empty?
                 return manifest.default_packages
             end
@@ -830,6 +840,7 @@ module Autoproj
         def self.manifest; Autoproj.manifest end
         def self.only_status?; !!@only_status end
         def self.only_local?; !!@only_local end
+        def self.all_known_package?; !!@all_known_package end
         def self.reset?; !!@reset end
         def self.check?; !!@check end
         def self.manifest_update?; !!@manifest_update end
@@ -886,6 +897,7 @@ module Autoproj
         def self.parse_arguments(args, with_mode = true, &additional_options)
             @only_status = false
             @only_local  = false
+            @all_known_package = false
             @show_osdeps = false
             @status_exit_code = false
             @revshow_osdeps = false
@@ -1052,6 +1064,9 @@ where 'mode' is one of:
                 end
                 opts.on("--local", "in status and update modes, do not access the network") do
                     @only_local = true
+                end
+                opts.on("--all-known-packages", "handle all known packages that are defined by package-sets") do
+                    @all_known_package = true
                 end
                 opts.on("--reset", "in update mode, reset the repositories to the state requested by the VCS configuration") do
                     @reset = true
