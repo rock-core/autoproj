@@ -174,7 +174,7 @@ module Autoproj
         end
 
         def update_package_import_state(name, packages)
-            return if main.importer.nil? #We cannot create states for packages without a importer
+            return if import_state_log_package.importer.nil? #We cannot create states for packages without a importer
             current_versions = current_import_state
             if current_versions.empty?
                 # Do a full snapshot this time only
