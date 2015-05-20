@@ -162,6 +162,10 @@ module Autoproj
             main = import_state_log_package
             # Try to resolve the log ref, and extract the version file from it
             begin
+                #package importer might be nil during bootstrapping
+                if main.importer.nil?
+                    return Array.new
+                end
                 yaml = main.importer.show(main, import_state_log_ref, import_state_log_file)
                 YAML.load(yaml) || Array.new
             rescue Autobuild::PackageException
