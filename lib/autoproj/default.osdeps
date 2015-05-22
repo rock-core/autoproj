@@ -87,6 +87,7 @@ build-essential:
   fedora: ["gcc-c++", make, glibc-devel]
   darwin: ignore
   opensuse: ["@devel_C_C++", "gcc-c++"]
+  default: clang
 
 autobuild:
   - gem: autobuild
@@ -115,6 +116,7 @@ git:
   macos-port: git-core
   macos-brew: git
   opensuse: git
+  freebsd: git
 
 hg:
   debian,ubuntu: mercurial
@@ -123,6 +125,7 @@ hg:
   fedora: mercurial
   darwin: mercurial
   opensuse: mercurial
+  freebsd: mercurial
 
 svn:
   debian,ubuntu: subversion
@@ -131,6 +134,7 @@ svn:
   fedora: subversion
   darwin: subversion
   opensuse: subversion
+  freebsd: subversion
 
 cmake:
   debian,ubuntu: cmake
@@ -139,6 +143,7 @@ cmake:
   fedora: cmake
   darwin: cmake
   opensuse: cmake
+  freebsd: cmake
 
 autotools:
   debian,ubuntu:
@@ -157,6 +162,9 @@ autotools:
   - automake
   - autoconf
   opensuse:
+  - automake
+  - autoconf
+  freebsd:
   - automake
   - autoconf
 
@@ -181,6 +189,7 @@ archive:
   opensuse:
   - tar
   - unzip
+  default: ignore
 
 cvs:
   debian,ubuntu: cvs
@@ -188,15 +197,16 @@ cvs:
   darwin: cvs
   arch: cvs
   opensuse: cvs
+  freebsd: cvs
 
 pip:
   debian,ubuntu: python-pip
   arch: python2-pip
   opensuse: python-pip
   fedora: python-pip
+  freebsd: pip
 
 sudo:
   default: sudo
 
 # vim: expandtab
-
