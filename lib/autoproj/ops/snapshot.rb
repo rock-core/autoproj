@@ -30,6 +30,13 @@ module Autoproj
             result
         end
 
+        def self.update_log_available?(manifest)
+            new(manifest).import_state_log_package
+            true
+        rescue ArgumentError
+            false
+        end
+
         def sort_versions(versions)
             pkg_sets, pkgs = versions.partition { |vcs| vcs.keys.first =~ /^pkg_set:/ }
             pkg_sets.sort_by { |vcs| vcs.keys.first } +
@@ -145,7 +152,17 @@ module Autoproj
         # @return [Autobuild::Package] a package whose importer is
         #   {Autobuild::Git}
         def import_state_log_package
-            manifest.main_package_set.create_autobuild_package
+            pkg = manifest.main_package_set.create_autobuild_package
+            if !pkg.importer
+                if Autobuild::Git.can_handle?(pkg.srcdir)
+                    pkg.importer = Autobuild.git(pkg.srcdir)
+                end
+            end
+
+            if !pkg.importer.kind_of?(Autobuild::Git)
+                raise ArgumentError, "cannot use autoproj auto-import feature if the main configuration is not managed under git"
+            end
+            pkg
         end
 
         def import_state_log_ref

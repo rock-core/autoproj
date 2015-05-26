@@ -44,7 +44,17 @@ module Autoproj
         end
 
         def setup
-            # Setup code for all the tests
+            @tmpdir = Array.new
+            super
+        end
+
+        def create_bootstrap
+            dir = Dir.mktmpdir
+            @tmpdir << dir
+            require 'autoproj/ops/main_config_switcher'
+            FileUtils.cp_r Ops::MainConfigSwitcher::MAIN_CONFIGURATION_TEMPLATE, File.join(dir, 'autoproj')
+            Autoproj.root_dir = dir
+            Autoproj.manifest = Manifest.load(File.join(dir, 'autoproj', 'manifest'))
         end
 
         def teardown
@@ -52,6 +62,9 @@ module Autoproj
                 flexmock_teardown
             end
             super
+            @tmpdir.each do |dir|
+                FileUtils.remove_entry_secure dir
+            end
             Autobuild::Package.clear
         end
     end

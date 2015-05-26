@@ -340,7 +340,7 @@ module Autoproj
             Tools.load_main_initrb(manifest)
             manifest.load(manifest_path)
 
-            root_pkg_set = LocalPackageSet.new(manifest)
+            root_pkg_set = manifest.local_package_set
             root_pkg_set.load_description_file
             root_pkg_set.explicit = true
             package_sets = load_and_update_package_sets(root_pkg_set, only_local)

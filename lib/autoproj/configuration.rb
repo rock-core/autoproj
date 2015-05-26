@@ -167,6 +167,14 @@ module Autoproj
             end
         end
 
+        def import_log_enabled?
+            get('import_log_enabled', true)
+        end
+
+        def import_log_enabled=(value)
+            set('import_log_enabled', !!value)
+        end
+
         def ruby_executable
             @ruby_executable ||= OSDependencies.autodetect_ruby_program
         end
