@@ -67,6 +67,12 @@ module Autoproj
             Autobuild::Reporting.success
         end
 
+    rescue Interrupt
+        STDERR.puts
+        STDERR.puts Autobuild.color("Interrupted by user", :red, :bold)
+        if Autobuild.debug then raise
+        else exit 1
+        end
     rescue Exception => e
         STDERR.puts
         STDERR.puts Autobuild.color(e.message, :red, :bold)
@@ -77,12 +83,6 @@ module Autoproj
                     STDERR.puts Autobuild.color("  in #{path}", :red, :bold)
                 end
         end
-        if Autobuild.debug then raise
-        else exit 1
-        end
-    rescue Interrupt
-        STDERR.puts
-        STDERR.puts Autobuild.color("Interrupted by user", :red, :bold)
         if Autobuild.debug then raise
         else exit 1
         end
