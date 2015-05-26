@@ -37,7 +37,7 @@ module Autoproj
                     srcdir = pkg.srcdir
                     if name == selection
                         puts srcdir
-                        exit(0)
+                        return
                     elsif name =~ selection_rx
                         candidates << srcdir
                     end
@@ -83,9 +83,9 @@ module Autoproj
                 end
 
                 if candidates.empty?
-                    Autoproj.error "cannot find #{selection} in the current autoproj installation"
+                    raise ArgumentError, "cannot find #{selection} in the current autoproj installation"
                 elsif candidates.size > 1
-                    Autoproj.error "multiple packages match #{selection} in the current autoproj installation: #{candidates.join(", ")}"
+                    raise ArgumentError, "multiple packages match #{selection} in the current autoproj installation: #{candidates.join(", ")}"
                 else
                     puts candidates.first
                 end
