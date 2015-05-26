@@ -293,11 +293,13 @@ module Autoproj
                 only_local: false,
                 checkout_only: true,
                 silent: false, # NOTE: this is ignored, enclose call with Autoproj.silent { }
-                reconfigure: false
+                reconfigure: false,
+                ignore_errors: false
 
             Ops::Configuration.new(self).
                 load_package_sets(only_local: options[:only_local],
-                                  checkout_only: options[:checkout_only])
+                                  checkout_only: options[:checkout_only],
+                                  ignore_errors: options[:ignore_errors])
 
             manifest.each_package_set do |pkg_set|
                 if Gem::Version.new(pkg_set.required_autoproj_version) > Gem::Version.new(Autoproj::VERSION)
