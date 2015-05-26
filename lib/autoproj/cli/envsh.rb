@@ -2,9 +2,13 @@ require 'autoproj/cli/inspection_tool'
 module Autoproj
     module CLI
         class Envsh < InspectionTool
+            def validate_options(_unused, options = Hash.new)
+                _, options = super(_unused, options)
+                options
+            end
+
             def run(options = Hash.new)
-                finalize_setup(
-                    ws.manifest.default_packages(false),
+                finalize_setup(Array.new,
                     ignore_non_imported_packages: true)
 
                 options = Kernel.validate_options options,
