@@ -113,7 +113,7 @@ git:
   gentoo: dev-vcs/git
   arch: git
   fedora: git
-  macos-port: git-core
+  macos-port: git
   macos-brew: git
   opensuse: git
   freebsd: git
