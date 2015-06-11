@@ -5,6 +5,10 @@ module Autoproj
     module CLI
         class Show < InspectionTool
             def run(user_selection, options = Hash.new)
+                options = Kernel.validate_options options,
+                    mainline: false
+
+                initialize_and_load(mainline: options.delete(:mainline))
                 default_packages = ws.manifest.default_packages
 
                 packages, resolved_selection, _ =
@@ -39,7 +43,7 @@ module Autoproj
                 puts "  source definition"
                 ws.manifest.load_package_manifest(pkg_name)
 
-                vcs = ws.manifest.importer_definition_for(pkg_name)
+                vcs = ws.manifest.find_package(pkg_name).vcs
 
                 fragments = []
                 if !vcs

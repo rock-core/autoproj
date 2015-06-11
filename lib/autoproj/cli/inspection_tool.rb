@@ -5,15 +5,18 @@ module Autoproj
         # Base class for CLI tools that do not change the state of the installed
         # system
         class InspectionTool < Base
-            def initialize(ws = nil)
-                super(ws)
-                initialize_and_load
-            end
+            def initialize_and_load(options = Hash.new)
+                options = Kernel.validate_options options,
+                    mainline: nil
 
-            def initialize_and_load
                 Autoproj.silent do
                     ws.setup
-                    ws.load_package_sets
+                    if mainline = options[:mainline]
+                        if mainline == 'true'
+                            mainline = true
+                        end
+                    end
+                    ws.load_package_sets(mainline: mainline)
                     ws.setup_all_package_directories
                 end
             end

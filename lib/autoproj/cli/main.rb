@@ -53,6 +53,8 @@ module Autoproj
             desc 'status [PACKAGES]', 'displays synchronization status between this workspace and the package(s) source'
             option :only_local,
                 desc: 'only use locally available information (mainly for distributed version control systems such as git)'
+            option :mainline, type: :string,
+                desc: "compare to the given baseline. if 'true', the comparison will ignore any override, otherwise it will take into account overrides only up to the given package set"
             def status(*packages)
                 run_autoproj_cli(:status, :Status, Hash[], *packages)
             end
@@ -138,6 +140,8 @@ module Autoproj
             subcommand 'test', MainTest
 
             desc 'show', 'show informations about package(s)'
+            option :mainline, type: :string,
+                desc: "compare to the given baseline. if 'true', the comparison will ignore any override, otherwise it will take into account overrides only up to the given package set"
             def show(*packages)
                 run_autoproj_cli(:show, :Show, Hash[], *packages)
             end

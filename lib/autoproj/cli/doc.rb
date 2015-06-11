@@ -4,6 +4,7 @@ module Autoproj
     module CLI
         class Doc < InspectionTool
             def run(selected_packages, options = Hash.new)
+                initialize_and_load
                 options = Kernel.validate_options options,
                     with_deps: true
 

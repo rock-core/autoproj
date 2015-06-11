@@ -12,6 +12,7 @@ module Autoproj
             end
 
             def run(user_selection, options = Hash.new)
+                initialize_and_load(mainline: options[:mainline])
                 packages, resolved_selection, config_selected = finalize_setup(
                     user_selection,
                     recursive: options[:dep],

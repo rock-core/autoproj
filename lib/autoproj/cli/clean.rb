@@ -15,6 +15,7 @@ module Autoproj
             end
 
             def run(selection, options = Hash.new)
+                initialize_and_load
                 packages, _ = normalize_command_line_package_selection(selection)
                 packages, resolved_selection = resolve_selection(
                     ws.manifest,

@@ -457,21 +457,34 @@ module Autoproj
         #   given package, defaults to the package's definition source (as
         #   returned by {definition_package_set}) if not given
         # @return [VCSDefinition] the VCS definition object
-        def importer_definition_for(package_name, package_source = definition_package_set(package_name))
-            vcs = package_source.importer_definition_for(package_name)
+        def importer_definition_for(package_name, package_set = definition_package_set(package_name),
+                                    options = Hash.new)
+            options = validate_options options, mainline: nil
+            mainline = 
+                if options[:mainline] == true
+                    package_set
+                else
+                    options[:mainline]
+                end
+
+            vcs = package_set.importer_definition_for(package_name)
             return if !vcs
 
             # Get the sets that come *after* the one that defines the package to
             # apply the overrides
             package_sets = each_package_set.to_a.dup
-            while !package_sets.empty? && package_sets.first != package_source
-                package_sets.shift
+            while !package_sets.empty? && package_sets.first != package_set
+                set = package_sets.shift
+                return vcs if set == mainline
             end
-            package_sets.shift
+            set = package_sets.shift
+            return vcs if set == mainline
 
             # Then apply the overrides
             package_sets.inject(vcs) do |updated_vcs, pkg_set|
-                pkg_set.overrides_for(package_name, updated_vcs)
+                updated_vcs = pkg_set.overrides_for(package_name, updated_vcs)
+                return updated_vcs if pkg_set == mainline
+                updated_vcs
             end
         end
 
@@ -491,10 +504,11 @@ module Autoproj
         #  * S1 must have a VCS line for P
         #  * S0 can have a VCS line for P, which would override the one defined
         #    by S1
-        def load_importers
+        def load_importers(options = Hash.new)
             packages.each_value do |pkg|
-                vcs = importer_definition_for(pkg.autobuild.name, pkg.package_set) ||
+                vcs = importer_definition_for(pkg.autobuild.name, pkg.package_set, options) ||
                     pkg.package_set.default_importer
+
 
                 if vcs
                     pkg.vcs = vcs
@@ -522,7 +536,7 @@ module Autoproj
         # Returns the PackageSet object for the given package set, or raises
         # ArgumentError if none exists with that name
         def package_set(name)
-            set = each_package_set(false).find { |set| set.name == name }
+            set = each_package_set.find { |set| set.name == name }
             if !set
                 raise ArgumentError, "no package set called #{name} exists"
             end

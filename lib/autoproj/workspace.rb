@@ -294,7 +294,8 @@ module Autoproj
                 checkout_only: true,
                 silent: false, # NOTE: this is ignored, enclose call with Autoproj.silent { }
                 reconfigure: false,
-                ignore_errors: false
+                ignore_errors: false,
+                mainline: nil
 
             Ops::Configuration.new(self).
                 load_package_sets(only_local: options[:only_local],
@@ -323,7 +324,11 @@ module Autoproj
 
             # Now, load the package's importer configurations (from the various
             # source.yml files)
-            manifest.load_importers
+            mainline = options[:mainline]
+            if mainline.respond_to?(:to_str)
+                mainline = manifest.package_set(mainline)
+            end
+            manifest.load_importers(mainline: mainline)
 
             # Auto-add packages that are
             #  * present on disk

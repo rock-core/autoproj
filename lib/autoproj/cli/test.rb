@@ -7,6 +7,7 @@ module Autoproj
                 if user_selection.empty?
                     ws.config.utility_enable_all('test')
                 else
+                    initialize_and_load
                     selection, _ = finalize_setup(
                         user_selection,
                         recursive: options[:deps],
@@ -20,6 +21,7 @@ module Autoproj
                 if user_selection.empty?
                     ws.config.utility_disable_all('test')
                 else
+                    initialize_and_load
                     selection, _ = finaliez_setup(
                         user_selection,
                         recursive: options[:deps],
@@ -30,6 +32,7 @@ module Autoproj
             end
 
             def list(user_selection, options = Hash.new)
+                initialize_and_load
                 resolved_selection, _ = finalize_setup(
                     user_selection,
                     recursive: options[:dep],
@@ -50,6 +53,7 @@ module Autoproj
             end
 
             def run(user_selection, options = Hash.new)
+                initialize_and_load
                 packages, _ = finalize_setup(user_selection)
 
                 packages.each do |pkg|
