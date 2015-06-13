@@ -78,6 +78,7 @@ module Autoproj
             option :autoproj, type: :boolean,
                 desc: "(do not) update autoproj. This is automatically enabled only if no arguments are given on the command line"
             option :osdeps, type: :boolean,
+                default: true,
                 desc: "enable or disable osdeps handling"
             option :from, type: :string,
                 desc: 'use this existing autoproj installation to check out the packages (for importers that support this)'
