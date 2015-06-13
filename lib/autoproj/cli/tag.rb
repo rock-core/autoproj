@@ -1,38 +1,12 @@
-require 'autoproj/cli'
+require 'autoproj'
 require 'autoproj/cli/versions'
+require 'autoproj/ops/snapshot'
+require 'autoproj/cli/base'
+
 module Autoproj
     module CLI
-        class Tag
-            include Ops::Tools
-
-            attr_reader :manifest
-
-            def initialize(manifest)
-                @manifest = manifest
-            end
-
-            def parse_options(args)
-                options = Hash[package_sets: true, keep_going: false]
-                parser = OptionParser.new do |opt|
-                    opt.on '--[no-]package-sets', 'commit the package set state as well (enabled by default)' do |flag|
-                        options[:package_sets] = flag
-                    end
-                    opt.on '-k', '--keep-going', "ignore packages that can't be snapshotted (the default is to terminate with an error)" do
-                        options[:keep_going] = true
-                    end
-                    opt.on '-m MESSAGE', '--message=MESSAGE', String, "the message to use for the new commit (defaults to mentioning the tag creation)" do |message|
-                        options[:message] = message
-                    end
-                end
-                common_options(parser)
-                remaining = parser.parse(args)
-                if remaining.size > 1
-                    raise InvalidArguments, "expected only the tag name as argument"
-                end
-                return remaining.first, options
-            end
-
-            def run(tag_name, options)
+        class Tag < Base
+            def run(tag_name, *user_selection, options = Hash.new)
                 pkg = manifest.main_package_set.create_autobuild_package
                 importer = pkg.importer
                 if !importer || !importer.kind_of?(Autobuild::Git)
@@ -65,9 +39,9 @@ module Autoproj
                 message = options[:message] ||
                     "autoproj created tag #{tag_name}"
                 commit_id = Ops::Snapshot.create_commit(pkg, versions_file, message) do |io|
-                    versions = CLI::Versions.new(manifest)
+                    versions = CLI::Versions.new(ws)
                     Autoproj.message "creating versions file, this may take a while"
-                    versions.run(Array.new,
+                    versions.run(user_selection,
                                  package_sets: options[:package_sets],
                                  output_file: io.path,
                                  replace: true,

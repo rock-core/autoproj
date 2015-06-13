@@ -1,78 +1,54 @@
 require 'autoproj'
+require 'autoproj/cli/inspection_tool'
 require 'autoproj/ops/tools'
 require 'autoproj/ops/snapshot'
 
 module Autoproj
     module CLI
-        class Versions < Base
+        class Versions < InspectionTool
             DEFAULT_VERSIONS_FILE_BASENAME = Ops::Snapshot::DEFAULT_VERSIONS_FILE_BASENAME
 
             def default_versions_file
                 File.join( Autoproj.overrides_dir, DEFAULT_VERSIONS_FILE_BASENAME )
             end
 
-            def resolve_selection(user_selection)
-                packages = resolve_selection(user_selection)
-
-                # Remove non-existing packages
-                packages.each do |pkg|
-                    if !File.directory?(manifest.package(pkg).autobuild.srcdir)
-                        raise ConfigError, "cannot commit #{pkg} as it is not checked out"
-                    end
+            def validate_options(packages, options = Hash.new)
+                packages, options = super
+                if options.has_key?(:save)
+                    options[:save] = case options[:save]
+                                     when '.'
+                                         nil
+                                     when true
+                                         default_versions_file
+                                     else
+                                         options[:save].to_str
+                                     end
                 end
-                packages
-            end
-
-
-            def parse_options(args)
-                options = Hash.new
-                parser = OptionParser.new do |opt|
-                    opt.on '--[no-]package-sets', 'commit the package set state as well (default if no packages are selected)' do |flag|
-                        options[:package_sets] = flag
-                    end
-                    opt.on '--replace', String, 'if the file given to --save exists, replace it instead of updating it' do
-                        options[:replace] = true
-                    end
-                    opt.on '-k', '--keep-going', "ignore packages that can't be snapshotted (the default is to terminate with an error)" do
-                        options[:keep_going] = true
-                    end
-                    opt.on '--save[=FILE]', String, "the file into which the versions should be saved (if no file is given, defaults to #{default_versions_file})" do |file|
-                        options[:output_file] =
-                            if file == '-'
-                                nil
-                            elsif !file
-                                default_versions_file
-                            else
-                                file
-                            end
-                    end
-                end
-                common_options(parser)
-                remaining = parser.parse(args)
-                return remaining, options
+                return packages, options
             end
 
             def run(user_selection, options)
-                do_package_sets = options[:package_sets]
-                if do_package_sets.nil? && user_selection.empty?
-                    do_package_sets = true
+                initialize_and_load
+                packages, resolved_selection, config_selected =
+                    finalize_setup(user_selection,
+                                   ignore_non_imported_packages: true)
+
+                if (config_selected || user_selection.empty?) && (options[:package_sets] != false)
+                    options[:package_sets] = true
                 end
 
-                Autoproj.report(silent: true) do
-                    packages = resolve_selection user_selection
-                    ops = Ops::Snapshot.new(manifest, keep_going: options[:keep_going])
+                ops = Ops::Snapshot.new(ws.manifest, keep_going: options[:keep_going])
 
-                    versions = Array.new
-                    if do_package_sets
-                        versions += ops.snapshot_package_sets
-                    end
-                    versions += ops.snapshot_packages(packages)
-                    if output_file = options[:output_file]
-                        ops.save_versions(versions, output_file, replace: options[:replace])
-                    else
-                        versions = ops.sort_versions(versions)
-                        puts YAML.dump(versions)
-                    end
+                versions = Array.new
+                if options[:package_sets]
+                    versions += ops.snapshot_package_sets
+                end
+                versions += ops.snapshot_packages(packages)
+                if output_file = options[:save]
+                    ops.save_versions(versions, output_file, replace: options[:replace])
+                else
+                    versions = ops.sort_versions(versions)
+                    puts YAML.dump(versions)
                 end
             end
         end

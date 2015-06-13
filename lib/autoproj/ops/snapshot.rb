@@ -165,7 +165,7 @@ module Autoproj
             pkg
         end
 
-        def import_state_log_ref
+        def self.import_state_log_ref
             "refs/autoproj"
         end
 
@@ -179,7 +179,7 @@ module Autoproj
             main = import_state_log_package
             # Try to resolve the log ref, and extract the version file from it
             begin
-                yaml = main.importer.show(main, import_state_log_ref, import_state_log_file)
+                yaml = main.importer.show(main, self.class.import_state_log_ref, import_state_log_file)
                 YAML.load(yaml) || Array.new
             rescue Autobuild::PackageException
                 Array.new
@@ -206,13 +206,13 @@ module Autoproj
             main = import_state_log_package
             git_dir = main.importer.git_dir(main, false)
             # Ensure that our ref is being logged
-            FileUtils.touch File.join(git_dir, 'logs', *import_state_log_ref.split("/"))
+            FileUtils.touch File.join(git_dir, 'logs', *self.class.import_state_log_ref.split("/"))
             # Create the commit with the versions info
             commit_id = Snapshot.create_commit(main, import_state_log_file, name) do |io|
                 YAML.dump(versions, io)
             end
             # And save it in our reflog
-            main.importer.run_git_bare(main, "update-ref", '-m', name, import_state_log_ref, commit_id)
+            main.importer.run_git_bare(main, "update-ref", '-m', name, self.class.import_state_log_ref, commit_id)
         end
 
         # Create a git commit in which a file contains provided content

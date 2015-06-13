@@ -152,6 +152,94 @@ module Autoproj
             def osdeps(*packages)
                 run_autoproj_cli(:osdeps, :OSDeps, Hash[], *packages)
             end
+
+            desc 'versions [PACKAGES]', 'generate a version file for the given packages, or all packages if none are given'
+            option :package_sets, type: :boolean,
+                default: nil,
+                banner: '',
+                desc: 'controls whether the package sets should be versioned as well. This is the default if no packages are given on the command line or if the autoproj directory is'
+            option :keep_going, aliases: :k, type: :boolean,
+                default: false,
+                banner: '',
+                desc: 'do not stop if some package cannot be versioned'
+            option :replace, type: :boolean,
+                default: false,
+                desc: 'in combination with --save, controls whether an existing file should be updated or replaced'
+            option :save, type: :string,
+                desc: 'save to the given file instead of displaying it on the standard output'
+            def versions(*packages)
+                run_autoproj_cli(:versions, :Versions, Hash[], *packages)
+            end
+
+            stop_on_unknown_option! :log
+            desc 'log', "shows the log of autoproj updates"
+            def log(*args)
+                run_autoproj_cli(:log, :Log, Hash[], *args)
+            end
+
+            desc 'reset VERSION_ID', 'resets packages to the required version (either reflog from autoproj log or commit/tag in the build configuration'
+            option :freeze, type: :boolean, default: false,
+                desc: 'whether the version we reset to should be saved in overrides.d or not'
+            def reset(version_id)
+                run_autoproj_cli(:reset, :Reset, Hash[], version_id)
+            end
+
+            desc 'tag [TAG_NAME] [PACKAGES]', 'save the package current versions as a tag in the main build configuration, or lists the available tags if given no arguments'
+            option :package_sets, type: :boolean,
+                desc: 'commit the package set state as well (enabled by default)'
+            option :keep_going, aliases: :k, type: :boolean,
+                banner: '',
+                desc: 'do not stop on build or checkout errors'
+            option :message, aliases: :m, type: :string,
+                desc: 'the message to use for the new commit (the default is to mention the creation of the tag)'
+            def tag(tag_name = nil, *packages)
+                run_autoproj_cli(:tag, :Tag, Hash[], tag_name, *packages)
+            end
+
+            desc 'tag [PACKAGES]', 'save the package current versions as a new commit in the main build configuration'
+            option :package_sets, type: :boolean,
+                desc: 'commit the package set state as well (enabled by default)'
+            option :keep_going, aliases: :k, type: :boolean,
+                banner: '',
+                desc: 'do not stop on build or checkout errors'
+            option :message, aliases: :m, type: :string,
+                desc: 'the message to use for the new commit (the default is to mention the creation of the tag)'
+            def tag(*packages)
+                run_autoproj_cli(:tag, :Tag, Hash[], *packages)
+            end
+
+            desc 'switch-config VCS URL [OPTIONS]', 'switches the main build configuration'
+            def switch_config(*args)
+                run_autoproj_cli(:switch_config, :SwitchConfig, Hash[], *args)
+            end
+
+            desc 'query <query string>', 'searches for packages matching a query string'
+            long_desc <<-EOD
+  Finds packages that match query_string and displays information about them (one per line)
+  By default, only the package name is displayed. It can be customized with the --format option
+
+  QUERY KEYS
+    autobuild.name: the package name
+    autobuild.srcdir: the package source directory
+    autobuild.class.name: the package class
+    vcs.type: the VCS type (as used in the source.yml files)
+    vcs.url: the URL from the VCS. The exact semantic of it depends on the VCS type
+    package_set.name: the name of the package set that defines the package
+
+  FORMAT SPECIFICATION
+
+  The format is a string in which special values can be expanded using a $VARNAME format. The following variables are accepted:
+    NAME: the package name
+    SRCDIR: the full path to the package source directory
+    PREFIX: the full path to the package installation directory
+            EOD
+            option :search_all, type: :boolean,
+                desc: 'search in all defined packages instead of only in those selected selected in the layout'
+            option :format, type: :string,
+                desc: "customize what should be displayed. See FORMAT SPECIFICATION above"
+            def query(query_string)
+                run_autoproj_cli(:query, :Query, Hash[], query_string)
+            end
         end
     end
 end

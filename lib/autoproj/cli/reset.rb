@@ -1,37 +1,10 @@
 require 'autoproj/cli'
+require 'autoproj/cli/update'
 require 'autoproj/cli/versions'
 
 module Autoproj
     module CLI
-        class Reset
-            include Ops::Tools
-
-            attr_reader :manifest
-
-            def initialize(manifest)
-                @manifest = manifest
-            end
-
-            def parse_options(args)
-                options = Hash[]
-                parser = OptionParser.new do |opt|
-                    opt.banner = ["autoproj reset COMMIT_ID", "resets the current autoproj installation to the state saved in the given commit ID"].join("\n")
-                    opt.on "--freeze", "freezes the project at the requested version" do
-                        options[:freeze] = true
-                    end
-                end
-                common_options(parser)
-                remaining = parser.parse(args)
-                if remaining.empty?
-                    puts parser
-                    raise InvalidArguments, "expected a reference (tag or log ID) as argument and got nothing"
-                elsif remaining.size > 1
-                    puts parser
-                    raise InvalidArguments, "expected only the tag name as argument"
-                end
-                return remaining.first, options
-            end
-
+        class Reset < InspectionTool
             def run(ref_name, options)
                 pkg = manifest.main_package_set.create_autobuild_package
                 importer = pkg.importer
@@ -62,7 +35,9 @@ module Autoproj
                     File.open(versions_path, 'w') do |io|
                         io.write file_data
                     end
-                    system("autoproj", "update", '--reset')
+
+                    update = CLI::Update.new
+                    run_args = update.run([], reset: true)
 
                 ensure
                     if !options[:freeze]
