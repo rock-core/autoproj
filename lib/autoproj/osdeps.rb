@@ -1357,6 +1357,20 @@ fi
 
         class InvalidRecursiveStatement < Autobuild::Exception; end
 
+        # Return the path to the osdeps name for a given package name while
+        # accounting for package aliases
+        #
+        # returns an array contain the path starting with name and
+        # ending at the resolved name
+        def self.resolve_name(name)
+            path = [ name ]
+            while OSDependencies.aliases.has_key?(name)
+                name = OSDependencies.aliases[name]
+                path << name
+            end
+            path
+        end
+
         # Return the list of packages that should be installed for +name+
         #
         # The following two simple return values are possible:
@@ -1375,9 +1389,8 @@ fi
         # name and version. The package list might be empty even if status ==
         # FOUND_PACKAGES, for instance if the ignore keyword is used.
         def resolve_package(name)
-            while OSDependencies.aliases.has_key?(name)
-                name = OSDependencies.aliases[name]
-            end
+            path = OSDependencies.resolve_name(name)
+            name = path.last
 
             os_names, os_versions = OSDependencies.operating_system
             os_names = os_names.dup
@@ -1598,7 +1611,8 @@ fi
             dependencies.each do |name|
                 result = resolve_package(name)
                 if !result
-                    raise MissingOSDep.new, "there is no osdeps definition for #{name}"
+                    path = OSDependencies.resolve_name(name)
+                    raise MissingOSDep.new, "there is no osdeps definition for #{path.last} (search tree: #{path.join("->")})"
                 end
 
                 if result.empty?
