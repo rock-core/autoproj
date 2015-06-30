@@ -93,7 +93,7 @@ module Autoproj
                  url: "#{pull_base_url}#{url}",
                  push_to: "#{push_base_url}#{url}",
                  retry_count: 10,
-                 repository_id: "#{name.downcase}:#{url}"].merge(vcs_options)
+                 repository_id: "#{url}"].merge(vcs_options)
         end
     end
 end
