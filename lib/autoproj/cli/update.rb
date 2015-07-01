@@ -92,9 +92,12 @@ module Autoproj
                     # Install the osdeps for the version control
                     vcs_to_install = Set.new
                     selected_packages.each do |pkg_name|
-                        pkg = ws.manifest.find_package(pkg_name)
-                        if pkg.vcs
-                            vcs_to_install << pkg.vcs.type
+                        if pkg = ws.manifest.find_package(pkg_name)
+                            if pkg.vcs
+                                vcs_to_install << pkg.vcs.type
+                            end
+                        else
+                            raise "cannot find package #{pkg_name}"
                         end
                     end
                     ws.osdeps.install(vcs_to_install, osdeps_options)
