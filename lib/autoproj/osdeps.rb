@@ -1963,7 +1963,7 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
         # This is usually called as a rebuild step to make sure that all these
         # packages are updated to whatever required the rebuild
         def pristine(packages, options = Hash.new)
-            setup_package_handlers(options)
+            install(packages, options.merge(install_only: true))
             packages = resolve_os_dependencies(packages)
 
             _, other_packages =
