@@ -88,6 +88,8 @@ module Autoproj
                 desc: "use only local information for the update (for importers that support it)"
             option :osdeps_filter_uptodate, default: true, type: :boolean,
                 desc: 'controls whether the osdeps subsystem should filter up-to-date packages or not', default: true
+            option :deps, default: true, type: :boolean,
+                desc: 'whether the package dependencies should be recursively updated (the default) or not'
             def update(*packages)
                 run_autoproj_cli(:update, :Update, Hash[silent: false], *packages)
             end

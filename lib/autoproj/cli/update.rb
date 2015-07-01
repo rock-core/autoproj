@@ -109,6 +109,7 @@ module Autoproj
                                     checkout_only: options[:checkout_only],
                                     only_local: options[:local],
                                     reset: options[:reset],
+                                    recursive: options[:deps],
                                     ignore_errors: options[:keep_going])
 
                 load_all_available_package_manifests

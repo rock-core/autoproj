@@ -52,7 +52,8 @@ module Autoproj
             def import_packages(selection, options = Hash.new)
                 options, import_options = Kernel.filter_options options,
                     warn_about_ignored_packages: true,
-                    warn_about_excluded_packages: true
+                    warn_about_excluded_packages: true,
+                    recursive: true
 
                 manifest = ws.manifest
 
@@ -129,7 +130,7 @@ module Autoproj
                     # Excluded dependencies might have caused the package to be
                     # excluded as well ... do not add any dependency to the
                     # processing queue if it is the case
-                    if !manifest.excluded?(pkg.name)
+                    if !manifest.excluded?(pkg.name) && options[:recursive]
                         package_queue.concat(new_packages.sort_by(&:name))
                     end
 
@@ -152,7 +153,9 @@ module Autoproj
                     pkg.prepare if !pkg.disabled?
                     Rake::Task["#{pkg.name}-prepare"].instance_variable_set(:@already_invoked, true)
 
-                    package_queue.concat(pkg.dependencies)
+                    if options[:recursive]
+                        package_queue.concat(pkg.dependencies)
+                    end
                 end
 
                 if Autoproj.verbose
