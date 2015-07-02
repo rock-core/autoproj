@@ -5,6 +5,7 @@ module Autoproj
         class Test < InspectionTool
             def enable(user_selection, options = Hash.new)
                 if user_selection.empty?
+                    ws.load_config
                     ws.config.utility_enable_all('test')
                 else
                     initialize_and_load
@@ -19,6 +20,7 @@ module Autoproj
 
             def disable(user_selection, options = Hash.new)
                 if user_selection.empty?
+                    ws.load_config
                     ws.config.utility_disable_all('test')
                 else
                     initialize_and_load
