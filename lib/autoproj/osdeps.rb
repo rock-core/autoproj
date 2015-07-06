@@ -1618,8 +1618,6 @@ fi
             return found, result
         end
 
-        class MissingOSDep < ConfigError; end
-
         # Resolves the given OS dependencies into the actual packages that need
         # to be installed on this particular OS.
         #

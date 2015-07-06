@@ -67,7 +67,7 @@ module Autoproj
                 # overrides.rb files might have changed it
                 ws.finalize_package_setup
                 # Finally, filter out exclusions
-                resolved_selected_packages =
+                resolved_selected_packages, _ =
                     resolve_user_selection(selected_packages)
                 validate_user_selection(selected_packages, resolved_selected_packages)
 
@@ -90,7 +90,7 @@ module Autoproj
                 if options[:osdeps]
                     # Install the osdeps for the version control
                     vcs_to_install = Set.new
-                    selected_packages.each do |pkg_name|
+                    selected_packages.each_source_package_name do |pkg_name|
                         if pkg = ws.manifest.find_package(pkg_name)
                             if pkg.vcs
                                 vcs_to_install << pkg.vcs.type
@@ -103,7 +103,7 @@ module Autoproj
                 end
 
                 ops = Autoproj::Ops::Import.new(ws)
-                all_enabled_packages = 
+                source_packages, osdep_packages = 
                     ops.import_packages(selected_packages,
                                     checkout_only: options[:checkout_only],
                                     only_local: options[:local],
@@ -111,18 +111,18 @@ module Autoproj
                                     recursive: options[:deps],
                                     ignore_errors: options[:keep_going])
 
+                ws.finalize_setup
                 load_all_available_package_manifests
                 ws.export_installation_manifest
 
-                if options[:osdeps] && !all_enabled_packages.empty?
-                    ws.manifest.install_os_dependencies(
-                        all_enabled_packages, osdeps_options)
+                if options[:osdeps] && !osdep_packages.empty?
+                    ws.osdeps.install(osdep_packages, osdeps_options)
                 end
 
                 ws.env.export_env_sh
                 Autoproj.message "autoproj: updated #{ws.root_dir}/#{Autoproj::ENV_FILENAME}", :green
 
-                return command_line_selection, all_enabled_packages
+                return command_line_selection, source_packages, osdep_packages
             end
 
             def load_all_available_package_manifests

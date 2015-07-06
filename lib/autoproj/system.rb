@@ -1,6 +1,4 @@
 module Autoproj
-    class UserError < RuntimeError; end
-
     # OS-independent creation of symbolic links. Note that on windows, it only
     # works for directories
     def self.create_symlink(from, to)
@@ -18,8 +16,6 @@ module Autoproj
     rescue UserError
         false
     end
-
-    class WorkspaceAlreadyCreated < RuntimeError; end
 
     # Forcefully sets the root directory
     #

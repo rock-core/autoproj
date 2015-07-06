@@ -310,6 +310,9 @@ module Autoproj
 
             # Loads OS package definitions once and for all
             load_osdeps_from_package_sets
+            # And exclude any package that is not available on this particular
+            # configuration
+            mark_unavailable_osdeps_as_excluded
 
             # Load the required autobuild definitions
             Autoproj.message("autoproj: loading ...", :bold)
@@ -336,7 +339,7 @@ module Autoproj
             #  * but have no definition
             explicit = manifest.normalized_layout
             explicit.each do |pkg_or_set, layout_level|
-                next if Autobuild::Package[pkg_or_set]
+                next if manifest.find_autobuild_package(pkg_or_set)
                 next if manifest.has_package_set?(pkg_or_set)
 
                 # This is not known. Check if we can auto-add it
@@ -365,6 +368,26 @@ module Autoproj
             # is done (since we need to process the package setup blocks), but
             # save the current state of the configuration anyway.
             config.save
+        end
+
+        def mark_unavailable_osdeps_as_excluded
+            osdeps.all_package_names.each do |osdep_name|
+                # If the osdep can be replaced by source packages, there's
+                # nothing to do really. The exclusions of the source packages
+                # will work as expected
+                if manifest.osdeps_overrides[osdep_name] || manifest.find_autobuild_package(osdep_name)
+                    next
+                end
+
+                case availability = osdeps.availability_of(osdep_name)
+                when OSDependencies::UNKNOWN_OS
+                    manifest.add_exclusion(osdep_name, "this operating system is unknown to autoproj")
+                when OSDependencies::WRONG_OS
+                    manifest.add_exclusion(osdep_name, "there are definitions for it, but not for this operating system")
+                when OSDependencies::NONEXISTENT
+                    manifest.add_exclusion(osdep_name, "it is marked as unavailable for this operating system")
+                end
+            end
         end
 
         def load_packages(selection = manifest.default_packages(false), options = Hash.new)
@@ -417,13 +440,17 @@ module Autoproj
                     layout
                 end
 
-            pkg = Autobuild::Package[pkg_name]
+            pkg = manifest.find_autobuild_package(pkg_name)
             pkg.srcdir = File.join(root_dir, srcdir)
             pkg.prefix = File.join(prefix_dir, prefixdir)
             pkg.doc_target_dir = File.join(prefix_dir, 'doc', pkg_name)
             pkg.logdir = File.join(pkg.prefix, "log")
         end
 
+        # Finalizes the configuration loading
+        #
+        # This must be done before before we run any dependency-sensitive
+        # operation (e.g. import)
         def finalize_package_setup
             set_as_main_workspace
             # Now call the blocks that the user defined in the autobuild files. We do it
@@ -439,16 +466,19 @@ module Autoproj
                 load_if_present(source, source.local_dir, "overrides.rb")
             end
 
-            # Resolve optional dependencies
-            manifest.resolve_optional_dependencies
-
             Dir.glob(File.join( Autoproj.overrides_dir, "*.rb" ) ).sort.each do |file|
                 load file
             end
+        end
 
-            # And, finally, disable all ignored packages on the autobuild side
+        # Finalizes the complete setup
+        #
+        # This must be done after all ignores/excludes and package selection
+        # have been properly set up (a.k.a. after package import)
+        def finalize_setup
+            # Finally, disable all ignored packages on the autobuild side
             manifest.each_ignored_package do |pkg_name|
-                pkg = Autobuild::Package[pkg_name]
+                pkg = manifest.find_autobuild_package(pkg_name)
                 if !pkg
                     Autoproj.warn "ignore line #{pkg_name} does not match anything"
                 else

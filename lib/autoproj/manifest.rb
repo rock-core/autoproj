@@ -137,15 +137,16 @@ module Autoproj
         end
 
         # Enumerates the package names of all ignored packages
+        def each_excluded_package
+            each_autobuild_package do |pkg|
+                yield(pkg) if excluded?(pkg.name)
+            end
+        end
+
+        # Enumerates the package names of all ignored packages
         def each_ignored_package
-            ignored_packages.each do |l|
-                if pkg_set = metapackages[l]
-                    pkg_set.each_package do |pkg|
-                        yield(pkg.name)
-                    end
-                else
-                    yield(l)
-                end
+            each_autobuild_package do |pkg|
+                yield(pkg) if ignored?(pkg.name)
             end
         end
 
@@ -537,14 +538,6 @@ module Autoproj
             each_package_set.find(&:main?)
         end
 
-        # Exception raised when a caller requires to use an excluded package
-        class ExcludedPackage < ConfigError
-            attr_reader :name
-            def initialize(name)
-                @name = name
-            end
-        end
-
         # Resolves the given +name+, where +name+ can either be the name of a
         # source or the name of a package.
         #
@@ -553,18 +546,20 @@ module Autoproj
         #   [type, package_name]
         #
         # where +type+ can either be :package or :osdeps (as symbols)
-        #
-        # The returned array can be empty if +name+ is an ignored package
         def resolve_package_name(name, options = Hash.new)
             if pkg_set = find_metapackage(name)
                 pkg_names = pkg_set.each_package.map(&:name)
             else
-                pkg_names = [name]
+                pkg_names = [name.to_str]
             end
 
             result = []
             pkg_names.each do |pkg|
-                result.concat(resolve_single_package_name(pkg, options))
+                begin
+                    result.concat(resolve_single_package_name(pkg, options))
+                rescue PackageNotFound
+                    raise PackageNotFound, "cannot resolve #{pkg}: it is not a package, not a metapackage and not an osdep"
+                end
             end
             result
         end
@@ -582,7 +577,7 @@ module Autoproj
                 next if result.include?(pkg_name)
                 result << pkg_name
 
-                pkg = Autobuild::Package[pkg_name]
+                pkg = find_autobuild_package(pkg_name)
                 pkg.dependencies.each do |dep_name|
                     queue << dep_name
                 end
@@ -596,82 +591,41 @@ module Autoproj
         # This is a helper method for #resolve_package_name. Do not use
         # directly
         def resolve_single_package_name(name, options = Hash.new) # :nodoc:
-            options = Kernel.validate_options options, :filter => true
+            options = Kernel.validate_options options, filter: true
 
-            explicit_selection  = explicitly_selected_package?(name)
 	    osdeps_availability = osdeps.availability_of(name)
-            available_as_source = Autobuild::Package[name]
+            available_as_source = find_autobuild_package(name)
 
-            osdeps_overrides = self.osdeps_overrides[name]
-            if osdeps_overrides
-                source_packages    = osdeps_overrides[:packages].dup
-                force_source_usage = osdeps_overrides[:force]
-                begin
+            if osdeps_availability != Autoproj::OSDependencies::NO_PACKAGE
+                # There is an osdep definition for this package, check the
+                # overrides
+                osdeps_overrides = self.osdeps_overrides[name]
+                osdeps_available =
+                    (osdeps_availability == OSDependencies::AVAILABLE) ||
+                    (osdeps_availability == OSDependencies::IGNORE)
+                should_use_source = !osdeps_available
+
+                if osdeps_overrides
+                    source_packages    = osdeps_overrides[:packages].dup
+                    should_use_source  ||= osdeps_overrides[:force]
+
                     source_packages = source_packages.inject([]) do |result, src_pkg_name|
                         result.concat(resolve_package_name(src_pkg_name))
                     end.uniq
-                    available_as_source = true
-                rescue ExcludedPackage
-                    force_source_usage = false
-                    available_as_source = false
+                else
+                    source_packages = [find_autobuild_package(name)].compact
                 end
+                should_use_source = should_use_source && !source_packages.empty?
 
-                if source_packages.empty?
-                    source_packages << [:package, name]
-                end
-            end
-
-            if force_source_usage
-                return source_packages
-            elsif !explicit_selection 
-                if osdeps_availability == Autoproj::OSDependencies::AVAILABLE
+                if should_use_source
+                    return source_packages
+                else
                     return [[:osdeps, name]]
-                elsif osdeps_availability == Autoproj::OSDependencies::IGNORE
-                    return []
                 end
-
-                if osdeps_availability == Autoproj::OSDependencies::UNKNOWN_OS
-                    # If we can't handle that OS, but other OSes have a
-                    # definition for it, we assume that it can be installed as
-                    # an external package. However, if it is also available as a
-                    # source package, prompt the user
-                    if !available_as_source || explicit_osdeps_selection(name)
-                        return [[:osdeps, name]]
-                    end
-                end
-
-                # No source, no osdeps.
-                # If the package is ignored by the manifest, just return empty.
-                # Otherwise, generate a proper error message
-                # Call osdeps again, but this time to get
-                # a proper error message.
-                if !available_as_source
-                    if ignored?(name)
-                        return []
-                    end
-                    begin
-                        osdeps.resolve_os_dependencies([name].to_set)
-                    rescue Autoproj::ConfigError => e
-                        if osdeps_availability != Autoproj::OSDependencies::NO_PACKAGE && !osdeps.os_package_handler.enabled?
-                            if !@ignored_os_dependencies.include?(name)
-                                Autoproj.warn "some package depends on the #{name} osdep: #{e.message}"
-                                Autoproj.warn "this osdeps dependency is simply ignored as you asked autoproj to not install osdeps packages"
-                                @ignored_os_dependencies << name
-                            end
-                            # We are not asked to install OS packages, just ignore
-                            return []
-                        end
-                        raise
-                    end
-                    # Should never reach further than that
-                end
-            elsif !available_as_source
-                raise ConfigError, "cannot resolve #{name}: it is not a package, not a metapackage and not an osdeps"
-            end
-            if source_packages
-                return source_packages
-            else
+            elsif available_as_source
                 return [[:package, name]]
+            else
+                raise PackageNotFound, "cannot resolve #{name}: it is neither a package nor an osdep"
             end
         end
 
@@ -679,7 +633,7 @@ module Autoproj
         # the first case, we return all packages defined by that source. In the
         # latter case, we return the singleton array [name]
         def resolve_package_set(name)
-            if Autobuild::Package[name]
+            if find_autobuild_package(name)
                 [name]
             else
                 pkg_set = find_metapackage(name)
@@ -712,7 +666,7 @@ module Autoproj
             packages.each do |pkg_name|
                 package_names = resolve_package_set(pkg_name)
                 package_names.each do |pkg_name|
-                    meta.add(Autobuild::Package[pkg_name])
+                    meta.add(find_autobuild_package(pkg_name))
                 end
             end
 
@@ -743,7 +697,7 @@ module Autoproj
                                end
 
 
-                        result.select(pkg_or_set, resolve_package_set(pkg_or_set), weak)
+                        result.select(pkg_or_set, resolve_package_set(pkg_or_set), weak: weak)
                     rescue UnknownPackage => e
                         raise e, "#{e.name}, which is selected in the layout, is unknown: #{e.message}", e.backtrace
                     end
@@ -778,7 +732,7 @@ module Autoproj
 
         # Returns all defined package names, minus the excluded and ignored ones
         def all_package_names
-            Autobuild::Package.each.map { |name, _| name }.to_set
+            each_autobuild_package.map(&:name)
         end
 
         # Returns all the packages that can be built in this installation
@@ -799,7 +753,7 @@ module Autoproj
         # If it is false, the method will simply return false on non-defined
         # packages 
         def package_enabled?(name, validate = true)
-            if !Autobuild::Package[name] && !osdeps.has?(name)
+            if !find_autobuild_package(name) && !osdeps.has?(name)
                 if validate
                     raise ArgumentError, "package #{name} does not exist"
                 end
@@ -826,7 +780,7 @@ module Autoproj
         # Returns the set of packages that are selected by the layout
         def all_selected_packages(validate = true)
             result = Set.new
-            root = default_packages(validate).packages.to_set
+            root = default_packages(validate).source_packages.to_set
             root.each do |pkg_name|
                 find_autobuild_package(pkg_name).all_dependencies(result)
             end
@@ -962,7 +916,7 @@ module Autoproj
             required_os_packages = Set.new
             package_os_deps = Hash.new { |h, k| h[k] = Array.new }
             packages.each do |pkg_name|
-                pkg = Autobuild::Package[pkg_name]
+                pkg = find_autobuild_package(pkg_name)
                 if !pkg
                     raise InternalError, "internal error: #{pkg_name} is not a package"
                 end
@@ -1042,95 +996,99 @@ module Autoproj
             @osdeps_overrides.delete(osdeps_name.to_s)
         end
 
-        # Exception raised when an unknown package is encountered
-        class UnknownPackage < ConfigError
-            attr_reader :name
-            def initialize(name)
-                @name = name
+        PackageSelection = Autoproj::PackageSelection
+
+        # @api private
+        #
+        # Helper for {#expand_package_selection}
+        def update_selection(selection, user_selection_string, name, weak)
+            source_packages, osdeps = Array.new, Array.new
+            resolve_package_name(name).each do |type, resolved_name|
+                if type == :package
+                    source_packages << resolved_name
+                else
+                    osdeps << resolved_name
+                end
+            end
+            if !source_packages.empty?
+                selection.select(user_selection_string, source_packages, osdep: false, weak: weak)
+            end
+            if !osdeps.empty?
+                selection.select(user_selection_string, osdeps, osdep: true, weak: weak)
             end
         end
 
-        PackageSelection = Autoproj::PackageSelection
-
-        # Package selection can be done in three ways:
-        #  * as a subdirectory in the layout
-        #  * as a on-disk directory
-        #  * as a package name
+        # Normalizes package selection strings into a PackageSelection object
         #
-        # This method converts the first two directories into the third one
+        # @param [Array<String>] selection the package selection strings. For
+        #   source packages, it can either be the package name, a package set
+        #   name, or a prefix of the package's source directory. For osdeps, it
+        #   has to be the plain package name
+        # @return [PackageSelection, Array<String>]
         def expand_package_selection(selection, options = Hash.new)
             options = Kernel.validate_options options, filter: true
-
             result = PackageSelection.new
 
-            # All the packages that are available on this installation
-            all_layout_packages = self.all_selected_packages
-
             # First, remove packages that are directly referenced by name or by
-            # package set names
+            # package set names. When it comes to packages (NOT package sets),
+            # we prefer the ones selected in the layout
+            all_selected_packages = self.all_selected_packages
+            candidates = all_selected_packages.to_a +
+                each_metapackage.map { |metapkg| [metapkg.name, metapkg.weak_dependencies?] }
             selection.each do |sel|
                 match_pkg_name = Regexp.new(Regexp.quote(sel))
-
-                packages = all_layout_packages.
-                    find_all { |pkg_name| pkg_name =~ match_pkg_name }.
-                    to_set
-                if !packages.empty?
-                    result.select(sel, packages, true)
-                end
-
-                each_metapackage do |pkg|
-                    if pkg.name =~ match_pkg_name
-                        packages = resolve_package_set(pkg.name).to_set
-                        packages = (packages & all_layout_packages)
-                        result.select(sel, packages, pkg.weak_dependencies?)
-                    end
+                candidates.each do |name, weak|
+                    next if name !~ match_pkg_name
+                    update_selection(result, sel, name, true)
                 end
             end
 
-            pending_selections = Hash.new
+            pending_selections = Hash.new { |h, k| h[k] = Array.new }
 
-            # Finally, check for package source directories
-            all_packages = self.all_package_names
-            all_osdeps_packages = osdeps.all_package_names
-
+            # Finally, check for partial matches
+            all_source_package_names = self.all_package_names
+            all_osdeps_package_names = osdeps.all_package_names
             selection.each do |sel|
                 match_pkg_name = Regexp.new(Regexp.quote(sel))
-                matching_packages = all_packages.map do |pkg_name|
-                    pkg = Autobuild::Package[pkg_name]
+                all_matches = Array.new
+                all_source_package_names.each do |pkg_name|
+                    pkg = find_autobuild_package(pkg_name)
                     if pkg_name =~ match_pkg_name ||
                         "#{sel}/" =~ Regexp.new("^#{Regexp.quote(pkg.srcdir)}/") ||
                         pkg.srcdir =~ Regexp.new("^#{Regexp.quote(sel)}")
-                        [pkg_name, (pkg_name == sel || pkg.srcdir == sel)]
+                        all_matches << [pkg_name, (pkg_name == sel || pkg.srcdir == sel)]
                     end
-                end.compact
-                matching_osdeps_packages = all_osdeps_packages.find_all do |pkg_name|
+                end
+                all_osdeps_package_names.each do |pkg_name|
                     if pkg_name =~ match_pkg_name
-                        [pkg_name, pkg_name == sel]
+                        all_matches << [pkg_name, pkg_name == sel]
                     end
-                end.compact
+                end
 
-                (matching_packages + matching_osdeps_packages).to_set.each do |pkg_name, exact_match|
-                    # Check-out packages that are not in the manifest only
+                all_matches.each do |pkg_name, exact_match|
+                    # Select packages that are not in the manifest only
                     # if they are explicitely selected. However, we do store
                     # them as "possible resolutions" for the user selection,
                     # and add them if -- at the end of the method -- nothing
                     # has been found for this particular selection
-                    if !all_layout_packages.include?(pkg_name) && !exact_match
-                        pending_selections[sel] = pkg_name
-                        next
+                    if !all_selected_packages.include?(pkg_name) && !exact_match
+                        pending_selections[sel] << pkg_name
+                    else
+                        update_selection(result, sel, pkg_name, true)
                     end
-
-                    result.select(sel, pkg_name, true)
                 end
             end
 
             if options[:filter]
                 result.filter_excluded_and_ignored_packages(self)
             end
+
             nonresolved = selection - result.matches.keys
             nonresolved.delete_if do |sel|
-                if pkg_name = pending_selections[sel]
-                    result.select(sel, pkg_name, true)
+                if pending = pending_selections.fetch(sel, nil)
+                    pending.each do |name|
+                        update_selection(result, sel, name, true)
+                    end
                     true
                 end
             end

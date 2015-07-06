@@ -1,6 +1,4 @@
 module Autoproj
-    class InputError < RuntimeError; end
-
     # Definition of an autoproj option as defined by
     # {Configuration#declare}
     class BuildOption

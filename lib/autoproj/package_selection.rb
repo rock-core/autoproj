@@ -1,14 +1,4 @@
 module Autoproj
-        # Exception raised by
-        # PackageSelection#filter_excluded_and_ignored_packages when a given
-        # selection is completely excluded
-        class ExcludedSelection < ConfigError
-            attr_reader :selection
-            def initialize(selection)
-                @selection = selection
-            end
-        end
-
         # Class holding information about which packages have been selected, and
         # why. It is used to decide whether some non-availability of packages
         # are errors or simply warnings (i.e. if the user really wants a given
@@ -37,6 +27,10 @@ module Autoproj
             # contains the set of package ignores that have been ignored because
             # the corresponding metapackage has a weak dependency policy
             attr_reader :ignores
+            # The set of source packages that have been selected
+            attr_reader :source_packages
+            # The set of osdeps that have been selected
+            attr_reader :osdeps
 
             def initialize
                 @selection = Hash.new { |h, k| h[k] = Set.new }
@@ -44,11 +38,8 @@ module Autoproj
                 @weak_dependencies = Hash.new
                 @ignores = Hash.new { |h, k| h[k] = Set.new }
                 @exclusions = Hash.new { |h, k| h[k] = Set.new }
-            end
-
-            # The set of packages that have been selected
-            def packages
-                selection.keys
+                @source_packages = Set.new
+                @osdeps = Set.new
             end
 
             def include?(pkg_name)
@@ -60,16 +51,44 @@ module Autoproj
             end
 
             def each(&block)
-                selection.each_key(&block)
+                Autoproj.warn_deprecated "PackageSelection#each", "use PackageSelection#each_source_package_name instead", 0
+                each_source_package_name(&block)
             end
 
-            def select(sel, packages, weak = false)
-                packages = Array(packages)
-                matches[sel] |= packages.to_set.dup
+            def each_source_package_name(&block)
+                source_packages.each(&block)
+            end
+
+            def each_osdep_package_name(&block)
+                osdeps.each(&block)
+            end
+
+            def packages
+                Autoproj.warn_deprecated "PackageSelection#packages", "use PackageSelection#source_packages instead", 0
+                source_packages
+            end
+
+            def select(sel, packages, options = Hash.new)
+                if !options.kind_of?(Hash)
+                    Autoproj.warn_deprecated "calling PackageSelection#select with a boolean as third argument", "use e.g. weak: true instead", 0
+                    options = Hash[weak: options]
+                end
+                options = Kernel.validate_options options,
+                    weak: false,
+                    osdep: false
+
+                packages = Array(packages).to_set
+                matches[sel].merge(packages)
                 packages.each do |pkg_name|
                     selection[pkg_name] << sel
                 end
-                weak_dependencies[sel] = weak
+                if options[:osdep]
+                    osdeps.merge(packages)
+                else
+                    source_packages.merge(packages)
+                end
+
+                weak_dependencies[sel] = options[:weak]
             end
 
             def initialize_copy(old)

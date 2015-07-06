@@ -2,6 +2,7 @@ require "enumerator"
 require 'utilrb/module/attr_predicate'
 require 'autobuild'
 require 'autoproj/base'
+require 'autoproj/exceptions'
 require 'autoproj/version'
 require 'autoproj/reporter'
 require 'autoproj/environment'

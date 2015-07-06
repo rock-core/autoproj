@@ -41,10 +41,15 @@ module Autoproj
 
                 Autoproj.silent do
                     packages, config_selected = normalize_command_line_package_selection(packages)
-                    selected_packages, resolved_selection = resolve_selection(ws.manifest, packages, options)
+                    # Call resolve_user_selection once to auto-add packages, so
+                    # that they're available to e.g. overrides.rb
+                    resolve_user_selection(packages)
                     ws.finalize_package_setup
+                    source_packages, osdep_packages, resolved_selection =
+                        resolve_selection(ws.manifest, packages, options)
+                    ws.finalize_setup
                     ws.export_installation_manifest
-                    return selected_packages, resolved_selection, config_selected
+                    return source_packages, osdep_packages, resolved_selection, config_selected
                 end
             end
 

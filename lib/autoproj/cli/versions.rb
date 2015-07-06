@@ -29,7 +29,7 @@ module Autoproj
 
             def run(user_selection, options)
                 initialize_and_load
-                packages, resolved_selection, config_selected =
+                packages, *, config_selected =
                     finalize_setup(user_selection,
                                    ignore_non_imported_packages: true)
 

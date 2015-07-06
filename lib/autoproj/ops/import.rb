@@ -27,15 +27,29 @@ module Autoproj
                 end
             end
 
+            VALID_OSDEP_AVAILABILITY =
+                [OSDependencies::AVAILABLE, OSDependencies::IGNORE]
+
             def import_next_step(pkg, reverse_dependencies)
                 new_packages = []
                 pkg.dependencies.each do |dep_name|
                     reverse_dependencies[dep_name] << pkg.name
                     new_packages << ws.manifest.find_autobuild_package(dep_name)
                 end
-                pkg_opt_deps, _ = pkg.partition_optional_dependencies
+                pkg_opt_deps, pkg_opt_os_deps = pkg.partition_optional_dependencies
                 pkg_opt_deps.each do |dep_name|
                     new_packages << ws.manifest.find_autobuild_package(dep_name)
+                end
+
+                # Handle OS dependencies, excluding the package if some
+                # dependencies are not available
+                pkg.os_packages.each do |dep_name|
+                    reverse_dependencies[dep_name] << pkg.name
+                end
+                (pkg.os_packages | pkg_opt_os_deps).each do |dep_name|
+                    if ws.manifest.excluded?(dep_name)
+                        mark_exclusion_along_revdeps(dep_name, reverse_dependencies)
+                    end
                 end
 
                 new_packages.delete_if do |new_pkg|
@@ -58,14 +72,9 @@ module Autoproj
                 manifest = ws.manifest
 
                 updated_packages = Array.new
-                selected_packages = selection.packages.
-                    map do |pkg_name|
-                        pkg = manifest.find_autobuild_package(pkg_name)
-                        if !pkg
-                            raise ConfigError.new, "selected package #{pkg_name} does not exist"
-                        end
-                        pkg
-                    end.to_set
+                selected_packages = selection.each_source_package_name.map do |pkg_name|
+                    manifest.find_autobuild_package(pkg_name)
+                end.to_set
 
                 # The set of all packages that are currently selected by +selection+
                 all_processed_packages = Set.new
@@ -84,12 +93,6 @@ module Autoproj
                     next if all_processed_packages.include?(pkg.name)
                     all_processed_packages << pkg.name
 
-                    # If the package has no importer, the source directory must
-                    # be there
-                    if !pkg.importer && !File.directory?(pkg.srcdir)
-                        raise ConfigError.new, "#{pkg.name} has no VCS, but is not checked out in #{pkg.srcdir}"
-                    end
-
                     # Try to auto-exclude the package early. If the autobuild file
                     # contained some information that allows us to exclude it now,
                     # then let's just do it
@@ -97,6 +100,14 @@ module Autoproj
                     if manifest.excluded?(pkg.name)
                         selection.filter_excluded_and_ignored_packages(manifest)
                         next
+                    elsif manifest.ignored?(pkg.name)
+                        next
+                    end
+
+                    # If the package has no importer, the source directory must
+                    # be there
+                    if !pkg.importer && !File.directory?(pkg.srcdir)
+                        raise ConfigError.new, "#{pkg.name} has no VCS, but is not checked out in #{pkg.srcdir}"
                     end
 
                     ## COMPLETELY BYPASS RAKE HERE
@@ -119,6 +130,8 @@ module Autoproj
                         selection.filter_excluded_and_ignored_packages(manifest)
                         # Delete this package from the current_packages set
                         next
+                    elsif manifest.ignored?(pkg.name)
+                        next
                     end
 
                     Autoproj.each_post_import_block(pkg) do |block|
@@ -127,6 +140,7 @@ module Autoproj
                     pkg.update_environment
 
                     new_packages = import_next_step(pkg, reverse_dependencies)
+
                     # Excluded dependencies might have caused the package to be
                     # excluded as well ... do not add any dependency to the
                     # processing queue if it is the case
@@ -139,16 +153,26 @@ module Autoproj
                     selection.filter_excluded_and_ignored_packages(manifest)
                 end
 
-                all_enabled_packages = Set.new
-                package_queue = selection.packages.dup
-                # Run optional dependency resolution until we have a fixed point
+                # Now run optional dependency resolution. This is done now, as
+                # some optional dependencies might have been excluded during the
+                # resolution process above
+                all_enabled_sources, all_enabled_osdeps =
+                    Set.new, selection.each_osdep_package_name.to_set
+                package_queue = selection.each_source_package_name.to_a
                 while !package_queue.empty?
                     pkg_name = package_queue.shift
-                    next if all_enabled_packages.include?(pkg_name)
-                    all_enabled_packages << pkg_name
+                    next if all_enabled_sources.include?(pkg_name)
+                    all_enabled_sources << pkg_name
 
                     pkg = manifest.find_autobuild_package(pkg_name)
-                    pkg.resolve_optional_dependencies
+                    packages, osdeps = pkg.partition_optional_dependencies
+                    packages.each do |pkg_name|
+                        if !manifest.ignored?(pkg_name) && !manifest.excluded?(pkg_name)
+                            pkg.depends_on pkg_name
+                        end
+                    end
+                    pkg.os_packages.merge(osdeps)
+                    all_enabled_osdeps |= pkg.os_packages
 
                     pkg.prepare if !pkg.disabled?
                     Rake::Task["#{pkg.name}-prepare"].instance_variable_set(:@already_invoked, true)
@@ -177,7 +201,7 @@ module Autoproj
                     end
                 end
 
-                return all_enabled_packages
+                return all_enabled_sources, all_enabled_osdeps
 
             ensure
                 if ws.config.import_log_enabled? && !updated_packages.empty? && Autoproj::Ops::Snapshot.update_log_available?(manifest)

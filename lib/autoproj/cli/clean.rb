@@ -17,7 +17,7 @@ module Autoproj
             def run(selection, options = Hash.new)
                 initialize_and_load
                 packages, _ = normalize_command_line_package_selection(selection)
-                packages, resolved_selection = resolve_selection(
+                source_packages, * = resolve_selection(
                     ws.manifest,
                     selection,
                     recursive: false,
@@ -26,7 +26,7 @@ module Autoproj
                     raise ArgumentError, "no packages or OS packages match #{selection.join(" ")}"
                 end
 
-                packages.each do |pkg_name|
+                source_packages.each do |pkg_name|
                     ws.manifest.find_autobuild_package(pkg_name).
                         prepare_for_rebuild
                 end

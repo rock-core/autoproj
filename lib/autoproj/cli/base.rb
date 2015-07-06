@@ -66,7 +66,7 @@ module Autoproj
                                 send(handler, relative_to_root.to_s)
                             end
                             ws.setup_package_directories(pkg)
-                            selected_packages.select(sel, pkg.name, true)
+                            selected_packages.select(sel, pkg.name, weak: true)
                             break(true)
                         end
 
@@ -77,7 +77,7 @@ module Autoproj
                 if Autoproj.verbose
                     Autoproj.message "will install #{selected_packages.packages.to_a.sort.join(", ")}"
                 end
-                selected_packages
+                return selected_packages, nonresolved
             end
 
             def resolve_selection(manifest, user_selection, options = Hash.new)
@@ -87,8 +87,8 @@ module Autoproj
                     recursive: true,
                     ignore_non_imported_packages: false
 
-                resolved_selection = resolve_user_selection(user_selection, filter: false)
-                if options[:ignore_non_imported_packages] || !options[:recursive]
+                resolved_selection, _ = resolve_user_selection(user_selection, filter: false)
+                if options[:ignore_non_imported_packages]
                     manifest.each_autobuild_package do |pkg|
                         if !File.directory?(pkg.srcdir)
                             manifest.ignore_package(pkg.name)
@@ -98,16 +98,14 @@ module Autoproj
                 resolved_selection.filter_excluded_and_ignored_packages(manifest)
 
                 ops = Ops::Import.new(ws)
-                packages = ops.import_packages(
+                source_packages, osdep_packages = ops.import_packages(
                     resolved_selection,
                     checkout_only: options[:checkout_only],
                     only_local: options[:only_local],
+                    recursive: options[:recursive],
                     warn_about_ignored_packages: false)
 
-                if !options[:recursive]
-                    packages = resolved_selection.to_a
-                end
-                return packages, resolved_selection
+                return source_packages, osdep_packages, resolved_selection
             end
 
             def validate_user_selection(user_selection, resolved_selection)

@@ -24,14 +24,14 @@ module Autoproj
 
                 Autobuild.ignore_errors = options[:keep_going]
 
-                command_line_selection, all_enabled_packages =
+                command_line_selection, source_packages, osdep_packages =
                     super(selected_packages, options.merge(checkout_only: true))
 
                 ops = Ops::Build.new(ws.manifest)
                 if build_options[:rebuild] || build_options[:force]
                     packages_to_rebuild =
                         if options[:deps] || command_line_selection.empty?
-                            all_enabled_packages
+                            source_packages
                         else command_line_selection
                         end
 
@@ -54,16 +54,16 @@ module Autoproj
                             ops.force_build_all
                         end
                     elsif build_options[:rebuild]
-                        ops.rebuild_packages(packages_to_rebuild, all_enabled_packages)
+                        ops.rebuild_packages(packages_to_rebuild, source_packages)
                     else
-                        ops.force_build_packages(packages_to_rebuild, all_enabled_packages)
+                        ops.force_build_packages(packages_to_rebuild, source_packages)
                     end
                     return
                 end
 
                 Autobuild.do_build = true
-                ops.build_packages(all_enabled_packages)
-                Autobuild.apply(all_enabled_packages, "autoproj-build", ['install'])
+                ops.build_packages(source_packages)
+                Autobuild.apply(source_packages, "autoproj-build", ['install'])
             end
         end
     end

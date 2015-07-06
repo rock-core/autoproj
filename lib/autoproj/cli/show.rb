@@ -11,38 +11,34 @@ module Autoproj
                 initialize_and_load(mainline: options.delete(:mainline))
                 default_packages = ws.manifest.default_packages
 
-                packages, resolved_selection, _ =
+                source_packages, osdep_packages, * =
                     finalize_setup(user_selection,
                                    recursive: false,
                                    ignore_non_imported_packages: true)
 
-                if packages.empty?
+                if source_packages.empty? && osdep_packages.empty?
                     Autoproj.error "no packages or OS packages match #{user_selection.join(" ")}"
                     return
                 end
+                load_all_available_package_manifests
                 revdeps = ws.manifest.compute_revdeps
 
-                packages.each do |name|
-                    result = ws.manifest.resolve_package_name(name, :filter => false)
-                    packages, osdeps = result.partition { |pkg_type, _| pkg_type == :package }
-                    packages = packages.map(&:last)
-                    osdeps   = osdeps.map(&:last)
-
-                    packages.each do |pkg_name|
-                        display_source_package(pkg_name, default_packages, revdeps)
-                    end
-
-                    osdeps.each do |pkg_name|
-                        display_osdep_package(pkg_name)
-                    end
+                source_packages.each do |pkg_name|
+                    display_source_package(pkg_name, default_packages, revdeps)
+                end
+                osdep_packages.each do |pkg_name|
+                    display_osdep_package(pkg_name, default_packages, revdeps)
                 end
             end
 
             def display_source_package(pkg_name, default_packages, revdeps)
                 puts Autoproj.color("source package #{pkg_name}", :bold)
+                pkg = ws.manifest.find_autobuild_package(pkg_name)
+                if !File.directory?(pkg.srcdir)
+                    puts Autobuild.color("  this package is not checked out yet, the dependency information will probably be incomplete", :magenta)
+                end
                 puts "  source definition"
                 ws.manifest.load_package_manifest(pkg_name)
-
                 vcs = ws.manifest.find_package(pkg_name).vcs
 
                 fragments = []
@@ -76,6 +72,23 @@ module Autoproj
                     end
                 end
 
+                display_common_information(pkg_name, default_packages, revdeps)
+
+                puts "  directly depends on: #{pkg.dependencies.sort.join(", ")}"
+                puts "  optionally depends on: #{pkg.optional_dependencies.sort.join(", ")}"
+                puts "  dependencies on OS packages: #{pkg.os_packages.sort.join(", ")}"
+            end
+
+            def display_osdep_package(pkg_name, default_packages, revdeps)
+                puts Autoproj.color("the osdep '#{pkg_name}'", :bold)
+                ws.osdeps.resolve_os_dependencies([pkg_name]).each do |manager, packages|
+                    puts "  #{manager.names.first}: #{packages.map { |*subnames| subnames.join(" ") }.join(", ")}"
+                end
+
+                display_common_information(pkg_name, default_packages, revdeps)
+            end
+
+            def display_common_information(pkg_name, default_packages, revdeps)
                 if default_packages.include?(pkg_name)
                     layout_selection = default_packages.selection[pkg_name]
                     if layout_selection.include?(pkg_name) && layout_selection.size == 1
@@ -93,11 +106,6 @@ module Autoproj
                 end
                 if ws.manifest.excluded?(pkg_name)
                     puts "  is excluded: #{Autoproj.manifest.exclusion_reason(pkg_name)}"
-                end
-
-                pkg = ws.manifest.find_autobuild_package(pkg_name)
-                if !File.directory?(pkg.srcdir)
-                    puts Autobuild.color("  this package is not checked out yet, the dependency information will probably be incomplete", :magenta)
                 end
 
                 pkg_revdeps = revdeps[pkg_name].to_a
@@ -120,51 +128,52 @@ module Autoproj
                 if !selections.empty?
                     puts "  selected by way of"
                     selections.each do |root_pkg|
-                        path = find_selection_path(root_pkg, pkg_name)
-                        if !path
+                        paths = find_selection_path(root_pkg, pkg_name)
+                        if paths.empty?
                             puts "    FAILED"
                         else
-                            puts "    #{path.join(">")}"
+                            paths.sort.uniq.each do |p|
+                                puts "    #{p.join(">")}"
+                            end
                         end
                     end
-                end
-
-                puts "  directly depends on: #{pkg.dependencies.sort.join(", ")}"
-                puts "  optionally depends on: #{pkg.optional_dependencies.sort.join(", ")}"
-                puts "  dependencies on OS packages: #{pkg.os_packages.sort.join(", ")}"
-            end
-
-            def display_osdep_package(pkg_name)
-                puts Autoproj.color("the osdep '#{pkg_name}'", :bold)
-                ws.osdeps.resolve_os_dependencies([pkg_name]).each do |manager, packages|
-                    puts "  #{manager.names.first}: #{packages.map { |*subnames| subnames.join(" ") }.join(", ")}"
-                end
-
-                pkg_revdeps = revdeps[pkg_name].dup.to_a
-                all_revdeps = compute_all_revdeps(pkg_revdeps, revdeps)
-                if pkg_revdeps.empty?
-                    puts "  no reverse dependencies"
-                else
-                    puts "  direct reverse dependencies: #{pkg_revdeps.sort.join(", ")}"
-                    puts "  recursive reverse dependencies: #{all_revdeps.sort.join(", ")}"
                 end
             end
 
             def find_selection_path(from, to)
-                path = [from]
                 if from == to
-                    return path
+                    return [from]
                 end
 
+                all_paths = Array.new
                 ws.manifest.resolve_package_set(from).each do |pkg_name|
+                    path = if pkg_name == from then []
+                           else [pkg_name]
+                           end
+
                     pkg = ws.manifest.find_autobuild_package(pkg_name)
                     pkg.dependencies.each do |dep_pkg_name|
                         if result = find_selection_path(dep_pkg_name, to)
-                            return path + result
+                            all_paths.concat(result.map { |p| path + p })
                         end
                     end
+                    if pkg.os_packages.include?(to)
+                        all_paths << (path + [to])
+                    end
                 end
-                nil
+
+                # Now filter common trailing subpaths
+                all_paths = all_paths.sort_by(&:size)
+                filtered_paths = Array.new
+                while !all_paths.empty?
+                    path = all_paths.shift
+                    filtered_paths << path
+                    size = path.size
+                    all_paths.delete_if do |p|
+                        p[-size..-1] == path
+                    end
+                end
+                filtered_paths.map { |p| [from] + p }
             end
 
             def vcs_to_array(vcs)

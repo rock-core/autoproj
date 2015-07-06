@@ -114,8 +114,6 @@ module Autobuild
                 __depends_on__(pkg)
             end
             @os_packages |= pkg_os.to_set
-        rescue Autoproj::OSDependencies::MissingOSDep
-            Autoproj.workspace.manifest.add_exclusion(self.name, "it depends on #{name}, which is neither the name of a source package, nor an osdep that is available on this operating system")
         end
 
         def depends_on_os_package(name)
@@ -146,32 +144,23 @@ module Autobuild
         end
 
         def partition_optional_dependencies
-            packages, osdeps, disabled = [], [], []
+            packages, osdeps = [], []
             optional_dependencies.each do |name|
-                if !Autoproj.workspace.manifest.package_enabled?(name, false)
-                    disabled << name
-                    next
-                end
-
-                pkg_autobuild, pkg_osdeps = partition_package(name)
-                valid = pkg_autobuild.all? { |pkg| Autoproj.workspace.manifest.package_enabled?(pkg) } &&
-                    pkg_osdeps.all? { |pkg| Autoproj.workspace.manifest.package_enabled?(pkg) }
-
-                if valid
+                begin
+                    pkg_autobuild, pkg_osdeps = partition_package(name)
                     packages.concat(pkg_autobuild)
                     osdeps.concat(pkg_osdeps)
-                else
-                    disabled << name
+                rescue Autoproj::PackageNotFound
+                    # Simply ignore non-existent optional dependencies
                 end
             end
-            return packages, osdeps, disabled
+            return packages, osdeps
         end
 
         def resolve_optional_dependencies
-            packages, osdeps, disabled = partition_optional_dependencies
-            packages.each { |pkg| depends_on(pkg) }
-            @os_packages ||= Set.new
-            @os_packages |= osdeps.to_set
+            packages, osdeps = partition_optional_dependencies
+            packages.each { |pkg| __depends_on__(pkg) }
+            os_packages.merge(osdeps.to_set)
         end
 
         def optional_dependencies
