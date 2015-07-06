@@ -76,7 +76,6 @@ module Autoproj
                 else
                     command_line_selection = Array.new
                 end
-                ws.manifest.explicit_selection = resolved_selected_packages
                 selected_packages = resolved_selected_packages
 
                 if other_root = options[:from]

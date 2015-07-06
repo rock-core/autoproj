@@ -10,10 +10,6 @@ module Autoproj
     # The Manifest class represents the information included in the main
     # manifest file, and allows to manipulate it
     class Manifest
-        # The set of packages that are selected by the user, either through the
-        # manifest file or through the command line, as a set of package names
-        attr_accessor :explicit_selection
-
         # Set the package sets that are available on this manifest
         #
         # This is set externally at loading time. {load_and_update_package_sets}
@@ -21,12 +17,6 @@ module Autoproj
         #
         # @return [Array<PackageSet>]
         attr_writer :package_sets
-
-        # Returns true if +pkg_name+ has been explicitely selected, either by
-        # the command line or through the layout
-        def explicitly_selected_package?(pkg_name)
-            explicit_selection && explicit_selection.include?(pkg_name)
-        end
 
         # Loads the manifest file located at +file+ and returns the Manifest
         # instance that represents it
