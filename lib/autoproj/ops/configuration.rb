@@ -209,6 +209,9 @@ module Autoproj
             by_repository_id = Hash.new
             by_name = Hash.new
 
+            required_remotes_dirs = Array.new
+            required_user_dirs = Array.new
+
             queue = queue_auto_imports_if_needed(Array.new, root_pkg_set, root_pkg_set)
             while !queue.empty?
                 vcs, options, imported_from = queue.shift
@@ -227,17 +230,28 @@ module Autoproj
                 end
                 by_repository_id[repository_id] = [vcs, imported_from]
 
+                # Make sure the package set has been already checked out to
+                # retrieve the actual name of the package set
                 if !vcs.local?
                     update_remote_package_set(vcs, only_local)
-                    create_remote_set_user_dir(vcs)
+                    raw_local_dir = PackageSet.raw_local_dir_of(vcs)
+                    required_remotes_dirs << raw_local_dir
                 end
-
                 name = PackageSet.name_of(manifest, vcs)
+
+                required_user_dirs = by_name.collect { |k,v| k }
+                Autoproj.debug "Trying to load package_set: #{name} from definition #{repository_id}"
+                Autoproj.debug "Already loaded package_sets are: #{required_user_dirs}"
+
                 if already_loaded = by_name[name]
                     already_loaded_pkg_set, already_loaded_vcs = *already_loaded
                     if already_loaded_vcs != vcs
                         if imported_from
-                            Autoproj.warn "#{imported_from.name} auto-imports a package set from #{vcs}, but a package set with the same name (#{name}) has already been imported from #{already_loaded_vcs}, I am skipping this one"
+                            Autoproj.warn "redundant auto-import by #{imported_from.name} for package set '#{name}'."
+                            Autoproj.warn "    A package set with the same name (#{name}) has already been imported from"
+                            Autoproj.warn "        #{already_loaded_vcs}"
+                            Autoproj.warn "    Skipping the following one: "
+                            Autoproj.warn "        #{vcs}"
                         else
                             Autoproj.warn "the manifest refers to a package set from #{vcs}, but a package set with the same name (#{name}) has already been imported from #{already_loaded_vcs}, I am skipping this one"
                         end
@@ -248,6 +262,8 @@ module Autoproj
                         imported_from.imports << already_loaded_pkg_set
                     end
                     next
+                else
+                    create_remote_set_user_dir(vcs)
                 end
 
                 pkg_set = load_package_set(vcs, options, imported_from)
@@ -260,18 +276,20 @@ module Autoproj
                 queue_auto_imports_if_needed(queue, pkg_set, root_pkg_set)
             end
 
-            cleanup_remotes_dir(package_sets)
-            cleanup_remotes_user_dir(package_sets)
+            cleanup_remotes_dir(package_sets, required_remotes_dirs)
+            cleanup_remotes_user_dir(package_sets, required_user_dirs)
             package_sets
         end
 
         # Removes from {remotes_dir} the directories that do not match a package
         # set
-        def cleanup_remotes_dir(package_sets = manifest.package_sets)
+        def cleanup_remotes_dir(package_sets = manifest.package_sets, required_remotes_dirs = Array.new)
             # Cleanup the .remotes and remotes_symlinks_dir directories
             Dir.glob(File.join(remotes_dir, '*')).each do |dir|
                 dir = File.expand_path(dir)
-                if File.directory?(dir) && !package_sets.find { |pkg| pkg.raw_local_dir == dir }
+                # Once a package set has been checked out during the process,
+                # keep it -- so that it won't be checked out again
+                if File.directory?(dir) && !required_remotes_dirs.include?(dir)
                     FileUtils.rm_rf dir
                 end
             end
@@ -279,10 +297,11 @@ module Autoproj
 
         # Removes from {remotes_user_dir} the directories that do not match a
         # package set
-        def cleanup_remotes_user_dir(package_sets = manifest.package_sets)
+        def cleanup_remotes_user_dir(package_sets = manifest.package_sets, required_user_dirs = Array.new)
             Dir.glob(File.join(remotes_user_dir, '*')).each do |file|
                 file = File.expand_path(file)
-                if File.symlink?(file) && !package_sets.find { |pkg_set| pkg_set.user_local_dir == file }
+                user_dir = File.basename(file)
+                if File.symlink?(file) && !required_user_dirs.include?(user_dir)
                     FileUtils.rm_f file
                 end
             end
