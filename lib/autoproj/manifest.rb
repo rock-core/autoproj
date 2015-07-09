@@ -1003,10 +1003,12 @@ module Autoproj
         # The :force option allows to force the usage of the source package(s),
         # regardless of the availability of the osdeps package.
         def add_osdeps_overrides(osdeps_name, options)
-            options = Kernel.validate_options options, :package => nil, :packages => [], :force => false
+            options = Kernel.validate_options options, package: osdeps_name, packages: [], force: false
             if pkg = options.delete(:package)
                 options[:packages] << pkg
             end
+            packages = options[:packages]
+            packages.each { |pkg_name| resolve_package_name(pkg_name) }
             @osdeps_overrides[osdeps_name.to_s] = options
         end
 
