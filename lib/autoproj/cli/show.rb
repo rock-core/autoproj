@@ -142,7 +142,7 @@ module Autoproj
 
             def find_selection_path(from, to)
                 if from == to
-                    return [from]
+                    return [[from]]
                 end
 
                 all_paths = Array.new
