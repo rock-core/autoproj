@@ -546,7 +546,7 @@ module Autoproj
         #   [type, package_name]
         #
         # where +type+ can either be :package or :osdeps (as symbols)
-        def resolve_package_name(name, options = Hash.new)
+        def resolve_package_name(name)
             if pkg_set = find_metapackage(name)
                 pkg_names = pkg_set.each_package.map(&:name)
             else
@@ -556,7 +556,7 @@ module Autoproj
             result = []
             pkg_names.each do |pkg|
                 begin
-                    result.concat(resolve_single_package_name(pkg, options))
+                    result.concat(resolve_single_package_name(pkg))
                 rescue PackageNotFound
                     raise PackageNotFound, "cannot resolve #{pkg}: it is not a package, not a metapackage and not an osdep"
                 end
@@ -590,42 +590,62 @@ module Autoproj
         #
         # This is a helper method for #resolve_package_name. Do not use
         # directly
-        def resolve_single_package_name(name, options = Hash.new) # :nodoc:
-            options = Kernel.validate_options options, filter: true
+        #
+        # @return [nil,Array] either nil if there is no such osdep, or a list of
+        #   (type, package_name) pairs where type is either :package or :osdep and
+        #   package_name the corresponding package name
+        def resolve_single_package_name(name)
+            resolve_package_name_as_osdep(name)
+        rescue PackageNotFound => osdep_error
+            begin
+                resolve_package_name_as_source_package(name)
+            rescue PackageNotFound
+                raise PackageNotFound, "#{osdep_error} and it cannot be resolved as a source package"
+            end
+        end
 
-	    osdeps_availability = osdeps.availability_of(name)
-            available_as_source = find_autobuild_package(name)
-
-            if osdeps_availability != Autoproj::OSDependencies::NO_PACKAGE
-                # There is an osdep definition for this package, check the
-                # overrides
-                osdeps_overrides = self.osdeps_overrides[name]
-                osdeps_available =
-                    (osdeps_availability == OSDependencies::AVAILABLE) ||
-                    (osdeps_availability == OSDependencies::IGNORE)
-                should_use_source = !osdeps_available
-
-                if osdeps_overrides
-                    source_packages    = osdeps_overrides[:packages].dup
-                    should_use_source  ||= osdeps_overrides[:force]
-
-                    source_packages = source_packages.inject([]) do |result, src_pkg_name|
-                        result.concat(resolve_package_name(src_pkg_name))
-                    end.uniq
-                else
-                    source_packages = [find_autobuild_package(name)].compact
-                end
-                should_use_source = should_use_source && !source_packages.empty?
-
-                if should_use_source
-                    return source_packages
-                else
-                    return [[:osdeps, name]]
-                end
-            elsif available_as_source
-                return [[:package, name]]
+        def resolve_package_name_as_source_package(name)
+            if pkg = find_autobuild_package(name)
+                return [[:package, pkg.name]]
             else
                 raise PackageNotFound, "cannot resolve #{name}: it is neither a package nor an osdep"
+            end
+        end
+
+        # @api private
+        #
+        # Resolve a potential osdep name, either as the osdep itself, or as
+        # source packages that are used as osdep override
+        #
+        # @return [nil,Array] either nil if there is no such osdep, or a list of
+        #   (type, package_name) pairs where type is either :package or :osdep and
+        #   package_name the corresponding package name
+        def resolve_package_name_as_osdep(name)
+	    osdeps_availability = osdeps.availability_of(name)
+            if osdeps_availability == Autoproj::OSDependencies::NO_PACKAGE
+                raise PackageNotFound, "cannot resolve #{name}: it is not an osdep"
+            end
+
+            # There is an osdep definition for this package, check the
+            # overrides
+            osdeps_available =
+                (osdeps_availability == OSDependencies::AVAILABLE) ||
+                (osdeps_availability == OSDependencies::IGNORE)
+            osdeps_overrides = self.osdeps_overrides[name]
+            if osdeps_overrides && (!osdeps_available || osdeps_overrides[:force])
+                source_packages = osdeps_overrides[:packages].inject([]) do |result, src_pkg_name|
+                    result.concat(resolve_package_name_as_source_package(src_pkg_name))
+                end.uniq
+            elsif !osdeps_available && (pkg = find_autobuild_package(name))
+                return [[:package, pkg.name]]
+            elsif osdeps_available
+                return [[:osdeps, name]]
+            elsif osdeps_availability == OSDependencies::WRONG_OS
+                raise PackageNotFound, "#{name} is an osdep, but it is not available for this operating system"
+            elsif osdeps_availability == OSDependencies::UNKNOWN_OS
+                raise PackageNotFound, "#{name} is an osdep, but the local operating system is unavailable"
+            elsif osdeps_availability == OSDependencies::NONEXISTENT
+                raise PackageNotFound, "#{name} is an osdep, but it is explicitely marked as 'nonexistent' for this operating system"
             end
         end
 
