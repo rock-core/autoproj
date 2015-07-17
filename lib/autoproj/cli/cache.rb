@@ -18,12 +18,13 @@ module Autoproj
 
             def run(cache_dir, options = Hash.new)
                 options = Kernel.validate_options options,
-                    keep_going: false
+                    keep_going: false,
+                    checkout_only: false
 
                 initialize_and_load
 
                 cache_op = Autoproj::Ops::Cache.new(cache_dir, ws.manifest)
-                cache_op.create_or_update(options[:keep_going])
+                cache_op.create_or_update(options)
             end
         end
     end

@@ -27,8 +27,12 @@ module Autoproj
                 File.join(cache_dir, 'git')
             end
 
-            def cache_git(pkg)
+            def cache_git(pkg, options = Hash.new)
                 pkg.importdir = File.join(git_cache_dir, pkg.name)
+                if options[:checkout_only] && File.directory?(pkg.importdir)
+                    return
+                end
+
                 pkg.importer.local_branch = nil
                 pkg.importer.remote_branch = nil
                 pkg.importer.remote_name = 'autobuild'
@@ -56,7 +60,13 @@ module Autoproj
                 end
             end
 
-            def create_or_update(keep_going = false)
+            def create_or_update(options = Hash.new)
+                options = Kernel.validate_options options,
+                    keep_going: false,
+                    checkout_only: false
+                keep_going = options[:keep_going]
+                checkout_only = options[:checkout_only]
+
                 FileUtils.mkdir_p cache_dir
 
                 packages = manifest.each_autobuild_package.
@@ -68,7 +78,7 @@ module Autoproj
                         case pkg.importer
                         when Autobuild::Git
                             Autoproj.message "  [#{i}/#{total}] caching #{pkg.name} (git)"
-                            cache_git(pkg)
+                            cache_git(pkg, checkout_only: checkout_only)
                         when Autobuild::ArchiveImporter
                             Autoproj.message "  [#{i}/#{total}] caching #{pkg.name} (archive)"
                             cache_archive(pkg)
