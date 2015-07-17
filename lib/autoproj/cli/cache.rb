@@ -1,16 +1,19 @@
 require 'autoproj/cli/inspection_tool'
+require 'autoproj/ops/cache'
 
 module Autoproj
     module CLI
         class Cache < InspectionTool
             def validate_options(argv, options = Hash.new)
+                argv, options = super
+
                 if argv.empty?
                     raise ArgumentError, "expected one cache directory as argument"
                 elsif argv.size > 1
                     raise ArgumentError, "expected one cache directory as argument"
                 end
 
-                return File.expand_path(cache_dir.first, ws.root_dir), options
+                return File.expand_path(argv.first, ws.root_dir), options
             end
 
             def run(cache_dir, options = Hash.new)
