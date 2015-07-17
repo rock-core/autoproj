@@ -74,6 +74,7 @@ module Autoproj
                 total = packages.size
                 Autoproj.message "Handling #{total} packages"
                 packages.each_with_index do |pkg, i|
+                    next if pkg.srcdir != pkg.importdir # No need to process this one, it is uses another package's import
                     begin
                         case pkg.importer
                         when Autobuild::Git

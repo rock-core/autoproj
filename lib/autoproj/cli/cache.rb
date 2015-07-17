@@ -22,6 +22,7 @@ module Autoproj
                     checkout_only: false
 
                 initialize_and_load
+                finalize_setup
 
                 cache_op = Autoproj::Ops::Cache.new(cache_dir, ws.manifest)
                 cache_op.create_or_update(options)
