@@ -207,6 +207,7 @@ pip:
   freebsd: pip
 
 sudo:
+  macos-brew: ignore
   default: sudo
 
 # vim: expandtab
