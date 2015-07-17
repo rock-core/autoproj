@@ -102,14 +102,7 @@ module Autoproj
             File.join(root_dir, ".remotes")
         end
 
-        # The directory in which packages will be installed.
-        #
-        # If it is a relative path, it is relative to the root dir of the
-        # installation.
-        #
-        # The default is "install"
-        #
-        # @return [String]
+        # (see Configuration#prefix_dir)
         def prefix_dir
             File.expand_path(config.prefix_dir, root_dir)
         end
@@ -117,6 +110,16 @@ module Autoproj
         # Change {prefix_dir}
         def prefix_dir=(path)
             config.set 'prefix', path, true
+        end
+
+        # (see Configuration#build_dir)
+        def build_dir
+            config.build_dir
+        end
+
+        # Change {#build_dir}
+        def build_dir=(path)
+            config.set 'build', path, true
         end
 
         def log_dir
@@ -442,6 +445,16 @@ module Autoproj
 
             pkg = manifest.find_autobuild_package(pkg_name)
             pkg.srcdir = File.join(root_dir, srcdir)
+            if pkg.respond_to?(:builddir)
+                # If we're given an absolute build dir, we have to append the
+                # package name to it to make it unique
+                if Pathname.new(build_dir).absolute?
+                    pkg.builddir = File.join(build_dir, pkg_name)
+                else
+                    pkg.builddir = build_dir
+                end
+            end
+
             pkg.prefix = File.join(prefix_dir, prefixdir)
             pkg.doc_target_dir = File.join(prefix_dir, 'doc', pkg_name)
             pkg.logdir = File.join(pkg.prefix, "log")

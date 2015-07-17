@@ -240,8 +240,30 @@ module Autoproj
             end
         end
 
+        # The directory in which packages will be installed.
+        #
+        # If it is a relative path, it is relative to the root dir of the
+        # installation.
+        #
+        # The default is "install"
+        #
+        # @return [String]
         def prefix_dir
             get('prefix', 'install')
+        end
+
+        # Defines the temporary area in which packages should put their build
+        # files
+        #
+        # If absolute, it is handled as {#prefix_dir}: the package name will be
+        # appended to it. If relative, it is relative to the package's source
+        # directory
+        #
+        # The default is "build"
+        #
+        # @return [String]
+        def build_dir
+            get('build', 'build')
         end
 
         # Returns true if there should be one prefix per package
