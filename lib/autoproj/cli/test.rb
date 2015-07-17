@@ -24,7 +24,7 @@ module Autoproj
                     ws.config.utility_disable_all('test')
                 else
                     initialize_and_load
-                    selection, _ = finaliez_setup(
+                    selection, _ = finalize_setup(
                         user_selection,
                         recursive: options[:deps],
                         ignore_non_imported_packages: true)
