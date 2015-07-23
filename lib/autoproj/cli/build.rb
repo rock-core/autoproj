@@ -27,6 +27,12 @@ module Autoproj
                 command_line_selection, source_packages, osdep_packages =
                     super(selected_packages, options.merge(checkout_only: true))
 
+                # Disable all packages that are not selected
+                ws.manifest.each_autobuild_package do |pkg|
+                    next if source_packages.include?(pkg.name)
+                    pkg.disable
+                end
+
                 ops = Ops::Build.new(ws.manifest)
                 if build_options[:rebuild] || build_options[:force]
                     packages_to_rebuild =
