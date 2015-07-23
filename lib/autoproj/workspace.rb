@@ -446,18 +446,22 @@ module Autoproj
             pkg = manifest.find_autobuild_package(pkg_name)
             pkg.srcdir = File.join(root_dir, srcdir)
             if pkg.respond_to?(:builddir)
-                # If we're given an absolute build dir, we have to append the
-                # package name to it to make it unique
-                if Pathname.new(build_dir).absolute?
-                    pkg.builddir = File.join(build_dir, pkg_name)
-                else
-                    pkg.builddir = build_dir
-                end
+                pkg.builddir = compute_builddir(pkg)
             end
 
             pkg.prefix = File.join(prefix_dir, prefixdir)
             pkg.doc_target_dir = File.join(prefix_dir, 'doc', pkg_name)
             pkg.logdir = File.join(pkg.prefix, "log")
+        end
+        
+        def compute_builddir(pkg)
+            # If we're given an absolute build dir, we have to append the
+            # package name to it to make it unique
+            if Pathname.new(build_dir).absolute?
+                File.join(build_dir, pkg.name)
+            else
+                build_dir
+            end
         end
 
         # Finalizes the configuration loading
@@ -525,10 +529,11 @@ module Autoproj
         end
 
         def export_installation_manifest
-            File.open(File.join(root_dir, ".autoproj-installation-manifest"), 'w') do |io|
+            File.open(File.join(root_dir, InstallationManifest::DEFAULT_MANIFEST_NAME), 'w') do |io|
                 manifest.all_selected_packages(false).each do |pkg_name|
                     if pkg = manifest.find_autobuild_package(pkg_name)
-                        io.puts "#{pkg_name},#{pkg.srcdir},#{pkg.prefix}"
+                        builddir = (pkg.builddir if pkg.respond_to?(:builddir))
+                        io.puts "#{pkg_name},#{pkg.srcdir},#{pkg.prefix},#{builddir}"
                     end
                 end
             end

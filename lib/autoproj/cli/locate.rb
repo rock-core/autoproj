@@ -11,6 +11,7 @@ module Autoproj
 
             def initialize(ws = nil)
                 super
+                self.ws.load_config
 
                 @installation_manifest = Autoproj::InstallationManifest.new(self.ws.root_dir)
                 if !File.file?(installation_manifest.default_manifest_path)
@@ -24,22 +25,41 @@ module Autoproj
                 return selected.first, options
             end
 
+            def result_value(pkg, options)
+                if options[:build]
+                    if pkg.builddir
+                        pkg.builddir
+                    else
+                        raise ConfigError, "#{pkg.name} does not have a build directory"
+                    end
+                else
+                    pkg.srcdir
+                end
+            end
+
             def run(selection, options = Hash.new)
                 if !selection
-                    puts ws.root_dir
+                    if options[:build]
+                        puts ws.prefix_dir
+                    else
+                        puts ws.root_dir
+                    end
                     return
+                end
+
+                if File.directory?(selection)
+                    selection = File.expand_path(selection)
                 end
 
                 selection_rx = Regexp.new(Regexp.quote(selection))
                 candidates = []
                 installation_manifest.each do |pkg|
                     name = pkg.name
-                    srcdir = pkg.srcdir
-                    if name == selection
-                        puts srcdir
+                    if name == selection || pkg.srcdir == selection
+                        puts result_value(pkg, options)
                         return
                     elsif name =~ selection_rx
-                        candidates << srcdir
+                        candidates << pkg
                     end
                 end
 
@@ -59,12 +79,11 @@ module Autoproj
                     candidates_strict = []
                     installation_manifest.each do |pkg|
                         name = pkg.name
-                        srcdir = pkg.srcdir
                         if name =~ rx
-                            candidates << srcdir
+                            candidates << pkg
                         end
                         if name =~ rx_strict
-                            candidates_strict << srcdir
+                            candidates_strict << pkg
                         end
                     end
 
@@ -76,7 +95,7 @@ module Autoproj
                 if candidates.size > 1
                     # If there is more than one candidate, check if there are some that are not
                     # present on disk
-                    present = candidates.find_all { |dir| File.directory?(dir) }
+                    present = candidates.find_all { |pkg| File.directory?(pkg.srcdir) }
                     if present.size == 1
                         candidates = present
                     end
@@ -87,7 +106,7 @@ module Autoproj
                 elsif candidates.size > 1
                     raise ArgumentError, "multiple packages match #{selection} in the current autoproj installation: #{candidates.join(", ")}"
                 else
-                    puts candidates.first
+                    puts result_value(candidates.first, options)
                 end
             end
         end

@@ -130,6 +130,8 @@ module Autoproj
             end
 
             desc 'locate [PACKAGE]', 'return the path to the given package, or the path to the root if no packages are given on the command line'
+            option :build, aliases: :b, type: :boolean,
+                desc: "outputs the package's build directory instead of its source directory"
             def locate(package = nil)
                 run_autoproj_cli(:locate, :Locate, Hash[], *Array(package))
             end

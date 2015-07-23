@@ -1,7 +1,7 @@
 module Autoproj
     # Manifest of installed packages imported from another autoproj installation
     class InstallationManifest
-        Package = Struct.new :name, :srcdir, :prefix
+        Package = Struct.new :name, :srcdir, :prefix, :builddir
 
         DEFAULT_MANIFEST_NAME = ".autoproj-installation-manifest"
 
@@ -17,7 +17,11 @@ module Autoproj
             
         def load(path = default_manifest_path)
             @packages = CSV.read(path).map do |row|
-                Package.new(*row)
+                pkg = Package.new(*row)
+                if pkg.builddir && pkg.builddir.empty?
+                    pkg.builddir = nil
+                end
+                pkg
             end
         end
 
