@@ -137,7 +137,6 @@ module Autoproj
                     Autoproj.each_post_import_block(pkg) do |block|
                         block.call(pkg)
                     end
-                    pkg.update_environment
 
                     new_packages = import_next_step(pkg, reverse_dependencies)
 
@@ -156,8 +155,13 @@ module Autoproj
                 # Now run optional dependency resolution. This is done now, as
                 # some optional dependencies might have been excluded during the
                 # resolution process above
+                #
+                # We run this pass on all packages, regardless of the value of
+                # 'recursive' or enabled/disabled packages. This is critical
+                # by 
                 all_enabled_sources, all_enabled_osdeps =
                     Set.new, selection.each_osdep_package_name.to_set
+                environment_update_queue = Array.new
                 package_queue = selection.each_source_package_name.to_a
                 while !package_queue.empty?
                     pkg_name = package_queue.shift
@@ -174,12 +178,29 @@ module Autoproj
                     pkg.os_packages.merge(osdeps)
                     all_enabled_osdeps |= pkg.os_packages
 
-                    pkg.prepare if !pkg.disabled?
+                    pkg.prepare
                     Rake::Task["#{pkg.name}-prepare"].instance_variable_set(:@already_invoked, true)
 
                     if options[:recursive]
                         package_queue.concat(pkg.dependencies)
+                    else
+                        environment_update_queue.concat(pkg.dependencies)
                     end
+                end
+
+                all_updated_environments = Set.new
+                while !environment_update_queue.empty?
+                    pkg_name = environment_update_queue.shift
+                    next if all_updated_environments.include?(pkg_name)
+                    all_updated_environments << pkg_name
+
+                    pkg = manifest.find_autobuild_package(pkg_name)
+                    pkg.update_environment
+
+                    if !all_processed_packages.include?(pkg_name)
+                        manifest.load_package_manifest(pkg_name)
+                    end
+                    environment_update_queue.concat(pkg.dependencies)
                 end
 
                 if Autoproj.verbose
