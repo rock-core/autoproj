@@ -14,7 +14,7 @@ module Autoproj
 
             def validate_options(packages, options = Hash.new)
                 packages, options = super
-                if options.has_key?(:save)
+                if options[:save].nil?
                     options[:save] = case options[:save]
                                      when '.'
                                          nil

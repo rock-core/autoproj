@@ -10,7 +10,7 @@ module Autoproj
                     selected_packages = ['.']
                 end
 
-                if !options.has_key?(:deps)
+                if options[:deps].nil?
                     options[:deps] = 
                         !(options[:rebuild] || options[:force])
                 end
