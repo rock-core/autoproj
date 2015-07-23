@@ -37,7 +37,6 @@ module Autoproj
                 end
 
                 ws.setup
-                ws.install_ruby_shims
 
                 # Do that AFTER we have properly setup ws.osdeps as to avoid
                 # unnecessarily redetecting the operating system

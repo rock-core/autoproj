@@ -173,6 +173,8 @@ module Autoproj
             Autoproj::OSDependencies.define_osdeps_mode_option(config)
             osdeps.load_default
             osdeps.osdeps_mode
+
+            install_ruby_shims
         end
 
         def install_ruby_shims
