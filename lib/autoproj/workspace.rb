@@ -222,7 +222,7 @@ module Autoproj
             did_update =
                 begin
                     saved_flag = PackageManagers::GemManager.with_prerelease
-                    PackageManagers::GemManager.with_prerelease = Autoproj.config.use_prerelease?
+                    PackageManagers::GemManager.with_prerelease = config.use_prerelease?
                     osdeps.install(%w{autobuild autoproj})
                 ensure
                     PackageManagers::GemManager.with_prerelease = saved_flag
@@ -348,7 +348,7 @@ module Autoproj
                 next if manifest.has_package_set?(pkg_or_set)
 
                 # This is not known. Check if we can auto-add it
-                full_path = File.expand_path(File.join(Autoproj.root_dir, layout_level, pkg_or_set))
+                full_path = File.expand_path(File.join(root_dir, layout_level, pkg_or_set))
                 next if !File.directory?(full_path)
 
                 handler, srcdir = Autoproj.package_handler_for(full_path)
@@ -485,7 +485,7 @@ module Autoproj
                 load_if_present(source, source.local_dir, "overrides.rb")
             end
 
-            Dir.glob(File.join( Autoproj.overrides_dir, "*.rb" ) ).sort.each do |file|
+            Dir.glob(File.join( overrides_dir, "*.rb" ) ).sort.each do |file|
                 load file
             end
         end
