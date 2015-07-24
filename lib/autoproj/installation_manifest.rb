@@ -1,7 +1,7 @@
 module Autoproj
     # Manifest of installed packages imported from another autoproj installation
     class InstallationManifest
-        Package = Struct.new :name, :srcdir, :prefix, :builddir
+        Package = Struct.new :name, :srcdir, :prefix, :builddir, :dependencies
 
         DEFAULT_MANIFEST_NAME = ".autoproj-installation-manifest"
 
@@ -9,19 +9,59 @@ module Autoproj
         attr_reader :packages
         def initialize(path)
             @path = path
+            @packages = Hash.new
         end
 
         def default_manifest_path
             File.join(path, DEFAULT_MANIFEST_NAME)
         end
+
+        def exist?
+            File.exist?(default_manifest_path)
+        end
+
+        def [](name)
+            packages[name]
+        end
+
+        def []=(name, pkg)
+            packages[name] = pkg
+        end
+
+        def delete_if
+            packages.delete_if { |_, pkg| yield(pkg) }
+        end
             
         def load(path = default_manifest_path)
-            @packages = CSV.read(path).map do |row|
-                pkg = Package.new(*row)
-                if pkg.builddir && pkg.builddir.empty?
-                    pkg.builddir = nil
+            @packages = Hash.new
+            raw = YAML.load(File.open(path))
+            if raw.respond_to?(:to_str) # old CSV-based format
+                CSV.read(path).map do |row|
+                    name, srcdir, prefix, builddir = *row
+                    builddir = nil if builddir && builddir.empty?
+                    packages[name] = Package.new(name, srcdir, prefix, builddir, [])
                 end
-                pkg
+                save(path)
+            else
+                raw.each do |entry|
+                    pkg = Package.new(
+                        entry['name'], entry['srcdir'], entry['prefix'],
+                        entry['builddir'], entry['dependencies'])
+                    packages[pkg.name] = pkg
+                end
+            end
+        end
+
+        def save(path = default_manifest_path)
+            File.open(path, 'w') do |io|
+                marshalled_packages = packages.values.map do |v|
+                    Hash['name' => v.name,
+                         'srcdir' => v.srcdir,
+                         'builddir' => (v.builddir if v.respond_to?(:builddir)),
+                         'prefix' => v.prefix,
+                         'dependencies' => v.dependencies]
+                end
+                YAML.dump(marshalled_packages, io)
             end
         end
 
@@ -30,17 +70,17 @@ module Autoproj
         end
 
         def [](name)
-            packages.find { |pkg| pkg.name == name }
+            packages.each_value.find { |pkg| pkg.name == name }
         end
 
         def self.from_root(root_dir)
             manifest = InstallationManifest.new(root_dir)
-            manifest_file = File.join(root_dir,  ".autoproj-installation-manifest")
-            if !File.file?(manifest_file)
-                raise ConfigError.new, "no .autoproj-installation-manifest file exists in #{root_dir}. You should probably rerun autoproj envsh in that folder first"
+            if !manifest.exist?
+                raise ConfigError.new, "no #{DEFAULT_MANIFEST_NAME} file exists in #{root_dir}. You should probably rerun autoproj envsh in that folder first"
             end
-            manifest.load(manifest_file)
+            manifest.load
             manifest
         end
     end
 end
+

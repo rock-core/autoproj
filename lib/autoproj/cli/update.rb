@@ -118,7 +118,7 @@ module Autoproj
                     ws.osdeps.install(osdep_packages, osdeps_options)
                 end
 
-                ws.env.export_env_sh
+                ws.export_env_sh(source_packages)
                 Autoproj.message "autoproj: updated #{ws.root_dir}/#{Autoproj::ENV_FILENAME}", :green
 
                 return command_line_selection, source_packages, osdep_packages

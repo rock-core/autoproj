@@ -14,7 +14,7 @@ module Autoproj
 
                 options = Kernel.validate_options options,
                     shell_helpers: ws.config.shell_helpers?
-                ws.env.export_env_sh(shell_helpers: options[:shell_helpers])
+                ws.export_env_sh(shell_helpers: options[:shell_helpers])
             end
         end
     end

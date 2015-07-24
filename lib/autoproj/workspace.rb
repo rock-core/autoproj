@@ -505,40 +505,61 @@ module Autoproj
                 end
             end
 
-            setup_environment_from_packages
-
             # We now have processed the process setup blocks. All configuration
             # should be done and we can save the configuration data.
             config.save
         end
 
-        def setup_environment_from_packages
-            set_as_main_workspace
-            manifest.reused_installations.each do |reused_manifest|
-                reused_manifest.each do |pkg|
-                    # The reused installations might have packages we do not
-                    # know about, just ignore them
-                    if pkg = manifest.find_autobuild_package(pkg)
-                        pkg.update_environment
-                    end
-                end
-            end
-
-            # Make sure that we have the environment of all selected packages
-            manifest.all_selected_packages(false).each do |pkg_name|
-                manifest.find_autobuild_package(pkg_name).update_environment
-            end
+        def all_present_packages
+            manifest.each_autobuild_package.
+                find_all { |pkg| File.directory?(pkg.srcdir) }.
+                map(&:name)
         end
 
-        def export_installation_manifest
-            File.open(File.join(root_dir, InstallationManifest::DEFAULT_MANIFEST_NAME), 'w') do |io|
-                manifest.all_selected_packages(false).each do |pkg_name|
-                    if pkg = manifest.find_autobuild_package(pkg_name)
-                        builddir = (pkg.builddir if pkg.respond_to?(:builddir))
-                        io.puts "#{pkg_name},#{pkg.srcdir},#{pkg.prefix},#{builddir}"
-                    end
+        def export_installation_manifest(package_names = all_present_packages)
+            install_manifest = InstallationManifest.new(root_dir)
+            if install_manifest.exist?
+                install_manifest.load
+            end
+            # Delete obsolete entries
+            install_manifest.delete_if do |pkg|
+                !manifest.find_autobuild_package(pkg.name) ||
+                    !File.directory?(pkg.srcdir)
+            end
+            # Update the new entries
+            package_names.each do |pkg_name|
+                install_manifest[pkg_name] =
+                    manifest.find_autobuild_package(pkg_name)
+            end
+            # And save
+            install_manifest.save
+        end
+
+        def export_env_sh(package_names = all_present_packages, shell_helpers: true)
+            env = self.env.dup
+
+            install_manifest = InstallationManifest.new(root_dir)
+            if install_manifest.exist?
+                install_manifest.load
+            end
+
+            seen = Set.new
+            queue = manifest.default_packages(false).to_a
+            package_names = package_names.to_set
+            while !queue.empty?
+                pkg_name = queue.shift
+                next if seen.include?(pkg_name)
+                seen << pkg_name
+                pkg = manifest.find_autobuild_package(pkg_name)
+                pkg.update_environment
+                pkg.apply_env(env)
+                if package_names.include?(pkg_name)
+                    queue.concat(pkg.dependencies)
+                elsif installed_pkg = install_manifest[pkg_name]
+                    queue.concat(installed_pkg.dependencies)
                 end
             end
+            env.export_env_sh(shell_helpers: shell_helpers)
         end
     end
 
