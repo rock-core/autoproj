@@ -32,6 +32,10 @@ module Autoproj
                 selected_packages, config_selected =
                     normalize_command_line_package_selection(selected_packages)
 
+                if options[:apply_post_install].nil?
+                    options[:apply_post_install] = true
+                end
+
                 if options[:config].nil?
                     options[:config] = selected_packages.empty? || config_selected
                 end
@@ -111,7 +115,9 @@ module Autoproj
                                     ignore_errors: options[:keep_going])
 
                 ws.finalize_setup
-                load_all_available_package_manifests
+                if options[:apply_post_install]
+                    ws.apply_post_install
+                end
                 ws.export_installation_manifest
 
                 if options[:osdeps] && !osdep_packages.empty?

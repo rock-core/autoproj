@@ -62,22 +62,19 @@ module Autoproj
                 end
                 new_packages
             end
-
-            def import_packages(selection, options = Hash.new)
+            
+            # Import all packages from the given selection, and their
+            # dependencies
+            def import_selected_packages(selection, updated_packages, options = Hash.new)
                 options, import_options = Kernel.filter_options options,
-                    warn_about_ignored_packages: true,
-                    warn_about_excluded_packages: true,
                     recursive: true
 
                 manifest = ws.manifest
 
-                updated_packages = Array.new
                 selected_packages = selection.each_source_package_name.map do |pkg_name|
                     manifest.find_autobuild_package(pkg_name)
                 end.to_set
 
-                # The set of all packages that are currently selected by +selection+
-                all_processed_packages = Set.new
                 # The reverse dependencies for the package tree. It is discovered as
                 # we go on with the import
                 #
@@ -86,6 +83,8 @@ module Autoproj
                 # package exclusion (and that does not affect optional dependencies)
                 reverse_dependencies = Hash.new { |h, k| h[k] = Set.new }
 
+                # The set of all packages that are currently selected by +selection+
+                all_processed_packages = Set.new
                 package_queue = selected_packages.to_a.sort_by(&:name)
                 while !package_queue.empty?
                     pkg = package_queue.shift
@@ -143,32 +142,35 @@ module Autoproj
                     # Excluded dependencies might have caused the package to be
                     # excluded as well ... do not add any dependency to the
                     # processing queue if it is the case
-                    if !manifest.excluded?(pkg.name) && options[:recursive]
+                    if manifest.excluded?(pkg.name)
+                        selection.filter_excluded_and_ignored_packages(manifest)
+                    elsif options[:recursive]
                         package_queue.concat(new_packages.sort_by(&:name))
                     end
-
-                    # Verify that everything is still OK with the new
-                    # exclusions/ignores
-                    selection.filter_excluded_and_ignored_packages(manifest)
                 end
+                all_processed_packages
+            end
+            
+            def finalize_package_load(processed_packages)
+                manifest = ws.manifest
 
-                # Now run optional dependency resolution. This is done now, as
-                # some optional dependencies might have been excluded during the
-                # resolution process above
-                #
-                # We run this pass on all packages, regardless of the value of
-                # 'recursive' or enabled/disabled packages. This is critical
-                # by 
-                all_enabled_sources, all_enabled_osdeps =
-                    Set.new, selection.each_osdep_package_name.to_set
-                environment_update_queue = Array.new
-                package_queue = selection.each_source_package_name.to_a
+                all = Set.new
+                package_queue = manifest.all_layout_packages(false).each_source_package_name.to_a
                 while !package_queue.empty?
                     pkg_name = package_queue.shift
-                    next if all_enabled_sources.include?(pkg_name)
-                    all_enabled_sources << pkg_name
+                    next if all.include?(pkg_name)
+                    all << pkg_name
+
+                    next if manifest.ignored?(pkg_name) || manifest.excluded?(pkg_name)
 
                     pkg = manifest.find_autobuild_package(pkg_name)
+                    if !processed_packages.include?(pkg.name)
+                        manifest.load_package_manifest(pkg.name)
+                        Autoproj.each_post_import_block(pkg) do |block|
+                            block.call(pkg)
+                        end
+                    end
+
                     packages, osdeps = pkg.partition_optional_dependencies
                     packages.each do |pkg_name|
                         if !manifest.ignored?(pkg_name) && !manifest.excluded?(pkg_name)
@@ -176,36 +178,29 @@ module Autoproj
                         end
                     end
                     pkg.os_packages.merge(osdeps)
-                    all_enabled_osdeps |= pkg.os_packages
-
                     pkg.prepare
                     Rake::Task["#{pkg.name}-prepare"].instance_variable_set(:@already_invoked, true)
-
-                    if options[:recursive]
-                        package_queue.concat(pkg.dependencies)
-                    else
-                        environment_update_queue.concat(pkg.dependencies)
-                    end
-                end
-
-                all_updated_environments = Set.new
-                while !environment_update_queue.empty?
-                    pkg_name = environment_update_queue.shift
-                    next if all_updated_environments.include?(pkg_name)
-                    all_updated_environments << pkg_name
-
-                    pkg = manifest.find_autobuild_package(pkg_name)
                     pkg.update_environment
-
-                    if !all_processed_packages.include?(pkg_name)
-                        manifest.load_package_manifest(pkg_name)
-                    end
-                    environment_update_queue.concat(pkg.dependencies)
+                    package_queue.concat(pkg.dependencies)
                 end
+                all
+            end
 
-                if Autoproj.verbose
-                    Autoproj.message "autoproj: finished importing packages"
-                end
+            def import_packages(selection, options = Hash.new)
+                options, import_options = Kernel.filter_options options,
+                    warn_about_ignored_packages: true,
+                    warn_about_excluded_packages: true,
+                    recursive: true
+
+                manifest = ws.manifest
+
+                updated_packages = Array.new
+                all_processed_packages = import_selected_packages(
+                    selection, updated_packages, import_options.merge(recursive: options[:recursive]))
+                finalize_package_load(all_processed_packages)
+
+                all_enabled_osdeps = selection.each_osdep_package_name.to_set
+                all_enabled_sources = all_processed_packages
 
                 if options[:warn_about_excluded_packages]
                     selection.exclusions.each do |sel, pkg_names|

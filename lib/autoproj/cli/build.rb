@@ -25,7 +25,7 @@ module Autoproj
                 Autobuild.ignore_errors = options[:keep_going]
 
                 command_line_selection, source_packages, osdep_packages =
-                    super(selected_packages, options.merge(checkout_only: true))
+                    super(selected_packages, options.merge(checkout_only: true, apply_post_install: false))
 
                 # Disable all packages that are not selected
                 ws.manifest.each_autobuild_package do |pkg|
@@ -70,6 +70,7 @@ module Autoproj
                 Autobuild.do_build = true
                 ops.build_packages(source_packages)
                 Autobuild.apply(source_packages, "autoproj-build", ['install'])
+                ws.apply_post_install
             end
         end
     end

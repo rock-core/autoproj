@@ -537,29 +537,24 @@ module Autoproj
 
         def export_env_sh(package_names = all_present_packages, shell_helpers: true)
             env = self.env.dup
-
-            install_manifest = InstallationManifest.new(root_dir)
-            if install_manifest.exist?
-                install_manifest.load
-            end
-
-            seen = Set.new
-            queue = manifest.default_packages(false).to_a
-            package_names = package_names.to_set
-            while !queue.empty?
-                pkg_name = queue.shift
-                next if seen.include?(pkg_name)
-                seen << pkg_name
+            manifest.all_selected_packages.each do |pkg_name|
                 pkg = manifest.find_autobuild_package(pkg_name)
-                pkg.update_environment
-                pkg.apply_env(env)
-                if package_names.include?(pkg_name)
-                    queue.concat(pkg.dependencies)
-                elsif installed_pkg = install_manifest[pkg_name]
-                    queue.concat(installed_pkg.dependencies)
+                if File.directory?(pkg.srcdir) && !pkg.applied_post_install?
+                    pkg.apply_post_install
                 end
+
+                pkg.apply_env(env)
             end
             env.export_env_sh(shell_helpers: shell_helpers)
+        end
+
+        def apply_post_install
+            manifest.all_selected_packages.each do |pkg_name|
+                pkg = manifest.find_autobuild_package(pkg_name)
+                if File.directory?(pkg.srcdir) && !pkg.applied_post_install?
+                    pkg.apply_post_install
+                end
+            end
         end
     end
 
