@@ -77,7 +77,6 @@ module Autoproj
                     if doc[-1, 1] != "?"
                         doc = "#{doc}:"
                     end
-                    Autoproj.message "  #{doc} #{value}"
                     displayed_options[key] = value
                 end
                 value
