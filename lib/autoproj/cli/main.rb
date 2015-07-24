@@ -41,6 +41,9 @@ module Autoproj
             option :reuse,
                 banner: 'DIR',
                 desc: 'reuse packages already built within the DIR autoproj workspace in this installation, if DIR is not given, reuses the installation whose env.sh is currently sourced'
+            option :seed_config,
+                banner: 'SEED_CONFIG',
+                desc: "a configuration file used to seed the bootstrap's configuration"
             def bootstrap(*args)
                 run_autoproj_cli(:bootstrap, :Bootstrap, Hash[], *args)
             end
