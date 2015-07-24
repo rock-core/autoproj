@@ -33,7 +33,7 @@ module Autoproj
                 return args, options
             end
             
-            def restart_if_needed
+            def restart_if_needed(ws)
                 # Check if the .autoprojrc changed the PATH and therefore which autoproj script
                 # should be executed ... and restart if it did
                 autoproj_path = Autobuild.find_in_path('autoproj')
@@ -73,7 +73,7 @@ module Autoproj
                 ws = Workspace.new(root_dir)
                 ws.setup
                 install_autoproj_gem_in_new_root(ws)
-                restart_if_needed
+                restart_if_needed(ws)
 
                 switcher = Ops::MainConfigSwitcher.new(ws)
                 begin
