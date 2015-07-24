@@ -20,7 +20,8 @@ Utilrb::Rake.hoe do
             extra_deps << 
                 ['autobuild',   '~> 1.9', '>= 1.9.0'] <<
                 ['utilrb', '~> 2.0', '>= 2.0.0'] <<
-                ['highline', '~> 1.7', '>= 1.7.0']
+                ['highline', '~> 1.7', '>= 1.7.0'] <<
+                ['thor', '~> 0.19.0', '>= 0.19.1']
         end
     end
 end
