@@ -66,7 +66,7 @@ module Autoproj
         end
 
         def each(&block)
-            packages.each(&block)
+            packages.each_value(&block)
         end
 
         def [](name)
