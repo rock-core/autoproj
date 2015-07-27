@@ -71,17 +71,19 @@ module Autoproj
 
             def run(buildconf_info, options)
                 ws = Workspace.new(root_dir)
-                if config_path = options[:seed_config]
-                    FileUtils.cp config_path, File.join(ws.config_dir, 'config.yml')
-                end
 
                 ws.setup
                 install_autoproj_gem_in_new_root(ws)
                 restart_if_needed(ws)
 
+                seed_config = options.delete(:seed_config)
+
                 switcher = Ops::MainConfigSwitcher.new(ws)
                 begin
                     switcher.bootstrap(buildconf_info, options)
+                    if seed_config
+                        FileUtils.cp seed_config, File.join(ws.config_dir, 'config.yml')
+                    end
 
                     STDERR.puts <<-EOTEXT
 
