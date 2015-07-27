@@ -539,22 +539,9 @@ module Autoproj
             env = self.env.dup
             manifest.all_selected_packages.each do |pkg_name|
                 pkg = manifest.find_autobuild_package(pkg_name)
-                if File.directory?(pkg.srcdir) && !pkg.applied_post_install?
-                    pkg.apply_post_install
-                end
-
                 pkg.apply_env(env)
             end
             env.export_env_sh(shell_helpers: shell_helpers)
-        end
-
-        def apply_post_install
-            manifest.all_selected_packages.each do |pkg_name|
-                pkg = manifest.find_autobuild_package(pkg_name)
-                if File.directory?(pkg.srcdir) && !pkg.applied_post_install?
-                    pkg.apply_post_install
-                end
-            end
         end
     end
 

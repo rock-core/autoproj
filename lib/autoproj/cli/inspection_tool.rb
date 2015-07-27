@@ -48,7 +48,6 @@ module Autoproj
                     source_packages, osdep_packages, resolved_selection =
                         resolve_selection(ws.manifest, packages, options)
                     ws.finalize_setup
-                    ws.apply_post_install
                     ws.export_installation_manifest
                     return source_packages, osdep_packages, resolved_selection, config_selected
                 end
