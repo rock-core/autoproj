@@ -201,6 +201,9 @@ module Autoproj
 
                 all_enabled_osdeps = selection.each_osdep_package_name.to_set
                 all_enabled_sources = all_processed_packages
+                all_enabled_sources.each do |pkg_name|
+                    all_enabled_osdeps.merge(manifest.find_autobuild_package(pkg_name).os_packages)
+                end
 
                 if options[:warn_about_excluded_packages]
                     selection.exclusions.each do |sel, pkg_names|
