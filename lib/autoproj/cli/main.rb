@@ -25,6 +25,8 @@ module Autoproj
             class_option :progress, type: :boolean,
                 desc: 'enables or disables progress display (enabled by default)',
                 default: true
+            class_option :parallel, aliases: :p, type: :numeric,
+                desc: 'maximum number of parallel jobs'
 
             no_commands do
                 def run_autoproj_cli(filename, classname, report_options, *args)

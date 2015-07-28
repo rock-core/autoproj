@@ -127,7 +127,8 @@ module Autoproj
                     verbose: false,
                     debug: false,
                     color: true,
-                    progress: true
+                    progress: true,
+                    parallel: nil
 
                 Autoproj.silent = options[:silent]
                 if options[:verbose]
@@ -145,6 +146,9 @@ module Autoproj
                 end
 
                 Autobuild.color = options[:color]
+                if level = options[:parallel]
+                    Autobuild.parallel_build_level = Integer(level)
+                end
 
                 Autobuild.progress_display_enabled = options[:progress]
                 return args, remaining
