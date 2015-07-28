@@ -56,7 +56,7 @@ module Autoproj
                     checkout_only: !options[:config] || options[:checkout_only],
                     ignore_errors: options[:keep_going])
                 if selected_packages.empty? && config_selected
-                    return
+                    return [], [], true
                 end
 
                 ws.setup_all_package_directories
