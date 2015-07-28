@@ -27,6 +27,8 @@ module Autoproj
                 command_line_selection, source_packages, osdep_packages =
                     super(selected_packages, options.merge(checkout_only: true))
 
+                return if source_packages.empty?
+
                 # Disable all packages that are not selected
                 ws.manifest.each_autobuild_package do |pkg|
                     next if source_packages.include?(pkg.name)
