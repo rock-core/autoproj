@@ -11,15 +11,14 @@ module Autoproj
                     raise ConfigError, "you cannot run autoproj switch-config from autoproj's configuration directory or one of its subdirectories"
                 end
 
+                ws.load_config
+
                 # We must switch to the root dir first, as it is required by the
                 # configuration switch code. This is acceptable as long as we
                 # quit just after the switch
                 switcher = Ops::MainConfigSwitcher.new(ws)
                 if switcher.switch_config(*args)
-                    manifest = Manifest.load(File.join(ws.config_dir, 'manifest'))
-                    update = Ops::Configuration.new(ws, ws.loader)
-                    update.update_configuration
-                    ws.config.save
+                    CLI::Main.start(['update', '--config'])
                 end
             end
         end

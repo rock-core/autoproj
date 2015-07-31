@@ -119,7 +119,7 @@ module Autoproj
             end
 
             def switch_config(*args)
-                vcs = ws.config.get('manifest_source', nil)
+                vcs = ws.manifest.vcs
                 if args.first =~ /^(\w+)=/
                     # First argument is an option string, we are simply setting the
                     # options without changing the type/url
@@ -132,12 +132,13 @@ module Autoproj
                 url = VCSDefinition.to_absolute_url(url)
 
                 if vcs && (vcs.type == type && vcs.url == url)
+                    vcs = vcs.to_hash
                     options.each do |opt|
                         opt_name, opt_value = opt.split('=')
-                        vcs[opt_name] = opt_value
+                        vcs[opt_name.to_sym] = opt_value
                     end
                     # Validate the VCS definition, but save the hash as-is
-                    VCSDefinition.from_raw(vcs)
+                    ws.manifest.vcs = VCSDefinition.from_raw(vcs)
                     ws.config.set "manifest_source", vcs.dup, true
                     ws.config.save
                     true
@@ -151,9 +152,9 @@ module Autoproj
                     return if !opt.ask(nil)
 
                     do_switch_config(true, type, url, *options)
+                    ws.config.save
                     false
                 end
-                ws.config.save
             end
 
             # @api private
