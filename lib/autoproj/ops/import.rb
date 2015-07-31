@@ -63,9 +63,55 @@ module Autoproj
                 new_packages
             end
             
+            def pre_package_import(selection, manifest, pkg, reverse_dependencies)
+                # Try to auto-exclude the package early. If the autobuild file
+                # contained some information that allows us to exclude it now,
+                # then let's just do it
+                import_next_step(pkg, reverse_dependencies)
+                if manifest.excluded?(pkg.name)
+                    selection.filter_excluded_and_ignored_packages(manifest)
+                    false
+                elsif manifest.ignored?(pkg.name)
+                    false
+                elsif !pkg.importer && !File.directory?(pkg.srcdir)
+                    raise ConfigError.new, "#{pkg.name} has no VCS, but is not checked out in #{pkg.srcdir}"
+                elsif pkg.importer
+                    true
+                end
+            end
+
+            def post_package_import(selection, manifest, pkg, reverse_dependencies)
+                Rake::Task["#{pkg.name}-import"].instance_variable_set(:@already_invoked, true)
+                manifest.load_package_manifest(pkg.name)
+
+                # The package setup mechanisms might have added an exclusion
+                # on this package. Handle this.
+                if manifest.excluded?(pkg.name)
+                    mark_exclusion_along_revdeps(pkg.name, reverse_dependencies)
+                    # Run a filter now, to have errors as early as possible
+                    selection.filter_excluded_and_ignored_packages(manifest)
+                    # Delete this package from the current_packages set
+                    false
+                elsif manifest.ignored?(pkg.name)
+                    false
+                else
+                    Autoproj.each_post_import_block(pkg) do |block|
+                        block.call(pkg)
+                    end
+                    import_next_step(pkg, reverse_dependencies)
+                end
+            end
+
             # Import all packages from the given selection, and their
             # dependencies
             def import_selected_packages(selection, updated_packages, options = Hash.new)
+                parallel_options, options = Kernel.filter_options options,
+                    parallel: ws.config.parallel_import_level
+
+                # This is used in the ensure block, initialize as early as
+                # possible
+                executor = Concurrent::FixedThreadPool.new(parallel_options[:parallel], max_length: 0)
+
                 options, import_options = Kernel.filter_options options,
                     recursive: true
 
@@ -83,72 +129,90 @@ module Autoproj
                 # package exclusion (and that does not affect optional dependencies)
                 reverse_dependencies = Hash.new { |h, k| h[k] = Set.new }
 
+                completion_queue = Queue.new
+                pending_packages = Set.new
                 # The set of all packages that are currently selected by +selection+
                 all_processed_packages = Set.new
+                interactive_imports = Array.new
                 package_queue = selected_packages.to_a.sort_by(&:name)
-                while !package_queue.empty?
-                    pkg = package_queue.shift
-                    # Remove packages that have already been processed
-                    next if all_processed_packages.include?(pkg.name)
-                    all_processed_packages << pkg.name
+                while true
+                    # Queue work for all packages in the queue
+                    package_queue.each do |pkg|
+                        # Remove packages that have already been processed
+                        next if all_processed_packages.include?(pkg)
+                        all_processed_packages << pkg
 
-                    # Try to auto-exclude the package early. If the autobuild file
-                    # contained some information that allows us to exclude it now,
-                    # then let's just do it
-                    import_next_step(pkg, reverse_dependencies)
-                    if manifest.excluded?(pkg.name)
-                        selection.filter_excluded_and_ignored_packages(manifest)
-                        next
-                    elsif manifest.ignored?(pkg.name)
-                        next
+                        if !pre_package_import(selection, manifest, pkg, reverse_dependencies)
+                            next
+                        elsif pkg.importer.interactive?
+                            interactive_imports << pkg
+                            next
+                        end
+
+                        pending_packages << pkg
+                        import_future = Concurrent::Future.new(executor: executor, args: [pkg]) do |import_pkg|
+                            ## COMPLETELY BYPASS RAKE HERE
+                            # The reason is that the ordering of import/prepare between
+                            # packages is not important BUT the ordering of import vs.
+                            # prepare in one package IS important: prepare is the method
+                            # that takes into account dependencies.
+                            import_pkg.import(import_options)
+                        end
+                        import_future.add_observer do |time, result, reason|
+                            completion_queue << [pkg, time, result, reason]
+                        end
+                        import_future.execute
+                    end
+                    package_queue.clear
+
+                    if completion_queue.empty? && pending_packages.empty?
+                        # We've nothing to process anymore ... process
+                        # interactive imports if there are some. Otherwise,
+                        # we're done
+                        if interactive_imports.empty?
+                            return all_processed_packages
+                        else
+                            interactive_imports.each do |pkg|
+                                begin
+                                    result = pkg.import(import_options)
+                                rescue Exception => reason
+                                end
+                                completion_queue << [pkg, Time.now, result, reason]
+                            end
+                            interactive_imports.clear
+                        end
                     end
 
-                    # If the package has no importer, the source directory must
-                    # be there
-                    if !pkg.importer && !File.directory?(pkg.srcdir)
-                        raise ConfigError.new, "#{pkg.name} has no VCS, but is not checked out in #{pkg.srcdir}"
-                    end
-
-                    ## COMPLETELY BYPASS RAKE HERE
-                    # The reason is that the ordering of import/prepare between
-                    # packages is not important BUT the ordering of import vs.
-                    # prepare in one package IS important: prepare is the method
-                    # that takes into account dependencies.
-                    pkg.import(import_options)
-                    if pkg.updated?
-                        updated_packages << pkg.name
-                    end
-                    Rake::Task["#{pkg.name}-import"].instance_variable_set(:@already_invoked, true)
-                    manifest.load_package_manifest(pkg.name)
-
-                    # The package setup mechanisms might have added an exclusion
-                    # on this package. Handle this.
-                    if manifest.excluded?(pkg.name)
-                        mark_exclusion_along_revdeps(pkg.name, reverse_dependencies)
-                        # Run a filter now, to have errors as early as possible
-                        selection.filter_excluded_and_ignored_packages(manifest)
-                        # Delete this package from the current_packages set
-                        next
-                    elsif manifest.ignored?(pkg.name)
-                        next
-                    end
-
-                    Autoproj.each_post_import_block(pkg) do |block|
-                        block.call(pkg)
-                    end
-
-                    new_packages = import_next_step(pkg, reverse_dependencies)
-
-                    # Excluded dependencies might have caused the package to be
-                    # excluded as well ... do not add any dependency to the
-                    # processing queue if it is the case
-                    if manifest.excluded?(pkg.name)
-                        selection.filter_excluded_and_ignored_packages(manifest)
-                    elsif options[:recursive]
-                        package_queue.concat(new_packages.sort_by(&:name))
+                    # And wait one to finish
+                    pkg, time, result, reason = completion_queue.pop
+                    pending_packages.delete(pkg)
+                    if reason
+                        # One importer failed... terminate
+                        Autoproj.error "import of #{pkg.name} failed, waiting for pending import jobs to finish"
+                        if !reason.kind_of?(Interrupt)
+                            Autoproj.error "#{reason}"
+                        end
+                        raise reason
+                    else
+                        if new_packages = post_package_import(selection, manifest, pkg, reverse_dependencies)
+                            # Excluded dependencies might have caused the package to be
+                            # excluded as well ... do not add any dependency to the
+                            # processing queue if it is the case
+                            if manifest.excluded?(pkg.name)
+                                selection.filter_excluded_and_ignored_packages(manifest)
+                            elsif options[:recursive]
+                                package_queue = new_packages.sort_by(&:name)
+                            end
+                        end
                     end
                 end
+
                 all_processed_packages
+
+            ensure
+                executor.shutdown
+                executor.wait_for_termination
+                updated_packages.concat(all_processed_packages.find_all(&:updated?).map(&:name))
             end
             
             def finalize_package_load(processed_packages)
@@ -164,7 +228,7 @@ module Autoproj
                     next if manifest.ignored?(pkg_name) || manifest.excluded?(pkg_name)
 
                     pkg = manifest.find_autobuild_package(pkg_name)
-                    if !processed_packages.include?(pkg.name)
+                    if !processed_packages.include?(pkg)
                         manifest.load_package_manifest(pkg.name)
                         Autoproj.each_post_import_block(pkg) do |block|
                             block.call(pkg)
@@ -187,6 +251,9 @@ module Autoproj
             end
 
             def import_packages(selection, options = Hash.new)
+                # Used in the ensure block, initialize as soon as possible
+                updated_packages = Array.new
+
                 options, import_options = Kernel.filter_options options,
                     warn_about_ignored_packages: true,
                     warn_about_excluded_packages: true,
@@ -194,16 +261,15 @@ module Autoproj
 
                 manifest = ws.manifest
 
-                updated_packages = Array.new
                 all_processed_packages = import_selected_packages(
                     selection, updated_packages, import_options.merge(recursive: options[:recursive]))
                 finalize_package_load(all_processed_packages)
 
                 all_enabled_osdeps = selection.each_osdep_package_name.to_set
-                all_enabled_sources = all_processed_packages
+                all_enabled_sources = all_processed_packages.map(&:name)
                 if options[:recursive]
-                    all_enabled_sources.each do |pkg_name|
-                        all_enabled_osdeps.merge(manifest.find_autobuild_package(pkg_name).os_packages)
+                    all_processed_packages.each do |pkg|
+                        all_enabled_osdeps.merge(pkg.os_packages)
                     end
                 end
 

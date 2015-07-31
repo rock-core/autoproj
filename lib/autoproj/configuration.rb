@@ -189,6 +189,10 @@ module Autoproj
             set('import_log_enabled', !!value)
         end
 
+        def parallel_import_level
+            get('parallel_import_level', 10)
+        end
+
         def ruby_executable
             if path = get('ruby_executable', nil)
                 path
