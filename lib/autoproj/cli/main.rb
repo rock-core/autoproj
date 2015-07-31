@@ -174,7 +174,16 @@ module Autoproj
             option :config, type: :boolean,
                 default: nil,
                 banner: '',
-                desc: 'controls whether the package sets should be versioned as well. This is the default if no packages are given on the command line or if the autoproj directory is'
+                desc: "controls whether the package sets should be versioned as well",
+                long_desc: <<-EOD
+This is the default if no packages are given on the command line, or if the
+autoproj main configuration directory is. Note that if --config but no packages
+are given, the packages will not be versioned. In other words,
+   autoproj versions # versions everything, configuration and packages
+   autoproj versions --config # versions only the configuration
+   autoproj versions autoproj/ # versions only the configuration
+   autoproj versions autoproj a/package # versions the configuration and the specified package(s)
+                EOD
             option :keep_going, aliases: :k, type: :boolean,
                 default: false,
                 banner: '',

@@ -29,21 +29,23 @@ module Autoproj
 
             def run(user_selection, options)
                 initialize_and_load
-                packages, *, config_selected =
+                user_selection, config_selected =
+                    normalize_command_line_package_selection(user_selection)
+                packages, * =
                     finalize_setup(user_selection,
                                    ignore_non_imported_packages: true)
 
-                if (config_selected || user_selection.empty?) && (options[:package_sets] != false)
-                    options[:package_sets] = true
-                end
-
+                
                 ops = Ops::Snapshot.new(ws.manifest, keep_going: options[:keep_going])
 
                 versions = Array.new
-                if options[:package_sets]
+                if config_selected || (options[:config] != false) || user_selection.empty?
                     versions += ops.snapshot_package_sets
                 end
-                versions += ops.snapshot_packages(packages)
+                if (!config_selected && !options[:config]) || !user_selection.empty?
+                    versions += ops.snapshot_packages(packages)
+                end
+
                 if output_file = options[:save]
                     ops.save_versions(versions, output_file, replace: options[:replace])
                 else
