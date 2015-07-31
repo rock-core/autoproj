@@ -171,7 +171,7 @@ module Autoproj
             end
 
             desc 'versions [PACKAGES]', 'generate a version file for the given packages, or all packages if none are given'
-            option :package_sets, type: :boolean,
+            option :config, type: :boolean,
                 default: nil,
                 banner: '',
                 desc: 'controls whether the package sets should be versioned as well. This is the default if no packages are given on the command line or if the autoproj directory is'
