@@ -60,7 +60,7 @@ module Autoproj
                     checkout_only: !options[:config] || options[:checkout_only],
                     reset: options[:reset],
                     ignore_errors: options[:keep_going])
-                if selected_packages.empty? && config_selected
+                if selected_packages.empty? && (config_selected || options[:config]) && !options[:all]
                     return [], [], true
                 end
 
