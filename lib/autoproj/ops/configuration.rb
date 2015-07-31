@@ -56,7 +56,8 @@ module Autoproj
             options = Kernel.validate_options options,
                 only_local: false,
                 checkout_only: !Autobuild.do_update,
-                ignore_errors: false
+                ignore_errors: false,
+                reset: false
 
             fake_package = Tools.create_autobuild_package(vcs, name, into)
             if update_from
@@ -96,7 +97,8 @@ module Autoproj
             options = validate_options options,
                 only_local: false,
                 checkout_only: !Autobuild.do_update,
-                ignore_errors: false
+                ignore_errors: false,
+                reset: false
 
             update_configuration_repository(
                 ws.manifest.vcs,
@@ -118,7 +120,8 @@ module Autoproj
             options = validate_options options,
                 only_local: false,
                 checkout_only: !Autobuild.do_update,
-                ignore_errors: false
+                ignore_errors: false,
+                reset: false
 
             name = PackageSet.name_of(ws.manifest, vcs)
             raw_local_dir = PackageSet.raw_local_dir_of(vcs)
@@ -208,7 +211,8 @@ module Autoproj
             options = validate_options options,
                 only_local: false,
                 checkout_only: !Autobuild.do_update,
-                ignore_errors: false
+                ignore_errors: false,
+                reset: false
 
             package_sets = [root_pkg_set]
             by_repository_id = Hash.new
@@ -339,7 +343,8 @@ module Autoproj
             options = validate_options options,
                 only_local: false,
                 checkout_only: true,
-                ignore_errors: false
+                ignore_errors: false,
+                reset: false
             update_configuration(options)
         end
 
@@ -350,7 +355,8 @@ module Autoproj
             options = validate_options options,
                 only_local: false,
                 checkout_only: !Autobuild.do_update,
-                ignore_errors: false
+                ignore_errors: false,
+                reset: false
 
             # Load the installation's manifest a first time, to check if we should
             # update it ... We assume that the OS dependencies for this VCS is already

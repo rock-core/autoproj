@@ -95,6 +95,11 @@ module Autoproj
                 desc: 'controls whether the osdeps subsystem should filter up-to-date packages or not', default: true
             option :deps, default: true, type: :boolean,
                 desc: 'whether the package dependencies should be recursively updated (the default) or not'
+            option :reset, default: false, type: :boolean,
+                desc: "forcefully resets the repository to the state expected by autoproj's configuration",
+                long_desc: "The default is to update the repository if possible, and leave it alone otherwise. With --reset, autoproj update might come back to an older commit than the repository's current state"
+            option :force_reset, default: false, type: :boolean,
+                desc: "like --reset, but bypasses tests that ensure you won't lose data"
             def update(*packages)
                 run_autoproj_cli(:update, :Update, Hash[silent: false], *packages)
             end

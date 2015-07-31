@@ -21,6 +21,10 @@ module Autoproj
                     packages = ['.']
                 end
 
+                if options[:force_reset]
+                    options[:reset] = :force
+                end
+
                 if options[:autoproj].nil?
                     options[:autoproj] = packages.empty?
                 end
@@ -54,6 +58,7 @@ module Autoproj
                 ws.load_package_sets(
                     only_local: options[:local],
                     checkout_only: !options[:config] || options[:checkout_only],
+                    reset: options[:reset],
                     ignore_errors: options[:keep_going])
                 if selected_packages.empty? && config_selected
                     return [], [], true
