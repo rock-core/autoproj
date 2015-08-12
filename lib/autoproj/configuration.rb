@@ -193,6 +193,10 @@ module Autoproj
             get('parallel_import_level', 10)
         end
 
+        def parallel_import_level=(level)
+            set('parallel_import_level', level)
+        end
+
         def ruby_executable
             if path = get('ruby_executable', nil)
                 path

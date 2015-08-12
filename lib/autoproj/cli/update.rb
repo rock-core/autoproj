@@ -41,6 +41,7 @@ module Autoproj
                 end
 
                 ws.setup
+                parallel = options[:parallel] || ws.config.parallel_import_level
 
                 # Do that AFTER we have properly setup ws.osdeps as to avoid
                 # unnecessarily redetecting the operating system
@@ -113,7 +114,8 @@ module Autoproj
                                     only_local: options[:local],
                                     reset: options[:reset],
                                     recursive: options[:deps],
-                                    ignore_errors: options[:keep_going])
+                                    ignore_errors: options[:keep_going],
+                                    parallel: options[:parallel],
 
                 ws.finalize_setup
                 ws.export_installation_manifest

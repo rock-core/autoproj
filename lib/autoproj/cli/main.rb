@@ -25,8 +25,6 @@ module Autoproj
             class_option :progress, type: :boolean,
                 desc: 'enables or disables progress display (enabled by default)',
                 default: true
-            class_option :parallel, aliases: :p, type: :numeric,
-                desc: 'maximum number of parallel jobs'
 
             no_commands do
                 def run_autoproj_cli(filename, classname, report_options, *args)
@@ -100,6 +98,8 @@ module Autoproj
                 long_desc: "The default is to update the repository if possible, and leave it alone otherwise. With --reset, autoproj update might come back to an older commit than the repository's current state"
             option :force_reset, default: false, type: :boolean,
                 desc: "like --reset, but bypasses tests that ensure you won't lose data"
+            option :parallel, aliases: :p, type: :numeric,
+                desc: 'maximum number of parallel jobs'
             def update(*packages)
                 run_autoproj_cli(:update, :Update, Hash[silent: false], *packages)
             end
@@ -119,6 +119,8 @@ module Autoproj
                 desc: 'controls whether missing osdeps should be installed. In rebuild mode, also controls whether the osdeps should be reinstalled or not (the default is to reinstall them)' 
             option :deps, type: :boolean,
                 desc: 'in force or rebuild modes, control whether the force/rebuild action should apply only on the packages given on the command line, or on their dependencies as well (the default is --no-deps)'
+            option :parallel, aliases: :p, type: :numeric,
+                desc: 'maximum number of parallel jobs'
             def build(*packages)
                 run_autoproj_cli(:build, :Build, Hash[silent: false], *packages)
             end

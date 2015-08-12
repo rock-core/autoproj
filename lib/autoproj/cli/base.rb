@@ -148,6 +148,7 @@ module Autoproj
                 Autobuild.color = options[:color]
                 if level = options[:parallel]
                     Autobuild.parallel_build_level = Integer(level)
+                    remaining[:parallel] = Integer(level)
                 end
 
                 Autobuild.progress_display_enabled = options[:progress]
