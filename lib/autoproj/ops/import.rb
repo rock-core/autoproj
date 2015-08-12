@@ -102,6 +102,8 @@ module Autoproj
                 end
             end
 
+            class ImportFailed < RuntimeError; end
+
             # Import all packages from the given selection, and their
             # dependencies
             def import_selected_packages(selection, updated_packages, options = Hash.new)
@@ -111,11 +113,13 @@ module Autoproj
                 # This is used in the ensure block, initialize as early as
                 # possible
                 executor = Concurrent::FixedThreadPool.new(parallel_options[:parallel], max_length: 0)
+                all_processed_packages = Set.new
 
                 options, import_options = Kernel.filter_options options,
                     recursive: true,
                     retry_count: nil
 
+                ignore_errors = options[:ignore_errors]
                 retry_count = options[:retry_count]
                 manifest = ws.manifest
 
@@ -137,7 +141,8 @@ module Autoproj
                 all_processed_packages = Set.new
                 interactive_imports = Array.new
                 package_queue = selected_packages.to_a.sort_by(&:name)
-                while true
+                failures = Hash.new
+                while failures.empty? || ignore_errors
                     # Queue work for all packages in the queue
                     package_queue.each do |pkg|
                         # Remove packages that have already been processed
@@ -193,11 +198,11 @@ module Autoproj
                     pending_packages.delete(pkg)
                     if reason
                         # One importer failed... terminate
-                        Autoproj.error "import of #{pkg.name} failed, waiting for pending import jobs to finish"
+                        Autoproj.error "import of #{pkg.name} failed"
                         if !reason.kind_of?(Interrupt)
                             Autoproj.error "#{reason}"
                         end
-                        raise reason
+                        failures[pkg] = reason
                     else
                         if new_packages = post_package_import(selection, manifest, pkg, reverse_dependencies)
                             # Excluded dependencies might have caused the package to be
@@ -212,9 +217,16 @@ module Autoproj
                     end
                 end
 
+                if !failures.empty?
+                    raise ImportFailed, "import of #{failures.size} packages failed: #{failures.keys.map(&:name).sort.join(", ")}"
+                end
+
                 all_processed_packages
 
             ensure
+                if failures && !failures.empty? && !ignore_errors
+                    Autoproj.error "waiting for pending import jobs to finish"
+                end
                 executor.shutdown
                 executor.wait_for_termination
                 updated_packages.concat(all_processed_packages.find_all(&:updated?).map(&:name))
