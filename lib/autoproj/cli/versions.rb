@@ -18,7 +18,7 @@ module Autoproj
                     options[:save] = case options[:save]
                                      when '.'
                                          nil
-                                     when true
+                                     when 'save'
                                          default_versions_file
                                      else
                                          options[:save].to_str
