@@ -73,6 +73,8 @@ module Autoproj
         if Autobuild.debug then raise
         else exit 1
         end
+    rescue SystemExit
+        raise
     rescue Exception => e
         STDERR.puts
         STDERR.puts Autobuild.color(e.message, :red, :bold)
