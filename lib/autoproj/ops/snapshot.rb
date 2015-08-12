@@ -103,11 +103,16 @@ module Autoproj
             result
         end
 
-        def error_or_warn(package, error_msg)
-                Autoproj.warn error_msg
+        def error_or_warn(package, error)
             if ignore_errors?
+                if !error.respond_to?(:to_str)
+                    error = error.message
+                end
+                Autoproj.warn error
+            elsif error.respond_to?(:to_str)
+                raise Autobuild::PackageException.new(package, 'snapshot'), error
             else
-                raise Autobuild::PackageException.new(package, 'snapshot'), error_msg
+                raise
             end
         end
 
@@ -127,7 +132,12 @@ module Autoproj
                     next
                 end
 
-                vcs_info = importer.snapshot(package.autobuild, target_dir)
+                vcs_info =
+                    begin importer.snapshot(package.autobuild, target_dir)
+                    rescue Exception => e
+                        error_or_warn(package, "cannot snapshot #{package_name}: #{e.message}")
+                    end
+
                 if vcs_info
                     result << Hash[package_name, vcs_info]
                 else
