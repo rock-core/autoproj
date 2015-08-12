@@ -249,18 +249,22 @@ are given, the packages will not be versioned. In other words,
   By default, only the package name is displayed. It can be customized with the --format option
 
   QUERY KEYS
-    autobuild.name: the package name
-    autobuild.srcdir: the package source directory
-    autobuild.class.name: the package class
-    vcs.type: the VCS type (as used in the source.yml files)
-    vcs.url: the URL from the VCS. The exact semantic of it depends on the VCS type
+
+    autobuild.name: the package name,
+    autobuild.srcdir: the package source directory,
+    autobuild.class.name: the package class,
+    vcs.type: the VCS type (as used in the source.yml files),
+    vcs.url: the URL from the VCS,
     package_set.name: the name of the package set that defines the package
 
   FORMAT SPECIFICATION
 
   The format is a string in which special values can be expanded using a $VARNAME format. The following variables are accepted:
-    NAME: the package name
-    SRCDIR: the full path to the package source directory
+
+    NAME: the package name,
+
+    SRCDIR: the full path to the package source directory,
+
     PREFIX: the full path to the package installation directory
             EOD
             option :search_all, type: :boolean,
