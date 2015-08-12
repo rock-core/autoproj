@@ -80,13 +80,13 @@ module Autoproj
         #
         # @return [Boolean]
         # @see initialize error_or_warn
-        def keep_going?; !!@keep_going end
+        def ignore_errors?; !!@ignore_errors end
 
         def initialize(manifest, options = Hash.new)
             @manifest = manifest
             options = Kernel.validate_options options,
-                keep_going: false
-            @keep_going = options[:keep_going]
+                ignore_errors: false
+            @ignore_errors = options[:ignore_errors]
         end
 
         def snapshot_package_sets(target_dir = nil)
@@ -104,8 +104,8 @@ module Autoproj
         end
 
         def error_or_warn(package, error_msg)
-            if keep_going?
                 Autoproj.warn error_msg
+            if ignore_errors?
             else
                 raise Autobuild::PackageException.new(package, 'snapshot'), error_msg
             end

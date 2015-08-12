@@ -36,7 +36,7 @@ module Autoproj
                                    ignore_non_imported_packages: true)
 
                 
-                ops = Ops::Snapshot.new(ws.manifest, keep_going: options[:keep_going])
+                ops = Ops::Snapshot.new(ws.manifest, ignore_errors: options[:keep_going])
 
                 versions = Array.new
                 if config_selected || (options[:config] != false) || user_selection.empty?

@@ -301,7 +301,7 @@ module Autoproj
                         if $!
                             " (#{$!.message.split("\n").first})"
                         end
-                    ops = Ops::Snapshot.new(ws.manifest, keep_going: true)
+                    ops = Ops::Snapshot.new(ws.manifest, ignore_errors: true)
                     ops.update_package_import_state(
                         "#{$0} #{ARGV.join(" ")}#{failure_message}",
                         updated_packages)
