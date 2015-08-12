@@ -113,8 +113,10 @@ module Autoproj
                 executor = Concurrent::FixedThreadPool.new(parallel_options[:parallel], max_length: 0)
 
                 options, import_options = Kernel.filter_options options,
-                    recursive: true
+                    recursive: true,
+                    retry_count: nil
 
+                retry_count = options[:retry_count]
                 manifest = ws.manifest
 
                 selected_packages = selection.each_source_package_name.map do |pkg_name|
@@ -156,6 +158,9 @@ module Autoproj
                             # packages is not important BUT the ordering of import vs.
                             # prepare in one package IS important: prepare is the method
                             # that takes into account dependencies.
+                            if retry_count
+                                import_pkg.importer.retry_count = retry_count
+                            end
                             import_pkg.import(import_options)
                         end
                         import_future.add_observer do |time, result, reason|

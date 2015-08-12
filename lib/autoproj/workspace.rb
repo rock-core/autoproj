@@ -301,13 +301,15 @@ module Autoproj
                 reconfigure: false,
                 ignore_errors: false,
                 mainline: nil,
-                reset: false
+                reset: false,
+                retry_count: nil
 
             Ops::Configuration.new(self).
                 load_package_sets(only_local: options[:only_local],
                                   checkout_only: options[:checkout_only],
                                   ignore_errors: options[:ignore_errors],
-                                  reset: options[:reset])
+                                  reset: options[:reset],
+                                  retry_count: options[:retry_count])
 
             manifest.each_package_set do |pkg_set|
                 if Gem::Version.new(pkg_set.required_autoproj_version) > Gem::Version.new(Autoproj::VERSION)

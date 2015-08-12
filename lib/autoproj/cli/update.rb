@@ -60,7 +60,8 @@ module Autoproj
                     only_local: options[:local],
                     checkout_only: !options[:config] || options[:checkout_only],
                     reset: options[:reset],
-                    ignore_errors: options[:keep_going])
+                    ignore_errors: options[:keep_going],
+                    retry_count: options[:retry_count])
                 if selected_packages.empty? && (config_selected || options[:config]) && !options[:all]
                     return [], [], true
                 end
@@ -116,6 +117,7 @@ module Autoproj
                                     recursive: options[:deps],
                                     ignore_errors: options[:keep_going],
                                     parallel: options[:parallel],
+                                    retry_count: options[:retry_count])
 
                 ws.finalize_setup
                 ws.export_installation_manifest

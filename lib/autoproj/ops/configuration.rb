@@ -57,7 +57,8 @@ module Autoproj
                 only_local: false,
                 checkout_only: !Autobuild.do_update,
                 ignore_errors: false,
-                reset: false
+                reset: false,
+                retry_count: nil
 
             fake_package = Tools.create_autobuild_package(vcs, name, into)
             if update_from
@@ -80,6 +81,9 @@ module Autoproj
                     fake_package.update = false
                 end
             end
+            if retry_count = options.delete(:retry_count)
+                fake_package.importer.retry_count = retry_count
+            end
             fake_package.import(options)
 
         rescue Autobuild::ConfigException => e
@@ -98,7 +102,8 @@ module Autoproj
                 only_local: false,
                 checkout_only: !Autobuild.do_update,
                 ignore_errors: false,
-                reset: false
+                reset: false,
+                retry_count: nil
 
             update_configuration_repository(
                 ws.manifest.vcs,
@@ -121,7 +126,8 @@ module Autoproj
                 only_local: false,
                 checkout_only: !Autobuild.do_update,
                 ignore_errors: false,
-                reset: false
+                reset: false,
+                retry_count: nil
 
             name = PackageSet.name_of(ws.manifest, vcs)
             raw_local_dir = PackageSet.raw_local_dir_of(vcs)
@@ -212,7 +218,8 @@ module Autoproj
                 only_local: false,
                 checkout_only: !Autobuild.do_update,
                 ignore_errors: false,
-                reset: false
+                reset: false,
+                retry_count: nil
 
             package_sets = [root_pkg_set]
             by_repository_id = Hash.new
@@ -344,7 +351,8 @@ module Autoproj
                 only_local: false,
                 checkout_only: true,
                 ignore_errors: false,
-                reset: false
+                reset: false,
+                retry_count: nil
             update_configuration(options)
         end
 
@@ -356,7 +364,8 @@ module Autoproj
                 only_local: false,
                 checkout_only: !Autobuild.do_update,
                 ignore_errors: false,
-                reset: false
+                reset: false,
+                retry_count: nil
 
             # Load the installation's manifest a first time, to check if we should
             # update it ... We assume that the OS dependencies for this VCS is already

@@ -98,6 +98,8 @@ module Autoproj
                 long_desc: "The default is to update the repository if possible, and leave it alone otherwise. With --reset, autoproj update might come back to an older commit than the repository's current state"
             option :force_reset, default: false, type: :boolean,
                 desc: "like --reset, but bypasses tests that ensure you won't lose data"
+            option :retry_count, default: nil, type: :numeric,
+                desc: "force the importer's retry count to this value"
             option :parallel, aliases: :p, type: :numeric,
                 desc: 'maximum number of parallel jobs'
             def update(*packages)
