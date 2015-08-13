@@ -12,7 +12,7 @@ module Autoproj
                 Autoproj.silent do
                     ws.setup
                     if mainline = options[:mainline]
-                        if mainline == 'true'
+                        if mainline == 'mainline' || mainline == 'true'
                             mainline = true
                         end
                     end
