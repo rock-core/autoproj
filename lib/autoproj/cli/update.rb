@@ -29,6 +29,12 @@ module Autoproj
                     options[:autoproj] = packages.empty?
                 end
 
+                if mainline = options[:mainline]
+                    if mainline == 'mainline' || mainline == 'true'
+                        options[:mainline] = true
+                    end
+                end
+
                 return packages, options
             end
 
@@ -57,6 +63,7 @@ module Autoproj
                 end
 
                 ws.load_package_sets(
+                    mainline: options[:mainline],
                     only_local: options[:local],
                     checkout_only: !options[:config] || options[:checkout_only],
                     reset: options[:reset],

@@ -102,6 +102,8 @@ module Autoproj
                 desc: "force the importer's retry count to this value"
             option :parallel, aliases: :p, type: :numeric,
                 desc: 'maximum number of parallel jobs'
+            option :mainline, type: :string,
+                desc: "compare to the given baseline. if 'true', the comparison will ignore any override, otherwise it will take into account overrides only up to the given package set"
             def update(*packages)
                 run_autoproj_cli(:update, :Update, Hash[silent: false], *packages)
             end
