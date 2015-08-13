@@ -69,7 +69,7 @@ module Autoproj
             access_mode = config.get(name)
         end
         access_mode = access_methods[access_mode] || access_mode
-        pull, push, private_ull = access_mode.split(',')
+        pull, push, private_pull = access_mode.split(',')
         private_pull ||= push
         [[pull, "_ROOT"], [push, "_PUSH_ROOT"], [private_pull, "_PRIVATE_ROOT"]].each do |method, var_suffix|
             url = if method == "git" then options[:git_url]
@@ -99,7 +99,7 @@ module Autoproj
             Hash[type: 'git',
                  url: "#{pull_base_url}#{url}",
                  push_to: "#{push_base_url}#{url}",
-                 interactive: github_options[:private],
+                 interactive: (github_options[:private] && private_pull == 'http'),
                  retry_count: 10,
                  repository_id: "#{name.downcase}:#{url}"].merge(vcs_options)
         end
