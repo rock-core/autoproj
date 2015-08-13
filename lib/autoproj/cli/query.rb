@@ -47,11 +47,14 @@ module Autoproj
                 fields = Hash.new
                 matches = matches.sort
                 matches.each do |priority, name|
+                    pkg_def = ws.manifest.find_package(name)
                     pkg = ws.manifest.find_autobuild_package(name)
                     fields['SRCDIR'] = pkg.srcdir
                     fields['PREFIX'] = pkg.prefix
                     fields['NAME'] = name
                     fields['PRIORITY'] = priority
+                    fields['URL'] = (pkg_def.vcs.url if pkg_def.vcs)
+                    fields['PRESENT'] = File.directory?(pkg.srcdir)
 
                     value = Autoproj.expand(options[:format] || "$NAME", fields)
                     puts value
