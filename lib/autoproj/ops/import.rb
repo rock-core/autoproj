@@ -107,13 +107,14 @@ module Autoproj
             # Import all packages from the given selection, and their
             # dependencies
             def import_selected_packages(selection, updated_packages, options = Hash.new)
+                all_processed_packages = Set.new
+
                 parallel_options, options = Kernel.filter_options options,
                     parallel: ws.config.parallel_import_level
 
                 # This is used in the ensure block, initialize as early as
                 # possible
                 executor = Concurrent::FixedThreadPool.new(parallel_options[:parallel], max_length: 0)
-                all_processed_packages = Set.new
 
                 options, import_options = Kernel.filter_options options,
                     recursive: true,
@@ -231,8 +232,10 @@ module Autoproj
                 if failures && !failures.empty? && !ignore_errors
                     Autoproj.error "waiting for pending import jobs to finish"
                 end
-                executor.shutdown
-                executor.wait_for_termination
+                if executor
+                    executor.shutdown
+                    executor.wait_for_termination
+                end
                 updated_packages.concat(all_processed_packages.find_all(&:updated?).map(&:name))
             end
             
