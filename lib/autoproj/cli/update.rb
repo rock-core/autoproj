@@ -123,7 +123,7 @@ module Autoproj
                                     reset: options[:reset],
                                     recursive: options[:deps],
                                     ignore_errors: options[:keep_going],
-                                    parallel: options[:parallel],
+                                    parallel: parallel,
                                     retry_count: options[:retry_count])
 
                 ws.finalize_setup
