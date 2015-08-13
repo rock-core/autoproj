@@ -166,7 +166,7 @@ module Autoproj
                             if retry_count
                                 import_pkg.importer.retry_count = retry_count
                             end
-                            import_pkg.import(import_options)
+                            import_pkg.import(import_options.merge(allow_interactive: false))
                         end
                         import_future.add_observer do |time, result, reason|
                             completion_queue << [pkg, time, result, reason]
@@ -184,7 +184,7 @@ module Autoproj
                         else
                             interactive_imports.each do |pkg|
                                 begin
-                                    result = pkg.import(import_options)
+                                    result = pkg.import(import_options.merge(allow_interactive: true))
                                 rescue Exception => reason
                                 end
                                 completion_queue << [pkg, Time.now, result, reason]
@@ -197,12 +197,16 @@ module Autoproj
                     pkg, time, result, reason = completion_queue.pop
                     pending_packages.delete(pkg)
                     if reason
-                        # One importer failed... terminate
-                        Autoproj.error "import of #{pkg.name} failed"
-                        if !reason.kind_of?(Interrupt)
-                            Autoproj.error "#{reason}"
+                        if reason.kind_of?(Autobuild::InteractionRequired)
+                            interactive_imports << pkg
+                        else
+                            # One importer failed... terminate
+                            Autoproj.error "import of #{pkg.name} failed"
+                            if !reason.kind_of?(Interrupt)
+                                Autoproj.error "#{reason}"
+                            end
+                            failures[pkg] = reason
                         end
-                        failures[pkg] = reason
                     else
                         if new_packages = post_package_import(selection, manifest, pkg, reverse_dependencies)
                             # Excluded dependencies might have caused the package to be
