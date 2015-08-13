@@ -140,7 +140,12 @@ module Autoproj
             @config = Configuration.new(config_path)
             if File.file?(config_path)
                 config.load(reconfigure: reconfigure)
-                manifest.vcs = VCSDefinition.from_raw(config.get('manifest_source', nil))
+                if raw_vcs = config.get('manifest_source', nil)
+                    manifest.vcs = VCSDefinition.from_raw(raw_vcs)
+                else
+                    manifest.vcs = VCSDefinition.from_raw(
+                        type: 'local', url: config_dir)
+                end
             end
         end
 
