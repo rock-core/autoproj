@@ -86,8 +86,11 @@ module Autoproj
             if url !~ /^\//
                 url = "/#{url}"
             end
+            github_options, vcs_options = Kernel.filter_options vcs_options,
+                private: false
+
             pull_base_url =
-                if vcs_options[:private]
+                if github_options[:private]
                     config.get("#{name}_PRIVATE_ROOT")
                 else
                     config.get("#{name}_ROOT")
@@ -96,6 +99,7 @@ module Autoproj
             Hash[type: 'git',
                  url: "#{pull_base_url}#{url}",
                  push_to: "#{push_base_url}#{url}",
+                 interactive: github_options[:private],
                  retry_count: 10,
                  repository_id: "#{name.downcase}:#{url}"].merge(vcs_options)
         end
