@@ -273,7 +273,6 @@ module Autoproj
                     if doc[-1, 1] != "?"
                         doc = "#{doc}:"
                     end
-                    Autoproj.message "  #{doc} #{value}"
                     displayed_options[key] = value
                 end
                 value
@@ -384,6 +383,14 @@ module Autoproj
 
         def import_log_enabled=(value)
             set('import_log_enabled', !!value)
+        end
+
+        def parallel_import_level
+            get('parallel_import_level', 10)
+        end
+
+        def parallel_import_level=(level)
+            set('parallel_import_level', level)
         end
 
         def ruby_executable
