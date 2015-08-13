@@ -6,23 +6,43 @@ module Autoproj
         class Query < InspectionTool
             def run(query_string, options = Hash.new)
                 initialize_and_load
-                finalize_setup([])
-                query = Autoproj::Query.parse_query(query_string.first)
+                all_selected_packages, * =
+                    finalize_setup([], ignore_non_imported_packages: true)
+                all_selected_packages = all_selected_packages.to_set
 
-                packages =
-                    if options[:search_all]
-                        ws.manifest.packages.to_a
-                    else
-                        ws.manifest.all_selected_packages.map do |pkg_name|
-                            [pkg_name, ws.manifest.packages[pkg_name]]
+                query =
+                    if !query_string.empty?
+                        Autoproj::Query.parse_query(query_string.first)
+                    end
+
+                if options[:search_all]
+                    packages = ws.manifest.packages.to_a
+                else
+                    packages = all_selected_packages.map do |pkg_name|
+                        [pkg_name, ws.manifest.find_package(pkg_name)]
+                    end
+                    packages += ws.manifest.all_selected_packages.map do |pkg_name|
+                        if !all_selected_packages.include?(pkg_name)
+                            [pkg_name, ws.manifest.find_package(pkg_name)]
                         end
-                    end
+                    end.compact
+                end
 
-                matches = packages.map do |name, pkg_def|
-                    if priority = query.match(pkg_def)
-                        [priority, name]
+                if options[:only_present]
+                    packages = packages.find_all do |_, pkg|
+                        File.directory?(pkg.autobuild.srcdir)
                     end
-                end.compact
+                end
+
+                if !query
+                    matches = packages.map { |name, _| [0, name] }
+                else
+                    matches = packages.map do |name, pkg_def|
+                        if priority = query.match(pkg_def)
+                            [priority, name]
+                        end
+                    end.compact
+                end
 
                 fields = Hash.new
                 matches = matches.sort

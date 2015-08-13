@@ -245,7 +245,7 @@ are given, the packages will not be versioned. In other words,
                 run_autoproj_cli(:switch_config, :SwitchConfig, Hash[], *args)
             end
 
-            desc 'query <query string>', 'searches for packages matching a query string'
+            desc 'query [QUERY]', 'searches for packages matching a query string. With no query string, matches all packages.'
             long_desc <<-EOD
   Finds packages that match query_string and displays information about them (one per line)
   By default, only the package name is displayed. It can be customized with the --format option
@@ -273,8 +273,8 @@ are given, the packages will not be versioned. In other words,
                 desc: 'search in all defined packages instead of only in those selected selected in the layout'
             option :format, type: :string,
                 desc: "customize what should be displayed. See FORMAT SPECIFICATION above"
-            def query(query_string)
-                run_autoproj_cli(:query, :Query, Hash[], query_string)
+            def query(query_string = nil)
+                run_autoproj_cli(:query, :Query, Hash[], *Array(query_string))
             end
         end
     end
