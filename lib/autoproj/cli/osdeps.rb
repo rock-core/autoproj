@@ -15,9 +15,9 @@ module Autoproj
             end
 
             def run(user_selection, options = Hash.new)
+                initialize_and_load
                 _, osdep_packages, resolved_selection, _ =
                     finalize_setup(user_selection,
-                                   recursive: false,
                                    ignore_non_imported_packages: true)
 
                 ws.osdeps.install(
