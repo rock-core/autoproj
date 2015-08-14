@@ -82,10 +82,10 @@ module Autoproj
             # @param [Array<String>] all_enabled_packages the list of package
             #   names of the packages that should be rebuilt
             # @return [void]
-            def build_packages(all_enabled_packages)
+            def build_packages(all_enabled_packages, options = Hash.new)
                 Autobuild.do_rebuild = false
                 Autobuild.do_forced_build = false
-                Autobuild.apply(all_enabled_packages, "autoproj-build", ['build'])
+                Autobuild.apply(all_enabled_packages, "autoproj-build", ['build'], options)
             end
         end
     end

@@ -20,12 +20,15 @@ module Autoproj
             def run(selected_packages, options)
                 build_options, options = filter_options options,
                     force: false,
-                    rebuild: false
+                    rebuild: false,
+                    parallel: nil
 
                 Autobuild.ignore_errors = options[:keep_going]
 
                 command_line_selection, source_packages, osdep_packages =
                     super(selected_packages, options.merge(checkout_only: true))
+
+                parallel = build_options[:parallel] || ws.config.parallel_build_level
 
                 return if source_packages.empty?
 
@@ -70,7 +73,7 @@ module Autoproj
                 end
 
                 Autobuild.do_build = true
-                ops.build_packages(source_packages)
+                ops.build_packages(source_packages, parallel: parallel)
                 Autobuild.apply(source_packages, "autoproj-build", ['install'])
             end
         end

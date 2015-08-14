@@ -189,6 +189,15 @@ module Autoproj
             set('import_log_enabled', !!value)
         end
 
+        def parallel_build_level
+            get('parallel_build_level', nil) || Autobuild.parallel_build_level
+        end
+
+        def parallel_build_level=(level)
+            set('parallel_build_level', level)
+            Autobuild.parallel_build_level = level
+        end
+
         def parallel_import_level
             get('parallel_import_level', 10)
         end
