@@ -104,7 +104,7 @@ module Autoproj
                 if candidates.empty?
                     raise ArgumentError, "cannot find #{selection} in the current autoproj installation"
                 elsif candidates.size > 1
-                    raise ArgumentError, "multiple packages match #{selection} in the current autoproj installation: #{candidates.join(", ")}"
+                    raise ArgumentError, "multiple packages match #{selection} in the current autoproj installation: #{candidates.map(&:name).sort.join(", ")}"
                 else
                     puts result_value(candidates.first, options)
                 end
