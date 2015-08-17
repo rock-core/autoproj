@@ -305,45 +305,41 @@ module Autoproj
         end
 
         def sort_package_sets_by_import_order(package_sets, root_pkg_set)
-            # We do not consider the 'standalone' package sets while sorting.
-            # They are taken care of later, as we need to maintain the order the
-            # user defined in the package_sets section of the manifest
-            queue = package_sets.flat_map do |pkg_set|
-                if (!pkg_set.imports.empty? || !pkg_set.explicit?) && !(pkg_set == root_pkg_set)
-                    [pkg_set] + pkg_set.imports.to_a
-                else []
-                end
-            end.to_set.to_a
-
-            sorted = Array.new
+            # The sorting is done in two steps:
+            #  - first, we build a topological order of the package sets
+            #  - then, we insert the auto-imported packages, following this
+            #    topological order, in the user-provided order. Each package is
+            #    considered in turn, and added at the earliest place that fits
+            #    the dependencies
+            topological = Array.new
+            queue  = package_sets.to_a.dup
             while !queue.empty?
                 pkg_set = queue.shift
-                if pkg_set.imports.any? { |imported_set| !sorted.include?(imported_set) }
+                if pkg_set.imports.any? { |imported_set| !topological.include?(imported_set) }
                     queue.push(pkg_set)
                 else
-                    sorted << pkg_set
+                    topological << pkg_set
                 end
             end
 
-            # We now need to re-add the standalone package sets. Their order is
-            # determined by the order in the package_set section of the manifest
-            #
-            # Concretely, we add them in order, just after the entry above them
-            previous = nil
-            root_pkg_set.imports.each do |explicit_pkg_set|
-                if !sorted.include?(explicit_pkg_set)
-                    if !previous
-                        sorted.unshift explicit_pkg_set
-                    else
-                        i = sorted.index(previous)
-                        sorted.insert(i + 1, explicit_pkg_set)
+            result = root_pkg_set.imports.to_a.dup
+            to_insert = topological.dup.
+                find_all { |pkg_set| !result.include?(pkg_set) }
+            while !to_insert.empty?
+                pkg_set = to_insert.shift
+                dependencies = pkg_set.imports.dup
+                if dependencies.empty?
+                    result.unshift(pkg_set)
+                else
+                    i = result.find_index do |p|
+                        dependencies.delete(p)
+                        dependencies.empty?
                     end
+                    result.insert(i + 1, pkg_set)
                 end
-                previous = pkg_set
             end
-
-            sorted << root_pkg_set
-            sorted
+            result << root_pkg_set
+            result
         end
 
         def load_package_sets(options = Hash.new)
