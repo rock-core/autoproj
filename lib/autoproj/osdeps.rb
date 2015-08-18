@@ -647,10 +647,19 @@ fi
                 end
 
                 ruby_bin = RbConfig::CONFIG['RUBY_INSTALL_NAME']
-                if ruby_bin =~ /^ruby(.+)$/
-                    Autobuild.programs['gem'] = "gem#{$1}"
+                ruby_bindir = File.dirname(Autobuild.tool_in_path('ruby'))
+
+                gem_basedir =
+                    if ruby_bin =~ /^ruby(.+)$/
+                        "gem#{$1}"
+                    else
+                        "gem"
+                    end
+
+                if File.file?(gem_full_path = File.join(ruby_bindir, gem_basedir))
+                    Autobuild.programs['gem'] = gem_full_path
                 else
-                    Autobuild.programs['gem'] = "gem"
+                    raise ArgumentError, "cannot find a gem program"
                 end
             end
 
