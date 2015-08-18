@@ -243,7 +243,8 @@ module Autoproj
                 manifest = ws.manifest
 
                 all = Set.new
-                package_queue = manifest.all_layout_packages(false).each_source_package_name.to_a
+                package_queue = manifest.all_layout_packages(false).each_source_package_name.to_a +
+                    processed_packages.map(&:name).to_a
                 while !package_queue.empty?
                     pkg_name = package_queue.shift
                     next if all.include?(pkg_name)
