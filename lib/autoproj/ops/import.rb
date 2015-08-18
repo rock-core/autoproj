@@ -253,7 +253,7 @@ module Autoproj
                     next if manifest.ignored?(pkg_name) || manifest.excluded?(pkg_name)
 
                     pkg = manifest.find_autobuild_package(pkg_name)
-                    if !processed_packages.include?(pkg)
+                    if !processed_packages.include?(pkg) && File.directory?(pkg.srcdir)
                         manifest.load_package_manifest(pkg.name)
                         Autoproj.each_post_import_block(pkg) do |block|
                             block.call(pkg)
