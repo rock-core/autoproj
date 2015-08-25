@@ -29,9 +29,7 @@ module Autoproj
 
             def run(user_selection, options)
                 initialize_and_load
-                user_selection, config_selected =
-                    normalize_command_line_package_selection(user_selection)
-                packages, * =
+                packages, *, config_selected =
                     finalize_setup(user_selection,
                                    recursive: options[:deps],
                                    ignore_non_imported_packages: true)
@@ -40,7 +38,7 @@ module Autoproj
                 ops = Ops::Snapshot.new(ws.manifest, ignore_errors: options[:keep_going])
 
                 versions = Array.new
-                if config_selected || (options[:config] != false) || user_selection.empty?
+                if (config_selected && options[:config] != false) || user_selection.empty?
                     versions += ops.snapshot_package_sets(nil, local: options[:local])
                 end
                 if (!config_selected && !options[:config]) || !user_selection.empty?
