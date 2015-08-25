@@ -304,6 +304,8 @@ module Autoproj
             end
         end
 
+        def inspect; to_s end
+
         def sort_package_sets_by_import_order(package_sets, root_pkg_set)
             # The sorting is done in two steps:
             #  - first, we build a topological order of the package sets
@@ -312,13 +314,21 @@ module Autoproj
             #    considered in turn, and added at the earliest place that fits
             #    the dependencies
             topological = Array.new
-            queue  = package_sets.to_a.dup
+            queue = package_sets.to_a
             while !queue.empty?
-                pkg_set = queue.shift
-                if pkg_set.imports.any? { |imported_set| !topological.include?(imported_set) }
-                    queue.push(pkg_set)
-                else
-                    topological << pkg_set
+                last_size = queue.size
+                pending = queue.dup
+                queue = Array.new
+                while !pending.empty?
+                    pkg_set = pending.shift
+                    if not_processed_yet = pkg_set.imports.find { |imported_set| !topological.include?(imported_set) }
+                        queue.push(pkg_set)
+                    else
+                        topological << pkg_set
+                    end
+                end
+                if queue.size == last_size
+                    raise ArgumentError, "cannot resolve the dependencies between package sets. There seem to be a cycle amongst #{queue.map(&:name).sort.join(", ")}"
                 end
             end
 
