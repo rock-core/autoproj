@@ -33,6 +33,7 @@ module Autoproj
                     normalize_command_line_package_selection(user_selection)
                 packages, * =
                     finalize_setup(user_selection,
+                                   recursive: options[:deps],
                                    ignore_non_imported_packages: true)
 
                 

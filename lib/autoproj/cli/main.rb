@@ -197,6 +197,9 @@ are given, the packages will not be versioned. In other words,
             option :replace, type: :boolean,
                 default: false,
                 desc: 'in combination with --save, controls whether an existing file should be updated or replaced'
+            option :deps, type: :boolean,
+                default: false,
+                desc: 'whether both packages and their dependencies should be versioned, or only the selected packages (the latter is the default)'
             option :local, type: :boolean, default: false,
                 desc: 'whether we should access the remote server to verify that the snapshotted state is present'
             option :save, type: :string,
