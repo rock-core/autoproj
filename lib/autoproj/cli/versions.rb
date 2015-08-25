@@ -40,10 +40,10 @@ module Autoproj
 
                 versions = Array.new
                 if config_selected || (options[:config] != false) || user_selection.empty?
-                    versions += ops.snapshot_package_sets
+                    versions += ops.snapshot_package_sets(nil, local: options[:local])
                 end
                 if (!config_selected && !options[:config]) || !user_selection.empty?
-                    versions += ops.snapshot_packages(packages)
+                    versions += ops.snapshot_packages(packages, nil, local: options[:local])
                 end
 
                 if output_file = options[:save]

@@ -539,7 +539,44 @@ end
 
 class Autobuild::Git
     # get version information from the importer
-    def snapshot(package, target_dir = nil)
+    def snapshot(package, target_dir = nil, options = Hash.new)
+        options = Kernel.validate_options options,
+            local: true
+
+        if options[:local]
+            snapshot_local(package)
+        else
+            snapshot_against_remote(package)
+        end
+    end
+
+    def snapshot_against_remote(package)
+        info = Hash['tag' => nil, 'commit' => nil]
+        remote_revname = describe_commit_on_remote(package)
+
+        case remote_revname
+        when /^refs\/heads\/(.*)/
+            remote_branch = $1
+            if local_branch == remote_branch
+                info['branch'] = local_branch
+            else
+                info['local_branch'] = local_branch
+                info['remote_branch'] = remote_branch
+            end
+        when /^refs\/tags\/(.*)/
+            info['tag'] = $1
+        else
+            info['local_branch'] = local_branch
+            info['remote_branch'] = remote_revname
+        end
+
+        if !info['tag']
+            info['commit'] = rev_parse(package, 'HEAD')
+        end
+        info
+    end
+
+    def snapshot_local(package, options = Hash.new)
         info = Hash.new
         if local_branch != remote_branch
             info['local_branch'] = local_branch
@@ -547,26 +584,24 @@ class Autobuild::Git
         else
             info['branch'] = branch
         end
-
-        begin
-            tag = run_git_bare(package, 'describe', '--tags', '--exact-match', 'HEAD').first.strip
-            info.merge('tag' => tag.encode('UTF-8'), 'commit' => nil)
-        rescue Autobuild::SubcommandFailed
-            head_commit = rev_parse(package, 'HEAD')
-            info.merge('tag' => nil, 'commit' => head_commit.encode('UTF-8'))
+        has_tag, described = describe_rev(package, 'HEAD')
+        if has_tag
+            info.merge('tag' => described, 'commit' => nil)
+        else
+            info.merge('tag' => nil, 'commit' => described)
         end
     end
 end
 
 class Autobuild::SVN
-    def snapshot(package, target_dir = nil)
+    def snapshot(package, target_dir = nil, options = Hash.new)
         version = svn_revision(package)
         Hash['revision' => version]
     end
 end
 
 class Autobuild::ArchiveImporter
-    def snapshot(package, target_dir = nil)
+    def snapshot(package, target_dir = nil, options = Hash.new)
         result = Hash[
             'mode' => mode,
             'no_subdirectory' => !has_subdirectory?,

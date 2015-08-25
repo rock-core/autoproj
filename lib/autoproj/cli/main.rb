@@ -197,6 +197,8 @@ are given, the packages will not be versioned. In other words,
             option :replace, type: :boolean,
                 default: false,
                 desc: 'in combination with --save, controls whether an existing file should be updated or replaced'
+            option :local, type: :boolean, default: false,
+                desc: 'whether we should access the remote server to verify that the snapshotted state is present'
             option :save, type: :string,
                 desc: 'save to the given file instead of displaying it on the standard output'
             def versions(*packages)
