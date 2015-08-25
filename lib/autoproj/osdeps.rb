@@ -647,20 +647,21 @@ fi
                 end
 
                 ruby_bin = RbConfig::CONFIG['RUBY_INSTALL_NAME']
-                ruby_bindir = File.dirname(Autobuild.tool_in_path('ruby'))
+                ruby_bindir = RbConfig::CONFIG['bindir']
 
-                gem_basedir =
-                    if ruby_bin =~ /^ruby(.+)$/
-                        "gem#{$1}"
-                    else
-                        "gem"
-                    end
-
-                if File.file?(gem_full_path = File.join(ruby_bindir, gem_basedir))
-                    Autobuild.programs['gem'] = gem_full_path
-                else
-                    raise ArgumentError, "cannot find a gem program"
+                candidates = ['gem']
+                if ruby_bin =~ /^ruby(.+)$/
+                    candidates << "gem#{$1}" 
                 end
+
+                candidates.each do |gem_name|
+                    if File.file?(gem_full_path = File.join(ruby_bindir, gem_name))
+                        Autobuild.programs['gem'] = gem_full_path
+                        return
+                    end
+                end
+
+                raise ArgumentError, "cannot find a gem program (tried #{candidates.sort.join(", ")} in #{ruby_bindir})"
             end
 
             def build_gem_cmdlines(gems)
