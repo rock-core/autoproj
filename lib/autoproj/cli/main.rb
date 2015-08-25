@@ -58,6 +58,8 @@ module Autoproj
                 desc: 'only use locally available information (mainly for distributed version control systems such as git)'
             option :mainline, type: :string,
                 desc: "compare to the given baseline. if 'true', the comparison will ignore any override, otherwise it will take into account overrides only up to the given package set"
+            option :snapshot, type: :boolean, default: false,
+                desc: "use the VCS information as 'versions --no-local' would detect it instead of the one in the configuration"
             def status(*packages)
                 run_autoproj_cli(:status, :Status, Hash[], *packages)
             end

@@ -131,6 +131,11 @@ module Autoproj
                 !File.exists?(File.join(raw_local_dir, "init.rb"))
         end
 
+        # Defined for coherence with the API on {PackageDefinition}
+        def autobuild
+            create_autobuild_package
+        end
+
         def create_autobuild_package
             Ops::Tools.create_autobuild_package(vcs, name, raw_local_dir)
         end

@@ -28,37 +28,68 @@ module Autoproj
                 end
 
                 if options[:config]
-                    pkg_sets = ws.manifest.each_package_set.map(&:create_autobuild_package)
+                    pkg_sets = ws.manifest.each_package_set.to_a
                     if !pkg_sets.empty?
                         Autoproj.message("autoproj: displaying status of configuration", :bold)
-                        display_status(pkg_sets, only_local: options[:only_local])
+                        display_status(pkg_sets, snapshot: options[:snapshot], only_local: options[:only_local])
                         STDERR.puts
                     end
                 end
 
                 Autoproj.message("autoproj: displaying status of packages", :bold)
                 packages = packages.sort.map do |pkg_name|
-                    ws.manifest.find_autobuild_package(pkg_name)
+                    ws.manifest.find_package(pkg_name)
                 end
-                display_status(packages, only_local: options[:only_local])
+                display_status(packages, snapshot: options[:snapshot], only_local: options[:only_local])
+            end
+
+            def snapshot_overrides_vcs?(importer, vcs, snapshot)
+                if importer.respond_to?(:snapshot_overrides?)
+                    importer.snapshot_overrides?(snapshot)
+                else
+                    vcs = vcs.to_hash
+                    snapshot.any? { |k, v| vcs[k] != v }
+                end
             end
 
             PackageStatus = Struct.new :msg, :sync, :uncommitted, :local, :remote
-            def status_of_package(pkg, options = Hash.new)
+            def status_of_package(package_description, options = Hash.new)
+                pkg = package_description.autobuild
+                importer = pkg.importer
                 package_status = PackageStatus.new(Array.new, false, false, false, false)
-                if !pkg.importer
+                if !importer
                     package_status.msg << Autoproj.color("  is a local-only package (no VCS)", :bold, :red)
-                elsif !pkg.importer.respond_to?(:status)
-                    package_status.msg << Autoproj.color("  the #{pkg.importer.class.name.gsub(/.*::/, '')} importer does not support status display", :bold, :red)
+                elsif !importer.respond_to?(:status)
+                    package_status.msg << Autoproj.color("  the #{importer.class.name.gsub(/.*::/, '')} importer does not support status display", :bold, :red)
                 elsif !File.directory?(pkg.srcdir)
                     package_status.msg << Autoproj.color("  is not imported yet", :magenta)
                 else
-                    begin status = pkg.importer.status(pkg, options[:only_local])
+                    if importer.respond_to?(:snapshot)
+                        snapshot =
+                            begin importer.snapshot(pkg, nil, exact_state: false, local: options[:only_local])
+                            rescue Autobuild::PackageException
+                                Hash.new
+                            end
+                        if snapshot_overrides_vcs?(importer, package_description.vcs, snapshot)
+                            non_nil_values = snapshot.delete_if { |k, v| !v }
+                            package_status.msg << Autoproj.color("  found configuration that contains all local changes: #{non_nil_values.sort_by(&:first).map { |k, v| "#{k}: #{v}" }.join(", ")}", :red, :bold)
+                            package_status.msg << Autoproj.color("  consider adding this to your overrides, or use autoproj versions to do it for you", :red, :bold)
+                            if options[:snapshot]
+                                importer.relocate(importer.repository, snapshot)
+                            end
+                        end
+                    end
+
+                    begin status = importer.status(pkg, options[:only_local])
                     rescue Interrupt
                         raise
                     rescue Exception => e
                         package_status.msg << Autoproj.color("  failed to fetch status information (#{e})", :red)
                         return package_status
+                    end
+
+                    status.unexpected_working_copy_state.each do |msg|
+                        package_status.msg << Autoproj.color("  #{msg}", :red, :bold)
                     end
 
                     if status.uncommitted_code
@@ -103,26 +134,27 @@ module Autoproj
                 result = StatusResult.new
 
                 executor = Concurrent::FixedThreadPool.new(ws.config.parallel_import_level, max_length: 0)
-                interactive, noninteractive = packages.partition { |pkg| pkg.importer && pkg.importer.interactive? }
+                interactive, noninteractive = packages.partition do |pkg|
+                    pkg.autobuild.importer && pkg.autobuild.importer.interactive?
+                end
                 noninteractive = noninteractive.map do |pkg|
-                    [pkg, Concurrent::Future.execute(executor: executor) { status_of_package(pkg, only_local: options[:only_local]) }]
+                    [pkg, Concurrent::Future.execute(executor: executor) { status_of_package(pkg, snapshot: options[:snapshot], only_local: options[:only_local]) }]
                 end
 
                 sync_packages = ""
                 (noninteractive + interactive).each do |pkg, future|
                     if future 
-                        if error = future.reason
-                            raise error
+                        if !(status = future.value)
+                            raise future.reason
                         end
-                        status = future.value
-                    else status = status_of_package(pkg, only_local: options[:only_local])
+                    else status = status_of_package(pkg, snapshot: options[:snapshot], only_local: options[:only_local])
                     end
 
                     result.uncommitted ||= status.uncommitted
                     result.local       ||= status.local
                     result.remote      ||= status.remote
 
-                    pkg_name = pkg.autoproj_name
+                    pkg_name = pkg.name
                     if status.sync && status.msg.empty?
                         if sync_packages.size > 80
                             Autoproj.message "#{sync_packages},"
