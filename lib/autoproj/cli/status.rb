@@ -193,6 +193,7 @@ module Autoproj
 
             rescue Interrupt
                 Autoproj.warn "Interrupted, waiting for pending jobs to finish"
+                raise
             rescue Exception => e
                 Autoproj.error "internal error: #{e}, waiting for pending jobs to finish"
                 raise
