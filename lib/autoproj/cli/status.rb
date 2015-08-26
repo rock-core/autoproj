@@ -72,8 +72,8 @@ module Autoproj
                             end
                         if snapshot_overrides_vcs?(importer, package_description.vcs, snapshot)
                             non_nil_values = snapshot.delete_if { |k, v| !v }
-                            package_status.msg << Autoproj.color("  found configuration that contains all local changes: #{non_nil_values.sort_by(&:first).map { |k, v| "#{k}: #{v}" }.join(", ")}", :red, :bold)
-                            package_status.msg << Autoproj.color("  consider adding this to your overrides, or use autoproj versions to do it for you", :red, :bold)
+                            package_status.msg << Autoproj.color("  found configuration that contains all local changes: #{non_nil_values.sort_by(&:first).map { |k, v| "#{k}: #{v}" }.join(", ")}", :light_green)
+                            package_status.msg << Autoproj.color("  consider adding this to your overrides, or use autoproj versions to do it for you", :light_green)
                             if options[:snapshot]
                                 importer.relocate(importer.repository, snapshot)
                             end
