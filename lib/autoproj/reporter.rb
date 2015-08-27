@@ -2,7 +2,6 @@ require 'autobuild/reporting'
 module Autoproj
     class << self
         attr_accessor :verbose
-        attr_reader :console
         def silent?
             Autobuild.silent?
         end
@@ -11,8 +10,6 @@ module Autoproj
         end
     end
     @verbose = false
-    @console = HighLine.new
-	
 
     def self.silent(&block)
         Autobuild.silent(&block)
