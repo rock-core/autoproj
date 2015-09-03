@@ -385,6 +385,15 @@ module Autoproj
             set('import_log_enabled', !!value)
         end
 
+        def parallel_build_level
+            get('parallel_build_level', nil) || Autobuild.parallel_build_level
+        end
+
+        def parallel_build_level=(level)
+            set('parallel_build_level', level)
+            Autobuild.parallel_build_level = level
+        end
+
         def parallel_import_level
             get('parallel_import_level', 10)
         end
@@ -1253,11 +1262,21 @@ fi
                 end
 
                 ruby_bin = RbConfig::CONFIG['RUBY_INSTALL_NAME']
+                ruby_bindir = RbConfig::CONFIG['bindir']
+
+                candidates = ['gem']
                 if ruby_bin =~ /^ruby(.+)$/
-                    Autobuild.programs['gem'] = "gem#{$1}"
-                else
-                    Autobuild.programs['gem'] = "gem"
+                    candidates << "gem#{$1}" 
                 end
+
+                candidates.each do |gem_name|
+                    if File.file?(gem_full_path = File.join(ruby_bindir, gem_name))
+                        Autobuild.programs['gem'] = gem_full_path
+                        return
+                    end
+                end
+
+                raise ArgumentError, "cannot find a gem program (tried #{candidates.sort.join(", ")} in #{ruby_bindir})"
             end
 
             def build_gem_cmdlines(gems)
