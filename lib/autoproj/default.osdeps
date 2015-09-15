@@ -87,6 +87,7 @@ build-essential:
   fedora: ["gcc-c++", make, glibc-devel]
   darwin: ignore
   opensuse: ["@devel_C_C++", "gcc-c++"]
+  msys: mingw-w64-x86_64-gcc
   default: clang
 
 autobuild:
@@ -102,6 +103,7 @@ readline:
   opensuse: readline-devel
   arch: core/readline
   macos-brew: readline
+  msys: libreadline-devel
   default: ignore
 
 # The following definitions are for the VCS and build systems
@@ -117,6 +119,7 @@ git:
   macos-brew: git
   opensuse: git
   freebsd: git
+  msys: git
 
 hg:
   debian,ubuntu: mercurial
@@ -126,6 +129,7 @@ hg:
   darwin: mercurial
   opensuse: mercurial
   freebsd: mercurial
+  msys: mercurial
 
 svn:
   debian,ubuntu: subversion
@@ -135,6 +139,7 @@ svn:
   darwin: subversion
   opensuse: subversion
   freebsd: subversion
+  msys: subversion
 
 cmake:
   debian,ubuntu: cmake
@@ -144,6 +149,7 @@ cmake:
   darwin: cmake
   opensuse: cmake
   freebsd: cmake
+  msys: mingw-w64-x86_64-cmake
 
 autotools:
   debian,ubuntu:
@@ -165,6 +171,9 @@ autotools:
   - automake
   - autoconf
   freebsd:
+  - automake
+  - autoconf
+  msys:
   - automake
   - autoconf
 
@@ -189,6 +198,9 @@ archive:
   opensuse:
   - tar
   - unzip
+  msys:
+  - tar
+  - unzip
   default: ignore
 
 cvs:
@@ -198,6 +210,7 @@ cvs:
   arch: cvs
   opensuse: cvs
   freebsd: cvs
+  msys: cvs
 
 pip:
   debian,ubuntu: python-pip
@@ -205,9 +218,11 @@ pip:
   opensuse: python-pip
   fedora: python-pip
   freebsd: pip
+  msys: mingw-w64-x86_64-python2-pip
 
 sudo:
   macos-brew: ignore
+  msys: ignore
   default: sudo
 
 # vim: expandtab

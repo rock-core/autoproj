@@ -6,6 +6,13 @@ module Autoproj
     def self.create_symlink(from, to)
         if Autobuild.windows?
             Dir.create_junction(to, from)
+        elsif Autobuild.msys?
+            begin
+                #looks like force option does not work
+                FileUtils.ln_sf from, to
+            rescue Errno::EEXIST
+                Autobuild.message "link exists, ignorig"
+            end
         else
             FileUtils.ln_sf from, to
         end
