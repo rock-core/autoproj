@@ -6,6 +6,14 @@ module Autoproj
     def self.create_symlink(from, to)
         if Autobuild.windows?
             Dir.create_junction(to, from)
+        elsif Autobuild.msys?
+            begin
+                #msys created a copy instead of a link
+                FileUtils.ln_sf from, to
+            rescue Errno::EEXIST
+                FileUtils.rm_rf to
+                FileUtils.ln_sf from, to
+            end
         else
             FileUtils.ln_sf from, to
         end

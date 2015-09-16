@@ -101,7 +101,7 @@ module Autoproj
                     end
                 end
                 
-                sudo = Autobuild.tool_in_path('sudo')
+                sudo = Autobuild.tool_in_path('sudo') if with_root
                 Tempfile.open('osdeps_sh') do |io|
                     io.puts "#! /bin/bash"
                     io.puts GAIN_ROOT_ACCESS % [sudo] if with_root
@@ -343,6 +343,10 @@ fi
                 super(['pacman'], true,
                         "pacman -Sy --needed '%s'",
                         "pacman -Sy --needed --noconfirm '%s'")
+                super(['pacman-msys'], true,
+                        "pacman -Sy --needed '%s'",
+                        "pacman -Sy --needed --noconfirm '%s'",
+                        false)
             end
         end
 
@@ -355,7 +359,7 @@ fi
                         "emerge --noreplace '%s'")
             end
         end
-	# Package manager interface for systems that use pkg (i.e. FreeBSD) as
+    # Package manager interface for systems that use pkg (i.e. FreeBSD) as
         # their package manager
         class PkgManager < ShellScriptManager
             def initialize
@@ -978,7 +982,8 @@ fi
             PackageManagers::PortManager,
             PackageManagers::ZypperManager,
             PackageManagers::PipManager ,
-            PackageManagers::PkgManager]
+            PackageManagers::PkgManager,
+            PackageManagers::PacmanManager]
         
         # Mapping from OS name to package manager name
         #
@@ -999,7 +1004,8 @@ fi
             'macos-port' => 'macports',
             'macos-brew' => 'brew',
             'opensuse' => 'zypper',
-            'freebsd' => 'pkg'
+            'freebsd' => 'pkg',
+            'msys' => 'pacman-msys'
         }
 
         # The information contained in the OSdeps files, as a hash
@@ -1201,14 +1207,16 @@ fi
                 [[*managers, 'darwin'], [version.strip]]
             elsif Autobuild.windows?
                 [['windows'], []]
+            elsif Autobuild.msys?
+                [['msys'], []]
             elsif File.exists?('/etc/SuSE-release')
                 version = File.read('/etc/SuSE-release').strip
                 version =~/.*VERSION\s+=\s+([^\s]+)/
                 version = $1
                 [['opensuse'], [version.strip]]
             elsif Autobuild.freebsd? 
-		version = `uname -r`.strip.split("-")[0]
-		[['freebsd'],[version]]
+        version = `uname -r`.strip.split("-")[0]
+        [['freebsd'],[version]]
             end
         end
 

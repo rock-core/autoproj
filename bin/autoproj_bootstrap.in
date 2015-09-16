@@ -16,6 +16,11 @@ module Autobuild
     def self.macos?
         @macos
     end
+
+    @msys =  RbConfig::CONFIG["host_os"] =~%r!(msys)!
+    def self.msys?
+        @msys
+    end
 end
 
 require 'yaml'

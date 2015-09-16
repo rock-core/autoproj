@@ -16,6 +16,11 @@ module Autobuild
     def self.macos?
         @macos
     end
+
+    @msys =  RbConfig::CONFIG["host_os"] =~%r!(msys)!
+    def self.msys?
+        @msys
+    end
 end
 
 require 'yaml'
@@ -358,6 +363,14 @@ module Autoproj
             end
         end
 
+        def import_log_enabled?
+            get('import_log_enabled', true)
+        end
+
+        def import_log_enabled=(value)
+            set('import_log_enabled', !!value)
+        end
+
         def ruby_executable
             @ruby_executable ||= OSDependencies.autodetect_ruby_program
         end
@@ -616,7 +629,7 @@ module Autoproj
                     end
                 end
                 
-                sudo = Autobuild.tool_in_path('sudo')
+                sudo = Autobuild.tool_in_path('sudo') if with_root
                 Tempfile.open('osdeps_sh') do |io|
                     io.puts "#! /bin/bash"
                     io.puts GAIN_ROOT_ACCESS % [sudo] if with_root
@@ -858,6 +871,10 @@ fi
                 super(['pacman'], true,
                         "pacman -Sy --needed '%s'",
                         "pacman -Sy --needed --noconfirm '%s'")
+                super(['pacman-msys'], true,
+                        "pacman -Sy --needed '%s'",
+                        "pacman -Sy --needed --noconfirm '%s'",
+                        false)
             end
         end
 
@@ -868,6 +885,15 @@ fi
                 super(['emerge'], true,
                         "emerge '%s'",
                         "emerge --noreplace '%s'")
+            end
+        end
+    # Package manager interface for systems that use pkg (i.e. FreeBSD) as
+        # their package manager
+        class PkgManager < ShellScriptManager
+            def initialize
+                super(['pkg'], true,
+                        "pkg install -y '%s'",
+                        "pkg install -y '%s'")
             end
         end
 
@@ -1483,7 +1509,9 @@ fi
             PackageManagers::YumManager,
             PackageManagers::PortManager,
             PackageManagers::ZypperManager,
-            PackageManagers::PipManager]
+            PackageManagers::PipManager ,
+            PackageManagers::PkgManager,
+            PackageManagers::PacmanManager]
         
         # Mapping from OS name to package manager name
         #
@@ -1503,7 +1531,9 @@ fi
             'fedora' => 'yum',
             'macos-port' => 'macports',
             'macos-brew' => 'brew',
-            'opensuse' => 'zypper'
+            'opensuse' => 'zypper',
+            'freebsd' => 'pkg',
+            'msys' => 'pacman-msys'
         }
 
         # The information contained in the OSdeps files, as a hash
@@ -1705,11 +1735,16 @@ fi
                 [[*managers, 'darwin'], [version.strip]]
             elsif Autobuild.windows?
                 [['windows'], []]
+            elsif Autobuild.msys?
+                [['msys'], []]
             elsif File.exists?('/etc/SuSE-release')
                 version = File.read('/etc/SuSE-release').strip
                 version =~/.*VERSION\s+=\s+([^\s]+)/
                 version = $1
                 [['opensuse'], [version.strip]]
+            elsif Autobuild.freebsd? 
+        version = `uname -r`.strip.split("-")[0]
+        [['freebsd'],[version]]
             end
         end
 
@@ -1858,6 +1893,20 @@ fi
 
         class InvalidRecursiveStatement < Autobuild::Exception; end
 
+        # Return the path to the osdeps name for a given package name while
+        # accounting for package aliases
+        #
+        # returns an array contain the path starting with name and
+        # ending at the resolved name
+        def self.resolve_name(name)
+            path = [ name ]
+            while OSDependencies.aliases.has_key?(name)
+                name = OSDependencies.aliases[name]
+                path << name
+            end
+            path
+        end
+
         # Return the list of packages that should be installed for +name+
         #
         # The following two simple return values are possible:
@@ -1876,9 +1925,8 @@ fi
         # name and version. The package list might be empty even if status ==
         # FOUND_PACKAGES, for instance if the ignore keyword is used.
         def resolve_package(name)
-            while OSDependencies.aliases.has_key?(name)
-                name = OSDependencies.aliases[name]
-            end
+            path = OSDependencies.resolve_name(name)
+            name = path.last
 
             os_names, os_versions = OSDependencies.operating_system
             os_names = os_names.dup
@@ -2099,7 +2147,8 @@ fi
             dependencies.each do |name|
                 result = resolve_package(name)
                 if !result
-                    raise MissingOSDep.new, "there is no osdeps definition for #{name}"
+                    path = OSDependencies.resolve_name(name)
+                    raise MissingOSDep.new, "there is no osdeps definition for #{path.last} (search tree: #{path.join("->")})"
                 end
 
                 if result.empty?
@@ -2608,6 +2657,14 @@ module Autoproj
     def self.create_symlink(from, to)
         if Autobuild.windows?
             Dir.create_junction(to, from)
+        elsif Autobuild.msys?
+            begin
+                #msys created a copy instead of a link
+                FileUtils.ln_sf from, to
+            rescue Errno::EEXIST
+                FileUtils.rm_rf to
+                FileUtils.ln_sf from, to
+            end
         else
             FileUtils.ln_sf from, to
         end
@@ -2927,8 +2984,12 @@ build-essential:
   - glibc-devel
   darwin: ignore
   opensuse:
-  - '@devel_C_C++'
+  - "@devel_C_C++"
   - gcc-c++
+  msys:
+  - mingw-w64-x86_64-gcc
+  - mingw-w64-x86_64-pkg-config
+  default: clang
 autobuild:
 - gem: autobuild
 - osdep: readline
@@ -2941,6 +3002,7 @@ readline:
   opensuse: readline-devel
   arch: core/readline
   macos-brew: readline
+  msys: libreadline-devel
   default: ignore
 git:
   debian:
@@ -2953,6 +3015,8 @@ git:
   macos-port: git
   macos-brew: git
   opensuse: git
+  freebsd: git
+  msys: git
 hg:
   debian,ubuntu: mercurial
   gentoo: dev-vcs/mercurial
@@ -2960,6 +3024,8 @@ hg:
   fedora: mercurial
   darwin: mercurial
   opensuse: mercurial
+  freebsd: mercurial
+  msys: mercurial
 svn:
   debian,ubuntu: subversion
   gentoo: dev-util/subversion
@@ -2967,6 +3033,8 @@ svn:
   fedora: subversion
   darwin: subversion
   opensuse: subversion
+  freebsd: subversion
+  msys: subversion
 cmake:
   debian,ubuntu: cmake
   gentoo: dev-util/cmake
@@ -2974,6 +3042,8 @@ cmake:
   fedora: cmake
   darwin: cmake
   opensuse: cmake
+  freebsd: cmake
+  msys: mingw-w64-x86_64-cmake
 autotools:
   debian,ubuntu:
   - automake
@@ -2991,6 +3061,12 @@ autotools:
   - automake
   - autoconf
   opensuse:
+  - automake
+  - autoconf
+  freebsd:
+  - automake
+  - autoconf
+  msys:
   - automake
   - autoconf
 archive:
@@ -3014,18 +3090,28 @@ archive:
   opensuse:
   - tar
   - unzip
+  msys:
+  - tar
+  - unzip
+  default: ignore
 cvs:
   debian,ubuntu: cvs
   fedora: cvs
   darwin: cvs
   arch: cvs
   opensuse: cvs
+  freebsd: cvs
+  msys: cvs
 pip:
   debian,ubuntu: python-pip
   arch: python2-pip
   opensuse: python-pip
   fedora: python-pip
+  freebsd: pip
+  msys: mingw-w64-x86_64-python2-pip
 sudo:
+  macos-brew: ignore
+  msys: ignore
   default: sudo
 
 EODEFS
