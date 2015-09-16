@@ -87,7 +87,9 @@ build-essential:
   fedora: ["gcc-c++", make, glibc-devel]
   darwin: ignore
   opensuse: ["@devel_C_C++", "gcc-c++"]
-  msys: mingw-w64-x86_64-gcc
+  msys:
+    - mingw-w64-x86_64-gcc
+    - mingw-w64-x86_64-pkg-config
   default: clang
 
 autobuild:
