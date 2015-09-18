@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/rock-core/autoproj.svg?branch=autoproj-2.0)](https://travis-ci.org/rock-core/autoproj)
+[![Gem Version](https://badge.fury.io/rb/autoproj.svg)](http://badge.fury.io/rb/autoproj)
+[![Documentation](http://b.repl.ca/v1/yard-docs-blue.png)](http://rubydoc.info/gems/autoproj/frames)
+
 What is Autoproj
 ----------------
 Autoproj allows to easily install and maintain software that is under source
