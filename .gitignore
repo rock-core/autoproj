@@ -5,3 +5,4 @@ doc/guide/src/autoproj_bootstrap
 pkg/
 /vendor/
 /.bundle
+/coverage/

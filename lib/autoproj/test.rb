@@ -3,12 +3,14 @@
 if ENV['TEST_ENABLE_COVERAGE'] == '1'
     begin
         require 'simplecov'
-        SimpleCov.start
+        SimpleCov.start do
+            add_filter "/test/"
+        end
     rescue LoadError
-        require 'dummy_project'
+        require 'autoproj'
         Autoproj.warn "coverage is disabled because the 'simplecov' gem cannot be loaded"
     rescue Exception => e
-        require 'dummy_project'
+        require 'autoproj'
         Autoproj.warn "coverage is disabled: #{e.message}"
     end
 end
