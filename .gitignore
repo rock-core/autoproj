@@ -3,3 +3,5 @@ doc
 webgen.cache
 doc/guide/src/autoproj_bootstrap
 pkg/
+/vendor/
+/.bundle

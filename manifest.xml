@@ -10,4 +10,11 @@
     <maintainer>Sylvain Joyeux/sylvain.joyeux@m4x.org</maintainer>
     <license>LGPLv3 or later</license>
     <url>http://rock-robotics.org</url>
+
+    <depend package="autobuild" />
+    <depend package="thor" />
+    <depend package="utilrb" />
+    <depend package="concurrent-ruby" />
+    <test_depend package="flexmock" />
+    <test_depend package="minitest" />
 </package>
