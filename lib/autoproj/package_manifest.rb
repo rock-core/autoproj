@@ -110,7 +110,7 @@ module Autoproj
             return each_dependency(modes, &block)
         end
 
-        def each_package_dependency(modes = Array.new)
+        def each_package_dependency(modes = Array.new, &block)
             Autoproj.warn "PackageManifest#each_os_dependency called, fix your code"
             return each_dependency(modes, &block)
         end

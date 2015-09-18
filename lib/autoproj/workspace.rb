@@ -4,7 +4,7 @@ module Autoproj
     class Workspace < Ops::Loader
         attr_reader :root_dir
 
-        attr_reader :config
+        attr_accessor :config
         attr_reader :env
         attr_reader :manifest
         attr_reader :loader
@@ -560,6 +560,7 @@ module Autoproj
 
     def self.workspace=(ws)
         @workspace = ws
+        self.root_dir = ws.root_dir
     end
 
     def self.env

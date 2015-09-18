@@ -1,9 +1,6 @@
-$LOAD_PATH.unshift File.expand_path('../lib', File.dirname(__FILE__))
-require 'test/unit'
-require 'autoproj'
-require 'flexmock/test_unit'
+require 'autoproj/test'
 
-class TC_OSDependencies_Pip < Test::Unit::TestCase
+class TC_OSDependencies_Pip < Minitest::Test
     include Autoproj
 
     attr_reader :pip_manager

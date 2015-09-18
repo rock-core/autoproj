@@ -3,22 +3,25 @@ require 'autoproj/test'
 module Autoproj
     module Ops
         describe Snapshot do
-            attr_reader :manifest
             before do
-                @manifest = create_bootstrap
+                @ws = create_bootstrap
+                ws.load_manifest
+                ws.manifest.vcs =
+                    VCSDefinition.from_raw('type' => 'local', 'url' => ws.config_dir)
             end
 
             describe ".update_log_available?" do
                 it "returns false if the main configuration is not managed by git" do
-                    assert !Snapshot.update_log_available?(manifest)
+                    assert !Snapshot.update_log_available?(ws.manifest)
                 end
                 it "returns true if the main configuration is managed by git even if it is not declared" do
-                    system("git", "init", chdir: Autoproj.config_dir, STDOUT => :close)
-                    assert Snapshot.update_log_available?(manifest)
+                    system("git", "init", chdir: ws.config_dir, STDOUT => :close)
+                    assert Snapshot.update_log_available?(ws.manifest)
                 end
                 it "returns true if the main configuration is managed by git and it is declared" do
-                    manifest.main_package_set.vcs = VCSDefinition.from_raw('type' => 'git', 'url' => Autoproj.config_dir)
-                    assert Snapshot.update_log_available?(manifest)
+                    ws.manifest.vcs =
+                        VCSDefinition.from_raw('type' => 'git', 'url' => ws.config_dir)
+                    assert Snapshot.update_log_available?(ws.manifest)
                 end
             end
         end

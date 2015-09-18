@@ -1,9 +1,6 @@
-$LOAD_PATH.unshift File.expand_path('../lib', File.dirname(__FILE__))
-require 'test/unit'
-require 'autoproj'
-require 'flexmock/test_unit'
+require 'autoproj/test'
 
-class TC_OSDependencies_Gem < Test::Unit::TestCase
+class TC_OSDependencies_Gem < Minitest::Test
     include Autoproj
     FOUND_PACKAGES = Autoproj::OSDependencies::FOUND_PACKAGES
     FOUND_NONEXISTENT = Autoproj::OSDependencies::FOUND_NONEXISTENT
@@ -36,8 +33,10 @@ class TC_OSDependencies_Gem < Test::Unit::TestCase
 
         dep = Gem::Dependency.new("pkg0", Gem::Requirement.new('>= 0.9'))
         gem_spec.should_receive(:find_by_name).with('pkg0', Gem::Requirement.new('>= 0.9')).and_return(fake_installed_package)
-        gem_fetcher.should_receive("find_matching").with(dep, true, true, true).
-            and_return([[["pkg0", Gem::Version.new("1.1.0")], nil]])
+        gem_fetcher.should_receive("find_matching").with(dep, true, true).
+            and_return([[["pkg0", Gem::Version.new("0.8")], nil]])
+        gem_fetcher.should_receive("find_matching").with(dep, false, true, true).
+            and_return([[["pkg0", Gem::Version.new("1.1.0.b1")], nil]])
         assert_equal [['pkg0', '>= 0.9']], gem_manager.filter_uptodate_packages([['pkg0', '>= 0.9']])
     end
 
@@ -62,7 +61,7 @@ class TC_OSDependencies_Gem < Test::Unit::TestCase
 
         dep = Gem::Dependency.new("pkg0", Gem::Requirement.new('>= 0.9'))
         gem_spec.should_receive(:find_by_name).with('pkg0', Gem::Requirement.new('>= 0.9')).and_return(fake_installed_package)
-        gem_fetcher.should_receive("find_matching").with(dep, true, true, false).
+        gem_fetcher.should_receive("find_matching").with(dep, true, true).
             and_return([[["pkg0", Gem::Version.new("1.1.0")], nil]])
         assert_equal [['pkg0', '>= 0.9']], gem_manager.filter_uptodate_packages([['pkg0', '>= 0.9']])
     end
@@ -72,7 +71,7 @@ class TC_OSDependencies_Gem < Test::Unit::TestCase
 
         dep = Gem::Dependency.new("pkg0", Gem::Requirement.new('>= 0'))
         gem_spec.should_receive(:find_by_name).with('pkg0', Gem::Requirement.new('>= 0')).and_return(fake_installed_package)
-        gem_fetcher.should_receive("find_matching").with(dep, true, true, false).
+        gem_fetcher.should_receive("find_matching").with(dep, true, true).
             and_return([[["pkg0", Gem::Version.new("1.0.0")], nil]])
         assert_equal [], gem_manager.filter_uptodate_packages([['pkg0']])
     end
@@ -82,7 +81,7 @@ class TC_OSDependencies_Gem < Test::Unit::TestCase
 
         dep = Gem::Dependency.new("pkg0", Gem::Requirement.new('>= 0.9'))
         gem_spec.should_receive(:find_by_name).with('pkg0', Gem::Requirement.new('>= 0.9')).and_return(fake_installed_package)
-        gem_fetcher.should_receive("find_matching").with(dep, true, true, false).
+        gem_fetcher.should_receive("find_matching").with(dep, true, true).
             and_return([[["pkg0", Gem::Version.new("1.0.0")], nil]])
         assert_equal [], gem_manager.filter_uptodate_packages([['pkg0', '>= 0.9']])
     end
@@ -99,11 +98,11 @@ class TC_OSDependencies_Gem < Test::Unit::TestCase
 
         packages = [['pkg0'], ['pkg1', '>= 0.5'], ['pkg2'], ['pkg3', '>= 0.9']]
         subprocess.should_receive(:run).
-            with(any, any, any, any, 'mygem', 'install', *default_install_options, '--no-rdoc', '--no-ri', 'pkg0', 'pkg2').once
+            with(any, any, any, any, 'mygem', 'install', *default_install_options, '--no-rdoc', '--no-ri', 'pkg0', 'pkg2', Hash).once
         subprocess.should_receive(:run).
-            with(any, any, any, any, 'mygem', 'install', *default_install_options, '--no-rdoc', '--no-ri', 'pkg1', '-v', '>= 0.5').once
+            with(any, any, any, any, 'mygem', 'install', *default_install_options, '--no-rdoc', '--no-ri', 'pkg1', '-v', '>= 0.5', Hash).once
         subprocess.should_receive(:run).
-            with(any, any, any, any, 'mygem', 'install', *default_install_options, '--no-rdoc', '--no-ri', 'pkg3', '-v', '>= 0.9').once
+            with(any, any, any, any, 'mygem', 'install', *default_install_options, '--no-rdoc', '--no-ri', 'pkg3', '-v', '>= 0.9', Hash).once
         gem_manager.install(packages)
     end
 
@@ -114,7 +113,7 @@ class TC_OSDependencies_Gem < Test::Unit::TestCase
 
         packages = [['pkg0']]
         subprocess.should_receive(:run).
-            with(any, any, any, any, 'mygem', 'install', *default_install_options, 'pkg0').once
+            with(any, any, any, any, 'mygem', 'install', *default_install_options, 'pkg0', Hash).once
         gem_manager.install([['pkg0']])
     end
 
@@ -124,7 +123,7 @@ class TC_OSDependencies_Gem < Test::Unit::TestCase
         subprocess = flexmock(Autobuild::Subprocess)
 
         subprocess.should_receive(:run).
-            with(any, any, any, any, 'mygem', 'install', *default_install_options, '--prerelease', 'pkg0').once
+            with(any, any, any, any, 'mygem', 'install', *default_install_options, '--prerelease', 'pkg0', Hash).once
         gem_manager.install([['pkg0']])
     end
 

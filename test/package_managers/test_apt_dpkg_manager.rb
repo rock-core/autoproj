@@ -1,9 +1,6 @@
-$LOAD_PATH.unshift File.expand_path('../lib', File.dirname(__FILE__))
-require 'test/unit'
-require 'autoproj'
-require 'flexmock/test_unit'
+require 'autoproj/test'
 
-class TC_OSDependencies_AptDpkgManager < Test::Unit::TestCase
+class TC_OSDependencies_AptDpkgManager < Minitest::Test
     def test_status_file_parsing
         file = File.expand_path("apt-dpkg-status", File.dirname(__FILE__))
         mng = Autoproj::PackageManagers::AptDpkgManager.new(file)

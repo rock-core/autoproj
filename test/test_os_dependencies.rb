@@ -1,18 +1,14 @@
-$LOAD_PATH.unshift File.expand_path('../lib', File.dirname(__FILE__))
-$LOAD_PATH.unshift File.expand_path('../', File.dirname(__FILE__))
-require 'test/unit'
-require 'autoproj'
-require 'flexmock/test_unit'
-
+require 'autoproj/test'
 require 'test/package_managers/test_gem'
 
-class TC_OSDependencies < Test::Unit::TestCase
+class TC_OSDependencies < Minitest::Test
     include Autoproj
     FOUND_PACKAGES = Autoproj::OSDependencies::FOUND_PACKAGES
     FOUND_NONEXISTENT = Autoproj::OSDependencies::FOUND_NONEXISTENT
 
     def setup
         Autoproj::OSDependencies.operating_system = [['test', 'debian', 'default'], ['v1.0', 'v1', 'default']]
+        super
     end
 
     def test_supported_operating_system
@@ -446,7 +442,7 @@ class TC_OSDependencies < Test::Unit::TestCase
         osdeps.should_receive(:resolve_package).with('pkg0').once.and_return(nil)
         osdeps.should_receive(:resolve_package).with('pkg1').never
         osdeps.should_receive(:resolve_package).with('pkg2').never
-        assert_raises(Autoproj::OSDependencies::MissingOSDep) { osdeps.resolve_os_dependencies(['pkg0', 'pkg1', 'pkg2']) }
+        assert_raises(Autoproj::MissingOSDep) { osdeps.resolve_os_dependencies(['pkg0', 'pkg1', 'pkg2']) }
 
         osdeps.should_receive(:resolve_package).with('pkg0').once.and_return(
             [[osdeps.os_package_handler, FOUND_PACKAGES, ['pkg0']]])
@@ -457,13 +453,13 @@ class TC_OSDependencies < Test::Unit::TestCase
         expected =
             [[osdeps.os_package_handler, ['pkg0']],
              [osdeps.package_handlers['gem'], ['gempkg1', 'gempkg2']]]
-        assert_raises(Autoproj::OSDependencies::MissingOSDep) { osdeps.resolve_os_dependencies(['pkg0', 'pkg1', 'pkg2']) }
+        assert_raises(Autoproj::MissingOSDep) { osdeps.resolve_os_dependencies(['pkg0', 'pkg1', 'pkg2']) }
 
         osdeps.should_receive(:resolve_package).with('pkg0').once.and_return(
             [[osdeps.os_package_handler, FOUND_NONEXISTENT, ['pkg0']]])
         osdeps.should_receive(:resolve_package).with('pkg1').never
         osdeps.should_receive(:resolve_package).with('pkg2').never
-        assert_raises(Autoproj::OSDependencies::MissingOSDep) { osdeps.resolve_os_dependencies(['pkg0', 'pkg1', 'pkg2']) }
+        assert_raises(Autoproj::MissingOSDep) { osdeps.resolve_os_dependencies(['pkg0', 'pkg1', 'pkg2']) }
 
         osdeps.should_receive(:resolve_package).with('pkg0').once.and_return(
             [[osdeps.os_package_handler, FOUND_PACKAGES, ['pkg0']]])
@@ -471,7 +467,7 @@ class TC_OSDependencies < Test::Unit::TestCase
             [[osdeps.os_package_handler, FOUND_PACKAGES, ['pkg1']],
              [osdeps.package_handlers['gem'], FOUND_NONEXISTENT, ['gempkg1']]])
         osdeps.should_receive(:resolve_package).with('pkg2').never
-        assert_raises(Autoproj::OSDependencies::MissingOSDep) { osdeps.resolve_os_dependencies(['pkg0', 'pkg1', 'pkg2']) }
+        assert_raises(Autoproj::MissingOSDep) { osdeps.resolve_os_dependencies(['pkg0', 'pkg1', 'pkg2']) }
     end
 
     def test_install
@@ -481,7 +477,7 @@ class TC_OSDependencies < Test::Unit::TestCase
             and_return([[osdeps.os_package_handler, ['os0.1', 'os0.2', 'os1']],
                         [osdeps.package_handlers['gem'], [['gem2', '>= 0.9']]]])
         osdeps.os_package_handler.should_receive(:filter_uptodate_packages).
-            with(['os0.1', 'os0.2', 'os1']).and_return(['os0.1', 'os1']).once
+            with(['os0.1', 'os0.2', 'os1'], install_only: false).and_return(['os0.1', 'os1']).once
         # Do not add filter_uptodate_packages to the gem handler to check that
         # #install deals with that just fine
         osdeps.os_package_handler.should_receive(:install).
@@ -496,7 +492,7 @@ class TC_OSDependencies < Test::Unit::TestCase
     def test_resolve_os_dependencies_unsupported_os_non_existent_dependency
         osdeps = create_osdep(Hash.new)
         flexmock(OSDependencies).should_receive(:supported_operating_system?).and_return(false)
-        assert_raises(OSDependencies::MissingOSDep) { osdeps.resolve_os_dependencies(['a_package']) }
+        assert_raises(MissingOSDep) { osdeps.resolve_os_dependencies(['a_package']) }
     end
 
     def test_resolve_package_availability_unsupported_os_non_existent_dependency

@@ -53,7 +53,9 @@ module Autoproj
     #
     # If the values listed in +definitions+ also contain configuration
     # variables, they do not get expanded
-    def self.single_expansion(data, definitions)
+    def self.single_expansion(data, definitions, options = Hash.new)
+        options = Kernel.validate_options options, config: Autoproj.config
+
         if !data.respond_to?(:to_str)
             return data
         end
@@ -71,7 +73,7 @@ module Autoproj
             end
 
             if !(value = definitions[constant_name])
-                if !(value = config.get(constant_name))
+                if !(value = options[:config].get(constant_name))
                     if !block_given? || !(value = yield(constant_name))
                         raise ArgumentError, "cannot find a definition for $#{constant_name}"
                     end

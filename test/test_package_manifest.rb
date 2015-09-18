@@ -1,7 +1,6 @@
-require 'test/unit'
-require 'autoproj'
+require 'autoproj/test'
 
-class TC_PackageManifest < Test::Unit::TestCase
+class TC_PackageManifest < Minitest::Test
 
     DATA_DIR = File.expand_path('data', File.dirname(__FILE__))
 
@@ -11,6 +10,7 @@ class TC_PackageManifest < Test::Unit::TestCase
 
     def setup
         @pkg = FakePackage.new('test', [])
+        super
     end
 
     def test_complete_manifest
@@ -26,8 +26,6 @@ class TC_PackageManifest < Test::Unit::TestCase
         osdeps = [['osdep1', false], ['osdep2', false]]
         pkg.os_packages << "osdep2"
 
-        assert_equal(osdeps, manifest.each_os_dependency.to_a)
-        assert_equal(deps + opt_deps, manifest.each_package_dependency.to_a)
         assert_equal((deps + opt_deps + osdeps).to_set, manifest.each_dependency.to_set)
 
         authors = [

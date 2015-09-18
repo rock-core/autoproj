@@ -13,9 +13,9 @@ if ENV['TEST_ENABLE_COVERAGE'] == '1'
     end
 end
 
+require 'minitest/autorun'
 require 'autoproj'
-## Uncomment this to enable flexmock
-require 'flexmock/test_unit'
+require 'flexmock/minitest'
 require 'minitest/spec'
 
 if ENV['TEST_ENABLE_PRY'] != '0'
@@ -38,13 +38,14 @@ module Autoproj
     #   end
     #
     module SelfTest
-        if defined? FlexMock
-            include FlexMock::ArgumentTypes
-            include FlexMock::MockContainer
-        end
+        attr_reader :ws
 
         def setup
             @tmpdir = Array.new
+            @ws = Workspace.new('/test/dir')
+            ws.config = Configuration.new
+            Autoproj.workspace = ws
+
             super
         end
 
@@ -53,14 +54,10 @@ module Autoproj
             @tmpdir << dir
             require 'autoproj/ops/main_config_switcher'
             FileUtils.cp_r Ops::MainConfigSwitcher::MAIN_CONFIGURATION_TEMPLATE, File.join(dir, 'autoproj')
-            Autoproj.root_dir = dir
-            Autoproj.manifest = Manifest.load(File.join(dir, 'autoproj', 'manifest'))
+            Workspace.new(dir)
         end
 
         def teardown
-            if defined? FlexMock
-                flexmock_teardown
-            end
             super
             @tmpdir.each do |dir|
                 FileUtils.remove_entry_secure dir
