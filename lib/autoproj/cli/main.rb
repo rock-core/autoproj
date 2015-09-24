@@ -136,8 +136,8 @@ module Autoproj
                 desc: 'do not stop on errors'
             option :checkout_only, aliases: :c, type: :boolean, default: false,
                 desc: "only checkout packages, do not update already-cached ones"
-            def cache(cache_dir)
-                run_autoproj_cli(:cache, :Cache, Hash[], cache_dir)
+            def cache(*cache_dir)
+                run_autoproj_cli(:cache, :Cache, Hash[], *cache_dir)
             end
 
             desc 'clean [PACKAGES]', 'remove build byproducts for the given packages'

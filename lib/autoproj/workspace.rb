@@ -170,6 +170,9 @@ module Autoproj
             Autobuild.prefix = prefix_dir
             Autobuild.srcdir = root_dir
             Autobuild.logdir = log_dir
+            if cache_dir = config.importer_cache_dir
+                Autobuild::Importer.default_cache_dirs = cache_dir
+            end
             env.prepare(root_dir)
             Autoproj::OSDependencies::PACKAGE_HANDLERS.each do |pkg_mng|
                 pkg_mng.initialize_environment(env, manifest, root_dir)

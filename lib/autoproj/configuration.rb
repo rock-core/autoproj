@@ -255,6 +255,11 @@ module Autoproj
                 end
             end
         end
+        
+        # A cache directory for autobuild's importers
+        def importer_cache_dir
+            get('importer_cache_dir', nil)
+        end
 
         # The directory in which packages will be installed.
         #
