@@ -1,6 +1,8 @@
 module Autoproj
     module CLI
         class MainTest < Thor
+            namespace 'test'
+
             default_command 'exec'
             
             desc 'enable [PACKAGES]', 'enable tests for the given packages (or for all packages if none are given)'
