@@ -4,7 +4,7 @@ module Autoproj
             default_command 'exec'
             
             desc 'enable [PACKAGES]', 'enable tests for the given packages (or for all packages if none are given)'
-            option :deps, default: false,
+            option :deps, type: :boolean, default: false,
                 desc: 'controls whether the dependencies of the packages given on the command line should be enabled as well (the default is not)'
             def enable(*packages)
                 require 'autoproj/cli/test'
@@ -16,7 +16,7 @@ module Autoproj
             end
 
             desc 'disable [PACKAGES]', 'disable tests for the given packages (or for all packages if none are given)'
-            option :deps, default: false,
+            option :deps, type: :boolean, default: false,
                 desc: 'controls whether the dependencies of the packages given on the command line should be disabled as well (the default is not)'
             def disable(*packages)
                 require 'autoproj/cli/test'
@@ -28,7 +28,7 @@ module Autoproj
             end
 
             desc 'list [PACKAGES]', 'show test enable/disable status for the given packages (or all packages if none are given)'
-            option :deps, default: false,
+            option :deps, type: :boolean, default: false,
                 desc: 'controls whether the dependencies of the packages given on the command line should be disabled as well (the default is not)'
             def list(*packages)
                 require 'autoproj/cli/test'
@@ -40,7 +40,7 @@ module Autoproj
             end
 
             desc 'exec [PACKAGES]', 'execute the tests for the given packages, or all if no packages are given on the command line'
-            option :deps, default: false,
+            option :deps, type: :boolean, default: false,
                 desc: 'controls whether to execute the tests of the dependencies of the packages given on the command line (the default is not)'
             def exec(*packages)
                 require 'autoproj/cli/test'
