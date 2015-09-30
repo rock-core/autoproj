@@ -13,6 +13,7 @@ Gem::Specification.new do |s|
     s.homepage = "http://rock-robotics.org"
     s.licenses = ["BSD"]
 
+    s.bindir = 'bin'
     s.require_paths = ["lib"]
     s.extensions = []
     s.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
