@@ -14,6 +14,7 @@ Gem::Specification.new do |s|
     s.licenses = ["BSD"]
 
     s.bindir = 'bin'
+    s.executables = ['autoproj', 'aup', 'amake', 'alocate']
     s.require_paths = ["lib"]
     s.extensions = []
     s.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
