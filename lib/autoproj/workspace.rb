@@ -18,6 +18,8 @@ module Autoproj
             @env = Environment.new
             env.source_before(File.join(dot_autoproj_dir, 'env.sh'))
             @manifest = Manifest.new
+            @os_package_installer = OSPackageInstaller.new(self, os_package_resolver)
+
             Autobuild.env = nil
             env.prepare(root_dir)
 
@@ -181,7 +183,7 @@ module Autoproj
         # Return the directory in which remote package set definition should be
         # checked out
         def remotes_dir
-            File.join(root_dir, ".remotes")
+            File.join(dot_autoproj_dir, "remotes")
         end
 
         # (see Configuration#prefix_dir)
@@ -253,8 +255,6 @@ module Autoproj
             File.open(File.join(prefix_dir, '.autoproj', 'config.yml'), 'w') do |io|
                 io.puts "workspace: \"#{root_dir}\""
             end
-
-            @os_package_installer = OSPackageInstaller.new(self, os_package_resolver)
 
             Autobuild.srcdir = root_dir
             Autobuild.logdir = log_dir
