@@ -60,6 +60,8 @@ module Autoproj
                     raise MismatchingWorkspace, "the current environment is for #{env}, but you are in #{path}, make sure you are loading the right #{ENV_FILENAME} script !"
                 end
                 Workspace.new(path)
+            elsif find_v1_workspace_dir(dir)
+                raise OutdatedWorkspace, "#{dir} looks like a v1 workspace, run autoproj upgrade before continuing"
             else
                 raise NotWorkspace, "not in a Autoproj installation"
             end
@@ -134,6 +136,31 @@ module Autoproj
         # @return [String,nil]
         def self.find_prefix_dir(base_dir = Dir.pwd)
             find_root_dir(base_dir, 'prefix')
+        end
+
+        # Finds a v1 workspace root from base_dir
+        def self.find_v1_workspace_dir(base_dir)
+            path = Pathname.new(base_dir)
+            while !path.root?
+                if (path + "autoproj").exist?
+                    break
+                end
+                path = path.parent
+            end
+
+            if path.root?
+                return
+            end
+
+            result = path.to_s
+
+            # I don't know if this is still useful or not ... but it does not hurt
+            #
+            # Preventing backslashed in path, that might be confusing on some path compares
+            if Autobuild.windows?
+                result = result.gsub(/\\/,'/')
+            end
+            result
         end
 
         def load(*args)

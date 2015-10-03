@@ -311,6 +311,12 @@ The format is a string in which special values can be expanded using a $VARNAME 
             def query(query_string = nil)
                 run_autoproj_cli(:query, :Query, Hash[], *Array(query_string))
             end
+
+            desc 'upgrade', "upgrade autoproj itself, and the workspace layout"
+            def upgrade
+                require 'autoproj/cli/upgrade'
+                Autoproj::CLI::Upgrade.new.run
+            end
         end
     end
 end

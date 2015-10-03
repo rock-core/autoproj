@@ -49,6 +49,10 @@ module Autoproj
     # Exception raised when looking for a workspace and it cannot be found
     class NotWorkspace < RuntimeError; end
 
+    # Exception raised when the autoproj workspace changes and the current
+    # workspace is outdated
+    class OutdatedWorkspace < RuntimeError; end
+
     # Exception raised when initializing on a workspace that is not the current
     # one
     class MismatchingWorkspace < RuntimeError; end

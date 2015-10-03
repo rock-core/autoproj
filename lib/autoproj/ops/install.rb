@@ -185,8 +185,7 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
                 end
             end
 
-            # Actually perform the install
-            def run
+            def install
                 if private_bundler?
                     puts "Installing bundler in #{bundler_install_dir}"
                     bundler = install_bundler
@@ -194,7 +193,11 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
                 save_gemfile
                 puts "Installing autoproj in #{dot_autoproj}"
                 install_autoproj(bundler || 'bundler')
+            end
 
+            # Actually perform the install
+            def run
+                install
                 ENV['BUNDLE_GEMFILE'] = autoproj_gemfile_path
                 require 'bundler'
                 Bundler.setup
