@@ -33,48 +33,9 @@ module Autoproj
                 return args, options
             end
             
-            def restart_if_needed(ws)
-                # Check if the .autoprojrc changed the PATH and therefore which autoproj script
-                # should be executed ... and restart if it did
-                autoproj_path = Autobuild.find_in_path('autoproj')
-                if $0 != autoproj_path
-                    puts "your .autoprojrc file changed PATH in a way that requires the restart of autoproj"
-
-                    if ENV['AUTOPROJ_RESTARTING']
-                        puts "infinite loop detected, will not restart this time"
-                    else
-                        require 'rbconfig'
-                        ws.config.save
-                        exec(ws.config.ruby_executable, autoproj_path, *ARGV)
-                    end
-                end
-            end
-
-            def install_autoproj_gem_in_new_root(ws)
-                # Install the autoproj/autobuild gem explicitely in the new
-                # root.
-                original_env =
-                    Hash['GEM_HOME' => Gem.paths.home,
-                         'GEM_PATH' => Gem.paths.path]
-
-                begin
-                    Gem.paths =
-                        Hash['GEM_HOME' => File.join(root_dir, '.gems'),
-                             'GEM_PATH' => []]
-                    PackageManagers::GemManager.with_prerelease(ws.config.use_prerelease?) do
-                        ws.osdeps.install(%w{autobuild autoproj})
-                    end
-                ensure
-                    Gem.paths = original_env
-                end
-            end
-
             def run(buildconf_info, options)
                 ws = Workspace.new(root_dir)
-
                 ws.setup
-                install_autoproj_gem_in_new_root(ws)
-                restart_if_needed(ws)
 
                 seed_config = options.delete(:seed_config)
 

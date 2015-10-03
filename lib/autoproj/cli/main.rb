@@ -45,6 +45,13 @@ module Autoproj
                 banner: 'SEED_CONFIG',
                 desc: "a configuration file used to seed the bootstrap's configuration"
             def bootstrap(*args)
+                if !File.directory?(File.join(Dir.pwd, '.autoproj'))
+                    require 'autoproj/ops/install'
+                    ops = Autoproj::Ops::Install.new(Dir.pwd)
+                    remaining = ops.parse_options(args)
+                    ops.run
+                    exec Gem.ruby, $0, 'bootstrap', *args
+                end
                 run_autoproj_cli(:bootstrap, :Bootstrap, Hash[], *args)
             end
 

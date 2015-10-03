@@ -88,7 +88,7 @@ module Autoproj
         attr_accessor :vcs
 
         # The definition of all OS packages available on this installation
-        attr_reader :osdeps
+        attr_reader :os_package_resolver
 
 	def initialize
             @file = nil
@@ -96,7 +96,7 @@ module Autoproj
             @packages = Hash.new
             @package_manifests = Hash.new
             @package_sets = []
-            @osdeps = OSDependencies.new
+            @os_package_resolver = OSPackageResolver.new
 
             @automatic_exclusions = Hash.new
             @constants_definitions = Hash.new
@@ -104,7 +104,7 @@ module Autoproj
             @moved_packages = Hash.new
             @osdeps_overrides = Hash.new
             @metapackages = Hash.new
-            @ignored_os_dependencies = Set.new
+            @ignored_os_packages = Set.new
             @reused_installations = Array.new
             @ignored_packages = Set.new
             @manifest_exclusions = Set.new
@@ -621,16 +621,16 @@ module Autoproj
         #   (type, package_name) pairs where type is either :package or :osdep and
         #   package_name the corresponding package name
         def resolve_package_name_as_osdep(name)
-	    osdeps_availability = osdeps.availability_of(name)
-            if osdeps_availability == Autoproj::OSDependencies::NO_PACKAGE
+	    osdeps_availability = os_package_resolver.availability_of(name)
+            if osdeps_availability == OSPackageResolver::NO_PACKAGE
                 raise PackageNotFound, "cannot resolve #{name}: it is not an osdep"
             end
 
             # There is an osdep definition for this package, check the
             # overrides
             osdeps_available =
-                (osdeps_availability == OSDependencies::AVAILABLE) ||
-                (osdeps_availability == OSDependencies::IGNORE)
+                (osdeps_availability == OSPackageResolver::AVAILABLE) ||
+                (osdeps_availability == OSPackageResolver::IGNORE)
             osdeps_overrides = self.osdeps_overrides[name]
             if osdeps_overrides && (!osdeps_available || osdeps_overrides[:force])
                 source_packages = osdeps_overrides[:packages].inject([]) do |result, src_pkg_name|
@@ -640,11 +640,11 @@ module Autoproj
                 return [[:package, pkg.name]]
             elsif osdeps_available
                 return [[:osdeps, name]]
-            elsif osdeps_availability == OSDependencies::WRONG_OS
+            elsif osdeps_availability == OSPackageResolver::WRONG_OS
                 raise PackageNotFound, "#{name} is an osdep, but it is not available for this operating system"
-            elsif osdeps_availability == OSDependencies::UNKNOWN_OS
+            elsif osdeps_availability == OSPackageResolver::UNKNOWN_OS
                 raise PackageNotFound, "#{name} is an osdep, but the local operating system is unavailable"
-            elsif osdeps_availability == OSDependencies::NONEXISTENT
+            elsif osdeps_availability == OSPackageResolver::NONEXISTENT
                 raise PackageNotFound, "#{name} is an osdep, but it is explicitely marked as 'nonexistent' for this operating system"
             end
         end
@@ -662,7 +662,7 @@ module Autoproj
                 end
                 pkg_set.each_package.
                     map(&:name).
-                    find_all { |pkg_name| !osdeps || !osdeps.has?(pkg_name) }
+                    find_all { |pkg_name| !os_package_resolver.has?(pkg_name) }
             end
         end
 
@@ -762,7 +762,7 @@ module Autoproj
                 result |= metapackage(pkg_set.name).packages.map(&:name).to_set
             end
             result.to_a.
-                find_all { |pkg_name| !osdeps.has?(pkg_name) }
+                find_all { |pkg_name| !os_package_resolver.has?(pkg_name) }
         end
 
         # Returns true if +name+ is a valid package and is included in the build
@@ -773,7 +773,7 @@ module Autoproj
         # If it is false, the method will simply return false on non-defined
         # packages 
         def package_enabled?(name, validate = true)
-            if !find_autobuild_package(name) && !osdeps.has?(name)
+            if !find_autobuild_package(name) && !os_package_resolver.has?(name)
                 if validate
                     raise ArgumentError, "package #{name} does not exist"
                 end
@@ -925,14 +925,14 @@ module Autoproj
         end
 
         # call-seq:
-        #   list_os_dependencies(packages) => required_packages, ospkg_to_pkg
+        #   list_os_packages(packages) => required_packages, ospkg_to_pkg
         #
         # Returns the set of dependencies required by the listed packages.
         #
         # +required_packages+ is the set of osdeps names that are required for
         # +packages+ and +ospkg_to_pkg+ a mapping from the osdeps name to the
         # set of packages that require this OS package.
-        def list_os_dependencies(packages)
+        def list_os_packages(packages)
             required_os_packages = Set.new
             package_os_deps = Hash.new { |h, k| h[k] = Array.new }
             packages.each do |pkg_name|
@@ -950,7 +950,7 @@ module Autoproj
             return required_os_packages, package_os_deps
         end
 
-        def filter_os_dependencies(required_os_packages, package_os_deps)
+        def filter_os_packages(required_os_packages, package_os_deps)
             required_os_packages.find_all do |pkg|
                 if excluded?(pkg)
                     raise ConfigError.new, "the osdeps package #{pkg} is excluded from the build in #{file}. It is required by #{package_os_deps[pkg].join(", ")}"
@@ -963,26 +963,6 @@ module Autoproj
                 else true
                 end
             end
-        end
-
-        # Restores the OS dependencies required by the given packages to
-        # pristine conditions
-        #
-        # This is usually called as a rebuild step to make sure that all these
-        # packages are updated to whatever required the rebuild
-        def pristine_os_dependencies(packages)
-            required_os_packages, package_os_deps = list_os_dependencies(packages)
-            required_os_packages =
-                filter_os_dependencies(required_os_packages, package_os_deps)
-            osdeps.pristine(required_os_packages)
-        end
-
-        # Installs the OS dependencies that are required by the given packages
-        def install_os_dependencies(packages, options = Hash.new)
-            required_os_packages, package_os_deps = list_os_dependencies(packages)
-            required_os_packages =
-                filter_os_dependencies(required_os_packages, package_os_deps)
-            osdeps.install(required_os_packages, options)
         end
 
         # The set of overrides added with #add_osdeps_overrides
@@ -1069,7 +1049,7 @@ module Autoproj
 
             # Finally, check for partial matches
             all_source_package_names = self.all_package_names
-            all_osdeps_package_names = osdeps.all_package_names
+            all_osdeps_package_names = os_package_resolver.all_package_names
             selection.each do |sel|
                 match_pkg_name = Regexp.new(Regexp.quote(sel))
                 all_matches = Array.new
@@ -1180,11 +1160,11 @@ module Autoproj
         # Load OS dependency information contained in our registered package
         # sets into the provided osdep object
         #
-        # @param [OSDependencies] osdeps the osdep handling object
+        # @param [OSPackageResolver] osdeps the osdep handling object
         # @return [void]
         def load_osdeps_from_package_sets(osdeps)
-            each_osdeps_file do |source, file|
-                osdeps.merge(source.load_osdeps(file))
+            each_package_set do |pkg_set, file|
+                osdeps.merge(pkg_set.load_osdeps(file))
             end
         end
     end
@@ -1198,9 +1178,9 @@ module Autoproj
 
     def self.osdeps
         Autoproj.warn_deprecated(
-            __method__, "use workspace.osdeps instead")
+            __method__, "use workspace.os_package_resolver or workspace.os_package_installer instead")
 
-        workspace.osdeps
+        workspace.os_package_resolver
     end
 
     def self.config
@@ -1208,12 +1188,6 @@ module Autoproj
             __method__, "use workspace.config instead")
 
         workspace.config
-    end
-
-    # Load the osdeps files contained in {manifest} into {osdeps}
-    def self.load_osdeps_from_package_sets
-        workspace.load_osdeps_from_package_sets(osdeps)
-        workspace.osdeps
     end
 
     def self.add_osdeps_overrides(*args, &block)

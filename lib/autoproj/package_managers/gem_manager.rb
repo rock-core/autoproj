@@ -25,7 +25,8 @@ module Autoproj
 
             # Filters all paths that come from other autoproj installations out
             # of GEM_PATH
-            def self.initialize_environment(env = Autobuild.env, manifest = Autoproj.manifest, root_dir = Autoproj.root_dir)
+            def initialize_environment
+                env = ws.env
                 env.original_env['GEM_PATH'] =
                     (env['GEM_PATH'] || "").split(File::PATH_SEPARATOR).find_all do |p|
                         !Autoproj.in_autoproj_installation?(p)
@@ -37,7 +38,7 @@ module Autoproj
                 env.system_env['GEM_PATH'] = Gem.default_path
                 env.original_env['GEM_PATH'] = orig_gem_path.join(File::PATH_SEPARATOR)
 
-                manifest.each_reused_autoproj_installation do |p|
+                ws.manifest.each_reused_autoproj_installation do |p|
                     p_gems = File.join(p, '.gems')
                     if File.directory?(p_gems)
                         env.push_path 'GEM_PATH', p_gems
@@ -45,7 +46,7 @@ module Autoproj
                     end
                 end
 
-                @gem_home = (ENV['AUTOPROJ_GEM_HOME'] || File.join(root_dir, ".gems"))
+                @gem_home = (ENV['AUTOPROJ_GEM_HOME'] || File.join(ws.root_dir, ".gems"))
                 env.push_path 'GEM_PATH', gem_home
                 env.set 'GEM_HOME', gem_home
                 env.push_path 'PATH', "#{gem_home}/bin"
@@ -99,8 +100,8 @@ module Autoproj
                 @default_install_options ||= ['--no-user-install', '--no-format-executable']
             end
 
-            def initialize
-                super(['gem'])
+            def initialize(ws)
+                super(ws)
                 @installed_gems = Set.new
             end
 
@@ -274,7 +275,7 @@ module Autoproj
             end
 
             def gems_interaction(gems, cmdlines)
-                if OSDependencies.force_osdeps
+                if OSPackageInstaller.force_osdeps
                     return true
                 elsif enabled?
                     return true

@@ -2,8 +2,8 @@ module Autoproj
     module PackageManagers
         # Package manager interface for systems that use yum
         class YumManager < ShellScriptManager
-            def initialize
-                super(['yum'], true,
+            def initialize(ws)
+                super(ws, true,
                       "yum install '%s'",
                       "yum install -y '%s'")
             end

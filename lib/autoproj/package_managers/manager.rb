@@ -7,9 +7,8 @@ module Autoproj
         # Package managers must be registered in PACKAGE_HANDLERS and
         # (if applicable) OS_PACKAGE_HANDLERS.
         class Manager
-            # @return [Array<String>] the various names this package manager is
-            #   known about
-            attr_reader :names
+            # @return [Workspace] the workspace
+            attr_reader :ws
 
             attr_writer :enabled
             def enabled?; !!@enabled end
@@ -22,8 +21,8 @@ module Autoproj
             # @param [Array<String>] names the package manager names. It MUST be
             #   different from the OS names that autoproj uses. See the comment
             #   for OS_PACKAGE_HANDLERS for an explanation
-            def initialize(names = [])
-                @names = names.dup
+            def initialize(ws)
+                @ws = ws
                 @enabled = true
                 @silent = true
             end
@@ -37,7 +36,7 @@ module Autoproj
             # order to have a properly functioning package manager
             #
             # This is e.g. needed for python pip or rubygems
-            def self.initialize_environment(_env = nil, _manifest = nil, _root_dir = Autoproj.root_dir)
+            def initialize_environment
             end
         end
     end

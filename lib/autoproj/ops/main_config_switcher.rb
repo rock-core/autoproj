@@ -81,10 +81,6 @@ module Autoproj
                 validate_autoproj_current_root(options[:reuse])
 
                 ws.config.validate_ruby_executable
-
-                PackageManagers::GemManager.with_prerelease(ws.config.use_prerelease?) do
-                    ws.osdeps.install(%w{autobuild autoproj})
-                end
                 ws.config.set 'reused_autoproj_installations', options[:reuse], true
                 ws.env.export_env_sh(nil, shell_helpers: ws.config.shell_helpers?)
 
@@ -174,7 +170,7 @@ module Autoproj
                 vcs = VCSDefinition.from_raw(vcs_def)
 
                 # Install the OS dependencies required for this VCS
-                ws.osdeps.install([vcs.type])
+                ws.install_os_packages([vcs.type])
 
                 # Now check out the actual configuration
                 config_dir = File.join(ws.root_dir, "autoproj")

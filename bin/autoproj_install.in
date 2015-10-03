@@ -7,6 +7,8 @@ end
 
 AUTOPROJ_OPS_INSTALL
 
+ENV.delete('BUNDLE_GEMFILE')
+ENV.delete('RUBYLIB')
 ops = Autoproj::Ops::Install.new(Dir.pwd)
 ops.parse_options(ARGV)
 ops.run

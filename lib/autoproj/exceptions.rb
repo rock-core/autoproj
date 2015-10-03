@@ -45,6 +45,13 @@ module Autoproj
     class UserError < RuntimeError; end
 
     class WorkspaceAlreadyCreated < RuntimeError; end
+
+    # Exception raised when looking for a workspace and it cannot be found
+    class NotWorkspace < RuntimeError; end
+
+    # Exception raised when initializing on a workspace that is not the current
+    # one
+    class MismatchingWorkspace < RuntimeError; end
 end
 
 

@@ -3,8 +3,8 @@ module Autoproj
         # Package manager interface for Mac OS using homebrew as
         # its package manager
         class HomebrewManager < ShellScriptManager
-            def initialize
-                super(['brew'], true,
+            def initialize(ws)
+                super(ws, true,
                         "brew install '%s'",
                         "brew install '%s'",
                         false)

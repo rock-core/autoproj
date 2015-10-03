@@ -11,10 +11,7 @@ module Autoproj
 
     # Returns true if +path+ is part of an autoproj installation
     def self.in_autoproj_installation?(path)
-        root_dir(File.expand_path(path))
-        true
-    rescue UserError
-        false
+        !!Workspace.find_workspace_dir(path, 'workspace')
     end
 
     # Forcefully sets the root directory

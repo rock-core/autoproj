@@ -9,7 +9,7 @@ module Autoproj
                     finalize_setup(user_selection,
                                    ignore_non_imported_packages: true)
 
-                ws.osdeps.install(
+                ws.install_os_packages(
                     osdep_packages,
                     install_only: !options[:update])
             end

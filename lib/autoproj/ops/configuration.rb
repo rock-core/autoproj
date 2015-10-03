@@ -140,7 +140,7 @@ module Autoproj
                 Autoproj.message("autoproj: updating remote definitions of package sets", :bold)
                 @remote_update_message_displayed = true
             end
-            ws.osdeps.install([vcs.type])
+            ws.install_os_packages([vcs.type])
             update_configuration_repository(
                 vcs, name, raw_local_dir, options)
         end

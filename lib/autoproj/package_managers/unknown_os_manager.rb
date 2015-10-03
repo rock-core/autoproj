@@ -3,8 +3,8 @@ module Autoproj
         # Dummy package manager used for unknown OSes. It simply displays a
         # message to the user when packages are needed
         class UnknownOSManager < Manager
-            def initialize
-                super(['unknown'])
+            def initialize(ws)
+                super(ws)
                 @installed_osdeps = Set.new
             end
 

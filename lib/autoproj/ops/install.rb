@@ -1,10 +1,3 @@
-#! /usr/bin/ruby
-
-if RUBY_VERSION < "1.9.2"
-    STDERR.puts "autoproj requires Ruby >= 1.9.2"
-    exit 1
-end
-
 require 'optparse'
 require 'fileutils'
 require 'yaml'
@@ -213,8 +206,3 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
     end
 end
 
-
-
-ops = Autoproj::Ops::Install.new(Dir.pwd)
-ops.parse_options(ARGV)
-ops.run
