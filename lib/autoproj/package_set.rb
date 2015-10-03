@@ -222,7 +222,7 @@ module Autoproj
         end
 
         # Remote sources can be accessed through a hidden directory in
-        # $AUTOPROJ_ROOT/.remotes, or through a symbolic link in
+        # {Workspace#remotes_dir}, or through a symbolic link in
         # autoproj/remotes/
         #
         # This returns the former. See #user_local_dir for the latter.
@@ -233,7 +233,7 @@ module Autoproj
         end
 
         # Remote sources can be accessed through a hidden directory in
-        # $AUTOPROJ_ROOT/.remotes, or through a symbolic link in
+        # {Workspace#remotes_dir}, or through a symbolic link in
         # autoproj/remotes/
         #
         # This returns the latter. See #raw_local_dir for the former.
