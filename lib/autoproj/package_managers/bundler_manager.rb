@@ -121,6 +121,10 @@ module Autoproj
                     io.puts gems
                 end
 
+                File.open(File.join(root_dir, 'Gemfile.lock'), 'w') do |io|
+                    io.write File.read(File.join(ws.dot_autoproj_dir, 'autoproj', 'Gemfile.lock'))
+                end
+
                 if ws.config.private_gems?
                     options = ['--path', root_dir]
                 end
