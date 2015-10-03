@@ -36,13 +36,13 @@ module Autoproj
         # local? returns true.
         attr_accessor :vcs
 
-        # The set of OSDependencies object that represent the osdeps files
+        # The set of OSPackageResolver object that represent the osdeps files
         # available in this package set
         attr_reader :all_osdeps
 
-        # The OSDependencies which is a merged version of all OSdeps in
+        # The OSPackageResolver which is a merged version of all OSdeps in
         # #all_osdeps
-        attr_reader :osdeps
+        attr_reader :os_package_resolver
 
         # If this package set has been imported from another package set, this
         # is the other package set object
@@ -90,7 +90,7 @@ module Autoproj
         def initialize(manifest, vcs)
             @manifest = manifest
             @vcs = vcs
-            @osdeps = OSDependencies.new
+            @os_package_resolver = OSPackageResolver.new
             @all_osdeps = []
             @overrides = Array.new
 
@@ -104,15 +104,15 @@ module Autoproj
 
         # Load a new osdeps file for this package set
         def load_osdeps(file)
-            new_osdeps = OSDependencies.load(file)
-            @all_osdeps << new_osdeps
-            @osdeps.merge(@all_osdeps.last)
+            new_osdeps = OSPackageResolver.load(file)
+            all_osdeps << new_osdeps
+            os_package_resolver.merge(all_osdeps.last)
             new_osdeps
         end
 
         # Enumerate all osdeps package names from this package set
         def each_osdep(&block)
-            @osdeps.definitions.each_key(&block)
+            os_package_resolver.definitions.each_key(&block)
         end
 
         # True if this source has already been checked out on the local autoproj

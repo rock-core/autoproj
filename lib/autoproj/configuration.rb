@@ -206,11 +206,23 @@ module Autoproj
             set('parallel_import_level', level)
         end
 
+        def private_bundler?
+            get('private_bundler', false)
+        end
+
+        def private_autoproj?
+            get('private_autoproj', false)
+        end
+
+        def private_gems?
+            get('private_gems', false)
+        end
+
         def ruby_executable
             if path = get('ruby_executable', nil)
                 path
             else
-                path = OSDependencies.autodetect_ruby_program
+                path = OSPackageResolver.autodetect_ruby_program
                 set('ruby_executable', path, true)
                 path
             end
@@ -259,6 +271,11 @@ module Autoproj
         # A cache directory for autobuild's importers
         def importer_cache_dir
             get('importer_cache_dir', nil)
+        end
+
+        # Sets the directory in which packages will be installed
+        def prefix_dir=(path)
+            set('prefix', path, true)
         end
 
         # The directory in which packages will be installed.

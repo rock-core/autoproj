@@ -5,9 +5,9 @@ module Autoproj
         class AptDpkgManager < ShellScriptManager
             attr_accessor :status_file
 
-            def initialize(status_file = "/var/lib/dpkg/status")
+            def initialize(ws, status_file = "/var/lib/dpkg/status")
                 @status_file = status_file
-                super(['apt-dpkg'], true,
+                super(ws, true,
                       "apt-get install '%s'",
                       "export DEBIAN_FRONTEND=noninteractive; apt-get install -y '%s'")
             end

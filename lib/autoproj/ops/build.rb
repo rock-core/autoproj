@@ -19,10 +19,10 @@ module Autoproj
             # It rebuilds (i.e. does a clean + build) of all packages declared
             # in the manifest's layout. It also performs a reinstall of all
             # non-OS-specific managers that support it (e.g. RubyGems) if
-            # {update_os_dependencies?} is set to true (the default)
+            # {update_os_packages?} is set to true (the default)
             def rebuild_all
                 packages = manifest.all_layout_packages
-                manifest.pristine_os_dependencies(packages)
+                manifest.pristine_os_packages(packages)
                 rebuild_packages(packages, packages)
             end
 

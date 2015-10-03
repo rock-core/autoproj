@@ -469,7 +469,7 @@ def only_on(*architectures)
         end
     end
 
-    os_names, os_versions = Autoproj::OSDependencies.operating_system
+    os_names, os_versions = Autoproj::OSPackageResolver.operating_system
     matching_archs = architectures.find_all { |arch| os_names.include?(arch[0].downcase) }
     if matching_archs.empty?
         return
@@ -494,7 +494,7 @@ def not_on(*architectures)
         end
     end
 
-    os_names, os_versions = Autoproj::OSDependencies.operating_system
+    os_names, os_versions = Autoproj::OSPackageResolver.operating_system
     matching_archs = architectures.find_all { |arch| os_names.include?(arch[0].downcase) }
     if matching_archs.empty?
         return yield

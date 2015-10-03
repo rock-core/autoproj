@@ -13,10 +13,12 @@ module Autoproj
                 super
                 self.ws.load_config
 
-                @installation_manifest = Autoproj::InstallationManifest.new(self.ws.root_dir)
-                if !File.file?(installation_manifest.default_manifest_path)
+                path = InstallationManifest.path_for_root(self.ws.root_dir)
+                if !File.file?(path)
                     raise ConfigError, "the installation manifest is not present, please run autoproj envsh to generate it"
                 end
+
+                @installation_manifest = Autoproj::InstallationManifest.new(path)
                 installation_manifest.load
             end
 

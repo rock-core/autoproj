@@ -9,10 +9,14 @@ module Autoproj
         attr_reader :manifest
         attr_reader :loader
 
+        def os_package_resolver; manifest.os_package_resolver end
+        attr_reader :os_package_installer
+
         def initialize(root_dir)
             @root_dir = root_dir
             @loader = loader
             @env = Environment.new
+            env.source_before(File.join(dot_autoproj_dir, 'env.sh'))
             @manifest = Manifest.new
             Autobuild.env = nil
             env.prepare(root_dir)
@@ -20,6 +24,10 @@ module Autoproj
             super(root_dir)
         end
 
+        # Returns the root of the current autoproj workspace
+        #
+        # @return [String,nil] the root path, or nil if one did not yet source
+        #   the workspace's env.sh
         def self.autoproj_current_root
             if env = ENV['AUTOPROJ_CURRENT_ROOT']
                 if !env.empty?
@@ -28,35 +36,63 @@ module Autoproj
             end
         end
 
+        # Returns the workspace the current directory is part of
+        #
+        # @return [Workspace]
+        # @raise (see from_dir)
         def self.from_pwd
             from_dir(Dir.pwd)
         end
 
+        # Returns the workspace a directory is part of
+        #
+        # @return [Workspace]
+        # @raise [MismatchingWorkspace] if the currently loaded env.sh
+        #   and the one from +dir+ mismatch
+        # @raise [NotWorkspace] if dir is not within an autoproj workspace
         def self.from_dir(dir)
-            if path = find_root_dir(dir)
+            if path = find_workspace_dir(dir)
                 # Make sure that the currently loaded env.sh is actually us
                 env = autoproj_current_root
                 if env && env != path
-                    raise UserError, "the current environment is for #{env}, but you are in #{path}, make sure you are loading the right #{ENV_FILENAME} script !"
+                    raise MismatchingWorkspace, "the current environment is for #{env}, but you are in #{path}, make sure you are loading the right #{ENV_FILENAME} script !"
                 end
                 Workspace.new(path)
             else
-                raise UserError, "not in a Autoproj installation"
+                raise NotWorkspace, "not in a Autoproj installation"
             end
         end
 
         def self.from_environment
-            if path = (find_root_dir || autoproj_current_root)
+            if path = (find_workspace_dir || autoproj_current_root)
                 from_dir(path)
             else
-                raise UserError, "not in an Autoproj installation, and no env.sh has been loaded so far"
+                raise NotWorkspace, "not in an Autoproj installation, and no env.sh has been loaded so far"
             end
         end
 
-        def self.find_root_dir(base_dir = Dir.pwd)
+        # Tests whether the given path is under a directory tree managed by
+        # autoproj
+        def self.in_autoproj_project?(path)
+            !!find_workspace_dir(path)
+        end
+
+        # @private
+        #
+        # Finds an autoproj "root directory" that contains a given directory. It
+        # can either be the root of a workspace or the root of an install
+        # directory
+        #
+        # @param [String] base_dir the start of the search
+        # @param [String] config_field_name the name of a field in the root's
+        #   configuration file, that should be returned instead of the root
+        #   itself
+        # @return [String,nil] the root of the workspace directory, or nil if
+        #   there's none
+        def self.find_root_dir(base_dir, config_field_name)
             path = Pathname.new(base_dir)
             while !path.root?
-                if (path + "autoproj" + 'manifest').file?
+                if (path + ".autoproj").exist?
                     break
                 end
                 path = path.parent
@@ -66,7 +102,14 @@ module Autoproj
                 return
             end
 
-            result = path.to_s
+            config_path = path + ".autoproj" + "config.yml"
+            if config_path.exist?
+                config = YAML.load(config_path.read) || Hash.new
+                result = config[config_field_name] || path.to_s
+                result = File.expand_path(result, path.to_s)
+            else
+                result = path.to_s 
+            end
 
             # I don't know if this is still useful or not ... but it does not hurt
             #
@@ -77,8 +120,18 @@ module Autoproj
             result
         end
 
-        def osdeps
-            manifest.osdeps
+        # Finds the workspace root that contains a directory
+        #
+        # @return [String,nil]
+        def self.find_workspace_dir(base_dir = Dir.pwd)
+            find_root_dir(base_dir, 'workspace')
+        end
+
+        # Looks for the autoproj prefix that contains a given directory
+        #
+        # @return [String,nil]
+        def self.find_prefix_dir(base_dir = Dir.pwd)
+            find_root_dir(base_dir, 'prefix')
         end
 
         def load(*args)
@@ -96,6 +149,35 @@ module Autoproj
             File.join(root_dir, 'autoproj')
         end
 
+        # The directory under which autoproj saves all its internal
+        # configuration and files
+        def dot_autoproj_dir
+            File.join(root_dir, '.autoproj')
+        end
+
+        # The installation manifest
+        def installation_manifest_path
+            InstallationManifest.path_for_root(root_dir)
+        end
+
+        # The path to the workspace configuration file
+        def config_file_path
+            File.join(dot_autoproj_dir, 'config.yml')
+        end
+
+        # The path to a workspace's manifest file given its root dir
+        #
+        # @param [String] root_dir the workspace root directory
+        # @return [String]
+        def self.manifest_file_path_for(root_dir)
+            File.join(root_dir, 'autoproj', 'manifest')
+        end
+
+        # The path to the workspace's manifest file
+        def manifest_file_path
+            self.class.manifest_file_path_for(root_dir)
+        end
+
         # Return the directory in which remote package set definition should be
         # checked out
         def remotes_dir
@@ -109,7 +191,7 @@ module Autoproj
 
         # Change {prefix_dir}
         def prefix_dir=(path)
-            config.set 'prefix', path, true
+            config.prefix_dir = path
         end
 
         # (see Configuration#build_dir)
@@ -136,9 +218,8 @@ module Autoproj
         end
 
         def load_config(reconfigure = false)
-            config_path = File.join(config_dir, 'config.yml')
-            @config = Configuration.new(config_path)
-            if File.file?(config_path)
+            @config = Configuration.new(config_file_path)
+            if File.file?(config_file_path)
                 config.load(reconfigure: reconfigure)
                 if raw_vcs = config.get('manifest_source', nil)
                     manifest.vcs = VCSDefinition.from_raw(raw_vcs)
@@ -147,12 +228,12 @@ module Autoproj
                         type: 'local', url: config_dir)
                 end
             end
+            @config
         end
 
         def load_manifest
-            manifest_path = File.join(config_dir, 'manifest')
-            if File.exists?(manifest_path)
-                manifest.load(manifest_path)
+            if File.exists?(manifest_file_path)
+                manifest.load(manifest_file_path)
             end
         end
 
@@ -168,19 +249,26 @@ module Autoproj
             load_manifest
 
             Autobuild.prefix = prefix_dir
+            FileUtils.mkdir_p File.join(prefix_dir, '.autoproj')
+            File.open(File.join(prefix_dir, '.autoproj', 'config.yml'), 'w') do |io|
+                io.puts "workspace: \"#{root_dir}\""
+            end
+
+            @os_package_installer = OSPackageInstaller.new(self, os_package_resolver)
+
             Autobuild.srcdir = root_dir
             Autobuild.logdir = log_dir
             if cache_dir = config.importer_cache_dir
                 Autobuild::Importer.default_cache_dirs = cache_dir
             end
             env.prepare(root_dir)
-            Autoproj::OSDependencies::PACKAGE_HANDLERS.each do |pkg_mng|
-                pkg_mng.initialize_environment(env, manifest, root_dir)
+            os_package_installer.each_manager do |pkg_mng|
+                pkg_mng.initialize_environment
             end
 
-            Autoproj::OSDependencies.define_osdeps_mode_option(config)
-            osdeps.load_default
-            osdeps.osdeps_mode
+            os_package_resolver.load_default
+            os_package_installer.define_osdeps_mode_option
+            os_package_installer.osdeps_mode
 
             install_ruby_shims
         end
@@ -231,7 +319,7 @@ module Autoproj
                 begin
                     saved_flag = PackageManagers::GemManager.with_prerelease
                     PackageManagers::GemManager.with_prerelease = config.use_prerelease?
-                    osdeps.install(%w{autobuild autoproj})
+                    install_os_packages(%w{autobuild autoproj})
                 ensure
                     PackageManagers::GemManager.with_prerelease = saved_flag
                 end
@@ -293,11 +381,10 @@ module Autoproj
         #
         # This is included in {load_package_sets}
         #
-        # @param [OSDependencies] osdeps the osdep handling object
         # @return [void]
         def load_osdeps_from_package_sets
             manifest.each_osdeps_file do |pkg_set, file|
-                osdeps.merge(pkg_set.load_osdeps(file))
+                os_package_resolver.merge(pkg_set.load_osdeps(file))
             end
         end
 
@@ -388,7 +475,7 @@ module Autoproj
         end
 
         def mark_unavailable_osdeps_as_excluded
-            osdeps.all_package_names.each do |osdep_name|
+            os_package_resolver.all_package_names.each do |osdep_name|
                 # If the osdep can be replaced by source packages, there's
                 # nothing to do really. The exclusions of the source packages
                 # will work as expected
@@ -396,12 +483,12 @@ module Autoproj
                     next
                 end
 
-                case availability = osdeps.availability_of(osdep_name)
-                when OSDependencies::UNKNOWN_OS
+                case availability = os_package_resolver.availability_of(osdep_name)
+                when OSPackageResolver::UNKNOWN_OS
                     manifest.add_exclusion(osdep_name, "this operating system is unknown to autoproj")
-                when OSDependencies::WRONG_OS
+                when OSPackageResolver::WRONG_OS
                     manifest.add_exclusion(osdep_name, "there are definitions for it, but not for this operating system")
-                when OSDependencies::NONEXISTENT
+                when OSPackageResolver::NONEXISTENT
                     manifest.add_exclusion(osdep_name, "it is marked as unavailable for this operating system")
                 end
             end
@@ -528,8 +615,12 @@ module Autoproj
                 map(&:name)
         end
 
+        # Update this workspace's installation manifest
+        #
+        # @param [Array<String>] package_names the name of the packages that
+        #   should be updated
         def export_installation_manifest(package_names = all_present_packages)
-            install_manifest = InstallationManifest.new(root_dir)
+            install_manifest = InstallationManifest.new(installation_manifest_path)
             if install_manifest.exist?
                 install_manifest.load
             end
@@ -547,6 +638,7 @@ module Autoproj
             install_manifest.save
         end
 
+        # Export the workspace's env.sh file
         def export_env_sh(package_names = all_present_packages, shell_helpers: true)
             env = self.env.dup
             manifest.all_selected_packages.each do |pkg_name|
@@ -555,6 +647,37 @@ module Autoproj
             end
             env.export_env_sh(shell_helpers: shell_helpers)
         end
+
+        def pristine_os_packages(packages, options = Hash.new)
+            os_package_installer.pristine(packages, options)
+        end
+
+        # Restores the OS dependencies required by the given packages to
+        # pristine conditions
+        #
+        # This is usually called as a rebuild step to make sure that all these
+        # packages are updated to whatever required the rebuild
+        def pristine_os_packages_for(packages)
+            required_os_packages, package_os_deps =
+                manifest.list_os_packages(packages)
+            required_os_packages =
+                manifest.filter_os_packages(required_os_packages, package_os_deps)
+            pristine_os_packages(required_os_packages)
+        end
+
+        def install_os_packages(packages, options = Hash.new)
+            os_package_installer.install(packages, options)
+        end
+
+        # Installs the OS dependencies that are required by the given packages
+        def install_os_packages_for(packages, options = Hash.new)
+            required_os_packages, package_os_deps =
+                manifest.list_os_packages(packages)
+            required_os_packages =
+                manifest.filter_os_packages(required_os_packages, package_os_deps)
+            install_os_packages(required_os_packages, options)
+        end
+
     end
 
     def self.workspace

@@ -93,8 +93,8 @@ fi
             #   itself, see {#auto_install_cmd}.
             # @param [Boolean] needs_root if the command lines should be started
             #   as root or not. See {#needs_root?}
-            def initialize(names, needs_locking, user_install_cmd, auto_install_cmd,needs_root=true)
-                super(names)
+            def initialize(ws, needs_locking, user_install_cmd, auto_install_cmd,needs_root=true)
+                super(ws)
                 @needs_locking, @user_install_cmd, @auto_install_cmd,@needs_root =
                     needs_locking, user_install_cmd, auto_install_cmd, needs_root
             end
@@ -139,7 +139,7 @@ fi
             # @return [Boolean] true if the packages should be installed
             #   automatically, false otherwise
             def osdeps_interaction(os_packages, shell_script)
-                if OSDependencies.force_osdeps
+                if OSPackageInstaller.force_osdeps
                     return true
                 elsif enabled?
                     return true
@@ -184,7 +184,7 @@ fi
             #   packages. See the option in {#generate_auto_os_script}
             # @return [Boolean] true if packages got installed, false otherwise
             def install(packages, options = Hash.new)
-                handled_os = OSDependencies.supported_operating_system?
+                handled_os = OSPackageResolver.supported_operating_system?
                 if handled_os
                     shell_script = generate_auto_os_script(packages, options)
                     user_shell_script = generate_user_os_script(packages, options)

@@ -2,8 +2,8 @@ module Autoproj
     module PackageManagers
         #Package manger for OpenSuse and Suse (untested)
         class ZypperManager < ShellScriptManager
-            def initialize
-                super(['zypper'], true,
+            def initialize(ws)
+                super(ws, true,
                         "zypper install '%s'",
                         "zypper -n install '%s'")
             end

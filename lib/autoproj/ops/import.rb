@@ -28,7 +28,7 @@ module Autoproj
             end
 
             VALID_OSDEP_AVAILABILITY =
-                [OSDependencies::AVAILABLE, OSDependencies::IGNORE]
+                [OSPackageResolver::AVAILABLE, OSPackageResolver::IGNORE]
 
             def import_next_step(pkg, reverse_dependencies)
                 new_packages = []

@@ -4,18 +4,18 @@ module Autoproj
         class PipManager < Manager
             attr_reader :installed_pips
 
-            def self.initialize_environment(env = Autobuild.env, _manifest = nil, root_dir = Autoproj.root_dir)
-                env.set 'PYTHONUSERBASE', pip_home(env, root_dir)
+            def initialize_environment
+                ws.env.set 'PYTHONUSERBASE', pip_home
             end
 
             # Return the directory where python packages are installed to.
             # The actual path is pip_home/lib/pythonx.y/site-packages.
-            def self.pip_home(env = Autobuild.env, root_dir = Autoproj.root_dir)
-                env['AUTOPROJ_PYTHONUSERBASE'] || File.join(root_dir,".pip")
+            def pip_home
+                ws.env['AUTOPROJ_PYTHONUSERBASE'] || File.join(ws.prefix_dir, "pip")
             end
 
-            def initialize
-                super(['pip'])
+            def initialize(ws)
+                super(ws)
                 @installed_pips = Set.new
             end
 
@@ -52,7 +52,7 @@ module Autoproj
             end
             
             def pips_interaction(pips, cmdlines)
-                if OSDependencies.force_osdeps
+                if OSPackageInstaller.force_osdeps
                     return true
                 elsif enabled?
                     return true
@@ -69,7 +69,7 @@ module Autoproj
         
           #{cmdlines.map { |c| c.join(" ") }.join("\n      ")}
         
-        Autoproj expects these Python packages to be installed in #{PipManager.pip_home} This can
+        Autoproj expects these Python packages to be installed in #{pip_home} This can
         be overridden by setting the AUTOPROJ_PYTHONUSERBASE environment variable manually
 
                 EOMSG

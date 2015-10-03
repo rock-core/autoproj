@@ -15,7 +15,7 @@ module Autoproj
                 if from = options[:from]
                     options[:from] = Autoproj::InstallationManifest.from_root(options[:from])
                 end
-                ws.osdeps.filter_uptodate_packages = options[:osdeps_filter_uptodate]
+                ws.os_package_installer.filter_uptodate_packages = options[:osdeps_filter_uptodate]
 
                 if options[:aup] && !options[:all] && packages.empty?
                     packages = ['.']
@@ -54,7 +54,7 @@ module Autoproj
                 if options[:osdeps]
                     ws.config.set(
                         'operating_system',
-                        Autoproj::OSDependencies.operating_system(:force => true),
+                        Autoproj::OSPackageResolver.operating_system(:force => true),
                         true)
                 end
 
@@ -112,7 +112,7 @@ module Autoproj
                             raise "cannot find package #{pkg_name}"
                         end
                     end
-                    ws.osdeps.install(vcs_to_install, osdeps_options)
+                    ws.install_os_packages(vcs_to_install, osdeps_options)
                 end
 
                 ops = Autoproj::Ops::Import.new(ws)
@@ -130,7 +130,7 @@ module Autoproj
                 ws.export_installation_manifest
 
                 if options[:osdeps] && !osdep_packages.empty?
-                    ws.osdeps.install(osdep_packages, osdeps_options)
+                    ws.install_os_packages(osdep_packages, osdeps_options)
                 end
 
                 ws.export_env_sh(source_packages)

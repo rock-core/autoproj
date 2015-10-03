@@ -57,9 +57,6 @@ module Autoproj
                             raise Interrupt
                         end
                         if build_options[:rebuild]
-                            if options[:osdeps]
-                                ws.osdeps.reinstall
-                            end
                             ops.rebuild_all
                         else
                             ops.force_build_all

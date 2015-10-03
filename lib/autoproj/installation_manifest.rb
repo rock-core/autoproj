@@ -3,8 +3,6 @@ module Autoproj
     class InstallationManifest
         Package = Struct.new :name, :srcdir, :prefix, :builddir, :dependencies
 
-        DEFAULT_MANIFEST_NAME = ".autoproj-installation-manifest"
-
         attr_reader :path
         attr_reader :packages
         def initialize(path)
@@ -12,12 +10,8 @@ module Autoproj
             @packages = Hash.new
         end
 
-        def default_manifest_path
-            File.join(path, DEFAULT_MANIFEST_NAME)
-        end
-
         def exist?
-            File.exist?(default_manifest_path)
+            File.exist?(path)
         end
 
         def [](name)
@@ -32,7 +26,7 @@ module Autoproj
             packages.delete_if { |_, pkg| yield(pkg) }
         end
             
-        def load(path = default_manifest_path)
+        def load
             @packages = Hash.new
             raw = YAML.load(File.open(path))
             if raw.respond_to?(:to_str) # old CSV-based format
@@ -52,7 +46,8 @@ module Autoproj
             end
         end
 
-        def save(path = default_manifest_path)
+        # Save the installation manifest
+        def save(path = self.path)
             File.open(path, 'w') do |io|
                 marshalled_packages = packages.values.map do |v|
                     Hash['name' => v.name,
@@ -65,18 +60,34 @@ module Autoproj
             end
         end
 
+        # Enumerate the packages from this manifest
+        #
+        # @yieldparam [Package]
         def each(&block)
             packages.each_value(&block)
         end
 
+        # Returns information about a given package
+        #
+        # @return [Package]
         def [](name)
-            packages.each_value.find { |pkg| pkg.name == name }
+            packages[name]
+        end
+
+        # Returns the default Autoproj installation manifest path for a given
+        # autoproj workspace root
+        #
+        # @param [String] root_dir
+        # @return [String]
+        def self.path_for_root(root_dir)
+            File.join(root_dir, '.autoproj', 'installation-manifest')
         end
 
         def self.from_root(root_dir)
-            manifest = InstallationManifest.new(root_dir)
+            path = path_for_root(root_dir)
+            manifest = InstallationManifest.new(path)
             if !manifest.exist?
-                raise ConfigError.new, "no #{DEFAULT_MANIFEST_NAME} file exists in #{root_dir}. You should probably rerun autoproj envsh in that folder first"
+                raise ConfigError.new, "no #{path} file found. You should probably rerun autoproj envsh in that folder first"
             end
             manifest.load
             manifest
