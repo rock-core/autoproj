@@ -55,7 +55,8 @@ module Autoproj
     def self.report(options = Hash.new)
         options = Kernel.validate_options options,
             root_dir: nil,
-            silent: false
+            silent: false,
+            debug: Autobuild.debug
 
         Autobuild::Reporting.report do
             yield
@@ -82,7 +83,7 @@ module Autoproj
                     STDERR.puts Autobuild.color("  in #{path}", :red, :bold)
                 end
         end
-        if Autobuild.debug then raise
+        if options[:debug] then raise
         else exit 1
         end
     end

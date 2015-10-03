@@ -29,7 +29,7 @@ module Autoproj
             no_commands do
                 def run_autoproj_cli(filename, classname, report_options, *args)
                     require "autoproj/cli/#{filename}"
-                    Autoproj.report(Hash[silent: true].merge(report_options)) do
+                    Autoproj.report(Hash[silent: !options[:debug], debug: options[:debug]].merge(report_options)) do
                         cli = CLI.const_get(classname).new
                         run_args = cli.validate_options(args, self.options)
                         cli.run(*run_args)
