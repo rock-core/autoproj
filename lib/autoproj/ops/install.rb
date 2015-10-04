@@ -61,9 +61,10 @@ module Autoproj
             # @param [String] autoproj_version a constraint on the autoproj version
             #   that should be used
             # @return [String]
-            def default_gemfile_contents(autoproj_version = ">= 0")
+            def default_gemfile_contents(autoproj_version = ">= 2.0.0.a")
                 ["source \"https://rubygems.org\"",
-                 "gem \"autoproj\", \"#{autoproj_version}\""].join("\n")
+                 "gem \"autoproj\", \"#{autoproj_version}\"",
+                 "gem \"utilrb\", \">= 3.0.0.a\""].join("\n")
             end
 
             # Parse the provided command line options and returns the non-options
