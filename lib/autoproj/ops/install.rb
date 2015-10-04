@@ -153,11 +153,15 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
                 end
 
                 env = Hash['BUNDLE_GEMFILE' => nil, 'RUBYLIB' => nil]
+                if (gem_home = ENV['GEM_HOME']) && Workspace.in_autoproj_project?(gem_home)
+                    env['GEM_HOME'] = nil
+                end
                 opts = Array.new
 
                 if private_autoproj?
-                    env = Hash['GEM_PATH' => bundler_install_dir,
-                               'GEM_HOME' => nil]
+                    env = env.merge(
+                        'GEM_PATH' => bundler_install_dir,
+                        'GEM_HOME' => nil)
                     opts << "--clean" << "--path=#{autoproj_install_dir}"
                 end
 
