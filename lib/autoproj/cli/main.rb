@@ -1,5 +1,4 @@
 require 'thor'
-require 'autoproj'
 require 'autoproj/cli/main_test'
 
 module Autoproj
@@ -7,9 +6,6 @@ module Autoproj
         def self.basic_setup
             Encoding.default_internal = Encoding::UTF_8
             Encoding.default_external = Encoding::UTF_8
-
-            Autobuild::Reporting << Autoproj::Reporter.new
-            Autobuild::Package.clear
         end
 
         class Main < Thor

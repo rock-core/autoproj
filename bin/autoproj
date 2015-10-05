@@ -1,11 +1,12 @@
 #! /usr/bin/env ruby
 
-require 'autoproj'
-require 'autoproj/autobuild'
 require 'autoproj/cli'
 require 'autoproj/cli/main'
 Autoproj::CLI.basic_setup
 
-Autoproj::CLI.load_plugins
-Autoproj::CLI::Main.start(ARGV)
+argv = ARGV.find_all { |arg| arg != "--no-plugins" }
+if argv.size == ARGV.size
+    Autoproj::CLI.load_plugins
+end
+Autoproj::CLI::Main.start(argv)
 

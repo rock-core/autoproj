@@ -1,7 +1,6 @@
-require 'autoproj'
+require 'autoproj/cli/inspection_tool'
 require 'autoproj/cli/versions'
 require 'autoproj/ops/snapshot'
-require 'autoproj/cli/base'
 
 module Autoproj
     module CLI

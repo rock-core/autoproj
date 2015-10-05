@@ -1,4 +1,5 @@
 require 'autoproj/cli'
+require 'autoproj/cli/inspection_tool'
 require 'autoproj/cli/update'
 require 'autoproj/cli/versions'
 

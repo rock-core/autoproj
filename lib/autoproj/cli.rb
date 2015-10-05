@@ -1,7 +1,6 @@
-require 'autobuild'
 module Autoproj
     module CLI
-        class InvalidArguments < Autobuild::Exception
+        class InvalidArguments < Exception
         end
 
         def self.load_plugins

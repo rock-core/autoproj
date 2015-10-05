@@ -58,6 +58,8 @@ module Autoproj
             silent: false,
             debug: Autobuild.debug
 
+        reporter = Autoproj::Reporter.new
+        Autobuild::Reporting << reporter
         Autobuild::Reporting.report do
             yield
         end
@@ -86,6 +88,8 @@ module Autoproj
         if options[:debug] then raise
         else exit 1
         end
+    ensure
+        Autobuild::Reporting.remove(reporter) if reporter
     end
 end
 
