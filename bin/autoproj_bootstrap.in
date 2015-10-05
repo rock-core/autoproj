@@ -8,5 +8,11 @@ end
 AUTOPROJ_OPS_INSTALL
 
 ops = Autoproj::Ops::Install.new(Dir.pwd)
-ops.parse_options(ARGV)
+bootstrap_options = ops.parse_options(ARGV)
 ops.run
+
+# we assume that Install#run loads bundler and autobuild. Load autoproj and run
+# bootstrap
+require 'autoproj/cli/main'
+Autoproj::CLI::Main.start(['bootstrap', *bootstrap_options])
+
