@@ -122,6 +122,12 @@ module Autoproj
         # information in +definitions+ originates. It is a mapping from the
         # package name to the osdeps file' full path
         attr_reader :sources
+        # Controls whether the package resolver will prefer installing
+        # OS-independent packages (such as e.g. Gems) over their OS-provided
+        # equivalent (e.g. the packaged version of a gem)
+        def prefer_indep_over_os_packages?; !!@prefer_indep_over_os_packages end
+        # (see prefer_indep_over_os_packages?)
+        def prefer_indep_over_os_packages=(flag); @prefer_indep_over_os_packages = flag end
 
         # Use to override the autodetected OS-specific package handler
         attr_writer :os_package_manager
@@ -152,6 +158,7 @@ module Autoproj
             @definitions = defs.to_hash
             @all_definitions = Hash.new { |h, k| h[k] = Array.new }
             @package_managers = PACKAGE_MANAGERS.dup
+            @prefer_indep_over_os_packages = false
 
             @sources     = Hash.new
             @installed_packages = Set.new
@@ -490,7 +497,11 @@ module Autoproj
 
             os_names, os_versions = self.class.operating_system
             os_names = os_names.dup
-            os_names << 'default'
+            if prefer_indep_over_os_packages?
+                os_names.unshift 'default'
+            else
+                os_names.push 'default'
+            end
 
             dep_def = definitions[name]
             if !dep_def

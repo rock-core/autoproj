@@ -526,6 +526,35 @@ module Autoproj
             flexmock(Autoproj).should_receive(:warn).never
             osdeps0.merge(osdeps1)
         end
+
+        describe "prefer_indep_over_os_packages is set" do
+            before do
+                OSPackageResolver.operating_system = [['os0'], ['v0']]
+            end
+            
+            def create_osdep(*)
+                resolver = super
+                resolver.prefer_indep_over_os_packages = true
+                resolver
+            end
+
+            it "resolves the default entry first" do
+                resolver = create_osdep(Hash['os0' => ['osdep0'], 'default' => 'gem'], 'bla/bla')
+                assert_equal [['gem', ['pkg']]], resolver.resolve_os_packages(['pkg'])
+            end
+            it "resolves the default entry first" do
+                resolver = create_osdep(Hash['os0' => ['osdep0'], 'default' => Hash['gem' => 'gem0']], 'bla/bla')
+                assert_equal [['gem', ['gem0']]], resolver.resolve_os_packages(['pkg'])
+            end
+            it "falls back to the OS-specific entry if there is no default entry" do
+                resolver = create_osdep(Hash['os0' => ['osdep0']], 'bla/bla')
+                assert_equal [['apt-dpkg', ['osdep0']]], resolver.resolve_os_packages(['pkg'])
+            end
+            it "does not affect os versions, only os names" do
+                resolver = create_osdep(Hash['os0' => Hash['v0' => 'osdep0', 'default' => 'gem']], 'bla/bla')
+                assert_equal [['apt-dpkg', ['osdep0']]], resolver.resolve_os_packages(['pkg'])
+            end
+        end
     end
 end
 
