@@ -48,9 +48,10 @@ module Autoproj
                             !p.start_with?(Bundler.rubygems.gem_dir) &&
                             !Bundler.rubygems.gem_path.any? { |gem_p| p.start_with?(p) }
                     end
-                system_rubylib = discover_rubylib
-                env.system_env['RUBYLIB'] = []
-                env.original_env['RUBYLIB'] = (original_rubylib - system_rubylib).join(File::PATH_SEPARATOR)
+                if system_rubylib = discover_rubylib
+                    env.system_env['RUBYLIB'] = []
+                    env.original_env['RUBYLIB'] = (original_rubylib - system_rubylib).join(File::PATH_SEPARATOR)
+                end
 
                 dot_autoproj = ws.dot_autoproj_dir
                 if ws.config.private_bundler?
@@ -89,13 +90,14 @@ module Autoproj
                 env.push_path 'PATH', File.join(gem_home, 'bin')
                 Autobuild.programs['bundler'] = File.join(ws.dot_autoproj_dir, 'autoproj', 'bin', 'bundler')
 
-                update_env_rubylib(system_rubylib)
+                if bundle_rubylib = discover_bundle_rubylib
+                    update_env_rubylib(bundle_rubylib, system_rubylib)
+                end
             end
 
-            def update_env_rubylib(system_rubylib = discover_rubylib)
-                rubylib = discover_bundle_rubylib
+            def update_env_rubylib(bundle_rubylib, system_rubylib = discover_rubylib)
                 current = ws.env.resolved_env['RUBYLIB'].split(File::PATH_SEPARATOR) + system_rubylib
-                (rubylib - current).each do |p|
+                (bundle_rubylib - current).each do |p|
                     ws.env.push_path('RUBYLIB', p)
                 end
             end
@@ -107,6 +109,8 @@ module Autoproj
                     [entry]
                 end
             end
+
+            class NotCleanState < RuntimeError; end
 
             def install(gems)
                 # Generate the gemfile
@@ -152,28 +156,38 @@ module Autoproj
                     end
                 end
 
-                update_env_rubylib
+                if bundle_rubylib = discover_bundle_rubylib
+                    update_env_rubylib(bundle_rubylib)
+                else
+                    raise NotCleanState, "bundler executed successfully, but the result is not in a clean state"
+                end
             end
 
             def discover_rubylib
-                r, w = IO.pipe
-                Bundler.clean_system(
-                    Hash['RUBYLIB' => nil],
-                    Autobuild.tool('ruby'), '-e', 'puts $LOAD_PATH',
-                    out: w)
-                w.close
-                r.readlines.map { |l| l.chomp }.find_all { |l| !l.empty? }
+                Tempfile.open 'autoproj-rubylib' do |io|
+                    result = Bundler.clean_system(
+                        Hash['RUBYLIB' => nil],
+                        Autobuild.tool('ruby'), '-e', 'puts $LOAD_PATH',
+                        out: io)
+                        #err: '/dev/null')
+                    if result
+                        io.readlines.map { |l| l.chomp }.find_all { |l| !l.empty? }
+                    end
+                end
             end
 
             def discover_bundle_rubylib
                 gemfile = File.join(ws.prefix_dir, 'gems', 'Gemfile')
-                r, w = IO.pipe
-                Bundler.clean_system(
-                    Hash['BUNDLE_GEMFILE' => gemfile],
-                    Autobuild.tool('bundler'), 'exec', 'ruby', '-e', 'puts $LOAD_PATH',
-                    out: w)
-                w.close
-                r.readlines.map { |l| l.chomp }.find_all { |l| !l.empty? }
+                Tempfile.open 'autoproj-rubylib' do |io|
+                    result = Bundler.clean_system(
+                        Hash['BUNDLE_GEMFILE' => gemfile],
+                        Autobuild.tool('bundler'), 'exec', 'ruby', '-e', 'puts $LOAD_PATH',
+                        out: io)
+                        #err: '/dev/null')
+                    if result
+                        io.readlines.map { |l| l.chomp }.find_all { |l| !l.empty? }
+                    end
+                end
             end
         end
     end
