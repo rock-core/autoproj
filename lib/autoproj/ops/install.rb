@@ -39,8 +39,9 @@ module Autoproj
             end
 
             def env_for_child
-                env.dup.map_value do |k, v|
-                    v.join(File::PATH_SEPARATOR) if v && !v.empty?
+                env.inject(Hash.new) do |h, (k, v)|
+                    h[k] = (v.join(File::PATH_SEPARATOR) if v && !v.empty?)
+                    h
                 end
             end
 
