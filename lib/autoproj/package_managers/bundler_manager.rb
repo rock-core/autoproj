@@ -55,26 +55,26 @@ module Autoproj
 
                 dot_autoproj = ws.dot_autoproj_dir
                 if ws.config.private_bundler?
-                    env.push_path 'GEM_PATH', File.join(dot_autoproj, 'bundler')
+                    env.add_path 'GEM_PATH', File.join(dot_autoproj, 'bundler')
                 end
                 if ws.config.private_autoproj?
-                    env.push_path 'GEM_PATH', File.join(dot_autoproj, 'autoproj')
+                    env.add_path 'GEM_PATH', File.join(dot_autoproj, 'autoproj')
                 end
 
                 ws.manifest.each_reused_autoproj_installation do |p|
                     reused_w = ws.new(p)
                     reused_c = reused_w.load_config
                     if reused_c.private_gems?
-                        env.push_path 'GEM_PATH', File.join(reused_w.prefix_dir, 'gems')
+                        env.add_path 'GEM_PATH', File.join(reused_w.prefix_dir, 'gems')
                     end
-                    env.push_path 'PATH', File.join(reused_w.prefix_dir, 'gems', 'bin')
+                    env.add_path 'PATH', File.join(reused_w.prefix_dir, 'gems', 'bin')
                 end
 
 
                 gem_home = File.join(ws.prefix_dir, "gems")
                 if ws.config.private_gems?
                     env.set 'GEM_HOME', gem_home
-                    env.push_path 'GEM_PATH', gem_home
+                    env.add_path 'GEM_PATH', gem_home
                 end
 
                 FileUtils.mkdir_p gem_home
@@ -86,8 +86,8 @@ module Autoproj
                 end
 
                 env.set 'BUNDLE_GEMFILE', File.join(gem_home, 'Gemfile')
-                env.push_path 'PATH', File.join(ws.dot_autoproj_dir, 'autoproj', 'bin')
-                env.push_path 'PATH', File.join(gem_home, 'bin')
+                env.add_path 'PATH', File.join(ws.dot_autoproj_dir, 'autoproj', 'bin')
+                env.add_path 'PATH', File.join(gem_home, 'bin')
                 Autobuild.programs['bundler'] = File.join(ws.dot_autoproj_dir, 'autoproj', 'bin', 'bundler')
 
                 if bundle_rubylib = discover_bundle_rubylib
@@ -98,7 +98,7 @@ module Autoproj
             def update_env_rubylib(bundle_rubylib, system_rubylib = discover_rubylib)
                 current = ws.env.resolved_env['RUBYLIB'].split(File::PATH_SEPARATOR) + system_rubylib
                 (bundle_rubylib - current).each do |p|
-                    ws.env.push_path('RUBYLIB', p)
+                    ws.env.add_path('RUBYLIB', p)
                 end
             end
 
