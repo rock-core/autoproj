@@ -28,15 +28,17 @@ module Autoproj
             def initialize_environment
                 env = ws.env
 
-                env.original_env['GEM_PATH'] =
-                    (env['GEM_PATH'] || "").split(File::PATH_SEPARATOR).find_all do |p|
-                        !Workspace.in_autoproj_project?(p)
-                    end.join(File::PATH_SEPARATOR)
                 env.inherit 'GEM_PATH'
                 env.init_from_env 'GEM_PATH'
-                orig_gem_path = env.original_env['GEM_PATH'].split(File::PATH_SEPARATOR)
+                orig_gem_path = (env['GEM_PATH'] || "").split(File::PATH_SEPARATOR).find_all do |p|
+                    !Workspace.in_autoproj_project?(p)
+                end
                 env.system_env['GEM_PATH'] = Gem.default_path
                 env.original_env['GEM_PATH'] = orig_gem_path.join(File::PATH_SEPARATOR)
+
+                if Workspace.in_autoproj_project?(env['GEM_HOME'])
+                    env.unset('GEM_HOME')
+                end
 
                 env.init_from_env 'RUBYLIB'
                 env.inherit 'RUBYLIB'

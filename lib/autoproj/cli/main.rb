@@ -309,9 +309,25 @@ The format is a string in which special values can be expanded using a $VARNAME 
             end
 
             desc 'upgrade', "upgrade autoproj itself, and the workspace layout"
+            option :local, type: :boolean, default: false,
+                desc: 'do not access the network (will fail if some gems are missing)'
+            option :gemfile, type: :string,
+                desc: 'path to a gemfile that should be used to install autoproj'
+            option :private_bundler, type: :boolean,
+                desc: 'install bundler inside the workspace instead of using the default Gem location'
+            option :private_gems, type: :boolean,
+                desc: 'install gems inside the workspace instead of using the default Gem location'
+            option :private_autoproj, type: :boolean,
+                desc: 'install bundler inside the workspace instead of using the default Gem location'
+            option :private, type: :boolean,
+                desc: 'equivalent to --private-bundler --private-autoproj --private-gems'
             def upgrade
+                if $LOADED_FEATURES.any? { |p| p =~ /\/autobuild\.rb$/ }
+                    # Restart but adding the --no-plugins option
+                    exec(Gem.ruby, $0, *ARGV, "--no-plugin")
+                end
                 require 'autoproj/cli/upgrade'
-                Autoproj::CLI::Upgrade.new.run
+                Autoproj::CLI::Upgrade.new.run(options)
             end
         end
     end

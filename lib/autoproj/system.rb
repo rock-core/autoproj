@@ -11,7 +11,7 @@ module Autoproj
 
     # Returns true if +path+ is part of an autoproj installation
     def self.in_autoproj_installation?(path)
-        !!Workspace.find_workspace_dir(path, 'workspace')
+        !!find_workspace_dir(path, 'workspace')
     end
 
     # Forcefully sets the root directory
@@ -33,7 +33,7 @@ module Autoproj
         if @root_dir
             return @root_dir
         end
-        path = Workspace.find_root_dir(dir)
+        path = Autoproj.find_workspace_dir(dir)
         if !path
             raise UserError, "not in a Autoproj installation"
         end

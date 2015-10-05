@@ -8,8 +8,16 @@ module Autoproj
         attr_reader :root_dir
 
         def prepare(root_dir)
+            super()
+
             @root_dir = root_dir
             set 'AUTOPROJ_CURRENT_ROOT', root_dir
+
+            @original_env = original_env.map_value do |name, value|
+                filtered = value.split(File::PATH_SEPARATOR).
+                    find_all { |p| !Workspace.in_autoproj_project?(p) }
+                filtered.join(File::PATH_SEPARATOR)
+            end
         end
 
         def expand(value)

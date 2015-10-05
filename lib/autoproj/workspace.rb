@@ -19,10 +19,7 @@ module Autoproj
             env.source_before(File.join(dot_autoproj_dir, 'env.sh'))
             @manifest = Manifest.new
             @os_package_installer = OSPackageInstaller.new(self, os_package_resolver)
-
-            Autobuild.env = nil
             env.prepare(root_dir)
-
             super(root_dir)
         end
 
@@ -53,7 +50,7 @@ module Autoproj
         #   and the one from +dir+ mismatch
         # @raise [NotWorkspace] if dir is not within an autoproj workspace
         def self.from_dir(dir)
-            if path = find_workspace_dir(dir)
+            if path = Autoproj.find_workspace_dir(dir)
                 # Make sure that the currently loaded env.sh is actually us
                 env = autoproj_current_root
                 if env && env != path
@@ -68,7 +65,7 @@ module Autoproj
         end
 
         def self.from_environment
-            if path = (find_workspace_dir || autoproj_current_root)
+            if path = Autoproj.find_workspace_dir
                 from_dir(path)
             else
                 raise NotWorkspace, "not in an Autoproj installation, and no env.sh has been loaded so far"
@@ -78,89 +75,7 @@ module Autoproj
         # Tests whether the given path is under a directory tree managed by
         # autoproj
         def self.in_autoproj_project?(path)
-            !!find_workspace_dir(path)
-        end
-
-        # @private
-        #
-        # Finds an autoproj "root directory" that contains a given directory. It
-        # can either be the root of a workspace or the root of an install
-        # directory
-        #
-        # @param [String] base_dir the start of the search
-        # @param [String] config_field_name the name of a field in the root's
-        #   configuration file, that should be returned instead of the root
-        #   itself
-        # @return [String,nil] the root of the workspace directory, or nil if
-        #   there's none
-        def self.find_root_dir(base_dir, config_field_name)
-            path = Pathname.new(base_dir)
-            while !path.root?
-                if (path + ".autoproj").exist?
-                    break
-                end
-                path = path.parent
-            end
-
-            if path.root?
-                return
-            end
-
-            config_path = path + ".autoproj" + "config.yml"
-            if config_path.exist?
-                config = YAML.load(config_path.read) || Hash.new
-                result = config[config_field_name] || path.to_s
-                result = File.expand_path(result, path.to_s)
-            else
-                result = path.to_s 
-            end
-
-            # I don't know if this is still useful or not ... but it does not hurt
-            #
-            # Preventing backslashed in path, that might be confusing on some path compares
-            if Autobuild.windows?
-                result = result.gsub(/\\/,'/')
-            end
-            result
-        end
-
-        # Finds the workspace root that contains a directory
-        #
-        # @return [String,nil]
-        def self.find_workspace_dir(base_dir = Dir.pwd)
-            find_root_dir(base_dir, 'workspace')
-        end
-
-        # Looks for the autoproj prefix that contains a given directory
-        #
-        # @return [String,nil]
-        def self.find_prefix_dir(base_dir = Dir.pwd)
-            find_root_dir(base_dir, 'prefix')
-        end
-
-        # Finds a v1 workspace root from base_dir
-        def self.find_v1_workspace_dir(base_dir)
-            path = Pathname.new(base_dir)
-            while !path.root?
-                if (path + "autoproj").exist?
-                    break
-                end
-                path = path.parent
-            end
-
-            if path.root?
-                return
-            end
-
-            result = path.to_s
-
-            # I don't know if this is still useful or not ... but it does not hurt
-            #
-            # Preventing backslashed in path, that might be confusing on some path compares
-            if Autobuild.windows?
-                result = result.gsub(/\\/,'/')
-            end
-            result
+            !!Autoproj.find_workspace_dir(path)
         end
 
         def load(*args)
