@@ -39,9 +39,9 @@ module Autoproj
                 FileUtils.cp File.join(root_dir, '.autoproj-installation-manifest'),
                     File.join(root_dir, '.autoproj', 'installation-manifest')
 
-                Autoproj.message "now, open a new console, source env.sh and run"
-                Autoproj.message "  autoproj osdeps"
-                Autoproj.message "  autoproj envsh"
+                puts "now, open a new console, source env.sh and run"
+                puts "  autoproj osdeps"
+                puts "  autoproj envsh"
             end
 
             def create_installer(root_dir, options = Hash.new)
