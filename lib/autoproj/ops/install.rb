@@ -1,3 +1,4 @@
+require 'pathname'
 require 'optparse'
 require 'fileutils'
 require 'yaml'
