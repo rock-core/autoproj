@@ -178,7 +178,7 @@ module Autoproj
                     if value.empty?
                         env.unset name
                     else
-                        env.set name, *value.split(File::PATH_SEPARATOR)
+                        env.set name, *value
                     end
                 end
                 env.push_path 'PATH', File.join(autoproj_install_dir, 'bin')
@@ -323,24 +323,25 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
             end
 
             # Actually perform the install
-            def run
-                install
+            def run(stage2: false)
+                if stage2
+                    require 'autobuild'
+                    save_env_sh
+                else
+                    install
 
-                env_for_child.each do |k, v|
-                    if v
-                        ENV[k] = v
-                    else
-                        ENV.delete(k)
+                    env_for_child.each do |k, v|
+                        if v
+                            ENV[k] = v
+                        else
+                            ENV.delete(k)
+                        end
                     end
+                    ENV['BUNDLE_GEMFILE'] = autoproj_gemfile_path
+                    update_configuration
+                    exec Gem.ruby, File.join(autoproj_install_dir, 'bin', 'autoproj'),
+                        'install-stage2', root_dir
                 end
-                ENV['BUNDLE_GEMFILE'] = autoproj_gemfile_path
-
-                # Now load autobuild from the freshly installed gem, so that we
-                # can use Environment to generate the env.sh
-                require 'bundler/setup'
-                require 'autobuild'
-                save_env_sh
-                update_configuration
             end
         end
     end

@@ -86,8 +86,8 @@ module Autoproj
                 end
 
                 env.set 'BUNDLE_GEMFILE', File.join(gem_home, 'Gemfile')
-                env.add_path 'PATH', File.join(ws.dot_autoproj_dir, 'autoproj', 'bin')
                 env.add_path 'PATH', File.join(gem_home, 'bin')
+                env.add_path 'PATH', File.join(ws.dot_autoproj_dir, 'autoproj', 'bin')
                 Autobuild.programs['bundler'] = File.join(ws.dot_autoproj_dir, 'autoproj', 'bin', 'bundler')
 
                 if bundle_rubylib = discover_bundle_rubylib

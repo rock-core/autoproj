@@ -322,12 +322,15 @@ The format is a string in which special values can be expanded using a $VARNAME 
             option :private, type: :boolean,
                 desc: 'equivalent to --private-bundler --private-autoproj --private-gems'
             def upgrade
-                if $LOADED_FEATURES.any? { |p| p =~ /\/autobuild\.rb$/ }
-                    # Restart but adding the --no-plugins option
-                    exec(Gem.ruby, $0, *ARGV, "--no-plugin")
-                end
                 require 'autoproj/cli/upgrade'
                 Autoproj::CLI::Upgrade.new.run(options)
+            end
+
+            desc 'install_stage2 ROOT_DIR', 'used by autoproj_install to finalize the installation',
+                hide: true
+            def install_stage2(root_dir)
+                require 'autoproj/ops/install'
+                Autoproj::Ops::Install.new(root_dir).run(stage2: true)
             end
         end
     end
