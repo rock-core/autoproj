@@ -112,21 +112,53 @@ module Autoproj
 
             class NotCleanState < RuntimeError; end
 
+            def backup_files(mapping)
+                mapping.each do |file, backup_file|
+                    if File.file?(file)
+                        FileUtils.cp file, backup_file
+                    end
+                end
+            end
+
+            def backup_restore(mapping)
+                mapping.each do |file, backup_file|
+                    if File.file?(backup_file)
+                        FileUtils.cp backup_file, file
+                    end
+                end
+            end
+
+            def backup_clean(mapping)
+                mapping.each do |file, backup_file|
+                    if File.file?(backup_file)
+                        FileUtils.rm backup_file
+                    end
+                end
+            end
+
             def install(gems)
-                # Generate the gemfile
+                root_dir     = File.join(ws.prefix_dir, 'gems')
+                gemfile_path = File.join(root_dir, 'Gemfile')
+                gemfile_lock_path = "#{gemfile_path}.lock"
+                backups = Hash[
+                    gemfile_path => "#{gemfile_path}.orig",
+                    gemfile_lock_path => "#{gemfile_lock_path}.orig"
+                ]
+
+                # Back up the existing gemfile, we'll restore it if something is
+                # wrong to avoid leaving bundler in an inconsistent state
+                backup_files(backups)
+
+                # Generate the gemfile and remove the lockfile
                 gems = gems.sort.map do |name|
                     name, version = parse_package_entry(name)
                     "gem \"#{name}\", \"#{version || ">= 0"}\""
                 end.join("\n")
-
-                root_dir = File.join(ws.prefix_dir, 'gems')
                 FileUtils.mkdir_p root_dir
-                gemfile = File.join(root_dir, 'Gemfile')
-                File.open(gemfile, 'w') do |io|
+                File.open(gemfile_path, 'w') do |io|
                     io.puts "eval_gemfile \"#{File.join(ws.dot_autoproj_dir, 'autoproj', 'Gemfile')}\""
                     io.puts gems
                 end
-
                 FileUtils.rm File.join(root_dir, 'Gemfile.lock')
 
                 if ws.config.private_gems?
@@ -137,9 +169,9 @@ module Autoproj
                     connections = Set.new
                     Autobuild::Subprocess.run 'autoproj', 'osdeps',
                         Autobuild.tool('bundler'), 'install',
-                            "--gemfile=#{gemfile}", *options,
+                            "--gemfile=#{gemfile_path}", *options,
                             "--binstubs", File.join(root_dir, 'bin'),
-                            env: Hash['BUNDLE_GEMFILE' => gemfile] do |line|
+                            env: Hash['BUNDLE_GEMFILE' => gemfile_path] do |line|
 
                         case line
                         when /Installing (.*)/
@@ -159,6 +191,12 @@ module Autoproj
                 else
                     raise NotCleanState, "bundler executed successfully, but the result is not in a clean state"
                 end
+
+            rescue Exception => e
+                backup_restore(backups)
+                raise
+            ensure
+                backup_clean(backups)
             end
 
             def discover_rubylib
