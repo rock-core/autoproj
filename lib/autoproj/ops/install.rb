@@ -11,6 +11,8 @@ module Autoproj
         # It can be required standalone (i.e. does not depend on anything else than
         # ruby and the ruby standard library)
         class Install
+            class UnexpectedBinstub < RuntimeError; end
+
             # The directory in which to install autoproj
             attr_reader :root_dir
             # Content of the Gemfile generated to install autoproj itself
@@ -226,14 +228,36 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
                     opts << "--clean" << "--path=#{autoproj_install_dir}"
                 end
 
+                binstubs_path = File.join(autoproj_install_dir, 'bin')
+
                 result = system(env,
                     Gem.ruby, bundler, 'install',
                         "--gemfile=#{autoproj_gemfile_path}",
-                        "--binstubs=#{File.join(autoproj_install_dir, 'bin')}",
+                        "--binstubs=#{binstubs_path}",
                         *opts)
                 if !result
                     STDERR.puts "FATAL: failed to install autoproj in #{dot_autoproj}"
                     exit 1
+                end
+
+                # Now tune the binstubs to force the usage of the autoproj
+                # gemfile. Otherwise, they get BUNDLE_GEMFILE from the
+                # environment by default
+                Dir.glob(File.join(binstubs_path, '*')) do |path|
+                    next if !File.file?(path)
+                    # Do NOT do that for bundler, otherwise it will fail with an
+                    # "already loaded gemfile" message once we e.g. try to do
+                    # 'bundler install --gemfile=NEW_GEMFILE'
+                    next if File.basename(path) == 'bundler'
+
+                    lines = File.readlines(path)
+                    filtered = lines.map { |l| l.gsub(/^(\s*ENV\[['"]BUNDLE_GEMFILE['"]\]\s*)\|\|=/, '\\1=') }
+                    if lines == filtered
+                        raise UnexpectedBinstub, "expected #{path} to contain a line looking like ENV['BUNDLE_GEMFILE'] ||= but could not find one"
+                    end
+                    File.open(path, 'w') do |io|
+                        io.write filtered.join("")
+                    end
                 end
 
                 env['PATH'] << File.join(autoproj_install_dir, 'bin')
