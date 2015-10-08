@@ -214,6 +214,8 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
                 end
             end
 
+            ENV_BUNDLE_GEMFILE_RX = /^(\s*ENV\[['"]BUNDLE_GEMFILE['"]\]\s*)(?:\|\|)?=/
+
             def install_autoproj(bundler)
                 # Force bundler to update. If the user does not want this, let him specify a
                 # Gemfile with tighter version constraints
@@ -256,8 +258,12 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
                     next if File.basename(path) == 'bundler'
 
                     lines = File.readlines(path)
-                    filtered = lines.map { |l| l.gsub(/^(\s*ENV\[['"]BUNDLE_GEMFILE['"]\]\s*)\|\|=/, '\\1=') }
-                    if lines == filtered
+                    matched = false
+                    filtered = lines.map do |l|
+                        matched ||= (ENV_BUNDLE_GEMFILE_RX === l)
+                        l.gsub(ENV_BUNDLE_GEMFILE_RX, '\\1=')
+                    end
+                    if !matched
                         raise UnexpectedBinstub, "expected #{path} to contain a line looking like ENV['BUNDLE_GEMFILE'] ||= but could not find one"
                     end
                     File.open(path, 'w') do |io|
