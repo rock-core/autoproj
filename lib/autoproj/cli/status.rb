@@ -31,7 +31,7 @@ module Autoproj
                     pkg_sets = ws.manifest.each_package_set.to_a
                     if !pkg_sets.empty?
                         Autoproj.message("autoproj: displaying status of configuration", :bold)
-                        display_status(pkg_sets, snapshot: options[:snapshot], only_local: options[:only_local])
+                        display_status(pkg_sets, parallel: options[:parallel], snapshot: options[:snapshot], only_local: options[:only_local])
                         STDERR.puts
                     end
                 end
@@ -133,7 +133,8 @@ module Autoproj
             def display_status(packages, options = Hash.new)
                 result = StatusResult.new
 
-                executor = Concurrent::FixedThreadPool.new(ws.config.parallel_import_level, max_length: 0)
+                parallel = options[:parallel] || ws.config.parallel_import_level
+                executor = Concurrent::FixedThreadPool.new(parallel, max_length: 0)
                 interactive, noninteractive = packages.partition do |pkg|
                     pkg.autobuild.importer && pkg.autobuild.importer.interactive?
                 end
