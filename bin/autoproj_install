@@ -18,6 +18,8 @@ module Autoproj
         # It can be required standalone (i.e. does not depend on anything else than
         # ruby and the ruby standard library)
         class Install
+            class UnexpectedBinstub < RuntimeError; end
+
             # The directory in which to install autoproj
             attr_reader :root_dir
             # Content of the Gemfile generated to install autoproj itself
@@ -27,7 +29,12 @@ module Autoproj
 
             def initialize(root_dir)
                 @root_dir = root_dir
-                @gemfile  = default_gemfile_contents
+                if File.file?(autoproj_gemfile_path)
+                    @gemfile = File.read(autoproj_gemfile_path)
+                else
+                    @gemfile = default_gemfile_contents
+                end
+
                 @private_bundler  = false
                 @private_autoproj = false
                 @private_gems     = false
@@ -185,7 +192,7 @@ module Autoproj
                     if value.empty?
                         env.unset name
                     else
-                        env.set name, *value.split(File::PATH_SEPARATOR)
+                        env.set name, *value
                     end
                 end
                 env.push_path 'PATH', File.join(autoproj_install_dir, 'bin')
@@ -214,6 +221,8 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
                 end
             end
 
+            ENV_BUNDLE_GEMFILE_RX = /^(\s*ENV\[['"]BUNDLE_GEMFILE['"]\]\s*)(?:\|\|)?=/
+
             def install_autoproj(bundler)
                 # Force bundler to update. If the user does not want this, let him specify a
                 # Gemfile with tighter version constraints
@@ -233,14 +242,40 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
                     opts << "--clean" << "--path=#{autoproj_install_dir}"
                 end
 
+                binstubs_path = File.join(autoproj_install_dir, 'bin')
+
                 result = system(env,
                     Gem.ruby, bundler, 'install',
                         "--gemfile=#{autoproj_gemfile_path}",
-                        "--binstubs=#{File.join(autoproj_install_dir, 'bin')}",
+                        "--binstubs=#{binstubs_path}",
                         *opts)
                 if !result
                     STDERR.puts "FATAL: failed to install autoproj in #{dot_autoproj}"
                     exit 1
+                end
+
+                # Now tune the binstubs to force the usage of the autoproj
+                # gemfile. Otherwise, they get BUNDLE_GEMFILE from the
+                # environment by default
+                Dir.glob(File.join(binstubs_path, '*')) do |path|
+                    next if !File.file?(path)
+                    # Do NOT do that for bundler, otherwise it will fail with an
+                    # "already loaded gemfile" message once we e.g. try to do
+                    # 'bundler install --gemfile=NEW_GEMFILE'
+                    next if File.basename(path) == 'bundler'
+
+                    lines = File.readlines(path)
+                    matched = false
+                    filtered = lines.map do |l|
+                        matched ||= (ENV_BUNDLE_GEMFILE_RX === l)
+                        l.gsub(ENV_BUNDLE_GEMFILE_RX, '\\1=')
+                    end
+                    if !matched
+                        raise UnexpectedBinstub, "expected #{path} to contain a line looking like ENV['BUNDLE_GEMFILE'] ||= but could not find one"
+                    end
+                    File.open(path, 'w') do |io|
+                        io.write filtered.join("")
+                    end
                 end
 
                 env['PATH'] << File.join(autoproj_install_dir, 'bin')
@@ -330,24 +365,25 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
             end
 
             # Actually perform the install
-            def run
-                install
+            def run(stage2: false)
+                if stage2
+                    require 'autobuild'
+                    save_env_sh
+                else
+                    install
 
-                env_for_child.each do |k, v|
-                    if v
-                        ENV[k] = v
-                    else
-                        ENV.delete(k)
+                    env_for_child.each do |k, v|
+                        if v
+                            ENV[k] = v
+                        else
+                            ENV.delete(k)
+                        end
                     end
+                    ENV['BUNDLE_GEMFILE'] = autoproj_gemfile_path
+                    update_configuration
+                    exec Gem.ruby, File.join(autoproj_install_dir, 'bin', 'autoproj'),
+                        'install-stage2', root_dir
                 end
-                ENV['BUNDLE_GEMFILE'] = autoproj_gemfile_path
-
-                # Now load autobuild from the freshly installed gem, so that we
-                # can use Environment to generate the env.sh
-                require 'bundler/setup'
-                require 'autobuild'
-                save_env_sh
-                update_configuration
             end
         end
     end
