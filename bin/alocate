@@ -1,6 +1,6 @@
 #! /usr/bin/env ruby
 
-require 'autoproj/cli/locate'
+require 'autoproj/cli/main'
 Autoproj::CLI.basic_setup
 Autoproj::CLI::Main.start(['locate', *ARGV])
 
