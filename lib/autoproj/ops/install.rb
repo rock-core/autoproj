@@ -241,6 +241,7 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
                     Gem.ruby, bundler, 'install',
                         "--gemfile=#{autoproj_gemfile_path}",
                         "--binstubs=#{binstubs_path}",
+                        "--shebang=#{Gem.ruby}",
                         *opts)
                 if !result
                     STDERR.puts "FATAL: failed to install autoproj in #{dot_autoproj}"

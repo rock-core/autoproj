@@ -171,6 +171,7 @@ module Autoproj
                         Autobuild.tool('bundler'), 'install',
                             "--gemfile=#{gemfile_path}", *options,
                             "--binstubs", File.join(root_dir, 'bin'),
+                            "--shebang", Gem.ruby,
                             env: Hash['BUNDLE_GEMFILE' => gemfile_path] do |line|
 
                         case line
