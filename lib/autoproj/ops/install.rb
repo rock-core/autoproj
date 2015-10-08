@@ -240,9 +240,15 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
                 result = system(env,
                     Gem.ruby, bundler, 'install',
                         "--gemfile=#{autoproj_gemfile_path}",
-                        "--binstubs=#{binstubs_path}",
                         "--shebang=#{Gem.ruby}",
                         *opts)
+
+                result &&= system(
+                    env.merge('BUNDLE_GEMFILE' => autoproj_gemfile_path),
+                    Gem.ruby, bundler, 'binstubs',
+                    "--path=#{binstubs_path}",
+                    '--force', 'autoproj')
+
                 if !result
                     STDERR.puts "FATAL: failed to install autoproj in #{dot_autoproj}"
                     exit 1
@@ -253,10 +259,6 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
                 # environment by default
                 Dir.glob(File.join(binstubs_path, '*')) do |path|
                     next if !File.file?(path)
-                    # Do NOT do that for bundler, otherwise it will fail with an
-                    # "already loaded gemfile" message once we e.g. try to do
-                    # 'bundler install --gemfile=NEW_GEMFILE'
-                    next if File.basename(path) == 'bundler'
 
                     lines = File.readlines(path)
                     matched = false
