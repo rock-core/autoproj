@@ -429,6 +429,16 @@ module Autoproj
         def merge(conf)
             config.merge!(conf.config)
         end
+
+        # Whether the OS package handler should prefer installing OS-independent
+        # packages (as e.g. RubyGems) as opposed to the binary packages
+        # equivalent (e.g. thor as a gem vs. thor as the ruby-thor Ubuntu
+        # package)
+        #
+        # This is false by default
+        def prefer_indep_over_os_packages?
+            get('prefer_indep_over_os_packages', false)
+        end
     end
 end
 

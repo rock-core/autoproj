@@ -173,6 +173,7 @@ module Autoproj
                     manifest.vcs = VCSDefinition.from_raw(
                         type: 'local', url: config_dir)
                 end
+                os_package_resolver.prefer_indep_over_os_packages = config.prefer_indep_over_os_packages?
             end
             @config
         end
