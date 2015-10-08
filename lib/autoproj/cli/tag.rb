@@ -6,8 +6,12 @@ require 'autoproj/cli/base'
 module Autoproj
     module CLI
         class Tag < Base
-            def run(tag_name, *user_selection, options = Hash.new)
-                pkg = manifest.main_package_set.create_autobuild_package
+            def run(arguments, options = Hash.new)
+                tag_name, *user_selection = *arguments
+                ws.load_config
+                main_package_set = LocalPackageSet.new(ws.manifest, ws.config_dir)
+
+                pkg = main_package_set.create_autobuild_package
                 importer = pkg.importer
                 if !importer || !importer.kind_of?(Autobuild::Git)
                     raise ConfigError, "cannot use autoproj tag if the main configuration is not managed by git"
@@ -21,6 +25,7 @@ module Autoproj
                     importer = pkg.importer
                     all_tags = importer.run_git_bare(pkg, 'tag')
                     all_tags.sort.each do |tag|
+                        next if tag =~ /\^/
                         begin importer.show(pkg, "refs/tags/#{tag}", versions_file)
                             puts tag
                         rescue Autobuild::PackageException
@@ -43,7 +48,7 @@ module Autoproj
                     Autoproj.message "creating versions file, this may take a while"
                     versions.run(user_selection,
                                  package_sets: options[:package_sets],
-                                 output_file: io.path,
+                                 save: io.path,
                                  replace: true,
                                  keep_going: options[:keep_going])
                 end

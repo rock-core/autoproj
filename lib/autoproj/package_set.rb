@@ -571,8 +571,9 @@ module Autoproj
 
     # Specialization of the PackageSet class for the overrides listed in autoproj/
     class LocalPackageSet < PackageSet
-        def initialize(manifest)
+        def initialize(manifest, local_dir = nil)
             super(manifest, manifest.vcs)
+            @local_dir = local_dir
         end
 
         def name
@@ -592,14 +593,10 @@ module Autoproj
         end
 
         def local_dir
-            if manifest.file
-                File.dirname(manifest.file)
-            end
+            @local_dir || (File.dirname(manifest.file) if manifest.file)
         end
 
-        def raw_local_dir
-            local_dir
-        end
+        def raw_local_dir; local_dir end
 
         def manifest_path
             manifest.file
