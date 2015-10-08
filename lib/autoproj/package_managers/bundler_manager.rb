@@ -96,7 +96,7 @@ module Autoproj
             end
 
             def update_env_rubylib(bundle_rubylib, system_rubylib = discover_rubylib)
-                current = ws.env.resolved_env['RUBYLIB'].split(File::PATH_SEPARATOR) + system_rubylib
+                current = (ws.env.resolved_env['RUBYLIB'] || '').split(File::PATH_SEPARATOR) + system_rubylib
                 (bundle_rubylib - current).each do |p|
                     ws.env.add_path('RUBYLIB', p)
                 end
