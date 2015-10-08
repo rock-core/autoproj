@@ -257,7 +257,7 @@ module Autoproj
         #   the root of the git repository
         # @param [String] the commit message
         # @return [String] the commit ID
-        def self.create_commit(pkg, path, message, parent_id = nil)
+        def self.create_commit(pkg, path, message, parent_id = nil, real_author: true)
             importer = pkg.importer
             object_id = Tempfile.open 'autoproj-versions' do |io|
                 yield(io)
@@ -273,6 +273,14 @@ module Autoproj
             end
 
             parent_id ||= importer.rev_parse(pkg, 'HEAD')
+
+            env = Hash.new
+            if !real_author
+                env['GIT_AUTHOR_NAME'] = 'autoproj'
+                env['GIT_AUTHOR_EMAIL'] = 'autoproj'
+                env['GIT_COMMITTER_NAME'] = 'autoproj'
+                env['GIT_COMMITTER_EMAIL'] = 'autoproj'
+            end
 
             # Create the tree using a temporary index in order to not mess with
             # the user's index state. read-tree initializes the new index and
@@ -294,7 +302,7 @@ module Autoproj
 
             importer.run_git_bare(
                 pkg, 'commit-tree',
-                tree_id, '-p', parent_id, input_streams: [message]).first
+                tree_id, '-p', parent_id, env: env, input_streams: [message]).first
         end
     end
     end
