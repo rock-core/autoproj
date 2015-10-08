@@ -22,7 +22,12 @@ module Autoproj
 
             def initialize(root_dir)
                 @root_dir = root_dir
-                @gemfile  = default_gemfile_contents
+                if File.file?(autoproj_gemfile_path)
+                    @gemfile = File.read(autoproj_gemfile_path)
+                else
+                    @gemfile = default_gemfile_contents
+                end
+
                 @private_bundler  = false
                 @private_autoproj = false
                 @private_gems     = false
