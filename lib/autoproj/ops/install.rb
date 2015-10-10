@@ -30,10 +30,7 @@ module Autoproj
                     @gemfile = default_gemfile_contents
                 end
 
-                @config = load_config
-                @private_bundler  = nil
-                @private_autoproj = nil
-                @private_gems     = nil
+                load_config
                 @local = false
                 @env = self.class.clean_env
             end
@@ -108,6 +105,12 @@ module Autoproj
             def private_gems?; @private_gems end
             # (see #private_gems?)
             def private_gems=(flag); @private_gems = !!flag end
+            # Whether autoproj should prefer OS-independent packages over their
+            # OS-packaged equivalents (e.g. the thor gem vs. the ruby-thor
+            # Debian package)
+            def prefer_indep_over_os_packages?; @prefer_indep_over_os_packages end
+            # (see #private_gems?)
+            def prefer_indep_over_os_packages=(flag); @prefer_indep_over_os_packages = !!flag end
 
             def guess_gem_program
                 ruby_bin = RbConfig::CONFIG['RUBY_INSTALL_NAME']
@@ -162,6 +165,9 @@ module Autoproj
                     end
                     opt.on '--gemfile=PATH', String, 'use the given Gemfile to install autoproj instead of the default' do |path|
                         @gemfile = File.read(path)
+                    end
+                    opt.on '--prefer-os-independent-packages', 'prefer OS-independent packages (such as a RubyGem) over their OS-packaged equivalent (e.g. the thor gem vs. the ruby-thor debian package)' do
+                        @prefer_indep_over_os_packages = true
                     end
                 end
                 options.parse(ARGV)
@@ -378,19 +384,17 @@ module Autoproj
                     config.merge!(YAML.load(File.read(autoproj_config_path)))
                 end
 
-                %w{private_bundler private_gems private_autoproj}.each do |flag|
-                    ivar = instance_variable_get("@#{flag}")
-                    if ivar.nil?
-                        instance_variable_set "@#{flag}", config.fetch(flag, false)
-                    end
+                @config = config
+                %w{private_bundler private_gems private_autoproj prefer_indep_over_os_packages}.each do |flag|
+                    instance_variable_set "@#{flag}", config.fetch(flag, false)
                 end
-                config
             end
 
             def save_config
                 config['private_bundler']  = private_bundler?
                 config['private_autoproj'] = private_autoproj?
                 config['private_gems']     = private_gems?
+                config['prefer_indep_over_os_packages'] = prefer_indep_over_os_packages?
                 File.open(autoproj_config_path, 'w') { |io| YAML.dump(config, io) }
             end
 
