@@ -86,9 +86,10 @@ module Autoproj
                 end
 
                 env.set 'BUNDLE_GEMFILE', File.join(gem_home, 'Gemfile')
+                env.add_path 'PATH', Gem.bindir
                 env.add_path 'PATH', File.join(gem_home, 'bin')
                 env.add_path 'PATH', File.join(ws.dot_autoproj_dir, 'autoproj', 'bin')
-                Autobuild.programs['bundler'] = File.join(ws.dot_autoproj_dir, 'autoproj', 'bin', 'bundler')
+                Autobuild.programs['bundler'] = 'bundler'
 
                 if bundle_rubylib = discover_bundle_rubylib
                     update_env_rubylib(bundle_rubylib, system_rubylib)
@@ -148,6 +149,11 @@ module Autoproj
                 # Back up the existing gemfile, we'll restore it if something is
                 # wrong to avoid leaving bundler in an inconsistent state
                 backup_files(backups)
+                if !File.file?("#{gemfile_path}.orig")
+                    File.open("#{gemfile_path}.orig", 'w') do |io|
+                        io.puts "eval_gemfile \"#{File.join(ws.dot_autoproj_dir, 'autoproj', 'Gemfile')}\""
+                    end
+                end
 
                 # Generate the gemfile and remove the lockfile
                 gems = gems.sort.map do |name|
@@ -165,12 +171,13 @@ module Autoproj
                     options = ['--path', root_dir]
                 end
 
+                binstubs_path = File.join(root_dir, 'bin')
                 Bundler.with_clean_env do
                     connections = Set.new
                     Autobuild::Subprocess.run 'autoproj', 'osdeps',
                         Autobuild.tool('bundler'), 'install',
                             "--gemfile=#{gemfile_path}", *options,
-                            "--binstubs", File.join(root_dir, 'bin'),
+                            "--binstubs", binstubs_path,
                             "--shebang", Gem.ruby,
                             env: Hash['BUNDLE_GEMFILE' => gemfile_path] do |line|
 
@@ -197,6 +204,7 @@ module Autoproj
                 backup_restore(backups)
                 raise
             ensure
+                FileUtils.rm_f File.join(binstubs_path, 'bundler')
                 backup_clean(backups)
             end
 

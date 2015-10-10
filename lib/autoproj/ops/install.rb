@@ -53,6 +53,16 @@ module Autoproj
                 end
             end
 
+            def apply_env(env)
+                env.each do |k, v|
+                    if v
+                        ENV[k] = v
+                    else
+                        ENV.delete(k)
+                    end
+                end
+            end
+
             def self.sanitize_env(value)
                 value.split(File::PATH_SEPARATOR).
                     find_all { |p| !in_workspace?(p) }
@@ -171,50 +181,36 @@ module Autoproj
                     STDERR.puts "FATAL: failed to install bundler in #{dot_autoproj}"
                     exit 1
                 end
-                env['GEM_PATH'] << bundler_install_dir
-                env['PATH'] << File.join(bundler_install_dir, 'bin')
+                env['GEM_PATH'].unshift bundler_install_dir
+                env['PATH'].unshift File.join(bundler_install_dir, 'bin')
                 File.join(bin_dir, 'bundler')
             end
 
-            def save_env_sh
-                env = Autobuild::Environment.new
-                env.prepare
+            def find_bundler
+                self.env['PATH'].unshift gem_bindir
+                clean_env = env_for_child
+                Gem.paths = Hash[
+                    'GEM_HOME' => clean_env['GEM_HOME'] || Gem.default_dir,
+                    'GEM_PATH' => clean_env['GEM_PATH'] || nil
+                ]
 
-                %w{GEM_HOME GEM_PATH}.each do |name|
-                    value = self.env[name]
-                    if value.empty?
-                        env.unset name
+                bundler = find_in_clean_path('bundler')
+                if !bundler
+                    clean_path = env_for_child['PATH']
+                    STDERR.puts "FATAL: cannot find 'bundler' in PATH=#{clean_path}"
+                    if ENV['PATH'] != clean_path
+                        STDERR.puts "  it appears that you already have some autoproj-generated env.sh loaded"
+                        STDERR.puts "  - if you are running 'autoproj upgrade', please contact the autoproj author at https://github.com/rock-core/autoproj/issues/new"
+                        STDERR.puts "  - if you are running an install, try again in a console where the env.sh is not loaded"
+                        exit 1
                     else
-                        env.set name, *value
+                        STDERR.puts "  the recommended action is to install it manually first by running 'gem install bundler'"
+                        STDERR.puts "  or call this command again with --private-bundler to have it installed in the workspace"
+                        exit 1
                     end
                 end
-                env.push_path 'PATH', File.join(autoproj_install_dir, 'bin')
-
-                if private_autoproj?
-                    env.push_path 'GEM_PATH', autoproj_install_dir
-                end
-
-                # Generate environment files right now, we can at least use bundler
-                File.open(File.join(dot_autoproj, 'env.sh'), 'w') do |io|
-                    env.export_env_sh(io)
-                end
-
-                File.open(File.join(root_dir, 'env.sh'), 'w') do |io|
-                    io.write <<-EOSHELL
-source "#{File.join(dot_autoproj, 'env.sh')}"
-export AUTOPROJ_CURRENT_ROOT=#{root_dir}
-                    EOSHELL
-                end
+                bundler
             end
-
-            def save_gemfile
-                FileUtils.mkdir_p File.dirname(autoproj_gemfile_path)
-                File.open(autoproj_gemfile_path, 'w') do |io|
-                    io.write gemfile
-                end
-            end
-
-            ENV_BUNDLE_GEMFILE_RX = /^(\s*ENV\[['"]BUNDLE_GEMFILE['"]\]\s*)(?:\|\|)?=/
 
             def install_autoproj(bundler)
                 # Force bundler to update. If the user does not want this, let him specify a
@@ -226,28 +222,16 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
 
                 opts = Array.new
                 opts << '--local' if local?
-
-                env = env_for_child
                 if private_autoproj?
-                    env = env.merge(
-                        'GEM_PATH' => bundler_install_dir,
-                        'GEM_HOME' => nil)
                     opts << "--clean" << "--path=#{autoproj_install_dir}"
                 end
-
                 binstubs_path = File.join(autoproj_install_dir, 'bin')
-
-                result = system(env,
+                result = system(env_for_child,
                     Gem.ruby, bundler, 'install',
                         "--gemfile=#{autoproj_gemfile_path}",
                         "--shebang=#{Gem.ruby}",
+                        "--binstubs=#{binstubs_path}",
                         *opts)
-
-                result &&= system(
-                    env.merge('BUNDLE_GEMFILE' => autoproj_gemfile_path),
-                    Gem.ruby, bundler, 'binstubs',
-                    "--path=#{binstubs_path}",
-                    '--force', 'autoproj')
 
                 if !result
                     STDERR.puts "FATAL: failed to install autoproj in #{dot_autoproj}"
@@ -274,11 +258,49 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
                     end
                 end
 
-                env['PATH'] << File.join(autoproj_install_dir, 'bin')
+                env['PATH'].unshift File.join(autoproj_install_dir, 'bin')
                 if private_autoproj?
-                    env['GEM_PATH'] << autoproj_install_dir
+                    env['GEM_PATH'].unshift autoproj_install_dir
+                end
+            ensure
+                if binstubs_path
+                    FileUtils.rm_f File.join(binstubs_path, 'bundler')
                 end
             end
+
+            def save_env_sh(*vars)
+                env = Autobuild::Environment.new
+                env.prepare
+                vars.each do |k, v|
+                    if v.empty?
+                        env.unset name
+                    else
+                        env.set name, *v.split(File::PATH_SEPARATOR)
+                    end
+                end
+                # Generate environment files right now, we can at least use bundler
+                File.open(File.join(dot_autoproj, 'env.sh'), 'w') do |io|
+                    env.export_env_sh(io)
+                end
+
+                # And now the root envsh
+                env = Autobuild::Environment.new
+                env.source_before File.join(dot_autoproj, 'env.sh')
+                env.set('AUTOPROJ_CURRENT_ROOT', root_dir)
+                File.open(File.join(root_dir, 'env.sh'), 'w') do |io|
+                    env.export_env_sh(io)
+                end
+            end
+
+            def save_gemfile
+                FileUtils.mkdir_p File.dirname(autoproj_gemfile_path)
+                File.open(autoproj_gemfile_path, 'w') do |io|
+                    io.write gemfile
+                end
+            end
+
+            ENV_BUNDLE_GEMFILE_RX = /^(\s*ENV\[['"]BUNDLE_GEMFILE['"]\]\s*)(?:\|\|)?=/
+
 
             def update_configuration
                 if File.exist?(autoproj_config_path)
@@ -305,12 +327,10 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
                 nil
             end
 
-            def find_bundler
-                clean_env = env_for_child
-                Gem.paths = Hash[
-                    'GEM_HOME' => clean_env['GEM_HOME'] || Gem.default_dir,
-                    'GEM_PATH' => clean_env['GEM_PATH'] || nil
-                ]
+            # The path of the bin/ folder for installed gems
+            def gem_bindir
+                return @gem_bindir if @gem_bindir
+
                 # Here, we're getting into the esotheric
                 #
                 # The problem is that e.g. Ubuntu and Debian install an
@@ -321,30 +341,12 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
                 #
                 # So, we're calling 'gem' as a subcommand to discovery the
                 # actual bindir
-                bindir = IO.popen(clean_env, [Gem.ruby, '-e', 'puts Gem.bindir']).read
+                bindir = IO.popen(env_for_child, [Gem.ruby, '-e', 'puts Gem.bindir']).read
                 if bindir
-                    env['PATH'].unshift bindir.chomp
+                    @gem_bindir = bindir.chomp
                 else
-                    STDERR.puts "FATAL: cannot run #{Gem.ruby} -e 'puts Gem.bindir'"
-                    exit 1
+                    raise "FATAL: cannot run #{Gem.ruby} -e 'puts Gem.bindir'"
                 end
-
-                bundler = find_in_clean_path('bundler')
-                if !bundler
-                    clean_path = env_for_child['PATH']
-                    STDERR.puts "FATAL: cannot find 'bundler' in PATH=#{clean_path}"
-                    if ENV['PATH'] != clean_path
-                        STDERR.puts "  it appears that you already have some autoproj-generated env.sh loaded"
-                        STDERR.puts "  - if you are running 'autoproj upgrade', please contact the autoproj author at https://github.com/rock-core/autoproj/issues/new"
-                        STDERR.puts "  - if you are running an install, try again in a console where the env.sh is not loaded"
-                        exit 1
-                    else
-                        STDERR.puts "  the recommended action is to install it manually first by running 'gem install bundler'"
-                        STDERR.puts "  or call this command again with --private-bundler to have it installed in the workspace"
-                        exit 1
-                    end
-                end
-                bundler
             end
 
             def install
@@ -361,24 +363,19 @@ export AUTOPROJ_CURRENT_ROOT=#{root_dir}
             end
 
             # Actually perform the install
-            def run(stage2: false)
+            def run(*vars, stage2: false)
                 if stage2
                     require 'autobuild'
-                    save_env_sh
+                    save_env_sh(*vars)
                 else
                     install
-
-                    env_for_child.each do |k, v|
-                        if v
-                            ENV[k] = v
-                        else
-                            ENV.delete(k)
-                        end
-                    end
+                    clean_env = env_for_child
+                    apply_env(clean_env)
+                    stage2_vars = clean_env.each { |k, v| "#{k}=#{v.join(File::PATH_SEPARATOR)}" }
                     ENV['BUNDLE_GEMFILE'] = autoproj_gemfile_path
                     update_configuration
                     exec Gem.ruby, File.join(autoproj_install_dir, 'bin', 'autoproj'),
-                        'install-stage2', root_dir
+                        'install-stage2', root_dir, *stage2_vars
                 end
             end
         end

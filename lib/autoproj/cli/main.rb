@@ -328,11 +328,11 @@ The format is a string in which special values can be expanded using a $VARNAME 
                 Autoproj::CLI::Upgrade.new.run(options)
             end
 
-            desc 'install_stage2 ROOT_DIR', 'used by autoproj_install to finalize the installation',
+            desc 'install_stage2 ROOT_DIR [ENVVAR=VALUE ...]', 'used by autoproj_install to finalize the installation',
                 hide: true
-            def install_stage2(root_dir)
+            def install_stage2(root_dir, *vars)
                 require 'autoproj/ops/install'
-                Autoproj::Ops::Install.new(root_dir).run(stage2: true)
+                Autoproj::Ops::Install.new(root_dir).run(*vars, stage2: true)
             end
         end
     end
