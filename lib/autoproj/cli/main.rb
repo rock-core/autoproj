@@ -315,24 +315,24 @@ The format is a string in which special values can be expanded using a $VARNAME 
                 desc: 'do not access the network (will fail if some gems are missing)'
             option :gemfile, type: :string,
                 desc: 'path to a gemfile that should be used to install autoproj'
-            option :private_bundler, type: :boolean,
-                desc: 'install bundler inside the workspace instead of using the default Gem location'
-            option :private_gems, type: :boolean,
-                desc: 'install gems inside the workspace instead of using the default Gem location'
-            option :private_autoproj, type: :boolean,
-                desc: 'install bundler inside the workspace instead of using the default Gem location'
-            option :private, type: :boolean,
-                desc: 'equivalent to --private-bundler --private-autoproj --private-gems'
             def upgrade
-                require 'autoproj/cli/upgrade'
-                Autoproj::CLI::Upgrade.new.run(options)
+                require 'autoproj/ops/install'
+                installer = Autoproj::Ops::Install.new(Dir.pwd)
+
+                if options.has_key?('local')
+                    installer.local = options['local']
+                end
+                if options[:gemfile]
+                    installer.gemfile = File.read(options[:gemfile])
+                end
+                installer.stage1
             end
 
             desc 'install_stage2 ROOT_DIR [ENVVAR=VALUE ...]', 'used by autoproj_install to finalize the installation',
                 hide: true
             def install_stage2(root_dir, *vars)
                 require 'autoproj/ops/install'
-                Autoproj::Ops::Install.new(root_dir).run(*vars, stage2: true)
+                Autoproj::Ops::Install.new(root_dir).stage2(*vars)
             end
         end
     end
