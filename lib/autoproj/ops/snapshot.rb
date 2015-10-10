@@ -234,7 +234,7 @@ module Autoproj
             # Ensure that our ref is being logged
             FileUtils.touch File.join(git_dir, 'logs', *self.class.import_state_log_ref.split("/"))
             # Create the commit with the versions info
-            commit_id = Snapshot.create_commit(main, import_state_log_file, name) do |io|
+            commit_id = Snapshot.create_commit(main, import_state_log_file, name, real_author: false) do |io|
                 YAML.dump(versions, io)
             end
             # And save it in our reflog
