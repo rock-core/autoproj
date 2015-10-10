@@ -266,7 +266,11 @@ module Autoproj
                             pkg.depends_on pkg_name
                         end
                     end
-                    pkg.os_packages.merge(osdeps)
+                    osdeps.each do |pkg_name|
+                        if !manifest.ignored?(pkg_name) && !manifest.excluded?(pkg_name)
+                            pkg.os_packages << pkg_name
+                        end
+                    end
                     pkg.prepare
                     Rake::Task["#{pkg.name}-prepare"].instance_variable_set(:@already_invoked, true)
                     pkg.update_environment
