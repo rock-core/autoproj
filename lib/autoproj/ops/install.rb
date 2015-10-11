@@ -404,17 +404,19 @@ module Autoproj
                 install
 
                 clean_env = env_for_child
-                apply_env(clean_env)
                 stage2_vars = clean_env.map { |k, v| "#{k}=#{v}" }
-                ENV['BUNDLE_GEMFILE'] = autoproj_gemfile_path
-                exec Gem.ruby, File.join(autoproj_install_dir, 'bin', 'autoproj'),
+                puts "starting the newly installed autoproj for stage2 install"
+                exec clean_env.merge('BUNDLE_GEMFILE' => autoproj_gemfile_path),
+                    Gem.ruby, File.join(autoproj_install_dir, 'bin', 'autoproj'),
                     'install-stage2', root_dir, *stage2_vars
             end
 
             def stage2(*vars)
                 require 'autobuild'
+                puts "saving env.sh and .autoproj/env.sh"
                 save_env_sh(*vars)
-                system('autoproj', 'envsh')
+                puts "calling autoproj envsh"
+                system(Gem.ruby, $0, 'envsh')
             end
         end
     end
