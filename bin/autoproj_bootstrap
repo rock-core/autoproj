@@ -74,7 +74,7 @@ module Autobuild
 
     module Subprocess
         def self.run(name, phase, *cmd)
-            output = `#{cmd.join(" ")}`
+            output = `'#{cmd.join("' '")}'`
             if $?.exitstatus != 0
                 STDERR.puts "ERROR: failed to run #{cmd.join(" ")}"
                 STDERR.puts "ERROR: command output is: #{output}"
