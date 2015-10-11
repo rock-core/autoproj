@@ -133,6 +133,37 @@ module Autoproj
                 end
             end
 
+            def self.run_bundler_install(gemfile, *options, update: true, binstubs: nil)
+                if update
+                    FileUtils.rm "#{gemfile}.lock"
+                end
+
+                options << "--shebang" << Gem.ruby
+                if binstubs
+                    options << "--binstubs" << binstubs
+                end
+
+                Bundler.with_clean_env do
+                    connections = Set.new
+                    Autobuild::Subprocess.run 'autoproj', 'osdeps',
+                        Autobuild.tool('bundler'), 'install',
+                            "--gemfile=#{gemfile}", *options,
+                            env: Hash['BUNDLE_GEMFILE' => gemfile] do |line|
+
+                        case line
+                        when /Installing (.*)/
+                            Autobuild.message "  bundler: installing #{$1}"
+                        when /Fetching.*from (.*)/
+                            host = $1.gsub(/\.+$/, '')
+                            if !connections.include?(host)
+                                Autobuild.message "  bundler: connected to #{host}"
+                                connections << host
+                            end
+                        end
+                    end
+                end
+            end
+
             def install(gems)
                 root_dir     = File.join(ws.prefix_dir, 'gems')
                 gemfile_path = File.join(root_dir, 'Gemfile')
@@ -161,30 +192,9 @@ module Autoproj
                     io.puts "eval_gemfile \"#{File.join(ws.dot_autoproj_dir, 'autoproj', 'Gemfile')}\""
                     io.puts gems
                 end
-                FileUtils.rm File.join(root_dir, 'Gemfile.lock')
 
                 binstubs_path = File.join(root_dir, 'bin')
-                Bundler.with_clean_env do
-                    connections = Set.new
-                    Autobuild::Subprocess.run 'autoproj', 'osdeps',
-                        Autobuild.tool('bundler'), 'install',
-                            "--gemfile=#{gemfile_path}", *options,
-                            "--binstubs", binstubs_path,
-                            "--shebang", Gem.ruby,
-                            env: Hash['BUNDLE_GEMFILE' => gemfile_path] do |line|
-
-                        case line
-                        when /Installing (.*)/
-                            Autobuild.message "  bundler: installing #{$1}"
-                        when /Fetching.*from (.*)/
-                            host = $1.gsub(/\.+$/, '')
-                            if !connections.include?(host)
-                                Autobuild.message "  bundler: connected to #{host}"
-                                connections << host
-                            end
-                        end
-                    end
-                end
+                self.class.run_bundler_install gemfile_path, *options, binstubs: binstubs_path
 
                 if bundle_rubylib = discover_bundle_rubylib
                     update_env_rubylib(bundle_rubylib)

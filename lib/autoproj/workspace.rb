@@ -277,11 +277,7 @@ module Autoproj
             end
         end
 
-        def update_autoproj(options = Hash.new)
-            options = validate_options options,
-                force: false, restart_on_update: true
-            return if !options[:force]
-
+        def update_autoproj(restart_on_update: true)
             config.validate_ruby_executable
 
             # This is a guard to avoid infinite recursion in case the user is
@@ -290,19 +286,25 @@ module Autoproj
                 return
             end
 
-            did_update =
-                begin
-                    saved_flag = PackageManagers::GemManager.with_prerelease
-                    PackageManagers::GemManager.with_prerelease = config.use_prerelease?
-                    install_os_packages(%w{autobuild autoproj})
-                ensure
-                    PackageManagers::GemManager.with_prerelease = saved_flag
-                end
+            gemfile  = File.join(dot_autoproj_dir, 'autoproj', 'Gemfile')
+            binstubs = File.join(dot_autoproj_dir, 'autoproj', 'bin')
+            PackageManagers::BundlerManager.run_bundler_install(
+                gemfile, binstubs: binstubs)
+
+            # Find out what version of autoproj bundler locked on
+            autoproj = File.readlines("#{gemfile}.lock").
+                find_all { |l| l =~ /^\s+autoproj \(.*\)$/ }
+            if autoproj.size == 1
+                autoproj[0] =~ /^\s+autoproj \((.*)\)$/
+                installed_version = $1
+            else
+                raise "unexpected format for #{gemfile}.lock, cannot determine installed version of autoproj"
+            end
 
             # First things first, see if we need to update ourselves
-            if did_update && options[:restart_on_update]
+            if (VERSION != installed_version) && restart_on_update
                 puts
-                Autoproj.message 'autoproj and/or autobuild has been updated, restarting autoproj'
+                Autoproj.message "autoproj has been updated to #{installed_version} (from #{VERSION}), restarting"
                 puts
 
                 # We updated autobuild or autoproj themselves ... Restart !
