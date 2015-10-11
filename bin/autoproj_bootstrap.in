@@ -1,15 +1,17 @@
 #! /usr/bin/ruby
 
-if RUBY_VERSION < "1.9.2"
-    STDERR.puts "autoproj requires Ruby >= 1.9.2"
+if RUBY_VERSION < "2.0.0"
+    STDERR.puts "autoproj requires Ruby >= 2.0.0"
     exit 1
 end
 
 AUTOPROJ_OPS_INSTALL
 
+ENV.delete('BUNDLE_GEMFILE')
+ENV.delete('RUBYLIB')
 ops = Autoproj::Ops::Install.new(Dir.pwd)
-bootstrap_options = ops.parse_options(ARGV)
-ops.run
+ops.parse_options(ARGV)
+ops.stage1
 
 # we assume that Install#run loads bundler and autobuild. Load autoproj and run
 # bootstrap
