@@ -201,6 +201,7 @@ module Autoproj
             end
 
             def discover_rubylib
+                require 'bundler'
                 Tempfile.open 'autoproj-rubylib' do |io|
                     result = Bundler.clean_system(
                         Hash['RUBYLIB' => nil],
@@ -214,6 +215,7 @@ module Autoproj
             end
 
             def discover_bundle_rubylib
+                require 'bundler'
                 gemfile = File.join(ws.prefix_dir, 'gems', 'Gemfile')
                 Tempfile.open 'autoproj-rubylib' do |io|
                     result = Bundler.clean_system(
