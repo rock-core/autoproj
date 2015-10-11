@@ -30,13 +30,9 @@ module Autoproj
 
                 env.inherit 'GEM_PATH'
                 env.init_from_env 'GEM_PATH'
-                orig_gem_path = (env['GEM_PATH'] || "").split(File::PATH_SEPARATOR).find_all do |p|
-                    !Workspace.in_autoproj_project?(p)
-                end
                 env.system_env['GEM_PATH'] = Gem.default_path
-                env.original_env['GEM_PATH'] = orig_gem_path.join(File::PATH_SEPARATOR)
 
-                if Workspace.in_autoproj_project?(env['GEM_HOME'])
+                if env.original_env['GEM_HOME'].empty?
                     env.unset('GEM_HOME')
                 end
 
@@ -44,21 +40,12 @@ module Autoproj
                 env.inherit 'RUBYLIB'
                 original_rubylib =
                     (env['RUBYLIB'] || "").split(File::PATH_SEPARATOR).find_all do |p|
-                        !Workspace.in_autoproj_project?(p)
-                            !p.start_with?(Bundler.rubygems.gem_dir) &&
+                        !p.start_with?(Bundler.rubygems.gem_dir) &&
                             !Bundler.rubygems.gem_path.any? { |gem_p| p.start_with?(p) }
                     end
                 if system_rubylib = discover_rubylib
                     env.system_env['RUBYLIB'] = []
                     env.original_env['RUBYLIB'] = (original_rubylib - system_rubylib).join(File::PATH_SEPARATOR)
-                end
-
-                dot_autoproj = ws.dot_autoproj_dir
-                if ws.config.private_bundler?
-                    env.add_path 'GEM_PATH', File.join(dot_autoproj, 'bundler')
-                end
-                if ws.config.private_autoproj?
-                    env.add_path 'GEM_PATH', File.join(dot_autoproj, 'autoproj')
                 end
 
                 ws.manifest.each_reused_autoproj_installation do |p|
@@ -69,7 +56,6 @@ module Autoproj
                     end
                     env.add_path 'PATH', File.join(reused_w.prefix_dir, 'gems', 'bin')
                 end
-
 
                 gem_home = File.join(ws.prefix_dir, "gems")
                 if ws.config.private_gems?
@@ -88,7 +74,16 @@ module Autoproj
                 env.set 'BUNDLE_GEMFILE', File.join(gem_home, 'Gemfile')
                 env.add_path 'PATH', Gem.bindir
                 env.add_path 'PATH', File.join(gem_home, 'bin')
-                env.add_path 'PATH', File.join(ws.dot_autoproj_dir, 'autoproj', 'bin')
+
+                dot_autoproj = ws.dot_autoproj_dir
+                if ws.config.private_bundler?
+                    env.add_path 'PATH', File.join(dot_autoproj, 'bundler', 'bin')
+                    env.add_path 'GEM_PATH', File.join(dot_autoproj, 'bundler')
+                end
+                env.add_path 'PATH', File.join(dot_autoproj, 'autoproj', 'bin')
+                if ws.config.private_autoproj?
+                    env.add_path 'GEM_PATH', File.join(dot_autoproj, 'autoproj')
+                end
                 Autobuild.programs['bundler'] = 'bundler'
 
                 if bundle_rubylib = discover_bundle_rubylib
@@ -167,10 +162,6 @@ module Autoproj
                 end
                 FileUtils.rm File.join(root_dir, 'Gemfile.lock')
 
-                if ws.config.private_gems?
-                    options = ['--path', root_dir]
-                end
-
                 binstubs_path = File.join(root_dir, 'bin')
                 Bundler.with_clean_env do
                     connections = Set.new
@@ -213,8 +204,8 @@ module Autoproj
                     result = Bundler.clean_system(
                         Hash['RUBYLIB' => nil],
                         Autobuild.tool('ruby'), '-e', 'puts $LOAD_PATH',
-                        out: io)
-                        #err: '/dev/null')
+                        out: io,
+                        err: '/dev/null')
                     if result
                         io.readlines.map { |l| l.chomp }.find_all { |l| !l.empty? }
                     end
@@ -227,8 +218,8 @@ module Autoproj
                     result = Bundler.clean_system(
                         Hash['BUNDLE_GEMFILE' => gemfile],
                         Autobuild.tool('bundler'), 'exec', 'ruby', '-e', 'puts $LOAD_PATH',
-                        out: io)
-                        #err: '/dev/null')
+                        out: io,
+                        err: '/dev/null')
                     if result
                         io.readlines.map { |l| l.chomp }.find_all { |l| !l.empty? }
                     end
