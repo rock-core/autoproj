@@ -10,7 +10,7 @@ AUTOPROJ_OPS_INSTALL
 ENV.delete('BUNDLE_GEMFILE')
 ENV.delete('RUBYLIB')
 ops = Autoproj::Ops::Install.new(Dir.pwd)
-ops.parse_options(ARGV)
+bootstrap_options = ops.parse_options(ARGV)
 ops.stage1
 
 # we assume that Install#run loads bundler and autobuild. Load autoproj and run
