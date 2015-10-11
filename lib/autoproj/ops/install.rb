@@ -406,9 +406,12 @@ module Autoproj
                 clean_env = env_for_child
                 stage2_vars = clean_env.map { |k, v| "#{k}=#{v}" }
                 puts "starting the newly installed autoproj for stage2 install"
-                exec clean_env.merge('BUNDLE_GEMFILE' => autoproj_gemfile_path),
+                result = system clean_env.merge('BUNDLE_GEMFILE' => autoproj_gemfile_path),
                     Gem.ruby, File.join(autoproj_install_dir, 'bin', 'autoproj'),
                     'install-stage2', root_dir, *stage2_vars
+                if !result
+                    raise "failed to execute autoproj install-stage2"
+                end
             end
 
             def stage2(*vars)
