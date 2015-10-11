@@ -90,10 +90,10 @@ build-essential:
   default: clang
 
 autobuild:
-  - gem: autobuild<1.10
+  - gem: autobuild~>1.9.0
   - osdep: readline
 autoproj:
-  - gem: autoproj<2.0
+  - gem: autoproj~>1.13.0
   - osdep: readline
 
 readline:
