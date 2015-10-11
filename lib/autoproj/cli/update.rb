@@ -49,14 +49,7 @@ module Autoproj
                 ws.setup
                 parallel = options[:parallel] || ws.config.parallel_import_level
 
-                # Do that AFTER we have properly setup ws.osdeps as to avoid
-                # unnecessarily redetecting the operating system
-                if options[:osdeps]
-                    ws.config.set(
-                        'operating_system',
-                        Autoproj::OSPackageResolver.operating_system(:force => true),
-                        true)
-                end
+                ws.autodetect_operating_system(force: true)
 
                 if options[:autoproj]
                     ws.update_autoproj

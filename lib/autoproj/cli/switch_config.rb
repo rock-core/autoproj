@@ -1,5 +1,6 @@
 require 'autoproj'
 require 'autoproj/cli/base'
+require 'autoproj/cli/update'
 require 'autoproj/ops/main_config_switcher'
 require 'autoproj/ops/configuration'
 
@@ -12,13 +13,15 @@ module Autoproj
                 end
 
                 ws.load_config
+                ws.setup_os_package_installer
 
                 # We must switch to the root dir first, as it is required by the
                 # configuration switch code. This is acceptable as long as we
                 # quit just after the switch
                 switcher = Ops::MainConfigSwitcher.new(ws)
                 if switcher.switch_config(*args)
-                    CLI::Main.start(['update', '--config'])
+                    updater = Update.new(ws)
+                    updater.run([], config: true)
                 end
             end
         end

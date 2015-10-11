@@ -38,7 +38,7 @@ module Autoproj
                 env.system_env['GEM_PATH'] = Gem.default_path
                 env.original_env['GEM_PATH'] = orig_gem_path.join(File::PATH_SEPARATOR)
 
-                ws.manifest.each_reused_autoproj_installation do |p|
+                ws.config.each_reused_autoproj_installation do |p|
                     p_gems = File.join(p, '.gems')
                     if File.directory?(p_gems)
                         env.push_path 'GEM_PATH', p_gems

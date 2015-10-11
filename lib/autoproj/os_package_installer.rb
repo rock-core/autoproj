@@ -160,7 +160,7 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
         end
 
         def define_osdeps_mode_option
-            if OSPackageResolver.supported_operating_system?
+            if os_package_resolver.supported_operating_system?
                 osdeps_mode_option_supported_os(ws.config)
             else
                 osdeps_mode_option_unsupported_os(ws.config)

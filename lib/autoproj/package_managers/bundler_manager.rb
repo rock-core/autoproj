@@ -48,7 +48,7 @@ module Autoproj
                     env.original_env['RUBYLIB'] = (original_rubylib - system_rubylib).join(File::PATH_SEPARATOR)
                 end
 
-                ws.manifest.each_reused_autoproj_installation do |p|
+                ws.config.each_reused_autoproj_installation do |p|
                     reused_w = ws.new(p)
                     reused_c = reused_w.load_config
                     if reused_c.private_gems?
