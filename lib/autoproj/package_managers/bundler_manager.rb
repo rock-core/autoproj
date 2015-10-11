@@ -1,3 +1,4 @@
+require 'bundler'
 module Autoproj
     module PackageManagers
         # Package manager interface for the RubyGems system
@@ -32,7 +33,7 @@ module Autoproj
                 env.init_from_env 'GEM_PATH'
                 env.system_env['GEM_PATH'] = Gem.default_path
 
-                if env.original_env['GEM_HOME'].empty?
+                if (env.original_env['GEM_HOME'] || '').empty?
                     env.unset('GEM_HOME')
                 end
 
