@@ -137,7 +137,7 @@ module Autoproj
         # @return [String]
         def os_package_manager
             if !instance_variable_defined?(:@os_package_manager)
-                os_names, _ = OSPackageResolver.operating_system
+                os_names, _ = operating_system
                 os_name = os_names.find { |name| OS_PACKAGE_MANAGERS[name] }
                 @os_package_manager = OS_PACKAGE_MANAGERS[os_name]
                 if !@os_package_manager
@@ -162,6 +162,7 @@ module Autoproj
 
             @sources     = Hash.new
             @installed_packages = Set.new
+            @operating_system = self.class.operating_system
             if file
                 defs.each_key do |package_name|
                     sources[package_name] = file
@@ -246,7 +247,7 @@ module Autoproj
 
         # Returns true if it is possible to install packages for the operating
         # system on which we are installed
-        def self.supported_operating_system?
+        def supported_operating_system?
             if @supported_operating_system.nil?
                 os_names, _ = operating_system
                 @supported_operating_system =
@@ -256,13 +257,6 @@ module Autoproj
                     end
             end
             return @supported_operating_system
-        end
-
-        # Used mainly during testing to bypass the operating system
-        # autodetection
-        def self.operating_system=(values)
-            @supported_operating_system = nil
-            @operating_system = values
         end
 
         def self.guess_operating_system
@@ -345,6 +339,23 @@ module Autoproj
             return names, versions
         end
 
+        def operating_system
+            @operating_system || self.class.operating_system
+        end
+
+        def operating_system=(values)
+            @supported_operating_system = nil
+            @operating_system = values
+        end
+
+        def self.operating_system
+            @operating_system
+        end
+
+        def self.operating_system=(values)
+            @operating_system = values
+        end
+
         # Autodetects the operating system name and version
         #
         # +osname+ is the operating system name, all in lowercase (e.g. ubuntu,
@@ -355,41 +366,16 @@ module Autoproj
         # one.
         #
         # Examples: ['debian', ['sid', 'unstable']] or ['ubuntu', ['lucid lynx', '10.04']]
-        def self.operating_system(options = Hash.new)
-            # Validate the options. We check on the availability of
-            # validate_options as to not break autoproj_bootstrap (in which
-            # validate_options is not available)
-            options = validate_options options, force: false, config: Autoproj.config
-            config  = options.fetch(:config)
-
+        def self.autodetect_operating_system
             if user_os = ENV['AUTOPROJ_OS']
-                @operating_system =
-                    if user_os.empty? then false
-                    else
-                        names, versions = user_os.split(':')
-                        normalize_os_representation(names.split(','), versions.split(','))
-                    end
-                return @operating_system
-            end
-
-
-            if options[:force]
-                @operating_system = nil
-            elsif !@operating_system.nil? # @operating_system can be set to false to simulate an unknown OS
-                return @operating_system
-            elsif config.has_value_for?('operating_system')
-                os = config.get('operating_system')
-                if os.respond_to?(:to_ary)
-                    if os[0].respond_to?(:to_ary) && os[0].all? { |s| s.respond_to?(:to_str) } &&
-                       os[1].respond_to?(:to_ary) && os[1].all? { |s| s.respond_to?(:to_str) }
-                       @operating_system = os
-                       return os
-                    end
+                if user_os.empty?
+                    return false
+                else
+                    names, versions = user_os.split(':')
+                    return normalize_os_representation(names.split(','), versions.split(','))
                 end
-                @operating_system = nil # Invalid OS format in the configuration file
             end
 
-            Autobuild.progress :operating_system_autodetection, "autodetecting the operating system"
             names, versions = os_from_os_release
 
             if !names
@@ -415,13 +401,7 @@ module Autoproj
 
             names = ensure_derivatives_refer_to_their_parents(names)
             names, versions = normalize_os_representation(names, versions)
-
-            @operating_system = [names, versions]
-            config.set('operating_system', @operating_system, true)
-            Autobuild.progress :operating_system_autodetection, "operating system: #{(names - ['default']).join(",")} - #{(versions - ['default']).join(",")}"
-            @operating_system
-        ensure
-            Autobuild.progress_done :operating_system_autodetection
+            return [names, versions]
         end
 
         def self.os_from_os_release(filename = '/etc/os-release')
@@ -495,7 +475,7 @@ module Autoproj
             path = self.class.resolve_name(name)
             name = path.last
 
-            os_names, os_versions = self.class.operating_system
+            os_names, os_versions = operating_system
             os_names = os_names.dup
             if prefer_indep_over_os_packages?
                 os_names.unshift 'default'
@@ -712,7 +692,7 @@ module Autoproj
 
                 if result.empty?
                     if self.class.supported_operating_system?
-                        os_names, os_versions = self.class.operating_system
+                        os_names, os_versions = operating_system
                         raise MissingOSDep.new, "there is an osdeps definition for #{name}, but not for this operating system and version (resp. #{os_names.join(", ")} and #{os_versions.join(", ")})"
                     end
                     result = [[os_package_manager, FOUND_PACKAGES, [name]]]
@@ -781,9 +761,9 @@ module Autoproj
             end
 
             if resolved.empty?
-                if !self.class.operating_system
+                if !operating_system
                     return UNKNOWN_OS
-                elsif !self.class.supported_operating_system?
+                elsif !supported_operating_system?
                     return AVAILABLE
                 else return WRONG_OS
                 end

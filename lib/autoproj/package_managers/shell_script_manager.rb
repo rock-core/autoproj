@@ -184,7 +184,7 @@ fi
             #   packages. See the option in {#generate_auto_os_script}
             # @return [Boolean] true if packages got installed, false otherwise
             def install(packages, options = Hash.new)
-                handled_os = OSPackageResolver.supported_operating_system?
+                handled_os = ws.supported_operating_system?
                 if handled_os
                     shell_script = generate_auto_os_script(packages, options)
                     user_shell_script = generate_user_os_script(packages, options)

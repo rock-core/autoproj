@@ -18,6 +18,7 @@ module Autoproj
             @env = Environment.new
             env.source_before(File.join(dot_autoproj_dir, 'env.sh'))
             @manifest = Manifest.new
+
             @os_package_installer = OSPackageInstaller.new(self, os_package_resolver)
             env.prepare(root_dir)
             super(root_dir)
@@ -174,6 +175,7 @@ module Autoproj
                         type: 'local', url: config_dir)
                 end
                 os_package_resolver.prefer_indep_over_os_packages = config.prefer_indep_over_os_packages?
+                OSPackageResolver.operating_system ||= config.get('operating_system', nil)
             end
             @config
         end
@@ -184,8 +186,43 @@ module Autoproj
             end
         end
 
+        def autodetect_operating_system(force: false)
+            if force || !os_package_resolver.operating_system
+                begin
+                    Autobuild.progress_start :operating_system_autodetection,
+                        "autodetecting the operating system"
+                    names, versions = OSPackageResolver.autodetect_operating_system
+                    OSPackageResolver.operating_system = [names, versions]
+                    Autobuild.progress :operating_system_autodetection,
+                        "operating system: #{(names - ['default']).join(",")} - #{(versions - ['default']).join(",")}"
+                ensure
+                    Autobuild.progress_done :operating_system_autodetection
+                end
+                config.set('operating_system', os_package_resolver.operating_system, true)
+            end
+        end
+
+        def operating_system
+            os_package_resolver.operating_system
+        end
+
+        def supported_operating_system?
+            os_package_resolver.supported_operating_system?
+        end
+
+        def setup_os_package_installer
+            autodetect_operating_system
+            os_package_installer.each_manager do |pkg_mng|
+                pkg_mng.initialize_environment
+            end
+            os_package_resolver.load_default
+            os_package_installer.define_osdeps_mode_option
+            os_package_installer.osdeps_mode
+        end
+
         def setup
             load_config
+            autodetect_operating_system
             config.validate_ruby_executable
             config.apply_autobuild_configuration
             load_autoprojrc
@@ -207,14 +244,7 @@ module Autoproj
                 Autobuild::Importer.default_cache_dirs = cache_dir
             end
             env.prepare(root_dir)
-            os_package_installer.each_manager do |pkg_mng|
-                pkg_mng.initialize_environment
-            end
-
-            os_package_resolver.load_default
-            os_package_installer.define_osdeps_mode_option
-            os_package_installer.osdeps_mode
-
+            setup_os_package_installer
             install_ruby_shims
         end
 
