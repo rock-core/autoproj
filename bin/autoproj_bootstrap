@@ -240,7 +240,7 @@ module Autoproj
             def install_autoproj(bundler)
                 # Force bundler to update. If the user does not want this, let him specify a
                 # Gemfile with tighter version constraints
-                lockfile = File.join(File.dirname(autoproj_install_dir), 'Gemfile.lock')
+                lockfile = File.join(autoproj_install_dir, 'Gemfile.lock')
                 if File.exist?(lockfile)
                     FileUtils.rm lockfile
                 end
