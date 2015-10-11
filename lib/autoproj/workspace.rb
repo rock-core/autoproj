@@ -364,6 +364,10 @@ module Autoproj
         end
 
         def load_package_sets(options = Hash.new)
+            if !File.file?(manifest_file_path) # empty install, just return
+                return
+            end
+
             options = validate_options options,
                 only_local: false,
                 checkout_only: true,
@@ -556,7 +560,9 @@ module Autoproj
             end
 
             manifest.each_package_set do |source|
-                load_if_present(source, source.local_dir, "overrides.rb")
+                if source.local_dir
+                    load_if_present(source, source.local_dir, "overrides.rb")
+                end
             end
 
             Dir.glob(File.join( overrides_dir, "*.rb" ) ).sort.each do |file|
