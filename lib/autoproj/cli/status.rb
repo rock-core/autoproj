@@ -27,6 +27,10 @@ module Autoproj
                     return
                 end
 
+                if !options.has_key?(:parallel) && options[:only_local]
+                    options[:parallel] = 1
+                end
+
                 if options[:config]
                     pkg_sets = ws.manifest.each_package_set.to_a
                     if !pkg_sets.empty?
