@@ -94,7 +94,7 @@ module Autoproj
                     env.add_path 'GEM_PATH', File.join(dot_autoproj, 'autoproj')
                 end
 
-                if bundle_rubylib = discover_bundle_rubylib
+                if bundle_rubylib = discover_bundle_rubylib(silent_errors: true)
                     update_env_rubylib(bundle_rubylib, system_rubylib)
                 end
             end
@@ -248,15 +248,19 @@ module Autoproj
                 end
             end
 
-            def discover_bundle_rubylib
+            def discover_bundle_rubylib(silent_errors: false)
                 require 'bundler'
                 gemfile = File.join(ws.prefix_dir, 'gems', 'Gemfile')
+                silent_redirect = Hash.new
+                if silent_errors
+                    silent_redirect[:err] = '/dev/null'
+                end
                 Tempfile.open 'autoproj-rubylib' do |io|
                     result = Bundler.clean_system(
                         Hash['BUNDLE_GEMFILE' => gemfile],
                         Autobuild.tool('bundler'), 'exec', 'ruby', '-e', 'puts $LOAD_PATH',
-                        out: io,
-                        err: '/dev/null')
+                        out: io, **silent_redirect)
+                        
                     if result
                         io.readlines.map { |l| l.chomp }.find_all { |l| !l.empty? }
                     end
