@@ -1,4 +1,5 @@
 require 'autoproj/ops/import'
+require 'autoproj/ops/install'
 
 module Autoproj
     class Workspace < Ops::Loader
@@ -288,8 +289,12 @@ module Autoproj
 
             gemfile  = File.join(dot_autoproj_dir, 'autoproj', 'Gemfile')
             binstubs = File.join(dot_autoproj_dir, 'autoproj', 'bin')
-            PackageManagers::BundlerManager.run_bundler_install(
-                gemfile, binstubs: binstubs)
+            begin
+                PackageManagers::BundlerManager.run_bundler_install(
+                    gemfile, binstubs: binstubs)
+            ensure
+                Ops::Install.force_bundler_gemfile_in_binstubs(binstubs)
+            end
 
             # Find out what version of autoproj bundler locked on
             autoproj = File.readlines("#{gemfile}.lock").
