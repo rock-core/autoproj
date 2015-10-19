@@ -53,7 +53,7 @@ module Autoproj
             end
 
             PackageStatus = Struct.new :msg, :sync, :uncommitted, :local, :remote
-            def status_of_package(package_description, options = Hash.new)
+            def status_of_package(package_description, only_local: false, snapshot: false)
                 pkg = package_description.autobuild
                 importer = pkg.importer
                 package_status = PackageStatus.new(Array.new, false, false, false, false)
@@ -66,7 +66,7 @@ module Autoproj
                 else
                     if importer.respond_to?(:snapshot)
                         snapshot =
-                            begin importer.snapshot(pkg, nil, exact_state: false, local: options[:only_local])
+                            begin importer.snapshot(pkg, nil, exact_state: false, local: only_local)
                             rescue Autobuild::PackageException
                                 Hash.new
                             end
@@ -74,13 +74,13 @@ module Autoproj
                             non_nil_values = snapshot.delete_if { |k, v| !v }
                             package_status.msg << Autoproj.color("  found configuration that contains all local changes: #{non_nil_values.sort_by(&:first).map { |k, v| "#{k}: #{v}" }.join(", ")}", :bright_green)
                             package_status.msg << Autoproj.color("  consider adding this to your overrides, or use autoproj versions to do it for you", :bright_green)
-                            if options[:snapshot]
+                            if snapshot
                                 importer.relocate(importer.repository, snapshot)
                             end
                         end
                     end
 
-                    begin status = importer.status(pkg, options[:only_local])
+                    begin status = importer.status(pkg, only_local)
                     rescue Interrupt
                         raise
                     rescue Exception => e
