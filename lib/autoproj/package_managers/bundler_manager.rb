@@ -182,6 +182,17 @@ module Autoproj
                     end
                 end
 
+                gemfiles = []
+                ws.manifest.each_package_set do |source|
+                    if source.local_dir && File.file?(pkg_set_gemfile = File.join(source.local_dir, 'Gemfile'))
+                        gemfiles << pkg_set_gemfile
+                    end
+                end
+                # In addition, look into overrides.d
+                Dir.glob(File.join(ws.config_dir, "*.gemfile")) do |gemfile_path|
+                    gemfiles << gemfile_path
+                end
+
                 # Generate the gemfile and remove the lockfile
                 gems = gems.sort.map do |name|
                     name, version = parse_package_entry(name)
@@ -190,6 +201,9 @@ module Autoproj
                 FileUtils.mkdir_p root_dir
                 File.open(gemfile_path, 'w') do |io|
                     io.puts "eval_gemfile \"#{File.join(ws.dot_autoproj_dir, 'autoproj', 'Gemfile')}\""
+                    gemfiles.each do |gemfile|
+                        io.puts File.read(gemfile)
+                    end
                     io.puts gems
                 end
 
