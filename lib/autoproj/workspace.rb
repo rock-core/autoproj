@@ -323,6 +323,19 @@ module Autoproj
             end
         end
 
+        def run(*args, &block)
+            if args.last.kind_of?(Hash)
+                options = args.pop
+            else options = Hash.new
+            end
+            options_env = options.fetch(:env, Hash.new)
+            options[:env] = env.resolved_env.merge(options_env)
+            if options_env['BUNDLE_GEMFILE']
+                raise
+            end
+            Autobuild::Subprocess.run(*args, options, &block)
+        end
+
         def set_as_main_workspace
             Autoproj.workspace = self
             Autoproj.root_dir = root_dir
