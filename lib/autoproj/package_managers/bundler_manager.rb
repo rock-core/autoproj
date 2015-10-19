@@ -217,7 +217,7 @@ module Autoproj
                 end
 
             rescue Exception => e
-                Autoproj.warn "bundler failed, saving the new Gemfile in #{gemfile.path}.FAILED"
+                Autoproj.warn "bundler failed, saving the new Gemfile in #{gemfile_path}.FAILED"
                 Autoproj.warn "and restoring the last Gemfile version"
                 FileUtils.cp gemfile_path, "#{gemfile_path}.FAILED"
                 backup_restore(backups)
