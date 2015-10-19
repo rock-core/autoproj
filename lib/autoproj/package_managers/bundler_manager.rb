@@ -77,19 +77,22 @@ module Autoproj
                 end
 
                 env.set 'BUNDLE_GEMFILE', File.join(gem_home, 'Gemfile')
+                env.add_path 'PATH', File.join(Gem.user_dir, 'bin')
                 env.add_path 'PATH', Gem.bindir
                 env.add_path 'PATH', File.join(gem_home, 'bin')
 
                 dot_autoproj = ws.dot_autoproj_dir
                 if ws.config.private_bundler?
                     env.add_path 'PATH', File.join(dot_autoproj, 'bundler', 'bin')
+                    Autobuild.programs['bundler'] = File.join(dot_autoproj, 'bundler', 'bin', 'bundler')
                     env.add_path 'GEM_PATH', File.join(dot_autoproj, 'bundler')
+                else
+                    Autobuild.programs['bundler'] = env.find_in_path('bundler')
                 end
                 env.add_path 'PATH', File.join(dot_autoproj, 'autoproj', 'bin')
                 if ws.config.private_autoproj?
                     env.add_path 'GEM_PATH', File.join(dot_autoproj, 'autoproj')
                 end
-                Autobuild.programs['bundler'] = 'bundler'
 
                 if bundle_rubylib = discover_bundle_rubylib
                     update_env_rubylib(bundle_rubylib, system_rubylib)
@@ -137,7 +140,7 @@ module Autoproj
                 end
             end
 
-            def self.run_bundler_install(gemfile, *options, env: Hash.new, update: true, binstubs: nil)
+            def self.run_bundler_install(ws, gemfile, *options, update: true, binstubs: nil)
                 if update && File.file?("#{gemfile}.lock")
                     FileUtils.rm "#{gemfile}.lock"
                 end
@@ -149,10 +152,10 @@ module Autoproj
 
                 Bundler.with_clean_env do
                     connections = Set.new
-                    Autobuild::Subprocess.run 'autoproj', 'osdeps',
+                    ws.run 'autoproj', 'osdeps',
                         Autobuild.tool('bundler'), 'install',
                             *options,
-                            working_directory: File.dirname(gemfile), env: env.merge('BUNDLE_GEMFILE' => nil) do |line|
+                            working_directory: File.dirname(gemfile), env: Hash['BUNDLE_GEMFILE' => nil, 'RUBYOPT' => nil] do |line|
 
                         case line
                         when /Installing (.*)/
@@ -212,9 +215,8 @@ module Autoproj
                 end
 
                 binstubs_path = File.join(root_dir, 'bin')
-                self.class.run_bundler_install gemfile_path,
-                    binstubs: binstubs_path,
-                    env: Hash['GEM_HOME' => ws.env.resolved_env['GEM_HOME']]
+                self.class.run_bundler_install ws, gemfile_path,
+                    binstubs: binstubs_path
 
                 if bundle_rubylib = discover_bundle_rubylib
                     update_env_rubylib(bundle_rubylib)
@@ -223,8 +225,7 @@ module Autoproj
                 end
 
             rescue Exception => e
-                Autoproj.warn "bundler failed, saving the new Gemfile in #{gemfile_path}.FAILED"
-                Autoproj.warn "and restoring the last Gemfile version"
+                Autoproj.warn "saved the new Gemfile in #{gemfile_path}.FAILED and restored the last Gemfile version"
                 FileUtils.cp gemfile_path, "#{gemfile_path}.FAILED"
                 backup_restore(backups)
                 raise
