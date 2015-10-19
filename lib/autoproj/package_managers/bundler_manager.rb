@@ -134,7 +134,7 @@ module Autoproj
             end
 
             def self.run_bundler_install(gemfile, *options, update: true, binstubs: nil)
-                if update
+                if update && File.file?("#{gemfile}.lock")
                     FileUtils.rm "#{gemfile}.lock"
                 end
 
