@@ -275,16 +275,22 @@ module Autoproj
                     env['GEM_PATH'].unshift autoproj_install_dir
                 end
             ensure
-                self.class.force_bundler_gemfile_in_binstubs(binstubs_path)
+                self.class.clean_binstubs(binstubs_path)
             end
 
-            def self.force_bundler_gemfile_in_binstubs(binstubs_path)
+            def self.clean_binstubs(binstubs_path)
+                %w{bundler bundle}.each do |bundler_bin|
+                    path = File.join(binstubs_path, bundler_bin)
+                    if File.file?(path)
+                        FileUtils.rm path
+                    end
+                end
+
                 # Now tune the binstubs to force the usage of the autoproj
                 # gemfile. Otherwise, they get BUNDLE_GEMFILE from the
                 # environment by default
                 Dir.glob(File.join(binstubs_path, '*')) do |path|
                     next if !File.file?(path)
-                    next if %w{bundle bundler}.include?(File.basename(path))
 
                     lines = File.readlines(path)
                     matched = false
