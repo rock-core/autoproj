@@ -229,13 +229,15 @@ module Autoproj
         end
 
         def validate_ruby_executable
+            actual   = OSPackageResolver.autodetect_ruby_program
             if has_value_for?('ruby_executable')
                 expected = get('ruby_executable')
-                if expected != ruby_executable
-                    raise ConfigError.new, "this autoproj installation was bootstrapped using #{expected}, but you are currently running under #{ruby_executable}. This is usually caused by calling a wrong gem program (for instance, gem1.8 instead of gem1.9.1)"
+                if expected != actual
+                    raise ConfigError.new, "this autoproj installation was bootstrapped using #{expected}, but you are currently running under #{actual}. This is usually caused by manually calling a wrong gem program (for instance, gem2.1 instead of gem2.0)"
                 end
+            else
+                set('ruby_executable', actual, true)
             end
-            set('ruby_executable', ruby_executable, true)
         end
 
         def use_prerelease?

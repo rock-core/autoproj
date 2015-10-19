@@ -391,6 +391,17 @@ module Autoproj
                     config.merge!(YAML.load(File.read(autoproj_config_path)))
                 end
 
+                ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
+                ruby_bindir = RbConfig::CONFIG['bindir']
+                ruby_executable = File.join(ruby_bindir, ruby)
+                if current = config['ruby_executable'] # When upgrading or reinstalling
+                    if current != ruby_executable
+                        raise "this workspace has already been initialized using #{current}, you cannot run autoproj install with #{ruby_executable}. If you know what you're doing, delete the ruby_executable line in config.yml and try again"
+                    end
+                else
+                    config['ruby_executable'] = ruby_executable
+                end
+
                 @config = config
                 %w{private_bundler private_gems private_autoproj prefer_indep_over_os_packages}.each do |flag|
                     instance_variable_set "@#{flag}", config.fetch(flag, false)
