@@ -213,10 +213,13 @@ module Autoproj
                 if bundle_rubylib = discover_bundle_rubylib
                     update_env_rubylib(bundle_rubylib)
                 else
-                    raise NotCleanState, "bundler executed successfully, but the result is not in a clean state"
+                    raise NotCleanState, "bundler executed successfully, but the result was not in a clean state"
                 end
 
             rescue Exception => e
+                Autoproj.warn "bundler failed, saving the new Gemfile in #{gemfile.path}.FAILED"
+                Autoproj.warn "and restoring the last Gemfile version"
+                FileUtils.cp gemfile_path, "#{gemfile_path}.FAILED"
                 backup_restore(backups)
                 raise
             ensure
