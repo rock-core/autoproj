@@ -64,7 +64,7 @@ aup
 amake
 
 The resulting software is installed in
-#{root_dir}/install
+#{ws.prefix_dir}
 
                     EOTEXT
 
