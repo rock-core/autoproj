@@ -260,16 +260,13 @@ module Autoproj
                     exit 1
                 end
 
-                self.class.force_bundler_gemfile_in_binstubs(binstubs_path)
 
                 env['PATH'].unshift File.join(autoproj_install_dir, 'bin')
                 if private_autoproj?
                     env['GEM_PATH'].unshift autoproj_install_dir
                 end
             ensure
-                if binstubs_path
-                    FileUtils.rm_f File.join(binstubs_path, 'bundler')
-                end
+                self.class.force_bundler_gemfile_in_binstubs(binstubs_path)
             end
 
             def self.force_bundler_gemfile_in_binstubs(binstubs_path)
@@ -278,6 +275,7 @@ module Autoproj
                 # environment by default
                 Dir.glob(File.join(binstubs_path, '*')) do |path|
                     next if !File.file?(path)
+                    next if %w{bundle bundler}.include?(File.basename(path))
 
                     lines = File.readlines(path)
                     matched = false
