@@ -147,8 +147,8 @@ module Autoproj
                     connections = Set.new
                     Autobuild::Subprocess.run 'autoproj', 'osdeps',
                         Autobuild.tool('bundler'), 'install',
-                            "--gemfile=#{gemfile}", *options,
-                            env: Hash['BUNDLE_GEMFILE' => gemfile] do |line|
+                            *options,
+                            working_directory: File.dirname(gemfile), env: Hash['BUNDLE_GEMFILE' => nil] do |line|
 
                         case line
                         when /Installing (.*)/
@@ -208,7 +208,7 @@ module Autoproj
                 end
 
                 binstubs_path = File.join(root_dir, 'bin')
-                self.class.run_bundler_install gemfile_path, *options, binstubs: binstubs_path
+                self.class.run_bundler_install gemfile_path, binstubs: binstubs_path
 
                 if bundle_rubylib = discover_bundle_rubylib
                     update_env_rubylib(bundle_rubylib)
