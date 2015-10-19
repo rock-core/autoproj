@@ -59,7 +59,7 @@ module Autoproj
                     if name == selection || pkg.srcdir == selection
                         puts result_value(pkg, options)
                         return
-                    elsif name =~ selection_rx || selection.start_with?(pkg.srcdir)
+                    elsif name =~ selection_rx || selection.start_with?(pkg.srcdir) || (selection.start_with?(pkg.builddir) if pkg.builddir)
                         candidates << pkg
                     end
                 end
