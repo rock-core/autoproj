@@ -197,7 +197,7 @@ module Autoproj
                 self.env['PATH'].unshift gem_bindir
                 clean_env = env_for_child
                 Gem.paths = Hash[
-                    'GEM_HOME' => clean_env['GEM_HOME'] || Gem.default_dir,
+                    'GEM_HOME' => clean_env['GEM_HOME'] || Gem.user_dir,
                     'GEM_PATH' => clean_env['GEM_PATH'] || nil
                 ]
 
@@ -206,7 +206,7 @@ module Autoproj
                     clean_path = env_for_child['PATH']
                     STDERR.puts "cannot find 'bundler' in PATH=#{clean_path}"
                     STDERR.puts "installing it now ..."
-                    result = system(clean_env, Gem.ruby, '-S', 'gem', 'install', 'bundler')
+                    result = system(clean_env, Gem.ruby, '-S', 'gem', 'install', '--user-install', 'bundler')
                     if !result
                         if ENV['PATH'] != clean_path
                             STDERR.puts "  it appears that you already have some autoproj-generated env.sh loaded"
@@ -246,6 +246,8 @@ module Autoproj
                     clean_env['GEM_PATH'] = (bundler_install_dir if private_bundler?)
                     clean_env['GEM_HOME'] = nil
                     opts << "--clean" << "--path=#{autoproj_install_dir}"
+                else
+                    clean_env['GEM_HOME'] ||= Gem.user_dir
                 end
                 binstubs_path = File.join(autoproj_install_dir, 'bin')
                 result = system(clean_env,
@@ -354,7 +356,7 @@ module Autoproj
                 #
                 # So, we're calling 'gem' as a subcommand to discovery the
                 # actual bindir
-                bindir = IO.popen(env_for_child, [Gem.ruby, '-e', 'puts Gem.bindir']).read
+                bindir = IO.popen(env_for_child, [Gem.ruby, '-e', 'puts "#{Gem.user_dir}/bin"']).read
                 if bindir
                     @gem_bindir = bindir.chomp
                 else
@@ -366,9 +368,10 @@ module Autoproj
                 if private_bundler?
                     puts "Installing bundler in #{bundler_install_dir}"
                     bundler = install_bundler
-                else
-                    bundler = find_bundler
+                elsif bundler = find_bundler
                     puts "Detected bundler at #{bundler}"
+                else
+                    exit 1
                 end
                 save_gemfile
                 puts "Installing autoproj in #{dot_autoproj}"

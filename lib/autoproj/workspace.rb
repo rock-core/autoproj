@@ -291,7 +291,8 @@ module Autoproj
             binstubs = File.join(dot_autoproj_dir, 'autoproj', 'bin')
             begin
                 PackageManagers::BundlerManager.run_bundler_install(
-                    gemfile, binstubs: binstubs)
+                    gemfile, binstubs: binstubs,
+                    env: Hash['GEM_HOME' => env.resolved_env['GEM_HOME']])
             ensure
                 Ops::Install.force_bundler_gemfile_in_binstubs(binstubs)
             end

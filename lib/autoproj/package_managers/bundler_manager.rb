@@ -33,6 +33,8 @@ module Autoproj
                 env.init_from_env 'GEM_PATH'
                 env.system_env['GEM_PATH'] = Gem.default_path
 
+                env.init_from_env 'GEM_HOME'
+
                 if (env.original_env['GEM_HOME'] || '').empty?
                     env.unset('GEM_HOME')
                 end
@@ -62,6 +64,8 @@ module Autoproj
                 if ws.config.private_gems?
                     env.set 'GEM_HOME', gem_home
                     env.add_path 'GEM_PATH', gem_home
+                else
+                    env.set 'GEM_HOME', Gem.user_dir
                 end
 
                 FileUtils.mkdir_p gem_home
@@ -133,7 +137,7 @@ module Autoproj
                 end
             end
 
-            def self.run_bundler_install(gemfile, *options, update: true, binstubs: nil)
+            def self.run_bundler_install(gemfile, *options, env: Hash.new, update: true, binstubs: nil)
                 if update && File.file?("#{gemfile}.lock")
                     FileUtils.rm "#{gemfile}.lock"
                 end
@@ -148,7 +152,7 @@ module Autoproj
                     Autobuild::Subprocess.run 'autoproj', 'osdeps',
                         Autobuild.tool('bundler'), 'install',
                             *options,
-                            working_directory: File.dirname(gemfile), env: Hash['BUNDLE_GEMFILE' => nil] do |line|
+                            working_directory: File.dirname(gemfile), env: env.merge('BUNDLE_GEMFILE' => nil) do |line|
 
                         case line
                         when /Installing (.*)/
@@ -208,7 +212,9 @@ module Autoproj
                 end
 
                 binstubs_path = File.join(root_dir, 'bin')
-                self.class.run_bundler_install gemfile_path, binstubs: binstubs_path
+                self.class.run_bundler_install gemfile_path,
+                    binstubs: binstubs_path,
+                    env: Hash['GEM_HOME' => ws.env.resolved_env['GEM_HOME']]
 
                 if bundle_rubylib = discover_bundle_rubylib
                     update_env_rubylib(bundle_rubylib)
