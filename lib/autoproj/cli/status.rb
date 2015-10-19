@@ -40,7 +40,7 @@ module Autoproj
                 packages = packages.sort.map do |pkg_name|
                     ws.manifest.find_package(pkg_name)
                 end
-                display_status(packages, snapshot: options[:snapshot], only_local: options[:only_local])
+                display_status(packages, parallel: options[:parallel], snapshot: options[:snapshot], only_local: options[:only_local])
             end
 
             def snapshot_overrides_vcs?(importer, vcs, snapshot)
@@ -66,7 +66,7 @@ module Autoproj
                 else
                     if importer.respond_to?(:snapshot)
                         snapshot =
-                            begin importer.snapshot(pkg, nil, exact_state: false, local: only_local)
+                            begin importer.snapshot(pkg, nil, exact_state: false, only_local: only_local)
                             rescue Autobuild::PackageException
                                 Hash.new
                             end
@@ -139,7 +139,10 @@ module Autoproj
                     pkg.autobuild.importer && pkg.autobuild.importer.interactive?
                 end
                 noninteractive = noninteractive.map do |pkg|
-                    [pkg, Concurrent::Future.execute(executor: executor) { status_of_package(pkg, snapshot: options[:snapshot], only_local: options[:only_local]) }]
+                    future = Concurrent::Future.execute(executor: executor) do
+                        status_of_package(pkg, snapshot: options[:snapshot], only_local: options[:only_local])
+                    end
+                    [pkg, future]
                 end
 
                 sync_packages = ""

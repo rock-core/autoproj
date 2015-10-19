@@ -57,7 +57,7 @@ module Autoproj
 
                 ws.load_package_sets(
                     mainline: options[:mainline],
-                    only_local: options[:local],
+                    only_local: options[:only_local],
                     checkout_only: !options[:config] || options[:checkout_only],
                     reset: options[:reset],
                     ignore_errors: options[:keep_going],
@@ -112,7 +112,7 @@ module Autoproj
                 source_packages, osdep_packages = 
                     ops.import_packages(selected_packages,
                                     checkout_only: options[:checkout_only],
-                                    only_local: options[:local],
+                                    only_local: options[:only_local],
                                     reset: options[:reset],
                                     recursive: options[:deps],
                                     ignore_errors: options[:keep_going],

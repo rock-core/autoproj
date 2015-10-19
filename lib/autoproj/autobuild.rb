@@ -549,15 +549,11 @@ class Autobuild::Git
     #   only override the branch
     # @return [Hash] the snapshot information, in a format that can be used by
     #   {#relocate}
-    def snapshot(package, target_dir = nil, options = Hash.new)
-        options = Kernel.validate_options options,
-            local: true,
-            exact_state: true
-
-        if options[:local]
-            snapshot_local(package, exact_state: options[:exact_state])
+    def snapshot(package, target_dir = nil, only_local: true, exact_state: true)
+        if only_local
+            snapshot_local(package, exact_state: exact_state)
         else
-            snapshot_against_remote(package, exact_state: options[:exact_state])
+            snapshot_against_remote(package, exact_state: exact_state)
         end
     end
 

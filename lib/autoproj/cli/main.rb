@@ -26,8 +26,14 @@ module Autoproj
                 def run_autoproj_cli(filename, classname, report_options, *args)
                     require "autoproj/cli/#{filename}"
                     Autoproj.report(Hash[silent: !options[:debug], debug: options[:debug]].merge(report_options)) do
+                        options = self.options.dup
+                        # We use --local on the CLI but the APIs are expecting
+                        # only_local
+                        if options.has_key?('local')
+                            options[:only_local] = options.delete('local')
+                        end
                         cli = CLI.const_get(classname).new
-                        run_args = cli.validate_options(args, self.options)
+                        run_args = cli.validate_options(args, options)
                         cli.run(*run_args)
                     end
                 end
@@ -57,7 +63,7 @@ module Autoproj
             end
 
             desc 'status [PACKAGES]', 'displays synchronization status between this workspace and the package(s) source'
-            option :only_local,
+            option :local, type: :boolean, default: false,
                 desc: 'only use locally available information (mainly for distributed version control systems such as git)'
             option :mainline, type: :string,
                 desc: "compare to the given baseline. if 'true', the comparison will ignore any override, otherwise it will take into account overrides only up to the given package set"

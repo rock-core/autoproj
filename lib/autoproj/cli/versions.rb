@@ -33,16 +33,15 @@ module Autoproj
                     finalize_setup(user_selection,
                                    recursive: options[:deps],
                                    ignore_non_imported_packages: true)
-
                 
                 ops = Ops::Snapshot.new(ws.manifest, ignore_errors: options[:keep_going])
 
                 versions = Array.new
                 if (config_selected && options[:config] != false) || user_selection.empty?
-                    versions += ops.snapshot_package_sets(nil, local: options[:local])
+                    versions += ops.snapshot_package_sets(nil, only_local: options[:only_local])
                 end
                 if (!config_selected && !options[:config]) || !user_selection.empty?
-                    versions += ops.snapshot_packages(packages, nil, local: options[:local])
+                    versions += ops.snapshot_packages(packages, nil, only_local: options[:only_local])
                 end
 
                 if output_file = options[:save]

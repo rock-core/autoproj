@@ -91,14 +91,14 @@ module Autoproj
 
         def snapshot_package_sets(target_dir = nil, options = Hash.new)
             options = Kernel.validate_options options,
-                local: true
+                only_local: true
 
             result = Array.new
             manifest.each_package_set do |pkg_set|
                 next if pkg_set.local?
 
                 vcs_info =
-                    begin pkg_set.snapshot(target_dir, local: options[:local])
+                    begin pkg_set.snapshot(target_dir, only_local: options[:only_local])
                     rescue Exception => e
                         error_or_warn(pkg_set, e)
                         next
@@ -130,7 +130,7 @@ module Autoproj
 
         def snapshot_packages(packages, target_dir = nil, options = Hash.new)
             options = Kernel.validate_options options,
-                local: true
+                only_local: true
 
             result = Array.new
             packages.each do |package_name|
@@ -148,7 +148,7 @@ module Autoproj
                 end
 
                 vcs_info =
-                    begin importer.snapshot(package.autobuild, target_dir, local: options[:local])
+                    begin importer.snapshot(package.autobuild, target_dir, only_local: options[:only_local])
                     rescue Exception => e
                         error_or_warn(package, e)
                         next
