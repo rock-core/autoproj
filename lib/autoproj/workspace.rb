@@ -298,7 +298,7 @@ module Autoproj
 
             # Find out what version of autoproj bundler locked on
             autoproj = File.readlines("#{gemfile}.lock").
-                find_all { |l| l =~ /^\s+autoproj \(.*\)$/ }
+                find_all { |l| l =~ /^\s+autoproj \(\d.*\)$/ }
             if autoproj.size == 1
                 autoproj[0] =~ /^\s+autoproj \((.*)\)$/
                 installed_version = $1
