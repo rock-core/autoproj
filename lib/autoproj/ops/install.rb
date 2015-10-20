@@ -42,7 +42,7 @@ module Autoproj
             end
 
             def env_for_child
-                env.inject(Hash.new) do |h, (k, v)|
+                result = env.inject(Hash.new) do |h, (k, v)|
                     h[k] = (v.join(File::PATH_SEPARATOR) if v && !v.empty?)
                     h
                 end
@@ -91,7 +91,7 @@ module Autoproj
             def private_bundler?; !!@private_bundler end
             # The path to the directory into which the bundler gem should be
             # installed
-            def bundler_gem_home; @private_bundler || gem_bindir end
+            def bundler_gem_home; @private_bundler || Gem.user_dir end
             # (see #private_bundler?)
             def private_bundler=(flag)
                 @private_bundler =
@@ -105,7 +105,7 @@ module Autoproj
             def private_autoproj?; !!@private_autoproj end
             # The path to the directory into which the autoproj gem should be
             # installed
-            def autoproj_gem_home; @private_autoproj || gem_bindir end
+            def autoproj_gem_home; @private_autoproj || Gem.user_dir end
             # (see #private_autoproj?)
             def private_autoproj=(flag)
                 @private_autoproj =
