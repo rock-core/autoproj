@@ -207,15 +207,36 @@ module Autoproj
         end
 
         def private_bundler?
-            get('private_bundler', false)
+            !!get('private_bundler', false)
+        end
+
+        def bundler_gem_home
+            get('private_bundler', Gem.user_dir)
         end
 
         def private_autoproj?
-            get('private_autoproj', false)
+            !!get('private_autoproj', false)
+        end
+
+        def autoproj_gem_home
+            get('private_autoproj', Gem.user_dir)
         end
 
         def private_gems?
-            get('private_gems', false)
+            !!get('private_gems', false)
+        end
+
+        def gems_gem_home
+            value = get('private_gems', false)
+            if value.respond_to?(:to_str)
+                return value
+            elsif value
+                default = File.join(ws.prefix_dir, 'gems')
+                set('private_gems', default)
+                default
+            else
+                Gem.user_dir
+            end
         end
 
         def ruby_executable
@@ -443,4 +464,3 @@ module Autoproj
         end
     end
 end
-

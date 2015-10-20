@@ -12,3 +12,4 @@ ENV.delete('RUBYLIB')
 ops = Autoproj::Ops::Install.new(Dir.pwd)
 ops.parse_options(ARGV)
 ops.stage1
+ops.call_stage2

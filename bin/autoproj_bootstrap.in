@@ -12,6 +12,6 @@ ENV.delete('RUBYLIB')
 ops = Autoproj::Ops::Install.new(Dir.pwd)
 bootstrap_options = ops.parse_options(ARGV)
 ops.stage1
-
-exec(Gem.ruby, '-S', 'autoproj', 'bootstrap', *bootstrap_options)
+ops.call_stage2
+ops.run_autoproj 'bootstrap', *bootstrap_options
 

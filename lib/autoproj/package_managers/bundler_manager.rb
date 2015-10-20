@@ -29,23 +29,34 @@ module Autoproj
             def initialize_environment
                 env = ws.env
 
-                env.inherit 'GEM_PATH'
-                env.init_from_env 'GEM_PATH'
-                env.system_env['GEM_PATH'] = Gem.default_path
+                config = ws.config
 
-                env.init_from_env 'GEM_HOME'
+                env.add_path 'PATH', File.join(Gem.user_dir, 'bin')
+                env.add_path 'PATH', File.join(ws.prefix_dir, 'gems', 'bin')
+                env.add_path 'PATH', File.join(config.bundler_gem_home, 'bin')
+                env.add_path 'PATH', File.join(ws.dot_autoproj_dir, 'autoproj', 'bin')
+                env.set 'GEM_HOME', config.gems_gem_home
 
-                if (env.original_env['GEM_HOME'] || '').empty?
-                    env.unset('GEM_HOME')
+                if !config.private_bundler? || !config.private_autoproj? || !config.private_gems?
+                    env.set('GEM_PATH', *Gem.default_path)
+                end
+                if config.private_bundler?
+                    Autobuild.programs['bundler'] = File.join(config.bundler_gem_home, 'bin', 'bundler')
+                    env.add_path 'GEM_PATH', config.bundler_gem_home
+                else
+                    Autobuild.programs['bundler'] = env.find_in_path('bundler')
                 end
 
                 env.init_from_env 'RUBYLIB'
                 env.inherit 'RUBYLIB'
+                # Sanitize the rubylib we get from the environment by removing
+                # anything that comes from Gem or Bundler
                 original_rubylib =
                     (env['RUBYLIB'] || "").split(File::PATH_SEPARATOR).find_all do |p|
                         !p.start_with?(Bundler.rubygems.gem_dir) &&
                             !Bundler.rubygems.gem_path.any? { |gem_p| p.start_with?(p) }
                     end
+                # And discover the system's rubylib
                 if system_rubylib = discover_rubylib
                     env.system_env['RUBYLIB'] = []
                     env.original_env['RUBYLIB'] = (original_rubylib - system_rubylib).join(File::PATH_SEPARATOR)
@@ -54,44 +65,16 @@ module Autoproj
                 ws.config.each_reused_autoproj_installation do |p|
                     reused_w = ws.new(p)
                     reused_c = reused_w.load_config
-                    if reused_c.private_gems?
-                        env.add_path 'GEM_PATH', File.join(reused_w.prefix_dir, 'gems')
-                    end
                     env.add_path 'PATH', File.join(reused_w.prefix_dir, 'gems', 'bin')
                 end
 
-                gem_home = File.join(ws.prefix_dir, "gems")
-                if ws.config.private_gems?
-                    env.set 'GEM_HOME', gem_home
-                    env.add_path 'GEM_PATH', gem_home
-                else
-                    env.set 'GEM_HOME', Gem.user_dir
-                end
-
-                FileUtils.mkdir_p gem_home
-                gemfile = File.join(gem_home, 'Gemfile')
+                prefix_gems = File.join(ws.prefix_dir, "gems")
+                FileUtils.mkdir_p prefix_gems
+                gemfile = File.join(prefix_gems, 'Gemfile')
                 if !File.exists?(gemfile)
                     File.open(gemfile, 'w') do |io|
                         io.puts "eval_gemfile \"#{File.join(ws.dot_autoproj_dir, 'autoproj', 'Gemfile')}\""
                     end
-                end
-
-                env.set 'BUNDLE_GEMFILE', File.join(gem_home, 'Gemfile')
-                env.add_path 'PATH', File.join(Gem.user_dir, 'bin')
-                env.add_path 'PATH', Gem.bindir
-                env.add_path 'PATH', File.join(gem_home, 'bin')
-
-                dot_autoproj = ws.dot_autoproj_dir
-                if ws.config.private_bundler?
-                    env.add_path 'PATH', File.join(dot_autoproj, 'bundler', 'bin')
-                    Autobuild.programs['bundler'] = File.join(dot_autoproj, 'bundler', 'bin', 'bundler')
-                    env.add_path 'GEM_PATH', File.join(dot_autoproj, 'bundler')
-                else
-                    Autobuild.programs['bundler'] = env.find_in_path('bundler')
-                end
-                env.add_path 'PATH', File.join(dot_autoproj, 'autoproj', 'bin')
-                if ws.config.private_autoproj?
-                    env.add_path 'GEM_PATH', File.join(dot_autoproj, 'autoproj')
                 end
 
                 if bundle_rubylib = discover_bundle_rubylib(silent_errors: true)
@@ -214,8 +197,13 @@ module Autoproj
                     io.puts gems
                 end
 
+                options = Array.new
+                if ws.config.private_gems?
+                    options << "--path" << ws.config.gems_gem_home
+                end
+
                 binstubs_path = File.join(root_dir, 'bin')
-                self.class.run_bundler_install ws, gemfile_path,
+                self.class.run_bundler_install ws, gemfile_path, *options,
                     binstubs: binstubs_path
 
                 if bundle_rubylib = discover_bundle_rubylib
