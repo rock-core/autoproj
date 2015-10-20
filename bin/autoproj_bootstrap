@@ -233,7 +233,7 @@ module Autoproj
                 STDERR.puts "cannot find 'bundler' in PATH=#{clean_path}#{File::PATH_SEPARATOR}#{gem_bindir}"
                 STDERR.puts "installing it now ..."
                 result = system(
-                    clean_env.merge('GEM_PATH' => "", 'GEM_HOME' => bundler_gem_path),
+                    clean_env.merge('GEM_PATH' => "", 'GEM_HOME' => bundler_gem_home),
                     Gem.ruby, '-S', 'gem', 'install', 'bundler')
 
                 if !result
@@ -249,7 +249,7 @@ module Autoproj
                     end
                 end
 
-                bundler = File.join(bundler_gem_path, 'bin', 'bundler')
+                bundler = File.join(bundler_gem_home, 'bin', 'bundler')
                 if File.exist?(bundler)
                     bundler
                 else
