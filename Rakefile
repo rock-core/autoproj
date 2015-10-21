@@ -13,12 +13,9 @@ desc "generate the bootstrap script"
 task 'bootstrap' do
     require 'yaml'
     autoproj_ops_install = File.read(File.join(Dir.pwd, 'lib', 'autoproj', 'ops', 'install.rb'))
-
     # Since we are using gsub to replace the content in the bootstrap file,
     # we have to quote all \
-    [autoproj_ops_install].each do |text|
-        text.gsub! /\\/, '\\\\\\\\'
-    end
+    autoproj_ops_install.gsub! /\\/, '\\\\\\\\'
 
     %w{bootstrap install}.each do |install_script|
         bootstrap_code = File.read(File.join(Dir.pwd, 'bin', "autoproj_#{install_script}.in")).
