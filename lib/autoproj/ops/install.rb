@@ -21,6 +21,9 @@ module Autoproj
             attr_reader :env
             # The configuration hash
             attr_reader :config
+            # A set of options that should be passed to autoproj when calling it
+            # in a subprocess
+            attr_reader :autoproj_options
 
             def initialize(root_dir)
                 @root_dir = root_dir
@@ -29,6 +32,8 @@ module Autoproj
                 else
                     @gemfile = default_gemfile_contents
                 end
+
+                @autoproj_options = Array.new
 
                 @env = Hash.new
                 env['RUBYLIB'] = []
@@ -197,8 +202,19 @@ module Autoproj
                     opt.on '--prefer-os-independent-packages', 'prefer OS-independent packages (such as a RubyGem) over their OS-packaged equivalent (e.g. the thor gem vs. the ruby-thor debian package)' do
                         @prefer_indep_over_os_packages = true
                     end
+                    opt.on '--[no-]color', 'do not use colored output (enabled by default if the terminal supports it)' do |color|
+                        if color then autoproj_options << "--color"
+                        else autoproj_options << '--no-color'
+                        end
+                    end
+                    opt.on '--[no-]progress', 'do not use progress output (enabled by default if the terminal supports it)' do |color|
+                        if color then autoproj_options << "--progress"
+                        else autoproj_options << '--no-progress'
+                        end
+                    end
                 end
-                options.parse(ARGV)
+                args = options.parse(ARGV)
+                autoproj_options + args
             end
 
             def install_bundler
@@ -443,7 +459,7 @@ module Autoproj
 
             def run_autoproj(*args)
                 system env_for_child.merge('BUNDLE_GEMFILE' => autoproj_gemfile_path),
-                    Gem.ruby, autoproj_path, *args
+                    Gem.ruby, autoproj_path, *args, *autoproj_options
             end
 
             def stage1
@@ -465,8 +481,10 @@ module Autoproj
                 require 'autobuild'
                 puts "saving env.sh and .autoproj/env.sh"
                 save_env_sh(*vars)
-                puts "calling autoproj envsh"
-                system(Gem.ruby, autoproj_path, 'envsh')
+                puts "calling autoproj envsh #{autoproj_options}"
+                if !system(Gem.ruby, autoproj_path, 'envsh', *autoproj_options)
+                    exit 1
+                end
             end
         end
     end

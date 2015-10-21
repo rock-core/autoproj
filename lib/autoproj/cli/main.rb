@@ -342,7 +342,14 @@ The format is a string in which special values can be expanded using a $VARNAME 
                 hide: true
             def install_stage2(root_dir, *vars)
                 require 'autoproj/ops/install'
-                Autoproj::Ops::Install.new(root_dir).stage2(*vars)
+                ops = Autoproj::Ops::Install.new(root_dir)
+                if options[:color] then ops.autoproj_options << "--color"
+                else ops.autoproj_options << "--no-color"
+                end
+                if options[:progress] then ops.autoproj_options << "--progress"
+                else ops.autoproj_options << "--no-progress"
+                end
+                ops.stage2(*vars)
             end
         end
     end
