@@ -231,7 +231,7 @@ module Autoproj
 
                 if !result
                     STDERR.puts "FATAL: failed to install bundler in #{dot_autoproj}"
-                    exit 1
+                    return
                 end
                 File.join(bundler_gem_home, 'bin', 'bundler')
             end
@@ -245,11 +245,8 @@ module Autoproj
                 clean_path = env_for_child['PATH']
                 STDERR.puts "cannot find 'bundler' in PATH=#{clean_path}#{File::PATH_SEPARATOR}#{gem_bindir}"
                 STDERR.puts "installing it now ..."
-                result = system(
-                    clean_env.merge('GEM_PATH' => "", 'GEM_HOME' => bundler_gem_home),
-                    Gem.ruby, '-S', 'gem', 'install', 'bundler')
-
-                if !result
+                bundler = install_bundler
+                if !bundler
                     if ENV['PATH'] != clean_path
                         STDERR.puts "  it appears that you already have some autoproj-generated env.sh loaded"
                         STDERR.puts "  - if you are running 'autoproj upgrade', please contact the autoproj author at https://github.com/rock-core/autoproj/issues/new"
@@ -262,7 +259,6 @@ module Autoproj
                     end
                 end
 
-                bundler = File.join(bundler_gem_home, 'bin', 'bundler')
                 if File.exist?(bundler)
                     bundler
                 else
@@ -406,7 +402,9 @@ module Autoproj
             def install
                 if private_bundler?
                     puts "Installing bundler in #{bundler_gem_home}"
-                    bundler = install_bundler
+                    if !(bundler = install_bundler)
+                        exit 1
+                    end
                 elsif bundler = find_bundler
                     puts "Detected bundler at #{bundler}"
                 else
