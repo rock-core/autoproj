@@ -185,7 +185,7 @@ module Autoproj
                     end
                 end
                 # In addition, look into overrides.d
-                Dir.glob(File.join(ws.config_dir, "*.gemfile")) do |gemfile_path|
+                Dir.glob(File.join(ws.overrides_dir, "*.gemfile")) do |gemfile_path|
                     gemfiles << gemfile_path
                 end
 
