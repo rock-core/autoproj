@@ -183,6 +183,8 @@ fi
             # @return [Boolean] true if packages got installed, false otherwise
             def install(packages, filter_uptodate_packages: false, install_only: false,
                         auto_install_cmd: self.auto_install_cmd, user_install_cmd: self.user_install_cmd)
+                return if packages.empty?
+
                 handled_os = ws.supported_operating_system?
                 if handled_os
                     shell_script = generate_auto_os_script(packages, auto_install_cmd: auto_install_cmd)
