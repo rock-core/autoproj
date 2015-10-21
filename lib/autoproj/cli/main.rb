@@ -1,4 +1,5 @@
 require 'thor'
+require 'tty-screen'
 require 'autoproj/cli/main_test'
 
 module Autoproj
@@ -20,10 +21,10 @@ module Autoproj
                 default: false
             class_option :color, type: :boolean,
                 desc: 'enables or disables colored display (enabled by default if the terminal supports it)',
-                default: true
+                default: TTY::Screen.color?
             class_option :progress, type: :boolean,
                 desc: 'enables or disables progress display (enabled by default if the terminal supports it)',
-                default: true
+                default: TTY::Screen.color?
 
             no_commands do
                 def run_autoproj_cli(filename, classname, report_options, *args)
