@@ -36,6 +36,9 @@ module Autoproj
         # The set of packages that have already been installed
         attr_reader :installed_packages
 
+        # The set of resolved packages that have already been installed
+        attr_reader :installed_resolved_packages
+
         attr_writer :silent
         def silent?; @silent end
 
@@ -47,6 +50,7 @@ module Autoproj
             @ws = ws
             @os_package_resolver = os_package_resolver
             @installed_packages = Set.new
+            @installed_resolved_packages = Hash.new { |h, k| h[k] = Set.new }
             @silent = true
             @filter_uptodate_packages = true
         end
@@ -253,15 +257,12 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
         #   enabled. The default value is returned by {#osdeps_mode}
         # @return [Array<PackageManagers::Manager>] the set of enabled package
         #   managers
-        def setup_package_managers(options = Hash.new)
-            options = Kernel.validate_options options,
-                osdeps_mode: osdeps_mode
-
+        def setup_package_managers(osdeps_mode: self.osdeps_mode)
             os_package_manager.enabled = false
             package_managers.each_value do |handler|
                 handler.enabled = false
             end
-            options[:osdeps_mode].each do |m|
+            osdeps_mode.each do |m|
                 if m == 'os'
                     os_package_manager.enabled = true
                 elsif pkg = package_managers[m]
@@ -306,16 +307,13 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
         end
 
         # Requests the installation of the given set of packages
-        def install(packages, options = Hash.new)
-            # Remove the set of packages that have already been installed 
-            packages = packages.to_set - installed_packages
-            return false if packages.empty?
+        def install(osdep_packages, install_only: false, **options)
+            osdep_packages = osdep_packages.to_set - installed_packages
+            return if osdep_packages.empty?
 
-            filter_options, options =
-                filter_options options, install_only: !Autobuild.do_update
-            setup_package_managers(options)
+            setup_package_managers(**options)
 
-            packages = os_package_resolver.resolve_os_packages(packages)
+            packages = os_package_resolver.resolve_os_packages(osdep_packages)
             packages = packages.map do |handler_name, list|
                 if manager = package_managers[handler_name]
                     [package_managers[handler_name], list]
@@ -324,28 +322,24 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
                 end
             end
 
-            needs_filter = (filter_uptodate_packages? || filter_options[:install_only])
-            packages = packages.map do |handler, list|
-                if needs_filter && handler.respond_to?(:filter_uptodate_packages)
-                    list = handler.filter_uptodate_packages(list, filter_options)
-                end
-
-                if !list.empty?
-                    [handler, list]
-                end
-            end.compact
-            return false if packages.empty?
-
             # Install OS packages first, as the other package handlers might
             # depend on OS packages
-            os_packages, other_packages = packages.partition { |handler, list| handler == os_package_manager }
+            os_packages, other_packages = packages.partition do |handler, list|
+                handler == os_package_manager
+            end
             [os_packages, other_packages].each do |packages|
                 packages.each do |handler, list|
-                    handler.install(list)
-                    @installed_packages |= list.to_set
+                    list = list.to_set - installed_resolved_packages[handler]
+                    next if list.empty?
+
+                    handler.install(
+                        list.to_a,
+                        filter_uptodate_packages: filter_uptodate_packages?,
+                        install_only: install_only)
+                    installed_resolved_packages[handler].merge(list)
                 end
             end
-            true
+            installed_packages.merge(packages)
         end
     end
 end 

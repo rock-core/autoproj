@@ -27,7 +27,7 @@ module Autoproj
                 Autobuild.programs['pip'] = "pip"
             end
 
-            def install(pips)
+            def install(pips, filter_uptodate_packages: false, install_only: false)
                 guess_pip_program
                 if pips.is_a?(String)
                     pips = [pips]

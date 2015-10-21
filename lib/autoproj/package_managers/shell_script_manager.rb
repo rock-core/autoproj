@@ -108,8 +108,7 @@ fi
             #   command-line pattern that should be used to generate the script.
             #   If given, it overrides the default value stored in
             #   {#user_install_cmd]
-            def generate_user_os_script(os_packages, options = Hash.new)
-                user_install_cmd = options[:user_install_cmd] || self.user_install_cmd
+            def generate_user_os_script(os_packages, user_install_cmd: self.user_install_cmd)
                 if user_install_cmd
                     (user_install_cmd % [os_packages.join("' '")])
                 else generate_auto_os_script(os_packages)
@@ -125,8 +124,7 @@ fi
             #   command-line pattern that should be used to generate the script.
             #   If given, it overrides the default value stored in
             #   {#auto_install_cmd]
-            def generate_auto_os_script(os_packages, options = Hash.new)
-                auto_install_cmd = options[:auto_install_cmd] || self.auto_install_cmd
+            def generate_auto_os_script(os_packages, auto_install_cmd: self.auto_install_cmd)
                 (auto_install_cmd % [os_packages.join("' '")])
             end
 
@@ -183,11 +181,12 @@ fi
             #   command line that should be used by autoproj to install said
             #   packages. See the option in {#generate_auto_os_script}
             # @return [Boolean] true if packages got installed, false otherwise
-            def install(packages, options = Hash.new)
+            def install(packages, filter_uptodate_packages: false, install_only: false,
+                        auto_install_cmd: self.auto_install_cmd, user_install_cmd: self.user_install_cmd)
                 handled_os = ws.supported_operating_system?
                 if handled_os
-                    shell_script = generate_auto_os_script(packages, options)
-                    user_shell_script = generate_user_os_script(packages, options)
+                    shell_script = generate_auto_os_script(packages, auto_install_cmd: auto_install_cmd)
+                    user_shell_script = generate_user_os_script(packages, user_install_cmd: user_install_cmd)
                 end
                 if osdeps_interaction(packages, user_shell_script)
                     Autoproj.message "  installing OS packages: #{packages.sort.join(", ")}"

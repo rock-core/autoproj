@@ -14,7 +14,7 @@ module Autoproj
 
             # On a dpkg-enabled system, checks if the provided package is installed
             # and returns true if it is the case
-            def installed?(package_name)
+            def installed?(package_name, filter_uptodate_packages: false, install_only: false)
                 if !@installed_packages
                     @installed_packages = Set.new
                     dpkg_status = File.readlines(status_file)
@@ -51,17 +51,17 @@ module Autoproj
                 end
             end
             
-            def install(packages)
-                if super
+            def install(packages, filter_uptodate_packages: false, install_only: false)
+                if filter_uptodate_packages || install_only
+                    packages = packages.find_all do |package_name|
+                        !installed?(package_name)
+                    end
+                end
+
+                if super(packages)
                     # Invalidate caching of installed packages, as we just
                     # installed new packages !
                     @installed_packages = nil
-                end
-            end
-            
-            def filter_uptodate_packages(packages, options = Hash.new)
-                packages.find_all do |package_name|
-                    !installed?(package_name)
                 end
             end
         end

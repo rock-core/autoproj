@@ -8,7 +8,7 @@ module Autoproj
                       "yum install -y '%s'")
             end
 
-            def filter_uptodate_packages(packages, options = Hash.new)
+            def filter_uptodate_packages(packages)
                 result = `LANG=C rpm -q --queryformat "%{NAME}\n" '#{packages.join("' '")}'`
 
                 installed_packages = []
@@ -32,14 +32,18 @@ module Autoproj
                 new_packages
             end
 
-            def install(packages)
+            def install(packages, filter_uptodate_packages: false, install_only: false)
+                if filter_uptodate_packages
+                    packages = filter_uptodate_packages(packages)
+                end
+
                 patterns, packages = packages.partition { |pkg| pkg =~ /^@/ }
                 patterns = patterns.map { |str| str[1..-1] }
                 result = false
                 if !patterns.empty?
                     result |= super(patterns,
-                                    :auto_install_cmd => "yum groupinstall -y '%s'",
-                                    :user_install_cmd => "yum groupinstall '%s'")
+                                    auto_install_cmd: "yum groupinstall -y '%s'",
+                                    user_install_cmd: "yum groupinstall '%s'")
                 end
                 if !packages.empty?
                     result |= super(packages)

@@ -10,7 +10,7 @@ module Autoproj
                         false)
             end
 
-            def filter_uptodate_packages(packages, options = Hash.new)
+            def filter_uptodate_packages(packages)
                 # TODO there might be duplicates in packages which should be fixed
                 # somewhere else
                 packages = packages.uniq
@@ -37,6 +37,13 @@ module Autoproj
                     new_packages << pkg["name"] if pkg["installed"].empty?
                 end
                 new_packages
+            end
+
+            def install(packages, filter_uptodate_packages: true, install_only: false)
+                if filter_uptodate_packages || install_only
+                    packages = filter_uptodate_packages(packages)
+                end
+                super(packages)
             end
         end
     end

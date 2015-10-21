@@ -37,6 +37,12 @@ module Autoproj
                 env.add_path 'PATH', File.join(ws.dot_autoproj_dir, 'autoproj', 'bin')
                 env.set 'GEM_HOME', config.gems_gem_home
 
+                root_dir     = File.join(ws.prefix_dir, 'gems')
+                gemfile_path = File.join(root_dir, 'Gemfile')
+                if File.file?(gemfile_path)
+                    env.set('BUNDLE_GEMFILE', gemfile_path)
+                end
+
                 if !config.private_bundler? || !config.private_autoproj? || !config.private_gems?
                     env.set('GEM_PATH', *Gem.default_path)
                 end
@@ -154,7 +160,7 @@ module Autoproj
                 end
             end
 
-            def install(gems)
+            def install(gems, filter_uptodate_packages: false, install_only: false)
                 root_dir     = File.join(ws.prefix_dir, 'gems')
                 gemfile_path = File.join(root_dir, 'Gemfile')
                 gemfile_lock_path = "#{gemfile_path}.lock"
@@ -184,17 +190,24 @@ module Autoproj
                 end
 
                 # Generate the gemfile and remove the lockfile
-                gems = gems.sort.map do |name|
+                gemfile_lines = gems.map do |name|
                     name, version = parse_package_entry(name)
                     "gem \"#{name}\", \"#{version || ">= 0"}\""
-                end.join("\n")
+                end
+                gemfiles.each do |gemfile|
+                    gemfile_lines.concat(File.readlines(gemfile).map(&:chomp))
+                end
+                gemfile_lines = gemfile_lines.sort.uniq
+                gemfile_contents = [
+                    "eval_gemfile \"#{File.join(ws.dot_autoproj_dir, 'autoproj', 'Gemfile')}\"",
+                    *gemfile_lines
+                ].join("\n")
+
                 FileUtils.mkdir_p root_dir
-                File.open(gemfile_path, 'w') do |io|
-                    io.puts "eval_gemfile \"#{File.join(ws.dot_autoproj_dir, 'autoproj', 'Gemfile')}\""
-                    gemfiles.each do |gemfile|
-                        io.puts File.read(gemfile)
+                if updated = (!File.exist?(gemfile_path) || File.read(gemfile_path) != gemfile_contents)
+                    File.open(gemfile_path, 'w') do |io|
+                        io.puts gemfile_contents
                     end
-                    io.puts gems
                 end
 
                 options = Array.new
@@ -203,8 +216,10 @@ module Autoproj
                 end
 
                 binstubs_path = File.join(root_dir, 'bin')
-                self.class.run_bundler_install ws, gemfile_path, *options,
-                    binstubs: binstubs_path
+                if updated || !install_only
+                    self.class.run_bundler_install ws, gemfile_path, *options,
+                        binstubs: binstubs_path
+                end
 
                 if bundle_rubylib = discover_bundle_rubylib
                     update_env_rubylib(bundle_rubylib)
