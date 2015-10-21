@@ -254,7 +254,7 @@ module Autoproj
             if has_value_for?('ruby_executable')
                 expected = get('ruby_executable')
                 if expected != actual
-                    raise ConfigError.new, "this autoproj installation was bootstrapped using #{expected}, but you are currently running under #{actual}. This is usually caused by manually calling a wrong gem program (for instance, gem2.1 instead of gem2.0)"
+                    raise ConfigError.new, "this autoproj installation was bootstrapped using #{expected}, but you are currently running under #{actual}. Changing the Ruby executable for in an existing autoproj workspace is unsupported"
                 end
             else
                 set('ruby_executable', actual, true)
