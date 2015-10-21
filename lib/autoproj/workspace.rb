@@ -66,7 +66,7 @@ module Autoproj
                 from_dir(path)
             elsif envvar = ENV['AUTOPROJ_CURRENT_ROOT']
                 raise NotWorkspace, "AUTOPROJ_CURRENT_ROOT is currently set to #{envvar}, but that is not an Autoproj workspace"
-            elsif Autoproj.find_v1_workspace_dir(dir = Autoproj.defaulT_find_base_dir)
+            elsif Autoproj.find_v1_workspace_dir(dir = Autoproj.default_find_base_dir)
                 raise OutdatedWorkspace, "#{dir} looks like a v1 workspace, run autoproj upgrade before continuing"
             else
                 raise NotWorkspace, "not in an Autoproj installation, and no env.sh has been loaded so far"

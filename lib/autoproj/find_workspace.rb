@@ -3,21 +3,21 @@ require 'yaml'
 
 module Autoproj
     # The base path from which we search for workspaces
-    def self.defaulT_find_base_dir
+    def self.default_find_base_dir
         ENV['AUTOPROJ_CURRENT_ROOT'] || Dir.pwd
     end
 
     # Looks for the autoproj workspace that is related to a given directory
     #
     # @return [String,nil]
-    def self.find_workspace_dir(base_dir = defaulT_find_base_dir)
+    def self.find_workspace_dir(base_dir = default_find_base_dir)
         find_v2_workspace_dir(base_dir)
     end
 
     # Looks for the autoproj prefix that contains a given directory
     #
     # @return [String,nil]
-    def self.find_prefix_dir(base_dir = defaulT_find_base_dir)
+    def self.find_prefix_dir(base_dir = default_find_base_dir)
         find_v2_prefix_dir(base_dir)
     end
 
@@ -57,19 +57,19 @@ module Autoproj
     end
 
     # {#find_workspace_dir} for v2 workspaces
-    def self.find_v2_workspace_dir(base_dir = defaulT_find_base_dir)
+    def self.find_v2_workspace_dir(base_dir = default_find_base_dir)
         find_v2_root_dir(base_dir, 'workspace')
     end
 
     # {#find_prefix_dir} for v2 workspaces
-    def self.find_v2_prefix_dir(base_dir = defaulT_find_base_dir)
+    def self.find_v2_prefix_dir(base_dir = default_find_base_dir)
         find_v2_root_dir(base_dir, 'prefix')
     end
 
     # {#find_workspace_dir} for v1 workspaces
     #
     # Note that for v1 workspaces {#find_prefix_dir} cannot be implemented
-    def self.find_v1_workspace_dir(base_dir = defaulT_find_base_dir)
+    def self.find_v1_workspace_dir(base_dir = default_find_base_dir)
         path = Pathname.new(base_dir)
         while !path.root?
             if (path + "autoproj").exist?
