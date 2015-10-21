@@ -126,11 +126,14 @@ module Autoproj
                     silent: false,
                     verbose: false,
                     debug: false,
-                    color: true,
-                    progress: true,
+                    color: TTY::Screen.color?,
+                    progress: TTY::Screen.color?,
                     parallel: nil
 
                 Autoproj.silent = options[:silent]
+                Autobuild.color = options[:color]
+                Autobuild.progress_display_enabled = options[:progress]
+
                 if options[:verbose]
                     Autoproj.verbose  = true
                     Autobuild.verbose = true
@@ -145,13 +148,12 @@ module Autoproj
                     Autobuild.debug = true
                 end
 
-                Autobuild.color = options[:color]
+
                 if level = options[:parallel]
                     Autobuild.parallel_build_level = Integer(level)
                     remaining[:parallel] = Integer(level)
                 end
 
-                Autobuild.progress_display_enabled = options[:progress]
                 return args, remaining
             end
         end

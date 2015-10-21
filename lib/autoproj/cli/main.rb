@@ -18,8 +18,11 @@ module Autoproj
             class_option :silent, type: :boolean,
                 desc: 'tell autoproj to not display anything',
                 default: false
+            class_option :color, type: :boolean,
+                desc: 'enables or disables colored display (enabled by default if the terminal supports it)',
+                default: true
             class_option :progress, type: :boolean,
-                desc: 'enables or disables progress display (enabled by default)',
+                desc: 'enables or disables progress display (enabled by default if the terminal supports it)',
                 default: true
 
             no_commands do
