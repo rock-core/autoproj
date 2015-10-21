@@ -9,7 +9,7 @@ module Autoproj
             attr_reader :ws
 
             def initialize(ws = nil)
-                @ws = (ws || Workspace.from_environment)
+                @ws = (ws || Workspace.default)
             end
 
             # Normalizes the arguments given by the user on the command line

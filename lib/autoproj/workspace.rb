@@ -53,11 +53,6 @@ module Autoproj
         # @raise [NotWorkspace] if dir is not within an autoproj workspace
         def self.from_dir(dir)
             if path = Autoproj.find_workspace_dir(dir)
-                # Make sure that the currently loaded env.sh is actually us
-                env = autoproj_current_root
-                if env && env != path
-                    raise MismatchingWorkspace, "the current environment is for #{env}, but you are in #{path}, make sure you are loading the right #{ENV_FILENAME} script !"
-                end
                 Workspace.new(path)
             elsif find_v1_workspace_dir(dir)
                 raise OutdatedWorkspace, "#{dir} looks like a v1 workspace, run autoproj upgrade before continuing"
@@ -69,6 +64,8 @@ module Autoproj
         def self.from_environment
             if path = Autoproj.find_workspace_dir
                 from_dir(path)
+            elsif envvar = ENV['AUTOPROJ_CURRENT_ROOT']
+                raise NotWorkspace, "AUTOPROJ_CURRENT_ROOT is currently set to #{envvar}, but that is not an Autoproj workspace"
             elsif Autoproj.find_v1_workspace_dir(dir = Autoproj.defaulT_find_base_dir)
                 raise OutdatedWorkspace, "#{dir} looks like a v1 workspace, run autoproj upgrade before continuing"
             else
@@ -80,6 +77,22 @@ module Autoproj
         # autoproj
         def self.in_autoproj_project?(path)
             !!Autoproj.find_workspace_dir(path)
+        end
+
+        # Returns the default workspace
+        #
+        # It uses the AUTOPROJ_CURRENT_ROOT environment variable if available,
+        # falling back to the current directory
+        #
+        # @raise MismatchingWorkspace if the workspace pointed by
+        # AUTOPROJ_CURRENT_ROOT does not match the one containing the current
+        # directory
+        def self.default
+            ws = from_environment
+            if (from_pwd = Autoproj.find_workspace_dir(Dir.pwd)) && (from_pwd != ws.root_dir)
+                raise MismatchingWorkspace, "the current environment points to #{ws.root_dir}, but you are in #{from_pwd}, make sure you are loading the right #{ENV_FILENAME} script !"
+            end
+            ws
         end
 
         def load(*args)
