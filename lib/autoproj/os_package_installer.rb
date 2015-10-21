@@ -297,6 +297,14 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             install(packages, options.merge(install_only: true))
             packages = os_package_resolver.resolve_os_packages(packages)
 
+            packages = packages.map do |handler_name, list|
+                if manager = package_managers[handler_name]
+                    [package_managers[handler_name], list]
+                else
+                    raise ArgumentError, "no package manager called #{handler_name} found"
+                end
+            end
+
             _, other_packages =
                 packages.partition { |handler, list| handler == os_package_manager }
             other_packages.each do |handler, list|

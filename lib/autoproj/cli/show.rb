@@ -81,8 +81,8 @@ module Autoproj
 
             def display_osdep_package(pkg_name, default_packages, revdeps)
                 puts Autoproj.color("the osdep '#{pkg_name}'", :bold)
-                ws.os_package_resolver.resolve_os_packages([pkg_name]).each do |manager, packages|
-                    puts "  #{manager.names.first}: #{packages.map { |*subnames| subnames.join(" ") }.join(", ")}"
+                ws.os_package_resolver.resolve_os_packages([pkg_name]).each do |manager_name, packages|
+                    puts "  #{manager_name}: #{packages.map { |*subnames| subnames.join(" ") }.join(", ")}"
                 end
 
                 display_common_information(pkg_name, default_packages, revdeps)
