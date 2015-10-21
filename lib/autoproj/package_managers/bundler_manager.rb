@@ -216,7 +216,7 @@ module Autoproj
                 end
 
                 binstubs_path = File.join(root_dir, 'bin')
-                if updated || !install_only
+                if updated || !install_only || !File.file?("#{gemfile_path}.lock")
                     self.class.run_bundler_install ws, gemfile_path, *options,
                         binstubs: binstubs_path
                 end
