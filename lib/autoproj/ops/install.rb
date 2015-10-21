@@ -38,6 +38,10 @@ module Autoproj
                 env['BUNDLE_GEMFILE'] = []
 
                 load_config
+                if config['ruby_executable'] != Gem.ruby
+                    raise "this autoproj installation was already bootstrapped using #{config['ruby_executable']}, but you are currently running under #{Gem.ruby}. Changing the ruby interpreter in a given workspace is not supported"
+                end
+
                 @local = false
             end
 
