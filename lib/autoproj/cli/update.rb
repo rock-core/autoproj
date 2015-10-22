@@ -25,10 +25,6 @@ module Autoproj
                     options[:reset] = :force
                 end
 
-                if options[:autoproj].nil?
-                    options[:autoproj] = packages.empty?
-                end
-
                 if mainline = options[:mainline]
                     if mainline == 'mainline' || mainline == 'true'
                         options[:mainline] = true
@@ -42,27 +38,45 @@ module Autoproj
                 selected_packages, config_selected =
                     normalize_command_line_package_selection(selected_packages)
 
-                if options[:config].nil?
-                    options[:config] = selected_packages.empty? || config_selected
-                end
+                # Autoproj and configuration are updated only if (1) it is
+                # explicitely selected or (2) nothing is explicitely selected
+                update_autoproj =
+                    (options[:autoproj] || (
+                        options[:autoproj] != false &&
+                        selected_packages.empty? &&
+                        !options[:config] && 
+                        !options[:checkout_only])
+                    )
+
+                update_config =
+                    (options[:config] || (
+                        options[:config] != false &&
+                        selected_packages.empty? &&
+                        !options[:autoproj]) ||
+                    config_selected)
+
+                update_packages =
+                    options[:all] ||
+                    !selected_packages.empty? ||
+                    (!options[:config] && !options[:autoproj])
 
                 ws.setup
                 parallel = options[:parallel] || ws.config.parallel_import_level
 
                 ws.autodetect_operating_system(force: true)
 
-                if options[:autoproj]
+                if update_autoproj
                     ws.update_autoproj
                 end
 
                 ws.load_package_sets(
                     mainline: options[:mainline],
                     only_local: options[:only_local],
-                    checkout_only: !options[:config] || options[:checkout_only],
+                    checkout_only: !update_config || options[:checkout_only],
                     reset: options[:reset],
                     ignore_errors: options[:keep_going],
                     retry_count: options[:retry_count])
-                if selected_packages.empty? && (config_selected || options[:config]) && !options[:all]
+                if !update_packages
                     return [], [], true
                 end
 
