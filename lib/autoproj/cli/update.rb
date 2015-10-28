@@ -35,6 +35,7 @@ module Autoproj
             end
 
             def run(selected_packages, options)
+                explicit_selection = !selected_packages.empty?
                 selected_packages, config_selected =
                     normalize_command_line_package_selection(selected_packages)
 
@@ -43,22 +44,21 @@ module Autoproj
                 update_autoproj =
                     (options[:autoproj] || (
                         options[:autoproj] != false &&
-                        selected_packages.empty? &&
+                        !explicit_selection &&
                         !options[:config] && 
                         !options[:checkout_only])
                     )
 
                 update_config =
-                    (options[:config] || (
+                    (options[:config] || config_selected || (
                         options[:config] != false &&
-                        selected_packages.empty? &&
-                        !options[:autoproj]) ||
-                    config_selected)
+                        !explicit_selection &&
+                        !options[:autoproj]))
 
                 update_packages =
                     options[:all] ||
-                    !selected_packages.empty? ||
-                    (!options[:config] && !options[:autoproj])
+                    (explicit_selection && !selected_packages.empty?) ||
+                    (!explicit_selection && !options[:config] && !options[:autoproj])
 
                 ws.setup
                 parallel = options[:parallel] || ws.config.parallel_import_level
