@@ -22,13 +22,13 @@ module Autoproj
            'apt-dpkg' => PackageManagers::AptDpkgManager,
            'gem'      => PackageManagers::BundlerManager,
            'emerge'   => PackageManagers::EmergeManager,
-           'brew'     => PackageManagers::PacmanManager,
-           'pacman'   => PackageManagers::HomebrewManager,
-           'pip'      => PackageManagers::YumManager,
-           'pkg'      => PackageManagers::PortManager,
-           'macports' => PackageManagers::ZypperManager,
-           'yum'      => PackageManagers::PipManager ,
-           'zypper'   => PackageManagers::PkgManager
+           'pacman'   => PackageManagers::PacmanManager,
+           'brew'     => PackageManagers::HomebrewManager,
+           'yum'      => PackageManagers::YumManager,
+           'macports' => PackageManagers::PortManager,
+           'zypper'   => PackageManagers::ZypperManager,
+           'pip'      => PackageManagers::PipManager ,
+           'pkg'      => PackageManagers::PkgManager
         ]
 
         attr_reader :os_package_resolver
