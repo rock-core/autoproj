@@ -129,7 +129,7 @@ hg:
 
 svn:
   debian,ubuntu: subversion
-  gentoo: dev-util/subversion
+  gentoo: dev-vcs/subversion
   arch: subversion
   fedora: subversion
   darwin: subversion
