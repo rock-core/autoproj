@@ -30,14 +30,12 @@ module Autoproj
                 once.with(['pkg0', 'pkg1', 'pkg2'].to_set).
                 and_return([[resolver.os_package_manager, ['os0.1', 'os0.2', 'os1']],
                             ['gem', [['gem2', '>= 0.9']]]])
-            installer.os_package_manager.should_receive(:filter_uptodate_packages).
-                with(['os0.1', 'os0.2', 'os1'], install_only: false).and_return(['os0.1', 'os1']).once
             # Do not add filter_uptodate_packages to the gem handler to check that
             # #install deals with that just fine
             installer.os_package_manager.should_receive(:install).
-                with(['os0.1', 'os1'])
+                with(['os0.1', 'os0.2', 'os1'], install_only: false, filter_uptodate_packages: true)
             installer.package_managers['gem'].should_receive(:install).
-                with([['gem2', '>= 0.9']])
+                with([['gem2', '>= 0.9']], install_only: false, filter_uptodate_packages: true)
 
             installer.osdeps_mode = 'all'
             installer.install(['pkg0', 'pkg1', 'pkg2'])

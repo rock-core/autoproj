@@ -691,7 +691,7 @@ module Autoproj
                 end
 
                 if result.empty?
-                    if self.class.supported_operating_system?
+                    if supported_operating_system?
                         os_names, os_versions = operating_system
                         raise MissingOSDep.new, "there is an osdeps definition for #{name}, but not for this operating system and version (resp. #{os_names.join(", ")} and #{os_versions.join(", ")})"
                     end

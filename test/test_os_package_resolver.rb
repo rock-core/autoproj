@@ -11,11 +11,18 @@ module Autoproj
             super
         end
 
-        def test_supported_operating_system
+        def test_it_initialies_itself_with_the_global_operating_system
             OSPackageResolver.operating_system = [['test', 'debian', 'default'], ['v1.0', 'v1', 'default']]
-            assert(OSPackageResolver.supported_operating_system?)
-            OSPackageResolver.operating_system = [['test', 'default'], ['v1.0', 'v1', 'default']]
-            assert(!OSPackageResolver.supported_operating_system?)
+            resolver = OSPackageResolver.new
+            assert_equal resolver.operating_system, OSPackageResolver.operating_system
+        end
+
+        def test_supported_operating_system
+            resolver = OSPackageResolver.new
+            resolver.operating_system = [['test', 'debian', 'default'], ['v1.0', 'v1', 'default']]
+            assert(resolver.supported_operating_system?)
+            resolver.operating_system = [['test', 'default'], ['v1.0', 'v1', 'default']]
+            assert(!resolver.supported_operating_system?)
         end
 
         def create_osdep(data, file = nil)
@@ -449,25 +456,25 @@ module Autoproj
 
         def test_resolve_os_packages_unsupported_os_non_existent_dependency
             osdeps = create_osdep(nil)
-            flexmock(OSPackageResolver).should_receive(:supported_operating_system?).and_return(false)
+            flexmock(osdeps).should_receive(:supported_operating_system?).and_return(false)
             assert_raises(MissingOSDep) { osdeps.resolve_os_packages(['a_package']) }
         end
 
         def test_resolve_package_availability_unsupported_os_non_existent_dependency
             osdeps = create_osdep(nil)
-            flexmock(OSPackageResolver).should_receive(:supported_operating_system?).and_return(false)
+            flexmock(osdeps).should_receive(:supported_operating_system?).and_return(false)
             assert_equal OSPackageResolver::NO_PACKAGE, osdeps.availability_of('a_package')
         end
 
         def test_resolve_package_availability_unsupported_os_existent_dependency
             osdeps = create_osdep({ 'an_os' => 'bla' })
-            flexmock(OSPackageResolver).should_receive(:supported_operating_system?).and_return(false)
+            flexmock(osdeps).should_receive(:supported_operating_system?).and_return(false)
             assert_equal OSPackageResolver::AVAILABLE, osdeps.availability_of('pkg')
         end
 
         def test_resolve_os_packages_unsupported_os_existent_dependency
             osdeps = create_osdep({ 'os1' => 'bla' })
-            flexmock(OSPackageResolver).should_receive(:supported_operating_system?).and_return(false)
+            flexmock(osdeps).should_receive(:supported_operating_system?).and_return(false)
             assert_equal [[osdeps.os_package_manager, ['pkg']]], osdeps.resolve_os_packages(['pkg'])
         end
 
