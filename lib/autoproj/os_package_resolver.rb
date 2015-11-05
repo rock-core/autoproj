@@ -139,10 +139,8 @@ module Autoproj
             if !instance_variable_defined?(:@os_package_manager)
                 os_names, _ = operating_system
                 os_name = os_names.find { |name| OS_PACKAGE_MANAGERS[name] }
-                @os_package_manager = OS_PACKAGE_MANAGERS[os_name]
-                if !@os_package_manager
-                    raise "unsupported OS #{os_names.join(", ")}"
-                end
+                @os_package_manager = OS_PACKAGE_MANAGERS[os_name] ||
+                    'unknown'
             end
             return @os_package_manager
         end
@@ -691,11 +689,8 @@ module Autoproj
                 end
 
                 if result.empty?
-                    if supported_operating_system?
-                        os_names, os_versions = operating_system
-                        raise MissingOSDep.new, "there is an osdeps definition for #{name}, but not for this operating system and version (resp. #{os_names.join(", ")} and #{os_versions.join(", ")})"
-                    end
-                    result = [[os_package_manager, FOUND_PACKAGES, [name]]]
+                    os_names, os_versions = operating_system
+                    raise MissingOSDep.new, "there is an osdeps definition for #{name}, but not for this operating system and version (resp. #{os_names.join(", ")} and #{os_versions.join(", ")})"
                 end
 
                 result.each do |handler, status, packages|
@@ -763,8 +758,6 @@ module Autoproj
             if resolved.empty?
                 if !operating_system
                     return UNKNOWN_OS
-                elsif !supported_operating_system?
-                    return AVAILABLE
                 else return WRONG_OS
                 end
             end

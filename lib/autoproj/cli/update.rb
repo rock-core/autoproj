@@ -35,6 +35,7 @@ module Autoproj
             end
 
             def run(selected_packages, options)
+                ws.manifest.accept_unavailable_osdeps = !options[:osdeps]
                 explicit_selection = !selected_packages.empty?
                 selected_packages, config_selected =
                     normalize_command_line_package_selection(selected_packages)

@@ -469,13 +469,7 @@ module Autoproj
         def test_resolve_package_availability_unsupported_os_existent_dependency
             osdeps = create_osdep({ 'an_os' => 'bla' })
             flexmock(osdeps).should_receive(:supported_operating_system?).and_return(false)
-            assert_equal OSPackageResolver::AVAILABLE, osdeps.availability_of('pkg')
-        end
-
-        def test_resolve_os_packages_unsupported_os_existent_dependency
-            osdeps = create_osdep({ 'os1' => 'bla' })
-            flexmock(osdeps).should_receive(:supported_operating_system?).and_return(false)
-            assert_equal [[osdeps.os_package_manager, ['pkg']]], osdeps.resolve_os_packages(['pkg'])
+            assert_equal OSPackageResolver::WRONG_OS, osdeps.availability_of('pkg')
         end
 
         DATA_DIR = File.expand_path('data', File.dirname(__FILE__))

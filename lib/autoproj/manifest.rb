@@ -71,6 +71,15 @@ module Autoproj
         # A set of other autoproj installations that are being reused
         attr_reader :reused_installations
 
+        # Whether {#resolve_package_name} should raise if an osdep is found that
+        # is not available on the current operating system, or simply return it
+        #
+        # @return [Boolean]
+        def accept_unavailable_osdeps?; !!@accept_unavailable_osdeps end
+
+        # Sets {#accept_unavailable_osdeps?}
+        def accept_unavailable_osdeps=(flag); @accept_unavailable_osdeps = flag end
+
         # True if osdeps should be handled in update and build, or left to the
         # osdeps command
         def auto_osdeps?
@@ -108,6 +117,7 @@ module Autoproj
             @reused_installations = Array.new
             @ignored_packages = Set.new
             @manifest_exclusions = Set.new
+            @accept_unavailable_osdeps = false
 
             @constant_definitions = Hash.new
             @package_sets << LocalPackageSet.new(self)
@@ -334,14 +344,21 @@ module Autoproj
         end
 
         # Register a new package
-        def register_package(package, block, source, file)
-            pkg = PackageDefinition.new(package, source, file)
+        #
+        # @param [Autobuild::Package] package
+        # @param [#call,nil] block a setup block
+        # @param [PackageSet] package_set the package set that defines the package
+        # @param [String] file the file in which the package is defined
+        # @return [PackageDefinition]
+        def register_package(package, block = nil, package_set = main_package_set, file = nil)
+            pkg = PackageDefinition.new(package, package_set, file)
             if block
                 pkg.add_setup_block(block)
             end
             @packages[package.name] = pkg
-            @metapackages[pkg.package_set.name].add(pkg.autobuild)
-            @metapackages["#{pkg.package_set.name}.all"].add(pkg.autobuild)
+            metapackage pkg.package_set.name, pkg.autobuild
+            metapackage "#{pkg.package_set.name}.all", pkg.autobuild
+            pkg
         end
 
         # Returns the package set that defines a package
@@ -538,14 +555,22 @@ module Autoproj
             each_package_set.find(&:main?)
         end
 
-        # Resolves the given +name+, where +name+ can either be the name of a
-        # source or the name of a package.
+        # Resolves a name into a set of source and osdep packages
         #
-        # The returned value is a list of pairs:
+        # @param [String] name the name to be resolved. It can either be the
+        # name of a source package, an osdep package or a metapackage (e.g.
+        # package set).
         #
-        #   [type, package_name]
-        #
-        # where +type+ can either be :package or :osdeps (as symbols)
+        # @return [nil,Array] either nil if there is no such osdep, or a list of
+        #   (type, package_name) pairs where type is either :package or :osdep and
+        #   package_name the corresponding package name
+        # @raise [PackageNotFound] if the given package name cannot be resolved
+        #   into a package. If {#accept_unavailable_osdeps?} is false (the
+        #   default), the exception will be raised if the package is known to be
+        #   an osdep, but it is not available on the local operating system (as
+        #   defined by {#os_package_resolver}), and there has been no source
+        #   fallback defined with {#add_osdeps_overrides}. If true, it will
+        #   return such a package as an osdep.
         def resolve_package_name(name)
             if pkg_set = find_metapackage(name)
                 pkg_names = pkg_set.each_package.map(&:name)
@@ -632,10 +657,17 @@ module Autoproj
         # @return [nil,Array] either nil if there is no such osdep, or a list of
         #   (type, package_name) pairs where type is either :package or :osdep and
         #   package_name the corresponding package name
+        # @raise PackageNotFound if the given package name cannot be resolved
+        #   into a package. If {#accept_unavailable_osdeps?} is false (the
+        #   default), the exception will be raised if the package is known to be
+        #   an osdep, but it is not available on the local operating system (as
+        #   defined by {#os_package_resolver}), and there has been no source
+        #   fallback defined with {#add_osdeps_overrides}.
+        #   If true, it will return it as an osdep.
         def resolve_package_name_as_osdep(name)
 	    osdeps_availability = os_package_resolver.availability_of(name)
             if osdeps_availability == OSPackageResolver::NO_PACKAGE
-                raise PackageNotFound, "cannot resolve #{name}: it is not an osdep"
+                raise PackageNotFound, "#{name} is not an osdep"
             end
 
             # There is an osdep definition for this package, check the
@@ -650,7 +682,7 @@ module Autoproj
                 end.uniq
             elsif !osdeps_available && (pkg = find_autobuild_package(name))
                 return [[:package, pkg.name]]
-            elsif osdeps_available
+            elsif osdeps_available || accept_unavailable_osdeps?
                 return [[:osdeps, name]]
             elsif osdeps_availability == OSPackageResolver::WRONG_OS
                 raise PackageNotFound, "#{name} is an osdep, but it is not available for this operating system"
@@ -701,10 +733,14 @@ module Autoproj
         #
         def metapackage(name, *packages, &block)
             meta = (@metapackages[name.to_s] ||= Metapackage.new(name))
-            packages.each do |pkg_name|
-                package_names = resolve_package_set(pkg_name)
-                package_names.each do |pkg_name|
-                    meta.add(find_autobuild_package(pkg_name))
+            packages.each do |pkg|
+                if pkg.respond_to?(:to_str)
+                    package_names = resolve_package_set(pkg)
+                    package_names.each do |pkg_name|
+                        meta.add(find_autobuild_package(pkg_name))
+                    end
+                else
+                    meta.add(pkg)
                 end
             end
 
@@ -1000,14 +1036,12 @@ module Autoproj
         #
         # The :force option allows to force the usage of the source package(s),
         # regardless of the availability of the osdeps package.
-        def add_osdeps_overrides(osdeps_name, options)
-            options = Kernel.validate_options options, package: osdeps_name, packages: [], force: false
-            if pkg = options.delete(:package)
-                options[:packages] << pkg
+        def add_osdeps_overrides(osdeps_name, package: osdeps_name, packages: [], force: false)
+            if package
+                packages << package
             end
-            packages = options[:packages]
             packages.each { |pkg_name| resolve_package_name(pkg_name) }
-            @osdeps_overrides[osdeps_name.to_s] = options
+            @osdeps_overrides[osdeps_name.to_s] = Hash[packages: packages, force: force]
         end
 
         # Remove any OSDeps override that has previously been added with
