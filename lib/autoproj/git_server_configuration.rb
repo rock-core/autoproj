@@ -106,8 +106,10 @@ module Autoproj
     end
 
     def self.gitorious_server_configuration(name, base_url, options = Hash.new)
-        Autoproj.warn "gitorious_server_configuration is deprecated, replace by git_server_configuration"
-        Autoproj.warn "Note that the call interface has not changed, you only need to change the method name"
+        Autoproj.warn_deprecated "gitorious_server_configuration",
+            "use require 'git_server_configuration' and
+            Autoproj.git_server_configuration instead. note that the method call
+            interface has not changed, you just have to change the name(s)"
         git_server_configuration(name, base_url, options)
     end
 end

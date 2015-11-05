@@ -54,7 +54,7 @@ module Autoproj
     def self.warn_deprecated_level=(level)
         @warn_deprecated_level = level
     end
-    @warn_deprecated_level = 0
+    @warn_deprecated_level = 1
 
     def self.warn_deprecated(method, msg, level = 0)
         if level >= @warn_deprecated_level

@@ -534,7 +534,7 @@ end
 #
 # See Autoproj.user_config
 def user_config(key)
-    Autoproj.config.get(key)
+    Autoproj.user_config(key)
 end
 
 class Autobuild::Git
