@@ -585,6 +585,8 @@ module Autoproj
             result
         end
 
+        # @api private
+        #
         # Resolves a package name, where +name+ cannot be resolved as a
         # metapackage
         #
@@ -604,6 +606,16 @@ module Autoproj
             end
         end
 
+        # @api private
+        #
+        # Resolve a package name that is assumed to be a source package
+        #
+        # @param [String] name the name to be resolved
+        # @return [nil,Array] either nil if there is no such osdep, or a list of
+        #   (type, package_name) pairs where type is either :package or :osdep and
+        #   package_name the corresponding package name
+        # @raise PackageNotFound if the given package name cannot be resolved
+        #   into a package
         def resolve_package_name_as_source_package(name)
             if pkg = find_autobuild_package(name)
                 return [[:package, pkg.name]]
@@ -670,17 +682,23 @@ module Autoproj
             @metapackages[name.to_s]
         end
 
-        # call-seq:
-        #   metapackage 'meta_name' => Metapackage
-        #   metapackage 'meta_name', 'pkg1', 'pkg2' => Metapackage
+        # Add packages to a metapackage, creating the metapackage if it does not
+        # exist
         #
-        # Metapackage definition
+        # @overload metapackage(name)
+        #   Create a metapackage
         #
-        # In the first form, returns a Metapackage instance for the metapackage
-        # named 'meta_name'.
+        #   @return [Metapackage]
         #
-        # In the second form, adds the listed packages to the metapackage and
-        # returns the Metapackage instance
+        # @overload metapackage(name, *packages)
+        #   Add packages to a new or existing metapackage
+        #
+        #   @param [String] name the name of the metapackage. If it already
+        #     exists, the packages will be added to it.
+        #   @param [String] packages list of package names to be added to the
+        #     metapackage
+        #   @return [Metapackage]
+        #
         def metapackage(name, *packages, &block)
             meta = (@metapackages[name.to_s] ||= Metapackage.new(name))
             packages.each do |pkg_name|
