@@ -6,6 +6,9 @@ module Autoproj
         class Base
             include Ops::Tools
 
+            # The underlying workspace
+            # 
+            # @return [Workspace]
             attr_reader :ws
 
             def initialize(ws = nil)
@@ -44,14 +47,20 @@ module Autoproj
                 return selection, config_selected
             end
 
-            def resolve_user_selection(selected_packages, options = Hash.new)
+            # Resolve a user-provided selection
+            #
+            # @param (see expand_package_selection)
+            # @return [(PackageSelection,Array<String>)] the resolved selections
+            #   and the list of entries in selected_packages that have not been
+            #   resolved
+            def resolve_user_selection(selected_packages, **options)
                 if selected_packages.empty?
                     return ws.manifest.default_packages
                 end
                 selected_packages = selected_packages.to_set
 
                 selected_packages, nonresolved = ws.manifest.
-                    expand_package_selection(selected_packages, options)
+                    expand_package_selection(selected_packages, **options)
 
                 # Try to auto-add stuff if nonresolved
                 nonresolved.delete_if do |sel|
@@ -80,29 +89,56 @@ module Autoproj
                 return selected_packages, nonresolved
             end
 
-            def resolve_selection(manifest, user_selection, options = Hash.new)
-                options = Kernel.validate_options options,
-                    checkout_only: true,
-                    only_local: false,
-                    recursive: true,
-                    ignore_non_imported_packages: false
-
+            # Resolves the user-provided selection into the set of packages that
+            # should be processed further
+            #
+            # While {#resolve_user_selection} really only considers packages and
+            # strings, this methods takes care of doing recursive resolution of
+            # dependencies, as well as splitting the packages into source and
+            # osdep packages.
+            #
+            # It loads the packages in sequence (that's the only way the full
+            # selection can be computed), and is therefore responsible for
+            # updating the packages if needed (disabled by default)
+            #
+            # @param [Array<String>] user_selection the selection provided by
+            #   the user
+            # @param [Boolean] checkout_only if packages should be updated
+            #   (false) or only missing packages should be checked out (the
+            #   default)
+            # @param [Boolean] only_local if the update/checkout operation is
+            #   allowed to access the network. If only_local is true but some
+            #   packages should be checked out, the update will fail
+            # @param [Boolean] recursive whether the resolution should be done
+            #   recursively (i.e. dependencies of directly selected packages
+            #   should be added) or not
+            # @param [Boolean] ignore_non_imported_packages whether packages
+            #   that are not imported should simply be ignored. Setting
+            #   checkout_only to true and ignore_non_imported_packages to true
+            #   guarantees in effect that no import operation will take place,
+            #   only loading
+            # @return [(Array<String>,Array<String>,PackageSelection)] the list
+            #   of selected source packages, the list of selected OS packages and
+            #   the package selection resolution object
+            #
+            # @see resolve_user_selection
+            def resolve_selection(user_selection, checkout_only: true, only_local: false, recursive: true, ignore_non_imported_packages: false)
                 resolved_selection, _ = resolve_user_selection(user_selection, filter: false)
-                if options[:ignore_non_imported_packages]
-                    manifest.each_autobuild_package do |pkg|
+                if ignore_non_imported_packages
+                    ws.manifest.each_autobuild_package do |pkg|
                         if !File.directory?(pkg.srcdir)
-                            manifest.ignore_package(pkg.name)
+                            ws.manifest.ignore_package(pkg.name)
                         end
                     end
                 end
-                resolved_selection.filter_excluded_and_ignored_packages(manifest)
+                resolved_selection.filter_excluded_and_ignored_packages(ws.manifest)
 
                 ops = Ops::Import.new(ws)
                 source_packages, osdep_packages = ops.import_packages(
                     resolved_selection,
-                    checkout_only: options[:checkout_only],
-                    only_local: options[:only_local],
-                    recursive: options[:recursive],
+                    checkout_only: checkout_only,
+                    only_local: only_local,
+                    recursive: recursive,
                     warn_about_ignored_packages: false)
 
                 return source_packages, osdep_packages, resolved_selection

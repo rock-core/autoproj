@@ -18,7 +18,6 @@ module Autoproj
                 initialize_and_load
                 packages, _ = normalize_command_line_package_selection(selection)
                 source_packages, * = resolve_selection(
-                    ws.manifest,
                     selection,
                     recursive: false,
                     ignore_non_imported_packages: true)
