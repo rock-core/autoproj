@@ -557,8 +557,8 @@ module Autoproj
             pkg_names.each do |pkg|
                 begin
                     result.concat(resolve_single_package_name(pkg))
-                rescue PackageNotFound
-                    raise PackageNotFound, "cannot resolve #{pkg}: it is not a package, not a metapackage and not an osdep"
+                rescue PackageNotFound => e
+                    raise PackageNotFound, "cannot resolve #{pkg}: #{e}", e.backtrace
                 end
             end
             result
