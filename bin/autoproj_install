@@ -489,7 +489,6 @@ module Autoproj
                 require 'autobuild'
                 puts "saving env.sh and .autoproj/env.sh"
                 save_env_sh(*vars)
-                puts "calling autoproj envsh #{autoproj_options}"
                 if !system(Gem.ruby, autoproj_path, 'envsh', *autoproj_options)
                     exit 1
                 end
