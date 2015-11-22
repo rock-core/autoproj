@@ -225,7 +225,7 @@ module Autoproj
 
                 result = system(
                     env_for_child.merge('GEM_PATH' => "", 'GEM_HOME' => bundler_gem_home),
-                    gem_program, 'install', '--no-document', '--no-format-executable',
+                    Gem.ruby, gem_program, 'install', '--no-document', '--no-format-executable',
                         *local,
                         "--bindir=#{File.join(bundler_gem_home, 'bin')}", 'bundler')
 
