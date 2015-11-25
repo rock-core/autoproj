@@ -151,7 +151,7 @@ module Autoproj
 
                 candidates = ['gem']
                 if ruby_bin =~ /^ruby(.+)$/
-                    candidates << "gem#{$1}" 
+                    candidates.unshift "gem#{$1}" 
                 end
 
                 candidates.each do |gem_name|
