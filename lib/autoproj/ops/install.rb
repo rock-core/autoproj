@@ -176,9 +176,19 @@ module Autoproj
 
             # Parse the provided command line options and returns the non-options
             def parse_options(args = ARGV)
+                default_gem_path = File.join(Dir.home, '.autoproj', 'gems')
+                self.private_bundler  = default_gem_path
+                self.private_gems     = default_gem_path
+                self.private_autoproj = default_gem_path
+
                 options = OptionParser.new do |opt|
                     opt.on '--local', 'do not access the network (may fail)' do
                         @local = true
+                    end
+                    opt.on '--public', "install gems in the default RubyGems locations. Consider using this if you don't have a v1 install anymore" do
+                        self.private_bundler  = false
+                        self.private_autoproj = false
+                        self.private_gems     = false
                     end
                     opt.on '--private-bundler[=PATH]', 'install bundler locally in the workspace' do |path|
                         self.private_bundler = path || true
@@ -189,7 +199,7 @@ module Autoproj
                     opt.on '--private-gems[=PATH]', 'install gems locally in the prefix directory' do |path|
                         self.private_gems = path || true
                     end
-                    opt.on '--private[=PATH]', 'whether bundler, autoproj and the workspace gems should be installed locally in the workspace' do |path|
+                    opt.on '--private[=PATH]', "whether bundler, autoproj and the workspace gems should be installed locally in the workspace. This is the default, with a path of #{default_gem_path}" do |path|
                         self.private_bundler = path || true
                         self.private_autoproj = path || true
                         self.private_gems = path || true
