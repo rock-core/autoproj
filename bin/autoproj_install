@@ -54,15 +54,16 @@ module Autoproj
 
                 load_config
                 if config['ruby_executable'] != Gem.ruby
-                    raise "this autoproj installation was already bootstrapped using #{config['ruby_executable']}, but you are currently running under #{Gem.ruby}. Changing the ruby interpreter in a given workspace is not supported"
+                    raise "this autoproj installation was already bootstrapped using #{config['ruby_executable']}, but you are currently running under #{Gem.ruby}. Changing the ruby interpreter in a given workspace is not supported, you need to do a clean bootstrap"
                 end
 
                 @local = false
             end
 
             def env_for_child
-                result = env.inject(Hash.new) do |h, (k, v)|
-                    h[k] = (v.join(File::PATH_SEPARATOR) if v && !v.empty?)
+                env.inject(Hash.new) do |h, (k, v)|
+                    h[k] = if v && !v.empty? then v.join(File::PATH_SEPARATOR)
+                           end
                     h
                 end
             end
@@ -161,7 +162,7 @@ module Autoproj
 
                 candidates = ['gem']
                 if ruby_bin =~ /^ruby(.+)$/
-                    candidates << "gem#{$1}" 
+                    candidates.unshift "gem#{$1}" 
                 end
 
                 candidates.each do |gem_name|
@@ -185,9 +186,19 @@ module Autoproj
 
             # Parse the provided command line options and returns the non-options
             def parse_options(args = ARGV)
+                default_gem_path = File.join(Dir.home, '.autoproj', 'gems')
+                self.private_bundler  = default_gem_path
+                self.private_gems     = default_gem_path
+                self.private_autoproj = default_gem_path
+
                 options = OptionParser.new do |opt|
                     opt.on '--local', 'do not access the network (may fail)' do
                         @local = true
+                    end
+                    opt.on '--public', "install gems in the default RubyGems locations. Consider using this if you don't have a v1 install anymore" do
+                        self.private_bundler  = false
+                        self.private_autoproj = false
+                        self.private_gems     = false
                     end
                     opt.on '--private-bundler[=PATH]', 'install bundler locally in the workspace' do |path|
                         self.private_bundler = path || true
@@ -198,7 +209,7 @@ module Autoproj
                     opt.on '--private-gems[=PATH]', 'install gems locally in the prefix directory' do |path|
                         self.private_gems = path || true
                     end
-                    opt.on '--private[=PATH]', 'whether bundler, autoproj and the workspace gems should be installed locally in the workspace' do |path|
+                    opt.on '--private[=PATH]', "whether bundler, autoproj and the workspace gems should be installed locally in the workspace. This is the default, with a path of #{default_gem_path}" do |path|
                         self.private_bundler = path || true
                         self.private_autoproj = path || true
                         self.private_gems = path || true
@@ -235,15 +246,16 @@ module Autoproj
 
                 result = system(
                     env_for_child.merge('GEM_PATH' => "", 'GEM_HOME' => bundler_gem_home),
-                    gem_program, 'install', '--no-document', '--no-format-executable',
+                    Gem.ruby, gem_program, 'install', '--no-document', '--no-format-executable',
                         *local,
                         "--bindir=#{File.join(bundler_gem_home, 'bin')}", 'bundler')
 
-                if !result
+                if result
+                    File.join(bundler_gem_home, 'bin', 'bundler')
+                else
                     STDERR.puts "FATAL: failed to install bundler in #{dot_autoproj}"
-                    return
+                    nil
                 end
-                File.join(bundler_gem_home, 'bin', 'bundler')
             end
 
             def find_bundler
@@ -259,11 +271,11 @@ module Autoproj
                 if !bundler
                     if ENV['PATH'] != clean_path
                         STDERR.puts "  it appears that you already have some autoproj-generated env.sh loaded"
-                        STDERR.puts "  - if you are running 'autoproj upgrade', please contact the autoproj author at https://github.com/rock-core/autoproj/issues/new"
-                        STDERR.puts "  - if you are running an install, try again in a console where the env.sh is not loaded"
+                        STDERR.puts "  - if you are upgrading a v1 install, please contact the autoproj author at https://github.com/rock-core/autoproj/issues/new"
+                        STDERR.puts "  - if you are running a fresh install, try again in a console where the env.sh is not loaded"
                         exit 1
                     else
-                        STDERR.puts "  the recommended action is to install it manually first by running 'gem install bundler'"
+                        STDERR.puts "  you might want to try and install it manually first by running 'gem install bundler'"
                         STDERR.puts "  or call this command again with --private-bundler to have it installed in the workspace"
                         exit 1
                     end
@@ -470,10 +482,21 @@ module Autoproj
                     Gem.ruby, autoproj_path, *args, *autoproj_options
             end
 
+            def v1_workspace?
+                File.file?(File.join(root_dir, 'autoproj', 'config.yml')) &&
+                    !File.directory?(File.join(root_dir, '.autoproj'))
+            end
+
             def stage1
+                if v1_workspace? && File.file?(v1_envsh = File.join(root_dir, 'env.sh'))
+                    FileUtils.cp v1_envsh, 'env.sh-autoproj-v1'
+                end
                 FileUtils.mkdir_p dot_autoproj
                 save_config
                 install
+            rescue Exception
+                FileUtils.rm_rf dot_autoproj
+                raise
             end
 
             def call_stage2
@@ -490,6 +513,11 @@ module Autoproj
                 puts "saving env.sh and .autoproj/env.sh"
                 save_env_sh(*vars)
                 if !system(Gem.ruby, autoproj_path, 'envsh', *autoproj_options)
+                    exit 1
+                end
+                # This is really needed on an existing install to install the
+                # gems that were present in the v1 layout
+                if !system(Gem.ruby, autoproj_path, 'osdeps')
                     exit 1
                 end
             end
