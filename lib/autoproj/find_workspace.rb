@@ -82,7 +82,9 @@ module Autoproj
         path = Pathname.new(base_dir)
         while !path.root?
             if (path + "autoproj").exist?
-                return path.to_s
+                if !(path + ".autoproj").exist?
+                    return path.to_s
+                end
             end
             path = path.parent
         end
