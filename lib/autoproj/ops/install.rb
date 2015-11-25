@@ -230,11 +230,12 @@ module Autoproj
                         *local,
                         "--bindir=#{File.join(bundler_gem_home, 'bin')}", 'bundler')
 
-                if !result
+                if result
+                    File.join(bundler_gem_home, 'bin', 'bundler')
+                else
                     STDERR.puts "FATAL: failed to install bundler in #{dot_autoproj}"
-                    return
+                    nil
                 end
-                File.join(bundler_gem_home, 'bin', 'bundler')
             end
 
             def find_bundler
