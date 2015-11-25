@@ -51,8 +51,9 @@ module Autoproj
             end
 
             def env_for_child
-                result = env.inject(Hash.new) do |h, (k, v)|
-                    h[k] = (v.join(File::PATH_SEPARATOR) if v && !v.empty?)
+                env.inject(Hash.new) do |h, (k, v)|
+                    h[k] = if v && !v.empty? then v.join(File::PATH_SEPARATOR)
+                           end
                     h
                 end
             end
