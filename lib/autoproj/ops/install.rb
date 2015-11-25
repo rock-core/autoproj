@@ -251,11 +251,11 @@ module Autoproj
                 if !bundler
                     if ENV['PATH'] != clean_path
                         STDERR.puts "  it appears that you already have some autoproj-generated env.sh loaded"
-                        STDERR.puts "  - if you are running 'autoproj upgrade', please contact the autoproj author at https://github.com/rock-core/autoproj/issues/new"
-                        STDERR.puts "  - if you are running an install, try again in a console where the env.sh is not loaded"
+                        STDERR.puts "  - if you are upgrading a v1 install, please contact the autoproj author at https://github.com/rock-core/autoproj/issues/new"
+                        STDERR.puts "  - if you are running a fresh install, try again in a console where the env.sh is not loaded"
                         exit 1
                     else
-                        STDERR.puts "  the recommended action is to install it manually first by running 'gem install bundler'"
+                        STDERR.puts "  you might want to try and install it manually first by running 'gem install bundler'"
                         STDERR.puts "  or call this command again with --private-bundler to have it installed in the workspace"
                         exit 1
                     end

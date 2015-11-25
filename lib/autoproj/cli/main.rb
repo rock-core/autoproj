@@ -320,24 +320,6 @@ The format is a string in which special values can be expanded using a $VARNAME 
                 run_autoproj_cli(:query, :Query, Hash[], *Array(query_string))
             end
 
-            desc 'upgrade', "upgrade autoproj itself, and the workspace layout"
-            option :local, type: :boolean, default: false,
-                desc: 'do not access the network (will fail if some gems are missing)'
-            option :gemfile, type: :string,
-                desc: 'path to a gemfile that should be used to install autoproj'
-            def upgrade
-                require 'autoproj/ops/install'
-                installer = Autoproj::Ops::Install.new(Dir.pwd)
-
-                if options.has_key?('local')
-                    installer.local = options['local']
-                end
-                if options[:gemfile]
-                    installer.gemfile = File.read(options[:gemfile])
-                end
-                installer.stage1
-            end
-
             desc 'install_stage2 ROOT_DIR [ENVVAR=VALUE ...]', 'used by autoproj_install to finalize the installation',
                 hide: true
             def install_stage2(root_dir, *vars)
