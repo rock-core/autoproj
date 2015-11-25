@@ -495,6 +495,11 @@ module Autoproj
                 if !system(Gem.ruby, autoproj_path, 'envsh', *autoproj_options)
                     exit 1
                 end
+                # This is really needed on an existing install to install the
+                # gems that were present in the v1 layout
+                if !system(Gem.ruby, autoproj_path, 'osdeps')
+                    exit 1
+                end
             end
         end
     end
