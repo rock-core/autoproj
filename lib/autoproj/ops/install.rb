@@ -462,10 +462,21 @@ module Autoproj
                     Gem.ruby, autoproj_path, *args, *autoproj_options
             end
 
+            def v1_workspace?
+                File.file?(File.join(root_dir, 'autoproj', 'config.yml')) &&
+                    !File.directory?(File.join(root_dir, '.autoproj'))
+            end
+
             def stage1
+                if v1_workspace? && File.file?(v1_envsh = File.join(root_dir, 'env.sh'))
+                    FileUtils.cp v1_envsh, 'env.sh-autoproj-v1'
+                end
                 FileUtils.mkdir_p dot_autoproj
                 save_config
                 install
+            rescue Exception
+                FileUtils.rm_rf dot_autoproj
+                raise
             end
 
             def call_stage2
