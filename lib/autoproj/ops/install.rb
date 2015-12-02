@@ -313,7 +313,7 @@ module Autoproj
             end
 
             def self.clean_binstubs(binstubs_path)
-                %w{bundler bundle}.each do |bundler_bin|
+                %w{bundler bundle rake thor}.each do |bundler_bin|
                     path = File.join(binstubs_path, bundler_bin)
                     if File.file?(path)
                         FileUtils.rm path
