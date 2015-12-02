@@ -31,7 +31,6 @@ module Autoproj
 
                 config = ws.config
 
-                env.add_path 'PATH', File.join(Gem.user_dir, 'bin')
                 env.add_path 'PATH', File.join(ws.prefix_dir, 'gems', 'bin')
                 env.add_path 'PATH', File.join(config.bundler_gem_home, 'bin')
                 env.add_path 'PATH', File.join(ws.dot_autoproj_dir, 'autoproj', 'bin')
