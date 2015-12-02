@@ -64,7 +64,7 @@ module Autoproj
                     end
                 # And discover the system's rubylib
                 if system_rubylib = discover_rubylib
-                    env.system_env['RUBYLIB'] = []
+                    env.system_env['RUBYLIB'] = system_rubylib
                     env.original_env['RUBYLIB'] = (original_rubylib - system_rubylib).join(File::PATH_SEPARATOR)
                 end
 
@@ -246,6 +246,7 @@ module Autoproj
                         out: io,
                         err: '/dev/null')
                     if result
+                        io.rewind
                         io.readlines.map { |l| l.chomp }.find_all { |l| !l.empty? }
                     end
                 end
@@ -260,11 +261,12 @@ module Autoproj
                 end
                 Tempfile.open 'autoproj-rubylib' do |io|
                     result = Bundler.clean_system(
-                        Hash['BUNDLE_GEMFILE' => gemfile],
-                        Autobuild.tool('bundler'), 'exec', 'ruby', '-e', 'puts $LOAD_PATH',
+                        Hash['BUNDLE_GEMFILE' => gemfile, 'RUBYLIB' => nil],
+                        Autobuild.tool('bundler'), 'exec', 'ruby', '-rbundler/setup', '-e', 'puts $LOAD_PATH',
                         out: io, **silent_redirect)
                         
                     if result
+                        io.rewind
                         io.readlines.map { |l| l.chomp }.find_all { |l| !l.empty? }
                     end
                 end
