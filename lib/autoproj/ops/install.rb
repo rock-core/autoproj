@@ -24,6 +24,8 @@ module Autoproj
             # A set of options that should be passed to autoproj when calling it
             # in a subprocess
             attr_reader :autoproj_options
+            # The Ruby interpreter we use for this install
+            attr_reader :ruby_executable
 
             def initialize(root_dir)
                 @root_dir = root_dir
@@ -46,7 +48,7 @@ module Autoproj
                 if config['ruby_executable'] != Gem.ruby
                     raise "this autoproj installation was already bootstrapped using #{config['ruby_executable']}, but you are currently running under #{Gem.ruby}. Changing the ruby interpreter in a given workspace is not supported, you need to do a clean bootstrap"
                 end
-
+                @ruby_executable = config['ruby_executable']
                 @local = false
             end
 
@@ -91,6 +93,8 @@ module Autoproj
             # The path to the gemfile used to install autoproj
             def autoproj_gemfile_path; File.join(autoproj_install_dir, 'Gemfile') end
             def autoproj_config_path; File.join(dot_autoproj, 'config.yml') end
+
+            def shim_path; File.join(dot_autoproj, 'bin') end
 
             # Whether we can access the network while installing
             def local?; !!@local end
@@ -411,6 +415,20 @@ module Autoproj
                 end
             end
 
+            def save_ruby_and_bundler_shims(bundler_path)
+                FileUtils.mkdir_p shim_path
+                File.open(File.join(shim_path, 'bundler'), 'w') do |io|
+                    io.puts "#! /bin/sh"
+                    io.puts "exec #{ruby_executable} #{bundler_path} \"$@\""
+                end
+                FileUtils.chmod 0755, File.join(shim_path, 'bundler')
+                File.open(File.join(shim_path, 'ruby'), 'w') do |io|
+                    io.puts "#! /bin/sh"
+                    io.puts "exec #{ruby_executable} \"$@\""
+                end
+                FileUtils.chmod 0755, File.join(shim_path, 'ruby')
+            end
+
             def install
                 if private_bundler?
                     puts "Installing bundler in #{bundler_gem_home}"
@@ -422,6 +440,8 @@ module Autoproj
                 else
                     exit 1
                 end
+                save_ruby_and_bundler_shims(bundler)
+                env['PATH'].unshift shim_path
                 save_gemfile
                 puts "Installing autoproj in #{dot_autoproj}"
                 install_autoproj(bundler)

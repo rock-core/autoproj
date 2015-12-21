@@ -45,11 +45,10 @@ module Autoproj
                 if !config.private_bundler? || !config.private_autoproj? || !config.private_gems?
                     env.set('GEM_PATH', *Gem.default_path)
                 end
+                Autobuild.programs['bundler'] = File.join(ws.dot_autoproj_dir, 'bin', 'bundler')
+
                 if config.private_bundler?
-                    Autobuild.programs['bundler'] = File.join(config.bundler_gem_home, 'bin', 'bundler')
                     env.add_path 'GEM_PATH', config.bundler_gem_home
-                else
-                    Autobuild.programs['bundler'] = env.find_in_path('bundler')
                 end
 
                 env.init_from_env 'RUBYLIB'
