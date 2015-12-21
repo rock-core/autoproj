@@ -342,9 +342,6 @@ module Autoproj
             end
             options_env = options.fetch(:env, Hash.new)
             options[:env] = env.resolved_env.merge(options_env)
-            if options_env['BUNDLE_GEMFILE']
-                raise
-            end
             Autobuild::Subprocess.run(*args, options, &block)
         end
 
