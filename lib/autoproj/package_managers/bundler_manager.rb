@@ -265,7 +265,7 @@ module Autoproj
                 Tempfile.open 'autoproj-rubylib' do |io|
                     result = Bundler.clean_system(
                         Hash['BUNDLE_GEMFILE' => gemfile, 'RUBYLIB' => nil],
-                        Autobuild.tool('bundler'), 'exec', 'ruby', '-rbundler/setup', '-e', 'puts $LOAD_PATH',
+                        Autobuild.tool('bundler'), 'exec', Autobuild.tool('ruby'), '-rbundler/setup', '-e', 'puts $LOAD_PATH',
                         out: io, **silent_redirect)
                         
                     if result
