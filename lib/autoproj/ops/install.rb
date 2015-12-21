@@ -298,7 +298,7 @@ module Autoproj
                 if private_autoproj?
                     clean_env['GEM_PATH'] = bundler_gem_home
                     clean_env['GEM_HOME'] = nil
-                    opts << "--clean" << "--path=#{autoproj_gem_home}"
+                    opts << "--path=#{autoproj_gem_home}"
                 end
                 binstubs_path = File.join(autoproj_install_dir, 'bin')
                 result = system(clean_env.merge('GEM_HOME' => autoproj_gem_home),
