@@ -63,7 +63,12 @@ module Autoproj
                     end
                 # And discover the system's rubylib
                 if system_rubylib = discover_rubylib
-                    env.system_env['RUBYLIB'] = system_rubylib
+                    # Do not explicitely add the system rubylib to the
+                    # environment, the interpreter will do it for us.
+                    #
+                    # This allows to use a binstub generated for one of ruby
+                    # interpreter version on our workspace
+                    env.system_env['RUBYLIB'] = []
                     env.original_env['RUBYLIB'] = (original_rubylib - system_rubylib).join(File::PATH_SEPARATOR)
                 end
 
