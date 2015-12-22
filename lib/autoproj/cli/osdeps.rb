@@ -9,9 +9,13 @@ module Autoproj
                     finalize_setup(user_selection,
                                    ignore_non_imported_packages: true)
 
+                options = Kernel.validate_options options,
+                    update: true,
+                    shell_helpers: ws.config.shell_helpers?
                 ws.install_os_packages(
                     osdep_packages,
                     install_only: !options[:update])
+                ws.export_env_sh(shell_helpers: options[:shell_helpers])
             end
         end
     end
