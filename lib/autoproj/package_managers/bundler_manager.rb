@@ -164,6 +164,63 @@ module Autoproj
                 end
             end
 
+            # Parse the contents of a gemfile into a set of 
+            def merge_gemfiles(*path, unlock: [])
+                gems_remotes = Set.new
+                dependencies = Hash.new do |h, k|
+                    h[k] = Hash.new do |h, k|
+                        h[k] = Hash.new do |a, b|
+                            a[b] = Array.new
+                        end
+                    end
+                end
+                path.each do |gemfile|
+                    bundler_def = Bundler::Dsl.evaluate(gemfile, nil, [])
+                    gems_remotes |= bundler_def.send(:sources).rubygems_remotes.to_set
+                    bundler_def.dependencies.each do |d|
+                        d.groups.each do |group_name|
+                            if !d.platforms.empty?
+                                d.platforms.each do |platform_name|
+                                    dependencies[group_name][platform_name][d.name] = d
+                                end
+                            else
+                                dependencies[group_name][''][d.name] = d
+                            end
+                        end
+                    end
+                end
+
+                contents = []
+                gems_remotes.each do |g|
+                    g = g.to_s
+                    if g.end_with?('/')
+                        g = g[0..-2]
+                    end
+                    contents << "source '#{g.to_s}'"
+                end
+                dependencies.each do |group_name, by_platform|
+                    contents << "group :#{group_name} do"
+                    by_platform.each do |platform_name, deps|
+                        deps = deps.values.sort_by(&:name)
+                        if !platform_name.empty?
+                            contents << "  platform :#{platform_name} do"
+                            platform_indent = "  "
+                        end
+                        deps.each do |d|
+                            if d.source
+                                options = d.source.options.map { |k, v| "#{k}: \"#{v}\"" }
+                            end
+                            contents << ["  #{platform_indent}gem \"#{d.name}\", \"#{d.requirement}\"", *options].join(", ")
+                        end
+                        if !platform_name.empty?
+                            contents << "  end"
+                        end
+                    end
+                    contents << "end"
+                end
+                contents.join("\n")
+            end
+
             def install(gems, filter_uptodate_packages: false, install_only: false)
                 root_dir     = File.join(ws.prefix_dir, 'gems')
                 gemfile_path = File.join(root_dir, 'Gemfile')
@@ -192,20 +249,21 @@ module Autoproj
                 Dir.glob(File.join(ws.overrides_dir, "*.gemfile")) do |gemfile_path|
                     gemfiles << gemfile_path
                 end
+                gemfiles << File.join(ws.dot_autoproj_dir, 'autoproj', 'Gemfile')
 
-                # Generate the gemfile and remove the lockfile
-                gemfile_lines = gems.map do |name|
-                    name, version = parse_package_entry(name)
-                    "gem \"#{name}\", \"#{version || ">= 0"}\""
+                # Save the osdeps entries in a temporary gemfile and finally
+                # merge the whole lot of it
+                gemfile_contents = Tempfile.open 'autoproj-gemfile' do |io|
+                    osdeps_gemfile_lines = gems.sort.map do |name|
+                        name, version = parse_package_entry(name)
+                        io.puts "gem \"#{name}\", \"#{version || ">= 0"}\""
+                    end
+                    io.flush
+                    gemfiles.unshift io.path
+                    # The autoproj gemfile needs to be last, we really don't
+                    # want to mess it up
+                    merge_gemfiles(*gemfiles)
                 end
-                gemfiles.each do |gemfile|
-                    gemfile_lines.concat(File.readlines(gemfile).map(&:chomp))
-                end
-                gemfile_lines = gemfile_lines.sort.uniq
-                gemfile_contents = [
-                    "eval_gemfile \"#{File.join(ws.dot_autoproj_dir, 'autoproj', 'Gemfile')}\"",
-                    *gemfile_lines
-                ].join("\n")
 
                 FileUtils.mkdir_p root_dir
                 if updated = (!File.exist?(gemfile_path) || File.read(gemfile_path) != gemfile_contents)
@@ -237,7 +295,7 @@ module Autoproj
                 backup_restore(backups)
                 raise
             ensure
-                FileUtils.rm_f File.join(binstubs_path, 'bundler')
+                FileUtils.rm_f File.join(binstubs_path, 'bundler') if binstubs_path
                 backup_clean(backups)
             end
 
