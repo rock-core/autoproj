@@ -35,6 +35,7 @@ module Autoproj
                 env.add_path 'PATH', File.join(config.bundler_gem_home, 'bin')
                 env.add_path 'PATH', File.join(ws.dot_autoproj_dir, 'autoproj', 'bin')
                 env.set 'GEM_HOME', config.gems_gem_home
+                env.set 'GEM_PATH', config.bundler_gem_home
 
                 root_dir     = File.join(ws.prefix_dir, 'gems')
                 gemfile_path = File.join(root_dir, 'Gemfile')
@@ -215,7 +216,7 @@ module Autoproj
 
                 options = Array.new
                 if ws.config.private_gems?
-                    options << "--path" << ws.config.gems_gem_home
+                    options << "--path" << ws.config.gems_bundler_path
                 end
 
                 binstubs_path = File.join(root_dir, 'bin')

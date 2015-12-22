@@ -226,19 +226,32 @@ module Autoproj
             !!get('private_gems', false)
         end
 
-        def gems_gem_home
+        # The path provided to bundler to install the gems
+        def gems_bundler_path
             value = get('private_gems', false)
             if value.respond_to?(:to_str)
-                return value
+                value
             elsif value
                 default = File.join(ws.prefix_dir, 'gems')
                 set('private_gems', default)
                 default
-            else
-                Gem.user_dir
             end
         end
 
+        # The GEM_HOME derived from {#gems_bundler_path}
+        #
+        # RubyGems and Bundler install gems in a subdirectory specific to the
+        # Ruby platform and version. This adds the relevant suffix to
+        # {#gems_bundler_path}
+        def gems_gem_home
+            base_path = gems_bundler_path || File.join(Gem.user_dir, '.gem')
+            path_suffix = Pathname.new(Gem.user_dir).
+                relative_path_from(Pathname.new(File.join(Gem.user_home, '.gem'))).
+                to_s
+            File.join(base_path, path_suffix)
+        end
+
+        # The full path to the expected ruby executable
         def ruby_executable
             if path = get('ruby_executable', nil)
                 path
@@ -249,6 +262,8 @@ module Autoproj
             end
         end
 
+        # Verify that the Ruby executable that is being used to run autoproj
+        # matches the one expected in the configuration
         def validate_ruby_executable
             actual   = OSPackageResolver.autodetect_ruby_program
             if has_value_for?('ruby_executable')
