@@ -162,8 +162,8 @@ module Autoproj
                     silent: false,
                     verbose: false,
                     debug: false,
-                    color: TTY::Screen.color?,
-                    progress: TTY::Screen.color?,
+                    color: TTY::Color.color?,
+                    progress: TTY::Color.color?,
                     parallel: nil
 
                 Autoproj.silent = options[:silent]
