@@ -107,7 +107,7 @@ module Autoproj
             option :local, type: :boolean, default: false,
                 desc: "use only local information for the update (for importers that support it)"
             option :osdeps_filter_uptodate, default: true, type: :boolean,
-                desc: 'controls whether the osdeps subsystem should filter up-to-date packages or not', default: true
+                desc: 'controls whether the osdeps subsystem should filter up-to-date packages or not'
             option :deps, default: true, type: :boolean,
                 desc: 'whether the package dependencies should be recursively updated (the default) or not'
             option :reset, default: false, type: :boolean,
