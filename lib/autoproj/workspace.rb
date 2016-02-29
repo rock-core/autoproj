@@ -331,7 +331,7 @@ module Autoproj
                 config.save
                 ENV['AUTOPROJ_RESTARTING'] = '1'
                 require 'rbconfig'
-                exec(ruby_executable, $0, *argv)
+                exec(config.ruby_executable, $0, *ARGV)
             end
         end
 

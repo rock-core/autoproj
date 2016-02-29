@@ -4,6 +4,10 @@ require 'autobuild'
 require 'set'
 
 module Autoproj
+    def self.ruby_executable
+        Autoproj.workspace.config.ruby_executable
+    end
+
     module CmdLine
         def self.ruby_executable
             Autoproj.workspace.config.ruby_executable
