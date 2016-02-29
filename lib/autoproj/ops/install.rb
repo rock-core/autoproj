@@ -435,6 +435,7 @@ module Autoproj
                     if !(bundler = install_bundler)
                         exit 1
                     end
+                    env['GEM_PATH'].unshift bundler_gem_home
                 elsif bundler = find_bundler
                     puts "Detected bundler at #{bundler}"
                 else
