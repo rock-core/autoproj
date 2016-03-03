@@ -98,6 +98,8 @@ module Autoproj
                 old.matches.each do |sel, set|
                     @matches[sel] = set.dup
                 end
+                @source_packages = old.source_packages.dup
+                @osdeps = old.osdeps.dup
             end
 
             def has_match_for?(sel)
@@ -138,18 +140,20 @@ module Autoproj
                     end
 
                     excluded = excluded.to_set
-                    ignored = ignored.to_set
+                    ignored  = ignored.to_set
                     expansion.delete_if do |pkg_name|
                         ignored.include?(pkg_name) || excluded.include?(pkg_name)
                     end
                 end
 
-                selection.keys.sort.each do |pkg_name|
-                    if manifest.excluded?(pkg_name)
-                        selection.delete(pkg_name)
-                    elsif manifest.ignored?(pkg_name)
-                        selection.delete(pkg_name)
-                    end
+                source_packages.delete_if do |pkg_name| 
+                    manifest.excluded?(pkg_name) || manifest.ignored?(pkg_name)
+                end
+                osdeps.delete_if do |pkg_name| 
+                    manifest.excluded?(pkg_name) || manifest.ignored?(pkg_name)
+                end
+                selection.delete_if do |pkg_name, _|
+                    manifest.excluded?(pkg_name) || manifest.ignored?(pkg_name)
                 end
                 matches.delete_if do |key, sel|
                     sel.empty?
