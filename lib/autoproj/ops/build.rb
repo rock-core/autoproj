@@ -22,7 +22,6 @@ module Autoproj
             # {update_os_packages?} is set to true (the default)
             def rebuild_all
                 packages = manifest.all_layout_packages
-                manifest.pristine_os_packages(packages)
                 rebuild_packages(packages, packages)
             end
 
