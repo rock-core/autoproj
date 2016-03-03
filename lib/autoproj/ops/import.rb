@@ -181,7 +181,7 @@ module Autoproj
                         # interactive imports if there are some. Otherwise,
                         # we're done
                         if interactive_imports.empty?
-                            return all_processed_packages
+                            break
                         else
                             interactive_imports.each do |pkg|
                                 begin
@@ -226,6 +226,9 @@ module Autoproj
                     raise ImportFailed, "import of #{failures.size} packages failed: #{failures.keys.map(&:name).sort.join(", ")}"
                 end
 
+                all_processed_packages.delete_if do |pkg|
+                    ws.manifest.excluded?(pkg.name) || ws.manifest.ignored?(pkg.name)
+                end
                 all_processed_packages
 
             ensure
