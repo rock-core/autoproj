@@ -274,9 +274,12 @@ module Autoproj
                             pkg.os_packages << pkg_name
                         end
                     end
-                    pkg.prepare
-                    Rake::Task["#{pkg.name}-prepare"].instance_variable_set(:@already_invoked, true)
-                    pkg.update_environment
+
+                    if File.directory?(pkg.srcdir)
+                        pkg.prepare
+                        Rake::Task["#{pkg.name}-prepare"].instance_variable_set(:@already_invoked, true)
+                        pkg.update_environment
+                    end
                     package_queue.concat(pkg.dependencies)
                 end
                 all
