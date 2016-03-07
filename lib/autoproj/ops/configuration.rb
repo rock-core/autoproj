@@ -210,7 +210,6 @@ module Autoproj
             by_name = Hash.new
 
             required_remotes_dirs = Array.new
-            required_user_dirs = Array.new
 
             queue = queue_auto_imports_if_needed(Array.new, root_pkg_set, root_pkg_set)
             while !queue.empty?
@@ -276,6 +275,7 @@ module Autoproj
                 queue_auto_imports_if_needed(queue, pkg_set, root_pkg_set)
             end
 
+            required_user_dirs = by_name.collect { |k,v| k }
             cleanup_remotes_dir(package_sets, required_remotes_dirs)
             cleanup_remotes_user_dir(package_sets, required_user_dirs)
             package_sets
