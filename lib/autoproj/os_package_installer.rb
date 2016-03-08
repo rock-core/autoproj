@@ -102,7 +102,7 @@ OS dependencies.
 
 * if you say "all", all OS-independent packages are going to be installed.
 * if you say "gem", the RubyGem packages will be installed.
-* if you say "pip", the Pythin PIP packages will be installed.
+* if you say "pip", the Python PIP packages will be installed.
 * if you say "none", autoproj will not do anything related to the OS
   dependencies.
 
@@ -136,7 +136,7 @@ while handling OS dependencies.
 
 * if you say "all", it will install all packages automatically.
   This requires root access thru 'sudo'
-* if you say "pip", only the Ruby packages will be installed.
+* if you say "pip", only the Python packages will be installed.
   Installing these packages does not require root access.
 * if you say "gem", only the Ruby packages will be installed.
   Installing these packages does not require root access.
