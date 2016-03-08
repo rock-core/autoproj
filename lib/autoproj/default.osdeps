@@ -143,13 +143,15 @@ svn:
   freebsd: subversion
 
 cmake:
-  debian,ubuntu: cmake
+  debian,ubuntu:
+    - cmake
   gentoo: dev-util/cmake
   arch: cmake
   fedora: cmake
   darwin: cmake
   opensuse: cmake
   freebsd: cmake
+  osdep: build-essential
 
 autotools:
   debian,ubuntu:
@@ -173,6 +175,7 @@ autotools:
   freebsd:
   - automake
   - autoconf
+  osdep: build-essential
 
 archive:
   debian,ubuntu:
