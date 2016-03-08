@@ -196,7 +196,7 @@ Autoproj::CmdLine.report do
     # build the list of packages that have actually been selected on the command
     # line.
     all_enabled_packages = Autoproj::CmdLine.import_packages(selected_packages)
-    Autoproj::CmdLine.load_all_available_package_manifests
+    Autoproj::CmdLine.load_all_available_package_manifests(false)
     Autoproj::CmdLine.export_installation_manifest
 
     if Autoproj::CmdLine.update_os_dependencies? && !all_enabled_packages.empty?

@@ -355,10 +355,11 @@ module Autoproj
         # but simply warns in case of errors. The reasons for that is that the
         # only packages that should really block the current processing are the
         # ones that are selected on the command line
-        def self.load_all_available_package_manifests
+        def self.load_all_available_package_manifests(overwrite_existing = true)
             # Load the manifest for packages that are already present on the
             # file system
             manifest.packages.each_value do |pkg|
+                next if !overwrite_existing && pkg.autobuild.description
                 if File.directory?(pkg.autobuild.srcdir)
                     begin
                         manifest.load_package_manifest(pkg.autobuild.name)
@@ -1542,7 +1543,7 @@ where 'mode' is one of:
             Autoproj::CmdLine.finalize_package_setup
 
 
-            load_all_available_package_manifests
+            load_all_available_package_manifests(true)
             update_environment
             remaining_arguments
         end
