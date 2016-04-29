@@ -80,6 +80,12 @@ ruby21:
       - gem: rake
   default: ignore # we assume that if the user has a ruby 2.1 runtime, it is usable
 
+ruby22:
+  default: ignore # we assume that if the user has a ruby 2.2 runtime, it is usable
+
+ruby23:
+  default: ignore # we assume that if the user has a ruby 2.3 runtime, it is usable
+
 build-essential:
   debian,ubuntu: build-essential
   gentoo: ignore
