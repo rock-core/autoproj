@@ -77,6 +77,18 @@ module Autoproj
                 puts "  directly depends on: #{pkg.dependencies.sort.join(", ")}"
                 puts "  optionally depends on: #{pkg.optional_dependencies.sort.join(", ")}"
                 puts "  dependencies on OS packages: #{pkg.os_packages.sort.join(", ")}"
+                puts "  environment"
+                pkg.resolved_env.sort_by(&:first).each do |name, v|
+                    values = v.split(File::PATH_SEPARATOR)
+                    if values.size == 1
+                        puts "    #{name}: #{values.first}"
+                    else
+                        puts "    #{name}:"
+                        values.each do |single_v|
+                            puts "      #{single_v}"
+                        end
+                    end
+                end
             end
 
             def display_osdep_package(pkg_name, default_packages, revdeps)
