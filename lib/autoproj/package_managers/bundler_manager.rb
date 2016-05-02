@@ -208,7 +208,9 @@ module Autoproj
                         end
                         deps.each do |d|
                             if d.source
-                                options = d.source.options.map { |k, v| "#{k}: \"#{v}\"" }
+                                options = d.source.options.dup
+                                options.delete 'root_path'
+                                options = options.map { |k, v| "#{k}: \"#{v}\"" }
                             end
                             contents << ["  #{platform_indent}gem \"#{d.name}\", \"#{d.requirement}\"", *options].join(", ")
                         end
