@@ -182,6 +182,8 @@ module Autoproj
             desc 'show [PACKAGES]', 'show informations about package(s)'
             option :mainline, type: :string,
                 desc: "compare to the given baseline. if 'true', the comparison will ignore any override, otherwise it will take into account overrides only up to the given package set"
+            option :env, type: :boolean,
+                desc: "display the package's own environment", default: false
             def show(*packages)
                 run_autoproj_cli(:show, :Show, Hash[], *packages)
             end

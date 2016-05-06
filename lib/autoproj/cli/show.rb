@@ -6,7 +6,7 @@ module Autoproj
         class Show < InspectionTool
             def run(user_selection, options = Hash.new)
                 options = Kernel.validate_options options,
-                    mainline: false
+                    mainline: false, env: false
 
                 initialize_and_load(mainline: options.delete(:mainline))
                 default_packages = ws.manifest.default_packages
@@ -24,14 +24,14 @@ module Autoproj
                 revdeps = ws.manifest.compute_revdeps
 
                 source_packages.each do |pkg_name|
-                    display_source_package(pkg_name, default_packages, revdeps)
+                    display_source_package(pkg_name, default_packages, revdeps, env: options[:env])
                 end
                 osdep_packages.each do |pkg_name|
                     display_osdep_package(pkg_name, default_packages, revdeps)
                 end
             end
 
-            def display_source_package(pkg_name, default_packages, revdeps)
+            def display_source_package(pkg_name, default_packages, revdeps, options = Hash.new)
                 puts Autoproj.color("source package #{pkg_name}", :bold)
                 pkg = ws.manifest.find_autobuild_package(pkg_name)
                 if !File.directory?(pkg.srcdir)
@@ -77,15 +77,17 @@ module Autoproj
                 puts "  directly depends on: #{pkg.dependencies.sort.join(", ")}"
                 puts "  optionally depends on: #{pkg.optional_dependencies.sort.join(", ")}"
                 puts "  dependencies on OS packages: #{pkg.os_packages.sort.join(", ")}"
-                puts "  environment"
-                pkg.resolved_env.sort_by(&:first).each do |name, v|
-                    values = v.split(File::PATH_SEPARATOR)
-                    if values.size == 1
-                        puts "    #{name}: #{values.first}"
-                    else
-                        puts "    #{name}:"
-                        values.each do |single_v|
-                            puts "      #{single_v}"
+                if options[:env]
+                    puts "  environment"
+                    pkg.resolved_env.sort_by(&:first).each do |name, v|
+                        values = v.split(File::PATH_SEPARATOR)
+                        if values.size == 1
+                            puts "    #{name}: #{values.first}"
+                        else
+                            puts "    #{name}:"
+                            values.each do |single_v|
+                                puts "      #{single_v}"
+                            end
                         end
                     end
                 end
