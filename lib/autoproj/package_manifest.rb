@@ -52,6 +52,19 @@ module Autoproj
             return short_documentation
         end
 
+        def has_short_documentation?
+            xml.elements.each('package/description') do |node|
+                doc = node.attributes['brief']
+                if doc
+                    doc = doc.to_s.strip
+                end
+                if doc && !doc.empty?
+                    return true
+                end
+            end
+            false
+        end
+
         def short_documentation
             xml.elements.each('package/description') do |node|
                 doc = node.attributes['brief']
