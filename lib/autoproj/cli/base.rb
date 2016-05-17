@@ -190,7 +190,7 @@ module Autoproj
                     remaining[:parallel] = Integer(level)
                 end
 
-                return args, remaining
+                return args, remaining.to_sym_keys
             end
         end
     end
