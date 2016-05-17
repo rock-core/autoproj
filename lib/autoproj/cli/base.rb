@@ -1,3 +1,4 @@
+require 'tty/color'
 require 'autoproj'
 require 'autoproj/autobuild'
 
