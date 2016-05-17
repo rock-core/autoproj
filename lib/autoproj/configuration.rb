@@ -179,6 +179,16 @@ module Autoproj
             @ruby_executable ||= OSDependencies.autodetect_ruby_program
         end
 
+        # For Autoproj 2.0 forward compatibility
+        def shell_helpers?
+            Autoproj.shell_helpers?
+        end
+
+        # For Autoproj 2.0 forward compatibility
+        def shell_helpers=(flag)
+            Autoproj.shell_helpers = flag
+        end
+
         def validate_ruby_executable
             if has_value_for?('ruby_executable')
                 expected = get('ruby_executable')
