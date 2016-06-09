@@ -21,7 +21,7 @@ Gem::Specification.new do |s|
     s.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
 
     s.add_runtime_dependency "autobuild", ">= 1.10.0.a"
-    s.add_runtime_dependency "utilrb", ">= 2.0"
+    s.add_runtime_dependency "utilrb", ">= 3.0"
     s.add_runtime_dependency "thor", '~> 0.19.0', '>= 0.19.1'
     s.add_runtime_dependency 'concurrent-ruby'
     s.add_runtime_dependency 'tty-color', '~> 0.3.0', '>= 0.3.0'
