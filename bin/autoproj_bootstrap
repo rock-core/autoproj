@@ -2889,12 +2889,6 @@ DEFS = <<EODEFS
 ---
 none: ignore
 ruby19:
-  debian:
-  - ruby1.9.1
-  - ruby1.9.1-dev
-  - rubygems1.9.1
-  - rake
-  - rubygems-integration
   ubuntu:
     '12.04':
     - ruby1.9.1
@@ -2903,17 +2897,7 @@ ruby19:
     - ri1.9.1
     - libopenssl-ruby1.9.1
     - rake
-    default:
-    - ruby1.9.1
-    - ruby1.9.1-dev
-    - rubygems1.9.1
-    - ri1.9.1
-    - libopenssl-ruby1.9.1
-    - rake
-    - rubygems-integration
-  gentoo:
-  - dev-lang/ruby:1.9
-  - rake
+    default: ignore
   fedora:
     '17':
     - ruby
@@ -2948,12 +2932,13 @@ ruby20:
   default: ignore
 ruby21:
   debian:
-  - ruby2.1
-  - ruby2.1-dev
-  - rake
-  - rubygems-integration
+    jessie:
+    - ruby2.1
+    - ruby2.1-dev
+    - rake
+    - rubygems-integration
   ubuntu:
-    '14.10':
+    14.10,15.04,15.10:
     - ruby2.1
     - ruby2.1-dev
     - rake
@@ -2962,6 +2947,29 @@ ruby21:
   fedora: ruby-devel
   macos-brew:
   - gem: rake
+  default: ignore
+ruby22:
+  ubuntu:
+    '15.10':
+    - ruby2.2
+    - ruby2.2-dev
+    - rake
+    - rubygems-integration
+    default: ignore
+  default: ignore
+ruby23:
+  debian:
+    unstable:
+    - ruby2.3
+    - ruby2.3-dev
+    - rake
+    - rubygems-integration
+  ubuntu:
+    '16.04':
+    - ruby2.3-dev
+    - rake
+    - rubygems-integration
+    default: ignore
   default: ignore
 build-essential:
   debian,ubuntu: build-essential
