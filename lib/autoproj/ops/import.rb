@@ -75,7 +75,7 @@ module Autoproj
                     false
                 elsif !pkg.importer && !File.directory?(pkg.srcdir)
                     raise ConfigError.new, "#{pkg.name} has no VCS, but is not checked out in #{pkg.srcdir}"
-                elsif pkg.importer
+                else
                     true
                 end
             end
@@ -151,6 +151,9 @@ module Autoproj
                         all_processed_packages << pkg
 
                         if !pre_package_import(selection, manifest, pkg, reverse_dependencies)
+                            next
+                        elsif !pkg.importer
+                            completion_queue << [pkg, Time.now, false, nil]
                             next
                         elsif pkg.importer.interactive?
                             interactive_imports << pkg
