@@ -210,6 +210,7 @@ module Autoproj
                             if d.source
                                 options = d.source.options.dup
                                 options.delete 'root_path'
+                                options.delete 'uri'
                                 options = options.map { |k, v| "#{k}: \"#{v}\"" }
                             end
                             contents << ["  #{platform_indent}gem \"#{d.name}\", \"#{d.requirement}\"", *options].join(", ")
