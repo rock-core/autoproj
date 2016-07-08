@@ -317,7 +317,6 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
         # Requests the installation of the given set of packages
         def install(osdep_packages, install_only: false, **options)
             osdep_packages = osdep_packages.to_set - installed_packages
-            return if osdep_packages.empty?
 
             setup_package_managers(**options)
 

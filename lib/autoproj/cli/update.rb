@@ -77,6 +77,7 @@ module Autoproj
                     reset: options[:reset],
                     ignore_errors: options[:keep_going],
                     retry_count: options[:retry_count])
+                ws.config.save
                 if !update_packages
                     return [], [], true
                 end

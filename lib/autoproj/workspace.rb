@@ -423,9 +423,6 @@ module Autoproj
 
             # Loads OS package definitions once and for all
             load_osdeps_from_package_sets
-            # And exclude any package that is not available on this particular
-            # configuration
-            mark_unavailable_osdeps_as_excluded
 
             # Load the required autobuild definitions
             Autoproj.message("autoproj: loading ...", :bold)
@@ -477,10 +474,9 @@ module Autoproj
                 end
             end
 
-            # We finished loading the configuration files. Not all configuration
-            # is done (since we need to process the package setup blocks), but
-            # save the current state of the configuration anyway.
-            config.save
+            # And exclude any package that is not available on this particular
+            # configuration
+            mark_unavailable_osdeps_as_excluded
         end
 
         def mark_unavailable_osdeps_as_excluded

@@ -33,7 +33,7 @@ module Autoproj
             end
 
             data = Autoproj.in_file(file, Autoproj::YAML_LOAD_ERROR) do
-                YAML.load(File.read(file))
+                YAML.load(File.read(file)) || Hash.new
             end
 
             @file = file

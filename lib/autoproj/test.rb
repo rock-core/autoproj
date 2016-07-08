@@ -45,7 +45,7 @@ module Autoproj
         def setup
             @tmpdir = Array.new
             @ws = Workspace.new('/test/dir')
-            ws.config = Configuration.new
+            ws.load_config
             Autoproj.workspace = ws
 
             super

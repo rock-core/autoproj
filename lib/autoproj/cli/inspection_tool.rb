@@ -17,6 +17,7 @@ module Autoproj
                         end
                     end
                     ws.load_package_sets(mainline: mainline)
+                    ws.config.save
                     ws.setup_all_package_directories
                 end
             end
