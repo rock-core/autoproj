@@ -8,6 +8,7 @@ describe Autoproj do
             @testdir = Dir.mktmpdir("autoproj")
             @workspace_root = File.join(testdir, "path", "to", "workspace")
             FileUtils.mkdir_p File.join(workspace_root, ".autoproj")
+            FileUtils.touch File.join(workspace_root, ".autoproj", 'config.yml')
             FileUtils.mkdir_p File.join(workspace_root, "with", "subdir")
         end
 
@@ -28,6 +29,7 @@ describe Autoproj do
         it "resolves a config file value if a config file is found" do
             actual_workspace = File.join(testdir, 'actual_workspace')
             FileUtils.mkdir_p File.join(actual_workspace, '.autoproj')
+            FileUtils.touch File.join(actual_workspace, ".autoproj", 'config.yml')
             File.open(File.join(workspace_root, '.autoproj', 'config.yml'), 'w') do |io|
                 io.puts "c: #{actual_workspace}"
             end
