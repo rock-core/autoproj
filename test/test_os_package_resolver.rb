@@ -500,7 +500,7 @@ module Autoproj
             assert_equal ['version_id', 'codename'], versions
         end
         def test_os_from_lsb_returns_nil_if_lsb_release_is_not_found_in_path
-            flexmock(ENV).should_receive('[]').with('PATH').and_return('')
+            flexmock(Autobuild).should_receive(:find_in_path).with('lsb_release').and_return(nil)
             assert !OSPackageResolver.os_from_lsb
         end
 
