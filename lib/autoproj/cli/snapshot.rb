@@ -29,7 +29,7 @@ module Autoproj
                 #
                 # This must be done first as the snapshot calls might copy stuff in
                 # there
-                if File.exists?(target_dir)
+                if File.exist?(target_dir)
                     raise ArgumentError, "#{target_dir} already exists"
                 end
                 FileUtils.cp_r Autoproj.config_dir, target_dir

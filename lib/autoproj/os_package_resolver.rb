@@ -258,13 +258,13 @@ module Autoproj
         end
 
         def self.guess_operating_system
-            if File.exists?('/etc/debian_version')
+            if File.exist?('/etc/debian_version')
                 versions = [File.read('/etc/debian_version').strip]
                 if versions.first =~ /sid/
                     versions = ["unstable", "sid"]
                 end
                 [['debian'], versions]
-            elsif File.exists?('/etc/redhat-release')
+            elsif File.exist?('/etc/redhat-release')
                 release_string = File.read('/etc/redhat-release').strip
                 release_string =~ /(.*) release ([\d.]+)/
                 name = $1.downcase
@@ -273,12 +273,12 @@ module Autoproj
                     name = 'rhel'
                 end
                 [[name], [version]]
-            elsif File.exists?('/etc/gentoo-release')
+            elsif File.exist?('/etc/gentoo-release')
                 release_string = File.read('/etc/gentoo-release').strip
                 release_string =~ /^.*([^\s]+)$/
                 version = $1
                 [['gentoo'], [version]]
-            elsif File.exists?('/etc/arch-release')
+            elsif File.exist?('/etc/arch-release')
                 [['arch'], []]
             elsif Autobuild.macos? 
                 version=`sw_vers | head -2 | tail -1`.split(":")[1]
@@ -300,7 +300,7 @@ module Autoproj
                 [[*managers, 'darwin'], [version.strip]]
             elsif Autobuild.windows?
                 [['windows'], []]
-            elsif File.exists?('/etc/SuSE-release')
+            elsif File.exist?('/etc/SuSE-release')
                 version = File.read('/etc/SuSE-release').strip
                 version =~/.*VERSION\s+=\s+([^\s]+)/
                 version = $1
@@ -320,7 +320,7 @@ module Autoproj
                 '/etc/arch-release' => 'arch',
                 '/etc/SuSE-release' => 'opensuse']
             version_files.each do |file, name|
-                if File.exists?(file) && !names.include?(name)
+                if File.exist?(file) && !names.include?(name)
                     names << name
                 end
             end
@@ -387,7 +387,7 @@ module Autoproj
                 # flavour. it seems that "/etc/debian_version" does not contain
                 # "sid" (but "8.0" for example) during the feature freeze
                 # phase...
-                if File.exists?('/etc/debian_version')
+                if File.exist?('/etc/debian_version')
                     debian_versions = [File.read('/etc/debian_version').strip]
                     if debian_versions.first =~ /sid/
                         versions = ["unstable", "sid"]
@@ -403,7 +403,7 @@ module Autoproj
         end
 
         def self.os_from_os_release(filename = '/etc/os-release')
-            return if !File.exists?(filename)
+            return if !File.exist?(filename)
 
             fields = Hash.new
             File.readlines(filename).each do |line|

@@ -132,7 +132,7 @@ module Autoproj
             name = PackageSet.name_of(ws.manifest, vcs)
             raw_local_dir = PackageSet.raw_local_dir_of(vcs)
 
-            return if options[:checkout_only] && File.exists?(raw_local_dir)
+            return if options[:checkout_only] && File.exist?(raw_local_dir)
 
             # YUK. I am stopping there in the refactoring
             # TODO: figure out a better way

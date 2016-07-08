@@ -77,7 +77,7 @@ module Autobuild
                     FileUtils.rm_f pcfile
                 end
                 pcfile = File.join(path, "orogen-project-#{name}.pc")
-                if File.exists?(pcfile)
+                if File.exist?(pcfile)
                     Autoproj.message "  removing obsolete file #{pcfile}", :bold
                     FileUtils.rm_f pcfile
                 end
@@ -89,7 +89,7 @@ module Autobuild
         def remove_obsolete_installed_file(*path)
             post_install do
                 path = File.join(prefix, *path)
-                if File.exists?(path)
+                if File.exist?(path)
                     Autoproj.message "  removing obsolete file #{path}", :bold
                     FileUtils.rm_f path
                 end

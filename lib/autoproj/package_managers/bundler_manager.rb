@@ -82,7 +82,7 @@ module Autoproj
                 prefix_gems = File.join(ws.prefix_dir, "gems")
                 FileUtils.mkdir_p prefix_gems
                 gemfile = File.join(prefix_gems, 'Gemfile')
-                if !File.exists?(gemfile)
+                if !File.exist?(gemfile)
                     File.open(gemfile, 'w') do |io|
                         io.puts "eval_gemfile \"#{File.join(ws.dot_autoproj_dir, 'autoproj', 'Gemfile')}\""
                     end

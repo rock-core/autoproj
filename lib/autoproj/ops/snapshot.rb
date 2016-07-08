@@ -48,7 +48,7 @@ module Autoproj
                 replace: false
 
             existing_versions = Array.new
-            if !options[:replace] && File.exists?(versions_file)
+            if !options[:replace] && File.exist?(versions_file)
                 existing_versions = YAML.load( File.read( versions_file ) ) ||
                     Array.new
             end

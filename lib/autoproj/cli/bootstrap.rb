@@ -11,7 +11,7 @@ module Autoproj
             attr_reader :root_dir
 
             def initialize(root_dir = Dir.pwd)
-                if File.exists?(File.join(root_dir, 'autoproj', "manifest"))
+                if File.exist?(File.join(root_dir, 'autoproj', "manifest"))
                     raise ConfigError, "this installation is already bootstrapped. Remove the autoproj directory if it is not the case"
                 end
                 @root_dir = root_dir

@@ -195,7 +195,7 @@ module Autoproj
         end
 
         def load_manifest
-            if File.exists?(manifest_file_path)
+            if File.exist?(manifest_file_path)
                 manifest.load(manifest_file_path)
             end
         end

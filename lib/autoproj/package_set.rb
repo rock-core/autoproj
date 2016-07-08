@@ -127,8 +127,8 @@ module Autoproj
         def empty?
             !source_definition['version_control'] && overrides.empty?
                 !each_package.find { true } &&
-                !File.exists?(File.join(raw_local_dir, "overrides.rb")) &&
-                !File.exists?(File.join(raw_local_dir, "init.rb"))
+                !File.exist?(File.join(raw_local_dir, "overrides.rb")) &&
+                !File.exist?(File.join(raw_local_dir, "init.rb"))
         end
 
         # Defined for coherence with the API on {PackageDefinition}
@@ -278,7 +278,7 @@ module Autoproj
             end
 
             master_source_file = File.join(raw_local_dir, PackageSet.master_source_file)
-            if !File.exists?(master_source_file)
+            if !File.exist?(master_source_file)
                 raise ConfigError.new, "source #{vcs.type}:#{vcs.url} should have a source.yml file, but does not"
             end
 
