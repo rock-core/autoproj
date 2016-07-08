@@ -342,7 +342,7 @@ module Autoproj
                 queue = Array.new
                 while !pending.empty?
                     pkg_set = pending.shift
-                    if not_processed_yet = pkg_set.imports.find { |imported_set| !topological.include?(imported_set) }
+                    if pkg_set.imports.any? { |imported_set| !topological.include?(imported_set) }
                         queue.push(pkg_set)
                     else
                         topological << pkg_set

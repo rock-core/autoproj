@@ -198,7 +198,7 @@ module Autoproj
                     end
 
                     # And wait one to finish
-                    pkg, time, result, reason = completion_queue.pop
+                    pkg, _time, _result, reason = completion_queue.pop
                     pending_packages.delete(pkg)
                     if reason
                         if reason.kind_of?(Autobuild::InteractionRequired)
@@ -229,8 +229,8 @@ module Autoproj
                     raise ImportFailed, "import of #{failures.size} packages failed: #{failures.keys.map(&:name).sort.join(", ")}"
                 end
 
-                all_processed_packages.delete_if do |pkg|
-                    ws.manifest.excluded?(pkg.name) || ws.manifest.ignored?(pkg.name)
+                all_processed_packages.delete_if do |processed_pkg|
+                    ws.manifest.excluded?(processed_pkg.name) || ws.manifest.ignored?(processed_pkg.name)
                 end
                 all_processed_packages
 
@@ -267,14 +267,14 @@ module Autoproj
                     end
 
                     packages, osdeps = pkg.partition_optional_dependencies
-                    packages.each do |pkg_name|
-                        if !manifest.ignored?(pkg_name) && !manifest.excluded?(pkg_name)
-                            pkg.depends_on pkg_name
+                    packages.each do |dep_pkg_name|
+                        if !manifest.ignored?(dep_pkg_name) && !manifest.excluded?(dep_pkg_name)
+                            pkg.depends_on dep_pkg_name
                         end
                     end
-                    osdeps.each do |pkg_name|
-                        if !manifest.ignored?(pkg_name) && !manifest.excluded?(pkg_name)
-                            pkg.os_packages << pkg_name
+                    osdeps.each do |osdep_pkg_name|
+                        if !manifest.ignored?(osdep_pkg_name) && !manifest.excluded?(osdep_pkg_name)
+                            pkg.os_packages << osdep_pkg_name
                         end
                     end
 

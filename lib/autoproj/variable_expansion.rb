@@ -61,7 +61,7 @@ module Autoproj
         end
         definitions = { 'HOME' => ENV['HOME'] }.merge(definitions)
 
-        data = data.gsub /(.|^)\$(\w+)/ do |constant_name|
+        data = data.gsub(/(.|^)\$(\w+)/) do |constant_name|
             prefix = constant_name[0, 1]
             if prefix == "\\"
                 next(constant_name[1..-1])

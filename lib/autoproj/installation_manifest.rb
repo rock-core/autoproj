@@ -14,6 +14,9 @@ module Autoproj
             File.exist?(path)
         end
 
+        # Returns information about a given package
+        #
+        # @return [Package]
         def [](name)
             packages[name]
         end
@@ -65,13 +68,6 @@ module Autoproj
         # @yieldparam [Package]
         def each(&block)
             packages.each_value(&block)
-        end
-
-        # Returns information about a given package
-        #
-        # @return [Package]
-        def [](name)
-            packages[name]
         end
 
         # Returns the default Autoproj installation manifest path for a given

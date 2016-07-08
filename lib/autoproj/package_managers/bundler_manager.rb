@@ -75,7 +75,6 @@ module Autoproj
 
                 ws.config.each_reused_autoproj_installation do |p|
                     reused_w = ws.new(p)
-                    reused_c = reused_w.load_config
                     env.add_path 'PATH', File.join(reused_w.prefix_dir, 'gems', 'bin')
                 end
 
@@ -257,7 +256,7 @@ module Autoproj
                 # Save the osdeps entries in a temporary gemfile and finally
                 # merge the whole lot of it
                 gemfile_contents = Tempfile.open 'autoproj-gemfile' do |io|
-                    osdeps_gemfile_lines = gems.sort.map do |name|
+                    gems.sort.each do |name|
                         name, version = parse_package_entry(name)
                         io.puts "gem \"#{name}\", \"#{version || ">= 0"}\""
                     end
@@ -292,7 +291,7 @@ module Autoproj
                     raise NotCleanState, "bundler executed successfully, but the result was not in a clean state"
                 end
 
-            rescue Exception => e
+            rescue Exception
                 Autoproj.warn "saved the new Gemfile in #{gemfile_path}.FAILED and restored the last Gemfile version"
                 FileUtils.cp gemfile_path, "#{gemfile_path}.FAILED"
                 backup_restore(backups)

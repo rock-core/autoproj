@@ -299,7 +299,7 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
 
             packages = packages.map do |handler_name, list|
                 if manager = package_managers[handler_name]
-                    [package_managers[handler_name], list]
+                    [manager, list]
                 else
                     raise ArgumentError, "no package manager called #{handler_name} found"
                 end
@@ -324,7 +324,7 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             packages = os_package_resolver.resolve_os_packages(osdep_packages)
             packages = packages.map do |handler_name, list|
                 if manager = package_managers[handler_name]
-                    [package_managers[handler_name], list]
+                    [manager, list]
                 else
                     raise ArgumentError, "no package manager called #{handler_name} found"
                 end

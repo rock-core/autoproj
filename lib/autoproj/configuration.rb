@@ -157,7 +157,7 @@ module Autoproj
 
         def reconfigure!
             new_config = Hash.new
-            config.each do |key, (value, user_validated)|
+            config.each do |key, (value, _user_validated)|
                 new_config[key] = [value, false]
             end
             @config = new_config

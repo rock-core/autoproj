@@ -166,7 +166,7 @@ module Autoproj
             assert_equal expected, osdeps.resolve_package('pkg')
         end
 
-        def test_resolve_specific_os_name_and_version_nonexistent
+        def test_resolve_nonexistent
             data = { 'test' => 'nonexistent', 'other_test' => 'pkg1.1' }
             osdeps = create_osdep(data)
 
@@ -174,7 +174,7 @@ module Autoproj
             assert_equal expected, osdeps.resolve_package('pkg')
         end
 
-        def test_resolve_specific_os_name_and_version_not_found
+        def test_resolve_not_found
             data = { 'other_test' => 'pkg1.1' }
             osdeps = create_osdep(data)
 

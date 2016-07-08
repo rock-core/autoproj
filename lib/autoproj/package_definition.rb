@@ -33,6 +33,7 @@ module Autoproj
                 autobuild, package_set, file
             @user_blocks = []
             @modes = ['import', 'build']
+            @setup = false
         end
 
         # The modes in which this package will be used

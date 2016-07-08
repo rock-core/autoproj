@@ -677,7 +677,7 @@ module Autoproj
                 (osdeps_availability == OSPackageResolver::IGNORE)
             osdeps_overrides = self.osdeps_overrides[name]
             if osdeps_overrides && (!osdeps_available || osdeps_overrides[:force])
-                source_packages = osdeps_overrides[:packages].inject([]) do |result, src_pkg_name|
+                return osdeps_overrides[:packages].inject([]) do |result, src_pkg_name|
                     result.concat(resolve_package_name_as_source_package(src_pkg_name))
                 end.uniq
             elsif !osdeps_available && (pkg = find_autobuild_package(name))
@@ -864,7 +864,7 @@ module Autoproj
         # Returns the set of packages that should be built if the user does not
         # specify any on the command line
         def default_packages(validate = true)
-            if layout = data['layout']
+            if data['layout']
                 return layout_packages(validate)
             else
                 result = PackageSelection.new

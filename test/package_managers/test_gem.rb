@@ -116,7 +116,6 @@ module Autoproj
                 GemManager.with_doc = true
                 subprocess = flexmock(Autobuild::Subprocess)
 
-                packages = [['pkg0']]
                 subprocess.should_receive(:run).
                     with(any, any, any, any, 'mygem', 'install', *default_install_options, 'pkg0', Hash).once
                 gem_manager.install([['pkg0']])

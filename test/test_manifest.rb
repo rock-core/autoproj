@@ -60,19 +60,19 @@ module Autoproj
                 flexmock(subject.os_package_resolver).should_receive(:availability_of).with('test').
                     and_return(OSPackageResolver::NO_PACKAGE)
                 e = assert_raises(PackageNotFound) { subject.resolve_package_name('test') }
-                assert /test is not an osdep and it cannot be resolved as a source package/ === e.message
+                assert_match(/test is not an osdep and it cannot be resolved as a source package/, e.message)
             end
             it "raises if a package is defined as an osdep but it is not available on the local operating system" do
                 flexmock(subject.os_package_resolver).should_receive(:availability_of).with('test').
                     and_return(OSPackageResolver::WRONG_OS)
                 e = assert_raises(PackageNotFound) { subject.resolve_package_name('test') }
-                assert /test is an osdep, but it is not available for this operating system and it cannot be resolved as a source package/ === e.message
+                assert_match(/test is an osdep, but it is not available for this operating system and it cannot be resolved as a source package/, e.message)
             end
             it "raises if a package is defined as an osdep but it is explicitely marked as non existent" do
                 flexmock(subject.os_package_resolver).should_receive(:availability_of).with('test').
                     and_return(OSPackageResolver::NONEXISTENT)
                 e = assert_raises(PackageNotFound) { subject.resolve_package_name('test') }
-                assert /test is an osdep, but it is explicitely marked as 'nonexistent' for this operating system and it cannot be resolved as a source package/ === e.message, e.message
+                assert_match(/test is an osdep, but it is explicitely marked as 'nonexistent' for this operating system and it cannot be resolved as a source package/, e.message)
             end
         end
     end

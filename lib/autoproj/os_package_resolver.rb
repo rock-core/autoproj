@@ -349,6 +349,7 @@ module Autoproj
         def self.operating_system
             @operating_system
         end
+        @operating_system = nil
 
         def self.operating_system=(values)
             @operating_system = values

@@ -60,10 +60,6 @@ module Autoproj
         config.save
     end
 
-    def self.config
-        workspace.config
-    end
-
     def self.load_config
         workspace.load_config
     end

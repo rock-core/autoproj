@@ -459,7 +459,7 @@ module Autoproj
                 full_path = File.expand_path(File.join(root_dir, layout_level, pkg_or_set))
                 next if !File.directory?(full_path)
 
-                handler, srcdir = Autoproj.package_handler_for(full_path)
+                handler, _srcdir = Autoproj.package_handler_for(full_path)
                 if handler
                     Autoproj.message "  auto-adding #{pkg_or_set} #{"in #{layout_level} " if layout_level != "/"}using the #{handler.gsub(/_package/, '')} package handler"
                     in_package_set(manifest.local_package_set, manifest.file) do
@@ -492,7 +492,7 @@ module Autoproj
                     next
                 end
 
-                case availability = os_package_resolver.availability_of(osdep_name)
+                case os_package_resolver.availability_of(osdep_name)
                 when OSPackageResolver::UNKNOWN_OS
                     manifest.add_exclusion(osdep_name, "this operating system is unknown to autoproj")
                 when OSPackageResolver::WRONG_OS
