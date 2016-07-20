@@ -431,9 +431,12 @@ module Autoproj
 
             def install
                 if private_bundler?
-                    puts "Installing bundler in #{bundler_gem_home}"
-                    if !(bundler = install_bundler)
-                        exit 1
+                    bundler = File.join(bundler_gem_home, 'bundler')
+                    if !File.file?(bundler)
+                        puts "Installing bundler in #{bundler_gem_home}"
+                        if !(bundler = install_bundler)
+                            exit 1
+                        end
                     end
                     env['GEM_PATH'].unshift bundler_gem_home
                 elsif bundler = find_bundler
