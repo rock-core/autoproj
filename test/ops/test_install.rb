@@ -86,22 +86,35 @@ describe Autoproj::Ops::Install do
             assert env_sh.split("\n").include?("GEM_PATH=\"#{bundler_dir}\"")
         end
 
+        def find_bundled_gem_path(bundler, gem_name, gemfile)
+            out_r, out_w = IO.pipe
+            result = Bundler.clean_system(
+                Hash['BUNDLE_GEMFILE' => gemfile],
+                bundler, 'show', gem_name,
+                out: out_w)
+            out_w.close
+            output = out_r.read
+            assert result, "#{output}"
+            output
+        end
+
         it "accepts installing the autoproj gems in a dedicated directory" do
             bundler_dir  = make_tmpdir
             autoproj_dir = make_tmpdir
             install_dir  = invoke_test_script 'install', "--private-bundler=#{bundler_dir}", "--private-autoproj=#{autoproj_dir}"
 
-            out_r, out_w = IO.pipe
             autoproj_gemfile = File.join(install_dir, '.autoproj', 'autoproj', 'Gemfile')
-            result = Bundler.clean_system(
-                Hash['BUNDLE_GEMFILE' => autoproj_gemfile],
-                File.join(bundler_dir, 'bin', 'bundler'), 'show', 'utilrb',
-                out: out_w)
-            out_w.close
-            output = out_r.read
+            utilrb_gem = find_bundled_gem_path(File.join(bundler_dir, 'bin', 'bundler'), 'utilrb', autoproj_gemfile)
+            assert utilrb_gem.start_with?(autoproj_dir)
+        end
 
-            assert result, "#{output}"
-            assert output.start_with?(autoproj_dir)
+        it "can install all gems in the .autoproj folder" do
+            install_dir  = invoke_test_script 'install', "--private"
+            bundler_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
+
+            autoproj_gemfile = File.join(install_dir, '.autoproj', 'autoproj', 'Gemfile')
+            utilrb_gem = find_bundled_gem_path(bundler_path, 'utilrb', autoproj_gemfile)
+            assert utilrb_gem.start_with?(File.join(install_dir, '.autoproj', 'autoproj'))
         end
     end
 

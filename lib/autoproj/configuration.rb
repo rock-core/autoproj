@@ -227,7 +227,7 @@ module Autoproj
         end
 
         # The path provided to bundler to install the gems
-        def gems_bundler_path
+        def gems_bundler_path(ws)
             value = get('private_gems', false)
             if value.respond_to?(:to_str)
                 value
@@ -243,8 +243,8 @@ module Autoproj
         # RubyGems and Bundler install gems in a subdirectory specific to the
         # Ruby platform and version. This adds the relevant suffix to
         # {#gems_bundler_path}
-        def gems_gem_home
-            base_path = gems_bundler_path || File.join(Gem.user_dir, '.gem')
+        def gems_gem_home(ws)
+            base_path = gems_bundler_path(ws) || File.join(Gem.user_dir, '.gem')
             path_suffix = Pathname.new(Gem.user_dir).
                 relative_path_from(Pathname.new(File.join(Gem.user_home, '.gem'))).
                 to_s
