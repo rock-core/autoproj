@@ -245,9 +245,6 @@ module Autoproj
                 bundler_path = File.join(bundler_gem_home, 'bin', 'bundler')
                 if File.exist?(bundler_path)
                     bundler_path
-                else
-                    STDERR.puts "gem install bundler returned successfully, but still cannot find bundler in #{bundler_path}"
-                    nil
                 end
             end
 
