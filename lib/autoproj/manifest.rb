@@ -94,6 +94,8 @@ module Autoproj
         attr_reader :metapackages
 
         # The VCS object for the main configuration itself
+        #
+        # @return [VCSDefinition]
         attr_accessor :vcs
 
         # The definition of all OS packages available on this installation

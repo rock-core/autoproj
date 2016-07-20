@@ -2,15 +2,35 @@ module Autoproj
     # Representation of a VCS definition contained in a source.yml file or in
     # autoproj/manifest
     class VCSDefinition
+        # The VCS type
+        #
+        # @return [Symbol]
         attr_reader :type
+
+        # The VCS URL
+        #
+        # @return [String]
         attr_reader :url
+
+        # The VCS options
+        #
+        # @return [Hash]
         attr_reader :options
 
-        # This VCSDefinition history, i.e. the list of VCSDefinition objects
-        # that led to this one by means of calls to {#update}
+        # This VCSDefinition history
+        #
+        # i.e. the list of VCSDefinition objects that led to this one by means
+        # of calls to {#update}
+        #
+        # @return [Array<VCSDefinition>]
         attr_reader :history
-        # The original spec in hash form. Set if this VCSDefinition object has
-        # been created using VCSDefinition.from_raw
+
+        # The original spec in hash form
+        #
+        # Set if this VCSDefinition object has been created using
+        # VCSDefinition.from_raw
+        #
+        # @return [nil,Hash]
         attr_reader :raw
 
         def initialize(type, url, vcs_options, options = Hash.new)
@@ -34,12 +54,16 @@ module Autoproj
             @raw = options[:raw] || [[options[:from], to_hash]]
         end
 
+        # Whether this points to a local directory
         def local?
             @type == 'local'
         end
 
+        # Converts self to a Hash description that could be passed to {.from_raw}
+        #
+        # @return [Hash]
         def to_hash
-            Hash[:type => type, :url => url].merge(options)
+            Hash[type: type, url: url].merge(options)
         end
 
         # Update this VCS definition with new information / options and return

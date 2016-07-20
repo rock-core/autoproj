@@ -7,7 +7,12 @@ module Autoproj
 
         attr_accessor :config
         attr_reader :env
+
+        # The installation manifest
+        #
+        # @return [Manifest]
         attr_reader :manifest
+
         attr_reader :loader
 
         def os_package_resolver; manifest.os_package_resolver end
