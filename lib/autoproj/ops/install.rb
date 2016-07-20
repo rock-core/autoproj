@@ -194,13 +194,13 @@ module Autoproj
                         self.private_autoproj = false
                         self.private_gems     = false
                     end
-                    opt.on '--private-bundler[=PATH]', 'install bundler locally in the workspace' do |path|
+                    opt.on '--private-bundler[=PATH]', 'install bundler locally in the workspace, or in a dedicated path' do |path|
                         self.private_bundler = path || true
                     end
-                    opt.on '--private-autoproj[=PATH]', 'install autoproj locally in the workspace' do |path|
+                    opt.on '--private-autoproj[=PATH]', 'install autoproj locally in the workspace, or in a dedicated path' do |path|
                         self.private_autoproj = path || true
                     end
-                    opt.on '--private-gems[=PATH]', 'install gems locally in the prefix directory' do |path|
+                    opt.on '--private-gems[=PATH]', 'install gems locally in the prefix directory, or in a dedicated path' do |path|
                         self.private_gems = path || true
                     end
                     opt.on '--private[=PATH]', "whether bundler, autoproj and the workspace gems should be installed locally in the workspace. This is the default, with a path of #{default_gem_path}" do |path|
