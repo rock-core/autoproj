@@ -214,6 +214,9 @@ module Autoproj
                     opt.on '--gemfile=PATH', String, 'use the given Gemfile to install autoproj instead of the default' do |path|
                         @gemfile = File.read(path)
                     end
+                    opt.on '--seed=PATH', String, 'path to a seed file that should be used to initialize the configuration' do |path|
+                        @config.merge!(YAML.load(File.read(path)))
+                    end
                     opt.on '--prefer-os-independent-packages', 'prefer OS-independent packages (such as a RubyGem) over their OS-packaged equivalent (e.g. the thor gem vs. the ruby-thor debian package)' do
                         @prefer_indep_over_os_packages = true
                     end
