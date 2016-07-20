@@ -4,8 +4,8 @@ module Autoproj
         class YumManager < ShellScriptManager
             def initialize(ws)
                 super(ws, true,
-                      "yum install '%s'",
-                      "yum install -y '%s'")
+                      %w{yum install},
+                      %w{yum install -y})
             end
 
             def filter_uptodate_packages(packages)

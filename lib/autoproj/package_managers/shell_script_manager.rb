@@ -3,7 +3,7 @@ module Autoproj
         # Base class for all package managers that simply require the call of a
         # shell script to install packages (e.g. yum, apt, ...)
         class ShellScriptManager < Manager
-            def self.execute(script, with_locking, with_root)
+            def self.execute(command_line, with_locking, with_root)
                 if with_locking
                     File.open('/tmp/autoproj_osdeps_lock', 'w') do |lock_io|
                         begin
@@ -11,30 +11,20 @@ module Autoproj
                                 Autoproj.message "  waiting for other autoproj instances to finish their osdeps installation"
                                 sleep 5
                             end
-                            return execute(script, false,with_root)
+                            return execute(command_line, false, with_root)
                         ensure
                             lock_io.flock(File::LOCK_UN)
                         end
                     end
                 end
                 
-                sudo = Autobuild.tool_in_path('sudo')
-                Tempfile.open('osdeps_sh') do |io|
-                    io.puts "#! /bin/bash"
-                    io.puts GAIN_ROOT_ACCESS % [sudo] if with_root
-                    io.write script
-                    io.flush
-                    Autobuild::Subprocess.run 'autoproj', 'osdeps', '/bin/bash', io.path
+                if with_root
+                    sudo = Autobuild.tool_in_path('sudo')
+                    command_line = [sudo, *command_line]
                 end
+
+                Autobuild::Subprocess.run 'autoproj', 'osdeps', *command_line
             end
-
-            GAIN_ROOT_ACCESS = <<-EOSCRIPT
-# Gain root access using sudo
-if test `id -u` != "0"; then
-    exec %s /bin/bash $0 "$@"
-
-fi
-            EOSCRIPT
 
             # Overrides the {#needs_locking?} flag
             attr_writer :needs_locking
@@ -110,7 +100,7 @@ fi
             #   {#user_install_cmd]
             def generate_user_os_script(os_packages, user_install_cmd: self.user_install_cmd)
                 if user_install_cmd
-                    (user_install_cmd % [os_packages.join("' '")])
+                    user_install_cmd.join(" ") + " " + os_packages.join("' '")
                 else generate_auto_os_script(os_packages)
                 end
             end
@@ -125,7 +115,7 @@ fi
             #   If given, it overrides the default value stored in
             #   {#auto_install_cmd]
             def generate_auto_os_script(os_packages, auto_install_cmd: self.auto_install_cmd)
-                (auto_install_cmd % [os_packages.join("' '")])
+                auto_install_cmd.join(" ") + " " + os_packages.join("' '")
             end
 
             # Handles interaction with the user
@@ -197,7 +187,8 @@ fi
                         Autoproj.message "Generating installation script for non-ruby OS dependencies"
                         Autoproj.message shell_script
                     end
-                    ShellScriptManager.execute(shell_script, needs_locking?,needs_root?)
+
+                    ShellScriptManager.execute([*auto_install_cmd, *packages], needs_locking?, needs_root?)
                     return true
                 end
                 false

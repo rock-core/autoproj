@@ -4,8 +4,8 @@ module Autoproj
         class ZypperManager < ShellScriptManager
             def initialize(ws)
                 super(ws, true,
-                        "zypper install '%s'",
-                        "zypper -n install '%s'")
+                        %w{zypper install},
+                        %w{zypper -n install})
             end
 
             def filter_uptodate_packages(packages)

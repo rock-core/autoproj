@@ -5,8 +5,8 @@ module Autoproj
         class PortManager < ShellScriptManager
             def initialize(ws)
                 super(ws, true,
-                        "port install '%s'",
-                        "port install '%s'")
+                        %w{port install},
+                        %w{port install})
             end
         end
     end

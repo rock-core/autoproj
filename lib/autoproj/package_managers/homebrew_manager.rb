@@ -5,8 +5,8 @@ module Autoproj
         class HomebrewManager < ShellScriptManager
             def initialize(ws)
                 super(ws, true,
-                        "brew install '%s'",
-                        "brew install '%s'",
+                        %w{brew install},
+                        %w{brew install},
                         false)
             end
 

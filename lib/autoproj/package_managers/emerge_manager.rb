@@ -5,8 +5,8 @@ module Autoproj
         class EmergeManager < ShellScriptManager
             def initialize(ws)
                 super(ws, true,
-                        "emerge '%s'",
-                        "emerge --noreplace '%s'")
+                        %w{emerge},
+                        %w{emerge --noreplace})
             end
         end
     end

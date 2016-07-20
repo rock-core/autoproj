@@ -9,8 +9,8 @@ module Autoproj
                 @status_file = status_file
                 @installed_packages = nil
                 super(ws, true,
-                      "apt-get install '%s'",
-                      "export DEBIAN_FRONTEND=noninteractive; apt-get install -y '%s'")
+                      %w{apt-get install},
+                      %w{DEBIAN_FRONTEND=noninteractive apt-get install -y})
             end
 
             # On a dpkg-enabled system, checks if the provided package is installed
