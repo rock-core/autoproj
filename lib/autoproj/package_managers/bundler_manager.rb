@@ -24,6 +24,11 @@ module Autoproj
                 end
             end
 
+            def initialize(ws)
+                super
+                self.call_while_empty = true
+            end
+
             # Filters all paths that come from other autoproj installations out
             # of GEM_PATH
             def initialize_environment

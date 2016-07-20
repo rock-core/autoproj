@@ -320,13 +320,18 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
 
             setup_package_managers(**options)
 
+            managers = package_managers.dup
             packages = os_package_resolver.resolve_os_packages(osdep_packages)
             packages = packages.map do |handler_name, list|
-                if manager = package_managers[handler_name]
+                if manager = managers.delete(handler_name)
                     [manager, list]
                 else
                     raise ArgumentError, "no package manager called #{handler_name} found"
                 end
+            end
+
+            managers.each_value do |pkg_manager|
+                packages << [pkg_manager, []]
             end
 
             # Install OS packages first, as the other package handlers might
@@ -337,7 +342,7 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             [os_packages, other_packages].each do |packages|
                 packages.each do |handler, list|
                     list = list.to_set - installed_resolved_packages[handler]
-                    next if list.empty?
+                    next if list.empty? && !handler.call_while_empty?
 
                     handler.install(
                         list.to_a,

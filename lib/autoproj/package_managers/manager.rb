@@ -16,6 +16,9 @@ module Autoproj
             attr_writer :silent
             def silent?; !!@silent end
 
+            attr_writer :call_while_empty
+            def call_while_empty?; !!@call_while_empty end
+
             # Create a package manager registered with various names
             #
             # @param [Array<String>] names the package manager names. It MUST be
@@ -25,6 +28,7 @@ module Autoproj
                 @ws = ws
                 @enabled = true
                 @silent = true
+                @call_while_empty = false
             end
 
             # The primary name for this package manager
