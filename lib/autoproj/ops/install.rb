@@ -440,7 +440,7 @@ module Autoproj
                 env['PATH'].unshift shim_path
                 save_gemfile
 
-                puts "Installing autoproj#{"in #{autoproj_gem_home}" if private_autoproj?}"
+                puts "Installing autoproj#{" in #{autoproj_gem_home}" if private_autoproj?}"
                 install_autoproj(bundler)
             end
 
