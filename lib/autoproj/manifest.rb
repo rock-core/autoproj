@@ -394,7 +394,16 @@ module Autoproj
             end
         end
 
+        # @deprecated use {#find_package_definition} instead
         def find_package(name)
+            find_package_definition(name)
+        end
+
+        # The autoproj description of a package by its name
+        #
+        # @param [String,#name] name the package name
+        # @return [PackageDefinition,nil]
+        def find_package_definition(name)
             if name.respond_to?(:name)
                 name = name.name
             end
@@ -402,16 +411,17 @@ module Autoproj
             packages[name.to_str]
         end
 
+        # The autobuild description of a package by its name
+        #
+        # @param [String,#name] name the package name
+        # @return [Autobuild::Package,nil]
         def find_autobuild_package(name)
-            if name.respond_to?(:name)
-                name = name.name
-            end
-
-            if pkg = packages[name.to_str]
+            if pkg = find_package(name)
                 pkg.autobuild
             end
         end
 
+        # @deprecated use {#find_package} instead
         def package(name)
             find_package(name)
         end
@@ -427,9 +437,7 @@ module Autoproj
         #
         # @yieldparam [PackageDefinition] pkg
         def each_package_definition(&block)
-            if !block_given?
-                return enum_for(:each_package_definition)
-            end
+            return enum_for(__method__) if !block_given?
             packages.each_value(&block)
         end
 
@@ -438,7 +446,7 @@ module Autoproj
         # @yieldparam [Autobuild::Package] pkg
         def each_autobuild_package
             return enum_for(__method__) if !block_given?
-            packages.each_value { |pkg| yield(pkg.autobuild) }
+            each_package_definition { |pkg| yield(pkg.autobuild) }
         end
 
         # @deprecated use Ops::Tools.create_autobuild_package or include
