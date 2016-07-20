@@ -116,6 +116,13 @@ describe Autoproj::Ops::Install do
             utilrb_gem = find_bundled_gem_path(bundler_path, 'utilrb', autoproj_gemfile)
             assert utilrb_gem.start_with?(File.join(install_dir, '.autoproj', 'autoproj'))
         end
+
+        it "adds the bundler and autoproj bindirs to PATH" do
+            install_dir = invoke_test_script 'install'
+            env_sh = File.read(File.join(install_dir, '.autoproj', 'env.sh'))
+            assert_match /PATH="(?:.*:)?#{File.join(install_dir, '.autoproj', 'bin')}(?::|"$)/, env_sh
+            assert_match /PATH="(?:.*:)?#{File.join(install_dir, '.autoproj', 'autoproj', 'bin')}(?::|"$)/, env_sh
+        end
     end
 
     describe "upgrade from v1" do

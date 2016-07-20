@@ -442,6 +442,7 @@ module Autoproj
 
                 puts "Installing autoproj#{" in #{autoproj_gem_home}" if private_autoproj?}"
                 install_autoproj(bundler)
+                env['PATH'].unshift File.join(dot_autoproj, 'autoproj', 'bin')
             end
 
             def load_config
