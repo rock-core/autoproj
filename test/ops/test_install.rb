@@ -3,7 +3,7 @@ require 'autoproj/ops/configuration'
 
 describe Autoproj::Ops::Install do
     before do
-        @tempdirs = Array.new
+        @tempdirs ||= Array.new
     end
     after do
         @tempdirs.each do |dir|
@@ -30,9 +30,9 @@ describe Autoproj::Ops::Install do
         nil
     end
 
-    def invoke_test_script(name, *arguments, dir: nil, seed_config: File.join(scripts_dir, 'seed-config.yml'))
+    def invoke_test_script(name, *arguments, dir: nil, seed_config: File.join(scripts_dir, 'seed-config.yml'), env: Hash.new, display_output: false, copy_from: nil)
         package_base_dir = File.expand_path(File.join('..', '..'), File.dirname(__FILE__))
-        script = File.join(scripts_dir, "#{name}.sh")
+        script = File.expand_path(name, scripts_dir)
         if !File.file?(script)
             raise ArgumentError, "no test script #{name}.sh in #{test_dir}"
         end
@@ -50,42 +50,35 @@ describe Autoproj::Ops::Install do
                 io.puts "gem 'autoproj', path: '#{autoproj_dir}'"
                 io.puts "gem 'autobuild', path: '#{autobuild_dir}'"
             end
-            arguments << "--gemfile" << File.join(dir, "Gemfile-dev")
+            arguments << "--gemfile" << File.join(dir, "Gemfile-dev") << "--gem-source" << "http://localhost:8808"
         end
 
-        test_workspace = File.join(scripts_dir, name)
-        if File.directory?(test_workspace)
-            FileUtils.cp_r test_workspace, dir
-            dir = File.join(dir, name)
+        if copy_from
+            test_workspace = File.expand_path(copy_from, scripts_dir)
+            if File.directory?(test_workspace)
+                FileUtils.cp_r test_workspace, dir
+                dir = File.join(dir, File.basename(test_workspace))
+            end
         end
-        if !Bundler.clean_system(Hash['PACKAGE_BASE_DIR' => package_base_dir, 'RUBY' => Gem.ruby], script, *arguments, chdir: dir, in: :close)
+        result = nil
+        stdout, stderr = capture_subprocess_io do
+            result = Bundler.clean_system(
+                Hash['PACKAGE_BASE_DIR' => package_base_dir, 'RUBY' => Gem.ruby].merge(env),
+                script, *arguments, chdir: dir, in: :close)
+        end
+
+        if !result
+            puts stdout
+            puts stderr
             flunk("test script #{name} failed")
+        elsif display_output
+            puts stdout
+            puts stderr
         end
-        return dir
+        return dir, stdout, stderr
     end
 
     describe "install" do
-        it "successfully installs autoproj" do
-            invoke_test_script 'install'
-        end
-        it "installs bundler if it is not already installed" do
-            bundler_dir = make_tmpdir
-            invoke_test_script 'install', "--private-bundler=#{bundler_dir}"
-            assert File.exist?(File.join(bundler_dir, 'bin', 'bundler'))
-        end
-        it "saves a shim to the installed bundler" do
-            bundler_dir = make_tmpdir
-            install_dir = invoke_test_script 'install', "--private-bundler=#{bundler_dir}"
-            content = File.read(File.join(install_dir, '.autoproj', 'bin', 'bundler'))
-            assert_match /exec .*#{bundler_dir}\/bin\/bundler/, content
-        end
-        it "adds the bundler dir to the GEM_PATH" do
-            bundler_dir = make_tmpdir
-            install_dir = invoke_test_script 'install', "--private-bundler=#{bundler_dir}"
-            env_sh = File.read(File.join(install_dir, 'env.sh'))
-            assert env_sh.split("\n").include?("GEM_PATH=\"#{bundler_dir}\"")
-        end
-
         def find_bundled_gem_path(bundler, gem_name, gemfile)
             out_r, out_w = IO.pipe
             result = Bundler.clean_system(
@@ -93,46 +86,171 @@ describe Autoproj::Ops::Install do
                 bundler, 'show', gem_name,
                 out: out_w)
             out_w.close
-            output = out_r.read
+            output = out_r.read.chomp
             assert result, "#{output}"
             output
         end
 
-        it "accepts installing the autoproj gems in a dedicated directory" do
-            bundler_dir  = make_tmpdir
-            autoproj_dir = make_tmpdir
-            install_dir  = invoke_test_script 'install', "--private-bundler=#{bundler_dir}", "--private-autoproj=#{autoproj_dir}"
-
-            autoproj_gemfile = File.join(install_dir, '.autoproj', 'autoproj', 'Gemfile')
-            utilrb_gem = find_bundled_gem_path(File.join(bundler_dir, 'bin', 'bundler'), 'utilrb', autoproj_gemfile)
-            assert utilrb_gem.start_with?(autoproj_dir)
+        def workspace_env(varname)
+            _, stdout, _ = invoke_test_script 'display-env.sh', varname, dir: install_dir
+            stdout.chomp
         end
 
-        it "can install all gems in the .autoproj folder" do
-            install_dir  = invoke_test_script 'install', "--private"
-            bundler_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
+        describe "default shared gems location" do
+            attr_reader :shared_gem_home, :shared_dir, :install_dir
+            before do
+                @shared_dir = Dir.mktmpdir
+                @shared_gem_home = File.join(shared_dir, '.autoproj', 'gems', Autoproj::Configuration.gems_path_suffix)
+                @install_dir, _ = invoke_test_script 'install.sh', env: Hash['HOME' => shared_dir]
+            end
 
-            autoproj_gemfile = File.join(install_dir, '.autoproj', 'autoproj', 'Gemfile')
-            utilrb_gem = find_bundled_gem_path(bundler_path, 'utilrb', autoproj_gemfile)
-            assert utilrb_gem.start_with?(File.join(install_dir, '.autoproj', 'autoproj'))
+            it "saves a shim to the installed bundler" do
+                shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
+                content = File.read(shim_path)
+                assert_match /exec .*#{File.join(shared_gem_home, 'bin', 'bundler')}/, content
+            end
+
+            it "sets the environment so that the shared bundler is found" do
+                shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
+                _, stdout, _ = invoke_test_script 'bundler-path.sh', dir: install_dir
+                bundler_bin_path, bundler_gem_path =
+                    stdout.chomp.split("\n")
+                assert_equal bundler_bin_path, shim_path
+                assert bundler_gem_path.start_with?(shared_gem_home)
+            end
+
+            it "sets the environment to point RubyGems to the shared location" do
+                assert_equal shared_gem_home, workspace_env('GEM_HOME')
+                assert_equal shared_gem_home, workspace_env('GEM_PATH')
+            end
+
+            it "does not add the shared locations' bin to PATH" do
+                refute workspace_env('PATH').split(":").include?(shared_gem_home)
+            end
+
+            it "installs all gems in the shared folder" do
+                bundler_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
+                autoproj_gemfile = File.join(install_dir, '.autoproj', 'Gemfile')
+                utilrb_gem = find_bundled_gem_path(bundler_path, 'utilrb', autoproj_gemfile)
+                assert utilrb_gem.start_with?(shared_gem_home)
+            end
         end
 
-        it "adds the bundler and autoproj bindirs to PATH" do
-            install_dir = invoke_test_script 'install'
-            env_sh = File.read(File.join(install_dir, '.autoproj', 'env.sh'))
-            assert_match /PATH="(?:.*:)?#{File.join(install_dir, '.autoproj', 'bin')}(?::|"$)/, env_sh
-            assert_match /PATH="(?:.*:)?#{File.join(install_dir, '.autoproj', 'autoproj', 'bin')}(?::|"$)/, env_sh
+        describe "explicit shared location" do
+            attr_reader :shared_gem_home, :install_dir, :shared_dir
+            before do
+                @shared_dir = Dir.mktmpdir
+                @shared_gem_home = File.join(shared_dir, Autoproj::Configuration.gems_path_suffix)
+                @install_dir, _ = invoke_test_script 'install.sh',
+                    "--shared-gems=#{shared_dir}"
+            end
+
+            it "saves a shim to the installed bundler" do
+                shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
+                content = File.read(shim_path)
+                assert_match /exec .*#{File.join(shared_gem_home, 'bin', 'bundler')}/, content
+            end
+
+            it "sets the environment so that the shared bundler is found" do
+                shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
+                _, stdout, _ = invoke_test_script 'bundler-path.sh', dir: install_dir
+                bundler_bin_path, bundler_gem_path =
+                    stdout.chomp.split("\n")
+                assert_equal bundler_bin_path, shim_path
+                assert bundler_gem_path.start_with?(shared_gem_home)
+            end
+
+            it "sets the environment to point RubyGems to the shared location" do
+                assert_equal shared_gem_home, workspace_env('GEM_HOME')
+                assert_equal shared_gem_home, workspace_env('GEM_PATH')
+            end
+
+            it "does not add the shared locations' bin to PATH" do
+                expected_path = File.join(shared_gem_home, 'bin')
+                refute workspace_env('PATH').split(":").include?(expected_path)
+            end
+
+            it "installs all gems in the shared folder" do
+                bundler_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
+                autoproj_gemfile = File.join(install_dir, '.autoproj', 'Gemfile')
+                utilrb_gem = find_bundled_gem_path(bundler_path, 'utilrb', autoproj_gemfile)
+                assert utilrb_gem.start_with?(shared_gem_home)
+            end
+        end
+
+        describe '--private' do
+            attr_reader :install_dir, :dot_autoproj_dir, :autoproj_gem_home, :gems_home
+            before do
+                @install_dir, _   = invoke_test_script 'install.sh', "--private"
+                @dot_autoproj_dir = Pathname.new(install_dir) + ".autoproj"
+                @autoproj_gem_home = dot_autoproj_dir + "gems" +
+                    Autoproj::Configuration.gems_path_suffix
+                @gems_home         = Pathname.new(install_dir) + 'install' + "gems" +
+                    Autoproj::Configuration.gems_path_suffix
+            end
+
+            it "resolves autoproj and its dependencies in the .autoproj gem folder" do
+                bundler_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
+                autoproj_gemfile = File.join(install_dir, '.autoproj', 'Gemfile')
+                utilrb_gem = find_bundled_gem_path(bundler_path, 'utilrb', autoproj_gemfile)
+                assert utilrb_gem.start_with?(autoproj_gem_home.to_s)
+            end
+
+            it "saves a shim to the installed bundler" do
+                shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
+                content = File.read(shim_path)
+                assert_match /exec .*#{File.join(autoproj_gem_home, 'bin', 'bundler')}/, content
+            end
+
+            it "sets the environment so that bundler is found" do
+                shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
+                _, stdout, _ = invoke_test_script 'bundler-path.sh', dir: install_dir
+                bundler_bin_path, bundler_gem_path =
+                    stdout.chomp.split("\n")
+                assert_equal bundler_bin_path, shim_path
+                assert bundler_gem_path.start_with?(autoproj_gem_home.to_s)
+            end
+
+            it "sets GEM_HOME to the gems location" do
+                assert_equal gems_home.to_s, workspace_env('GEM_HOME')
+            end
+            it "sets GEM_PATH to resolve autoproj and bundler's gem home" do
+                assert_equal autoproj_gem_home.to_s, workspace_env('GEM_PATH')
+            end
+
+            it "does not add the bundler and autoproj gems_home' bin to PATH" do
+                path = workspace_env('PATH')
+                expected_path = File.join(autoproj_gem_home, 'bin')
+                refute path.include?(expected_path)
+            end
+
+            it "places the shims path before the gems bin" do
+                path = workspace_env('PATH')
+                shims_index = path.index(File.join(dot_autoproj_dir, 'bin'))
+                gems_bin         = Pathname.new(install_dir) + 'install' + "gems"
+                gems_index  = path.index(gems_bin.to_s)
+                assert(shims_index < gems_index)
+            end
+
+            it "does add the gems_home bin to PATH" do
+                path = workspace_env('PATH')
+                gems_bin         = Pathname.new(install_dir) + 'install' + "gems"
+                assert path.include?(gems_bin.to_s)
+            end
         end
     end
 
     describe "upgrade from v1" do
+        attr_reader :install_dir
+        before do
+            shared_gems = Dir.mktmpdir
+            @install_dir, _ = invoke_test_script 'upgrade_from_v1.sh', "--shared-gems", shared_gems, copy_from: 'upgrade_from_v1'
+        end
         it "saves the original v1 env.sh" do
-            dir = invoke_test_script 'upgrade_from_v1'
-            assert_equal "UPGRADE_FROM_V1=1", File.read(File.join(dir, 'env.sh-autoproj-v1')).strip
+            assert_equal "UPGRADE_FROM_V1=1", File.read(File.join(install_dir, 'env.sh-autoproj-v1')).strip
         end
         it "merges the existing v1 configuration" do
-            dir = invoke_test_script 'upgrade_from_v1'
-            new_config = YAML.load(File.read(File.join(dir, '.autoproj', 'config.yml')))
+            new_config = YAML.load(File.read(File.join(install_dir, '.autoproj', 'config.yml')))
             assert_equal true, new_config['test_v1_config']
         end
     end

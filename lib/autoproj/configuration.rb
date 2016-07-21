@@ -206,49 +206,61 @@ module Autoproj
             set('parallel_import_level', level)
         end
 
-        def private_bundler?
-            !!get('private_bundler', false)
+        # The user-wide place where RubyGems installs gems
+        def self.dot_gem_dir
+            File.join(Gem.user_home, ".gem")
         end
 
-        def bundler_gem_home
-            get('private_bundler', Gem.user_dir)
+        # The Ruby platform and version-specific subdirectory used by bundler and rubygem
+        def self.gems_path_suffix
+            @gems_path_suffix ||= Pathname.new(Gem.user_dir).
+                relative_path_from(Pathname.new(dot_gem_dir)).to_s
         end
 
-        def private_autoproj?
-            !!get('private_autoproj', false)
-        end
-
-        def autoproj_gem_home
-            get('private_autoproj', Gem.user_dir)
-        end
-
-        def private_gems?
-            !!get('private_gems', false)
-        end
-
-        # The path provided to bundler to install the gems
-        def gems_bundler_path(ws)
-            value = get('private_gems', false)
-            if value.respond_to?(:to_str)
-                value
-            elsif value
-                default = File.join(ws.prefix_dir, 'gems')
-                set('private_gems', default)
-                default
-            end
-        end
-
-        # The GEM_HOME derived from {#gems_bundler_path}
+        # The gem install root into which the bundler and autoproj gems, as well
+        # as autoproj's dependencies, are installed
         #
-        # RubyGems and Bundler install gems in a subdirectory specific to the
-        # Ruby platform and version. This adds the relevant suffix to
-        # {#gems_bundler_path}
+        # Note that while this setting is separated from the other gems path,
+        # the only way to reliably isolate the gems of an autoproj workspace is
+        # to separate both the autoproj gems and the workspace gems.
+        #
+        # The gems are actually installed under a platform and version-specific
+        # subdirectory (returned by {#gems_path_suffix})
+        #
+        # @return [String]
+        def autoproj_install_path
+            get('autoproj_install_path')
+        end
+
+        # The GEM_HOME into which the autoproj gem and its dependencies are installed
+        #
+        # @return [String]
+        def autoproj_gem_home
+            File.join(autoproj_install_path, self.class.gems_path_suffix)
+        end
+
+        # The gem install root into which the workspace gems are installed
+        #
+        # Note that while this setting is separated from the other gems path,
+        # the only way to reliably isolate the gems of an autoproj workspace is
+        # to separate both the autoproj gems and the workspace gems. This is why
+        # there are only --public and --private settings in autoproj_install
+        #
+        # The gems are actually installed under a platform and version-specific
+        # subdirectory (returned by {#gems_path_suffix})
+        #
+        # @param [Workspace] ws the workspace whose gems are being considered
+        # @return [String]
+        def gems_install_path(ws)
+            File.expand_path(get('gems_install_path'), ws.prefix_dir)
+        end
+
+        # The GEM_HOME into which the workspace gems are installed
+        #
+        # @param [Workspace] ws the workspace whose gems are being considered
+        # @return [String]
         def gems_gem_home(ws)
-            base_path = gems_bundler_path(ws) || File.join(Gem.user_dir, '.gem')
-            path_suffix = Pathname.new(Gem.user_dir).
-                relative_path_from(Pathname.new(File.join(Gem.user_home, '.gem'))).
-                to_s
-            File.join(base_path, path_suffix)
+            File.join(gems_install_path(ws), self.class.gems_path_suffix)
         end
 
         # The full path to the expected ruby executable

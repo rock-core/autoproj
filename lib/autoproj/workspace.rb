@@ -20,6 +20,7 @@ module Autoproj
 
         def initialize(root_dir)
             @root_dir = root_dir
+
             @loader = loader
             @env = Environment.new
             env.source_before(File.join(dot_autoproj_dir, 'env.sh'))
@@ -240,6 +241,7 @@ module Autoproj
         end
 
         def setup
+            migrate_bundler_and_autoproj_gem_layout
             load_config
             autodetect_operating_system
             config.validate_ruby_executable
@@ -305,13 +307,13 @@ module Autoproj
                 return
             end
 
-            gemfile  = File.join(dot_autoproj_dir, 'autoproj', 'Gemfile')
-            binstubs = File.join(dot_autoproj_dir, 'autoproj', 'bin')
+            gemfile  = File.join(dot_autoproj_dir, 'Gemfile')
+            binstubs = File.join(dot_autoproj_dir, 'bin')
             begin
                 PackageManagers::BundlerManager.run_bundler_install(
                     self, gemfile, binstubs: binstubs)
             ensure
-                Ops::Install.clean_binstubs(binstubs)
+                Ops::Install.clean_binstubs(binstubs, config.ruby_executable, File.join(config.autoproj_gem_home, 'bin', 'bundler'))
             end
 
             # Find out what version of autoproj bundler locked on
@@ -348,6 +350,22 @@ module Autoproj
             options_env = options.fetch(:env, Hash.new)
             options[:env] = env.resolved_env.merge(options_env)
             Autobuild::Subprocess.run(*args, options, &block)
+        end
+
+        def migrate_bundler_and_autoproj_gem_layout
+            if !File.directory?(File.join(dot_autoproj_dir, 'autoproj'))
+                return
+            else
+                config = YAML.load(File.read(File.join(dot_autoproj_dir, 'config.yml')))
+                return if config['autoproj_install_path']
+            end
+
+            Autoproj.silent = false
+            Autoproj.warn "The way bundler and autoproj are installed changed"
+            Autoproj.warn "You must download"
+            Autoproj.warn "   https://raw.githubusercontent.com/rock-core/autoproj/master/bin/autoproj_install"
+            Autoproj.warn "and run it at the root of this workspace"
+            exit 2
         end
 
         def set_as_main_workspace

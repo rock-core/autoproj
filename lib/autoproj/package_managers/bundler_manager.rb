@@ -37,26 +37,16 @@ module Autoproj
                 config = ws.config
 
                 env.add_path 'PATH', File.join(ws.prefix_dir, 'gems', 'bin')
-                env.add_path 'PATH', File.join(config.bundler_gem_home, 'bin')
-                env.add_path 'PATH', File.join(config.gems_gem_home(ws), 'bin')
-                env.add_path 'PATH', File.join(ws.dot_autoproj_dir, 'autoproj', 'bin')
+                env.add_path 'PATH', File.join(ws.dot_autoproj_dir, 'bin')
                 env.set 'GEM_HOME', config.gems_gem_home(ws)
-                env.set 'GEM_PATH', config.bundler_gem_home
+                env.set 'GEM_PATH', config.autoproj_gem_home
 
-                root_dir     = File.join(ws.prefix_dir, 'gems')
-                gemfile_path = File.join(root_dir, 'Gemfile')
+                gemfile_path = File.join(ws.prefix_dir, 'gems', 'Gemfile')
                 if File.file?(gemfile_path)
                     env.set('BUNDLE_GEMFILE', gemfile_path)
                 end
 
-                if !config.private_bundler? || !config.private_autoproj? || !config.private_gems?
-                    env.set('GEM_PATH', *Gem.default_path)
-                end
                 Autobuild.programs['bundler'] = File.join(ws.dot_autoproj_dir, 'bin', 'bundler')
-
-                if config.private_bundler?
-                    env.add_path 'GEM_PATH', config.bundler_gem_home
-                end
 
                 env.init_from_env 'RUBYLIB'
                 env.inherit 'RUBYLIB'
@@ -88,7 +78,7 @@ module Autoproj
                 gemfile = File.join(prefix_gems, 'Gemfile')
                 if !File.exist?(gemfile)
                     File.open(gemfile, 'w') do |io|
-                        io.puts "eval_gemfile \"#{File.join(ws.dot_autoproj_dir, 'autoproj', 'Gemfile')}\""
+                        io.puts "eval_gemfile \"#{File.join(ws.dot_autoproj_dir, 'Gemfile')}\""
                     end
                 end
 
@@ -243,7 +233,7 @@ module Autoproj
                 backup_files(backups)
                 if !File.file?("#{gemfile_path}.orig")
                     File.open("#{gemfile_path}.orig", 'w') do |io|
-                        io.puts "eval_gemfile \"#{File.join(ws.dot_autoproj_dir, 'autoproj', 'Gemfile')}\""
+                        io.puts "eval_gemfile \"#{File.join(ws.dot_autoproj_dir, 'Gemfile')}\""
                     end
                 end
 
@@ -257,7 +247,7 @@ module Autoproj
                 Dir.glob(File.join(ws.overrides_dir, "*.gemfile")) do |gemfile_path|
                     gemfiles << gemfile_path
                 end
-                gemfiles << File.join(ws.dot_autoproj_dir, 'autoproj', 'Gemfile')
+                gemfiles << File.join(ws.dot_autoproj_dir, 'Gemfile')
 
                 # Save the osdeps entries in a temporary gemfile and finally
                 # merge the whole lot of it
@@ -281,10 +271,6 @@ module Autoproj
                 end
 
                 options = Array.new
-                if ws.config.private_gems?
-                    options << "--path" << ws.config.gems_bundler_path(ws)
-                end
-
                 binstubs_path = File.join(root_dir, 'bin')
                 if updated || !install_only || !File.file?("#{gemfile_path}.lock")
                     self.class.run_bundler_install ws, gemfile_path, *options,

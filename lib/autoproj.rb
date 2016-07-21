@@ -1,5 +1,6 @@
 require "enumerator"
 require 'utilrb/module/attr_predicate'
+require 'pathname'
 require 'concurrent'
 require 'autobuild'
 require 'autoproj/base'
