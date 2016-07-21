@@ -26,6 +26,8 @@ module Autoproj
             attr_reader :autoproj_options
             # The Ruby interpreter we use for this install
             attr_reader :ruby_executable
+            # The URL of the source to be used to get gems
+            attr_accessor :gem_source
 
             def initialize(root_dir)
                 @root_dir = root_dir
@@ -34,6 +36,7 @@ module Autoproj
                 else
                     @gemfile = default_gemfile_contents
                 end
+                @gem_source = "https://rubygems.org"
 
                 @autoproj_options = Array.new
 
@@ -173,7 +176,7 @@ module Autoproj
             #   that should be used
             # @return [String]
             def default_gemfile_contents(autoproj_version = ">= 2.0.0.a")
-                ["source \"https://rubygems.org\"",
+                ["source \"#{gem_source}\"",
                  "gem \"autoproj\", \"#{autoproj_version}\"",
                  "gem \"utilrb\", \">= 3.0.0.a\""].join("\n")
             end
@@ -253,7 +256,7 @@ module Autoproj
 
                 result = system(
                     env_for_child.merge('GEM_PATH' => "", 'GEM_HOME' => bundler_gem_home),
-                    Gem.ruby, gem_program, 'install', '--env-shebang', '--no-document', '--no-format-executable',
+                    Gem.ruby, gem_program, 'install', '--env-shebang', '--no-document', '--no-format-executable', '--clear-sources', '--source', gem_source,
                         *local,
                         "--bindir=#{File.join(bundler_gem_home, 'bin')}", 'bundler')
 
