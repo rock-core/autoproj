@@ -180,7 +180,7 @@ module Autoproj
             # (see #prefer_index_over_os_packages?)
             def prefer_indep_over_os_packages=(flag); @prefer_indep_over_os_packages = !!flag end
 
-            def guess_gem_program
+            def self.guess_gem_program
                 ruby_bin = RbConfig::CONFIG['RUBY_INSTALL_NAME']
                 ruby_bindir = RbConfig::CONFIG['bindir']
 
@@ -444,7 +444,7 @@ module Autoproj
                     raise "cannot run autoproj_install or autoproj_bootstrap while under a 'bundler exec' subcommand or having loaded an env.sh. Open a new console and try again"
                 end
 
-                gem_program  = guess_gem_program
+                gem_program  = self.class.guess_gem_program
                 puts "Detected 'gem' to be #{gem_program}"
                 env['GEM_HOME'] = [autoproj_gem_home]
 
