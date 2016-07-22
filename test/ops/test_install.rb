@@ -17,6 +17,11 @@ module Autoproj
                 FileUtils.rm_rf fixture_gem_home
             end
 
+            it "installs fine when using the default gem source" do
+                shared_dir = make_tmpdir
+                invoke_test_script 'install.sh', use_autoproj_from_rubygems: true, env: Hash['HOME' => shared_dir]
+            end
+
             describe "default shared gems location" do
                 attr_reader :shared_gem_home, :shared_dir, :install_dir
                 before do

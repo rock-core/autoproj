@@ -31,12 +31,12 @@ module Autoproj
 
             def initialize(root_dir)
                 @root_dir = root_dir
+                @gem_source = "https://rubygems.org"
                 if File.file?(autoproj_gemfile_path)
                     @gemfile = File.read(autoproj_gemfile_path)
                 else
                     @gemfile = default_gemfile_contents
                 end
-                @gem_source = "https://rubygems.org"
 
                 @autoproj_options = Array.new
 
@@ -215,7 +215,8 @@ module Autoproj
                         @local = true
                     end
                     opt.on '--gem-source=URL', String, "use this source for RubyGems instead of rubygems.org" do |url|
-                        self.gem_source = url
+                        @gem_source = url
+                        @gemfile = default_gemfile_contents
                     end
                     opt.on '--shared-gems[=PATH]', "install gems in a shared location. By default,  uses the default RubyGems locations" do |path|
                         if path
