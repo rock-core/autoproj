@@ -138,6 +138,30 @@ module Autoproj
                     options << "--binstubs" << binstubs
                 end
 
+                connections = Set.new
+                run_bundler(ws, 'install', *options, gemfile: gemfile, gem_home: gem_home, gem_path: gem_path) do |line|
+                    case line
+                    when /Installing (.*)/
+                        Autobuild.message "  bundler: installing #{$1}"
+                    when /Fetching.*from (.*)/
+                        host = $1.gsub(/\.+$/, '')
+                        if !connections.include?(host)
+                            Autobuild.message "  bundler: connected to #{host}"
+                            connections << host
+                        end
+                    end
+                end
+            end
+
+            def self.bundle_gem_path(ws, gem_name, gemfile: nil, gem_home: nil, gem_path: nil)
+                path = String.new
+                PackageManagers::BundlerManager.run_bundler(ws, 'show', gem_name, gemfile: gemfile, gem_home: gem_home, gem_path: gem_path) do |line|
+                    path << line
+                end
+                path.chomp
+            end
+
+            def self.run_bundler(ws, *commandline, gemfile: nil, gem_home: nil, gem_path: nil)
                 Bundler.with_clean_env do
                     connections = Set.new
 
@@ -149,20 +173,10 @@ module Autoproj
                         'RUBYLIB' => nil
                     ]
                     ws.run 'autoproj', 'osdeps',
-                        Autobuild.tool('bundler'), 'install', *options,
+                        Autobuild.tool('bundler'), *commandline,
                         working_directory: File.dirname(gemfile), env: target_env do |line|
-
-                        case line
-                        when /Installing (.*)/
-                            Autobuild.message "  bundler: installing #{$1}"
-                        when /Fetching.*from (.*)/
-                            host = $1.gsub(/\.+$/, '')
-                            if !connections.include?(host)
-                                Autobuild.message "  bundler: connected to #{host}"
-                                connections << host
-                            end
+                            yield(line) if block_given?
                         end
-                    end
                 end
             end
 

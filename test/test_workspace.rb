@@ -1,5 +1,6 @@
 require 'autoproj/test'
 require 'autoproj/autobuild'
+require 'rubygems/server'
 
 module Autoproj
     describe Workspace do
@@ -60,6 +61,58 @@ module Autoproj
                 workspace.load_package_sets
                 refute workspace.manifest.excluded?('test')
             end
+        end
+
+        describe "update_autoproj" do
+            attr_reader :test_gem_home
+
+            before do
+                @test_gem_home = File.join(__dir__, 'gem_home')
+                FileUtils.rm_rf test_gem_home
+                bundled_gems_path = File.expand_path(File.join("..", ".."), find_gem_dir('utilrb').full_gem_path)
+                FileUtils.cp_r bundled_gems_path, test_gem_home
+                start_gem_server test_gem_home
+            end
+
+            after do
+                FileUtils.rm_rf test_gem_home
+            end
+
+            it "updates and restarts autoproj if a new version is available" do
+                # First, we need to package autoproj as-is so that we can
+                # install while using the gem server
+                capture_subprocess_io do
+                    system("rake", "build")
+                    system(Hash['GEM_HOME' => test_gem_home], 'gem', 'install', '--no-document', File.join('pkg', "autoproj-#{VERSION}.gem"))
+                end
+
+                autobuild_full_path  = find_gem_dir('autobuild').full_gem_path
+                install_dir, _ = invoke_test_script(
+                    'install.sh', '--private', '--gem-source', 'http://localhost:8808',
+                    gemfile_source: "source 'http://localhost:8080'\ngem 'autoproj', '>= 2.0.0.a'\ngem 'autobuild', path: #{autobuild_full_path}")
+
+                # We create a fake high-version gem and put it in the
+                # vendor/cache (since we rely on a self-started server to serve
+                # our gems)
+                capture_subprocess_io do
+                    system(Hash['__AUTOPROJ_TEST_FAKE_VERSION' => "2.99.99"], "rake", "build")
+                    system(Hash['GEM_HOME' => test_gem_home], 'gem', 'install', '--no-document', File.join('pkg', 'autoproj-99.99.99.gem'))
+                end
+
+                result = nil
+                stdout, stderr = capture_subprocess_io do
+                    result = Bundler.clean_system(
+                        File.join('.autoproj', 'bin', 'autoproj'), 'update', '--autoproj',
+                        chdir: install_dir)
+                end
+                if !result
+                    puts stdout
+                    puts stderr
+                    flunk("autoproj update --autoproj terminated")
+                end
+                assert_match /autoproj has been updated/, stdout
+            end
+
         end
     end
 end

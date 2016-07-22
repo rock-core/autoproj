@@ -309,27 +309,22 @@ module Autoproj
 
             gemfile  = File.join(dot_autoproj_dir, 'Gemfile')
             binstubs = File.join(dot_autoproj_dir, 'bin')
+            old_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(
+                self, 'autoproj', gemfile: gemfile, gem_home: config.autoproj_gem_home, gem_path: nil)
             begin
                 PackageManagers::BundlerManager.run_bundler_install(
                     self, gemfile, gem_home: config.autoproj_gem_home, gem_path: nil, binstubs: binstubs)
             ensure
                 Ops::Install.clean_binstubs(binstubs, config.ruby_executable, File.join(config.autoproj_gem_home, 'bin', 'bundler'))
             end
+            new_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(
+                self, 'autoproj', gemfile: gemfile, gem_home: config.autoproj_gem_home, gem_path: nil)
 
-            # Find out what version of autoproj bundler locked on
-            autoproj = File.readlines("#{gemfile}.lock").
-                find_all { |l| l =~ /^\s+autoproj \(\d.*\)$/ }
-            if autoproj.size == 1
-                autoproj[0] =~ /^\s+autoproj \((.*)\)$/
-                installed_version = $1
-            else
-                raise "unexpected format for #{gemfile}.lock, cannot determine installed version of autoproj"
-            end
 
             # First things first, see if we need to update ourselves
-            if (VERSION != installed_version) && restart_on_update
+            if (new_autoproj_path != old_autoproj_path) && restart_on_update
                 puts
-                Autoproj.message "autoproj has been updated to #{installed_version} (from #{VERSION}), restarting"
+                Autoproj.message "autoproj has been updated, restarting"
                 puts
 
                 # We updated autobuild or autoproj themselves ... Restart !

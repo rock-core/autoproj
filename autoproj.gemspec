@@ -5,7 +5,9 @@ require 'autoproj/version'
 
 Gem::Specification.new do |s|
     s.name = "autoproj"
-    s.version = Autoproj::VERSION
+    # The envvar is here for the benefit of tests that require to create gems
+    # with a "fake" version
+    s.version = ENV['__AUTOPROJ_TEST_FAKE_VERSION'] || Autoproj::VERSION
     s.authors = ["Sylvain Joyeux"]
     s.email = "sylvain.joyeux@m4x.org"
     s.summary = "Easy installation and management of sets of software packages"
