@@ -311,7 +311,7 @@ module Autoproj
             binstubs = File.join(dot_autoproj_dir, 'bin')
             begin
                 PackageManagers::BundlerManager.run_bundler_install(
-                    self, gemfile, binstubs: binstubs)
+                    self, gemfile, gem_home: config.autoproj_gem_home, gem_path: nil, binstubs: binstubs)
             ensure
                 Ops::Install.clean_binstubs(binstubs, config.ruby_executable, File.join(config.autoproj_gem_home, 'bin', 'bundler'))
             end

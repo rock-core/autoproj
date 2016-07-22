@@ -128,7 +128,7 @@ module Autoproj
                 end
             end
 
-            def self.run_bundler_install(ws, gemfile, *options, update: true, binstubs: nil)
+            def self.run_bundler_install(ws, gemfile, *options, update: true, binstubs: nil, gem_home: ws.config.gems_gem_home(ws), gem_path: ws.config.autoproj_gem_home)
                 if update && File.file?("#{gemfile}.lock")
                     FileUtils.rm "#{gemfile}.lock"
                 end
@@ -140,10 +140,17 @@ module Autoproj
 
                 Bundler.with_clean_env do
                     connections = Set.new
+
+                    target_env = Hash[
+                        'GEM_HOME' => gem_home,
+                        'GEM_PATH' => gem_path,
+                        'BUNDLE_GEMFILE' => gemfile,
+                        'RUBYOPT' => nil,
+                        'RUBYLIB' => nil
+                    ]
                     ws.run 'autoproj', 'osdeps',
-                        Autobuild.tool('bundler'), 'install',
-                            *options,
-                            working_directory: File.dirname(gemfile), env: Hash['BUNDLE_GEMFILE' => nil, 'RUBYOPT' => nil] do |line|
+                        Autobuild.tool('bundler'), 'install', *options,
+                        working_directory: File.dirname(gemfile), env: target_env do |line|
 
                         case line
                         when /Installing (.*)/
@@ -315,9 +322,10 @@ module Autoproj
                 if silent_errors
                     silent_redirect[:err] = '/dev/null'
                 end
+                env = ws.env.resolved_env
                 Tempfile.open 'autoproj-rubylib' do |io|
                     result = Bundler.clean_system(
-                        Hash['BUNDLE_GEMFILE' => gemfile, 'RUBYLIB' => nil],
+                        Hash['GEM_HOME' => env['GEM_HOME'], 'GEM_PATH' => env['GEM_PATH'], 'BUNDLE_GEMFILE' => gemfile, 'RUBYOPT' => nil, 'RUBYLIB' => nil],
                         Autobuild.tool('bundler'), 'exec', Autobuild.tool('ruby'), '-rbundler/setup', '-e', 'puts $LOAD_PATH',
                         out: io, **silent_redirect)
                         
