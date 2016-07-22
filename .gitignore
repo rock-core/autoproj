@@ -7,3 +7,4 @@ pkg/
 /.bundle
 /coverage/
 /.yardoc/
+test/gem_home
