@@ -9,6 +9,11 @@ rvm:
 matrix:
     allow_failures:
         - rvm: 'jruby-9.1.2.0'
+
+cache: bundler
+
+# Some tests expect gems to be present in vendor/bundle
+install: bundler install --path vendor/bundle
 script:
     - bundler exec rake
     - bundler exec rake test
