@@ -83,7 +83,7 @@ module Autoproj
                 # install while using the gem server
                 capture_subprocess_io do
                     system("rake", "build")
-                    system(Hash['GEM_HOME' => test_gem_home], 'gem', 'install', '--no-document', File.join('pkg', "autoproj-#{VERSION}.gem"))
+                    system(Hash['GEM_HOME' => test_gem_home], Ops::Install.guess_gem_program, 'install', '--no-document', File.join('pkg', "autoproj-#{VERSION}.gem"))
                 end
 
                 autobuild_full_path  = find_gem_dir('autobuild').full_gem_path

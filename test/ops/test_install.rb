@@ -4,17 +4,9 @@ require 'autoproj/ops/configuration'
 module Autoproj
     module Ops
         describe Install do
-            attr_reader :fixture_gem_home
-
             before do
-                @fixture_gem_home = File.join(__dir__, '..', 'gem_home')
-                FileUtils.rm_rf fixture_gem_home
-                bundled_gems_path = File.expand_path(File.join("..", ".."), find_gem_dir('utilrb').full_gem_path)
-                FileUtils.cp_r bundled_gems_path, fixture_gem_home
-                start_gem_server fixture_gem_home
-            end
-            after do
-                FileUtils.rm_rf fixture_gem_home
+                prepare_fixture_gem_home
+                start_gem_server
             end
 
             it "installs fine when using the default gem source" do

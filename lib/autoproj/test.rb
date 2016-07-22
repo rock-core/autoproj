@@ -76,6 +76,8 @@ module Autoproj
             if @gem_server_pid
                 stop_gem_server
             end
+
+            FileUtils.rm_rf fixture_gem_home
         end
 
         def scripts_dir
@@ -150,7 +152,30 @@ gem 'autobuild', path: '#{autobuild_dir}'
             return dir, stdout, stderr
         end
 
-        def start_gem_server(path)
+        def fixture_gem_home
+            File.join(__dir__, '..', '..', 'test', 'gem_home')
+        end
+
+        def prepare_fixture_gem_home
+            FileUtils.rm_rf fixture_gem_home
+            bundled_gems_path = File.expand_path(File.join("..", ".."), find_gem_dir('utilrb').full_gem_path)
+            FileUtils.cp_r bundled_gems_path, fixture_gem_home
+
+            vendor = File.join(__dir__, '..', '..', 'vendor')
+            cached_bundler_gem = File.join(vendor, "bundler-#{Bundler::VERSION}.gem")
+            if !File.file?(cached_bundler_gem)
+                FileUtils.mkdir_p vendor
+                if !system(Ops::Install.guess_gem_program, 'fetch', '-v', Bundler::VERSION, 'bundler', chdir: vendor)
+                    raise "cannot download the bundler gem"
+                end
+            end
+
+            capture_subprocess_io do
+                system(Hash['GEM_HOME' => fixture_gem_home], Ops::Install.guess_gem_program, 'install', '--no-document', cached_bundler_gem)
+            end
+        end
+
+        def start_gem_server(path = fixture_gem_home)
             require 'socket'
             require 'rubygems/server'
             if @gem_server_pid
