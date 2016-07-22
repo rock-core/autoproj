@@ -103,7 +103,7 @@ module Autobuild
         end
 
         def autoproj_name # :nodoc:
-            srcdir.gsub /^#{Regexp.quote(Autoproj.root_dir)}\//, ''
+            srcdir.gsub(/^#{Regexp.quote(Autoproj.root_dir)}\//, '')
         end
 
         alias __depends_on__ depends_on

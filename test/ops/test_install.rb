@@ -33,7 +33,7 @@ module Autoproj
                 it "saves a shim to the installed bundler" do
                     shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
                     content = File.read(shim_path)
-                    assert_match /exec .*#{File.join(shared_gem_home, 'bin', 'bundler')}/, content
+                    assert_match(/exec .*#{File.join(shared_gem_home, 'bin', 'bundler')}/, content)
                 end
 
                 it "sets the environment so that the shared bundler is found" do
@@ -74,7 +74,7 @@ module Autoproj
                 it "saves a shim to the installed bundler" do
                     shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
                     content = File.read(shim_path)
-                    assert_match /exec .*#{File.join(shared_gem_home, 'bin', 'bundler')}/, content
+                    assert_match(/exec .*#{File.join(shared_gem_home, 'bin', 'bundler')}/, content)
                 end
 
                 it "sets the environment so that the shared bundler is found" do
@@ -125,7 +125,7 @@ module Autoproj
                 it "saves a shim to the installed bundler" do
                     shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
                     content = File.read(shim_path)
-                    assert_match /exec .*#{File.join(autoproj_gem_home, 'bin', 'bundler')}/, content
+                    assert_match(/exec .*#{File.join(autoproj_gem_home, 'bin', 'bundler')}/, content)
                 end
 
                 it "sets the environment so that bundler is found" do

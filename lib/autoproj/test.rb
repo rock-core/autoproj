@@ -43,6 +43,7 @@ module Autoproj
         attr_reader :ws
 
         def setup
+            @gem_server_pid = nil
             @tmpdir = Array.new
             @ws = Workspace.new('/test/dir')
             ws.load_config

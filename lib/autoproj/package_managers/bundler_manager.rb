@@ -163,8 +163,6 @@ module Autoproj
 
             def self.run_bundler(ws, *commandline, gemfile: nil, gem_home: nil, gem_path: nil)
                 Bundler.with_clean_env do
-                    connections = Set.new
-
                     target_env = Hash[
                         'GEM_HOME' => gem_home,
                         'GEM_PATH' => gem_path,

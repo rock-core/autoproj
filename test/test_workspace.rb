@@ -110,7 +110,7 @@ module Autoproj
                     puts stderr
                     flunk("autoproj update --autoproj terminated")
                 end
-                assert_match /autoproj has been updated/, stdout
+                assert_match(/autoproj has been updated/, stdout)
             end
 
         end
