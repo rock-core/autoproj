@@ -6,7 +6,7 @@ module Autoproj
         describe "#load_package_sets" do
             attr_reader :test_dir, :test_autoproj_dir, :workspace
             before do
-                @test_dir = Dir.mktmpdir
+                @test_dir = make_tmpdir
                 @test_autoproj_dir = File.join(@test_dir, 'autoproj')
                 FileUtils.mkdir_p test_autoproj_dir
                 FileUtils.touch File.join(test_autoproj_dir, 'manifest')
@@ -17,10 +17,6 @@ module Autoproj
                 @workspace = Workspace.new(test_dir)
                 workspace.os_package_resolver.operating_system = [['debian', 'tests'], ['test_version']]
                 workspace.load_config
-            end
-
-            after do
-                FileUtils.rm_rf test_autoproj_dir
             end
 
             def add_in_osdeps(entry)

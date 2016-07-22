@@ -5,15 +5,11 @@ describe Autoproj do
     describe ".find_v2_root_dir" do
         attr_reader :workspace_root, :testdir
         before do
-            @testdir = Dir.mktmpdir("autoproj")
+            @testdir = make_tmpdir
             @workspace_root = File.join(testdir, "path", "to", "workspace")
             FileUtils.mkdir_p File.join(workspace_root, ".autoproj")
             FileUtils.touch File.join(workspace_root, ".autoproj", 'config.yml')
             FileUtils.mkdir_p File.join(workspace_root, "with", "subdir")
-        end
-
-        after do
-            FileUtils.remove_entry_secure testdir
         end
 
         it "returns a parent path that contain an .autoproj directory" do
