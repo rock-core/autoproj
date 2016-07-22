@@ -542,7 +542,7 @@ module Autoproj
                 clean_env = env_for_child
                 stage2_vars = clean_env.map { |k, v| "#{k}=#{v}" }
                 puts "starting the newly installed autoproj for stage2 install"
-                if !run_autoproj('install-stage2', root_dir, *stage2_vars, '--debug')
+                if !run_autoproj('install-stage2', root_dir, *stage2_vars)
                     raise "failed to execute autoproj install-stage2"
                 end
             end
@@ -555,14 +555,12 @@ module Autoproj
                     STDERR.puts "failed to run autoproj envsh on the newly installed autoproj (#{autoproj_path})"
                     exit 1
                 end
-                STDERR.puts "DONE ENVSH"
                 # This is really needed on an existing install to install the
                 # gems that were present in the v1 layout
                 if !system(Gem.ruby, autoproj_path, 'osdeps')
                     STDERR.puts "failed to run autoproj osdeps on the newly installed autoproj (#{autoproj_path})"
                     exit 1
                 end
-                STDERR.puts "DONE OSDEPS"
             end
         end
     end
