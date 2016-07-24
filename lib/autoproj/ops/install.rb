@@ -536,13 +536,13 @@ require 'bundler/setup'
                 require 'autobuild'
                 puts "saving env.sh and .autoproj/env.sh"
                 save_env_sh(*vars)
-                if !system(Gem.ruby, autoproj_path, 'envsh', *autoproj_options, '--debug')
+                if !system(Gem.ruby, autoproj_path, 'envsh', *autoproj_options)
                     STDERR.puts "failed to run autoproj envsh on the newly installed autoproj (#{autoproj_path})"
                     exit 1
                 end
                 # This is really needed on an existing install to install the
                 # gems that were present in the v1 layout
-                if !system(Gem.ruby, autoproj_path, 'osdeps', '--debug')
+                if !system(Gem.ruby, autoproj_path, 'osdeps')
                     STDERR.puts "failed to run autoproj osdeps on the newly installed autoproj (#{autoproj_path})"
                     exit 1
                 end
