@@ -315,7 +315,7 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
         end
 
         # Requests the installation of the given set of packages
-        def install(osdep_packages, install_only: false, **options)
+        def install(osdep_packages, install_only: false, run_package_managers_without_packages: false, **options)
             osdep_packages = osdep_packages.to_set - installed_packages
 
             setup_package_managers(**options)
@@ -342,7 +342,8 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             [os_packages, other_packages].each do |packages|
                 packages.each do |handler, list|
                     list = list.to_set - installed_resolved_packages[handler]
-                    next if list.empty? && !handler.call_while_empty?
+                    next if !run_package_managers_without_packages ||
+                        (list.empty? && !handler.call_while_empty?)
 
                     handler.install(
                         list.to_a,

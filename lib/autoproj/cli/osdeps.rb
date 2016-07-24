@@ -14,6 +14,7 @@ module Autoproj
                     shell_helpers: ws.config.shell_helpers?
                 ws.install_os_packages(
                     osdep_packages,
+                    run_package_managers_without_packages: true,
                     install_only: !options[:update])
                 ws.export_env_sh(shell_helpers: options[:shell_helpers])
             end
