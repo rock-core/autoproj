@@ -332,13 +332,13 @@ module Autoproj
                 gemfile = File.join(ws.prefix_dir, 'gems', 'Gemfile')
                 silent_redirect = Hash.new
                 if silent_errors
-                    silent_redirect[:err] = '/dev/null'
+                    silent_redirect[:err] = :close
                 end
                 env = ws.env.resolved_env
                 Tempfile.open 'autoproj-rubylib' do |io|
                     result = Bundler.clean_system(
                         Hash['GEM_HOME' => env['GEM_HOME'], 'GEM_PATH' => env['GEM_PATH'], 'BUNDLE_GEMFILE' => gemfile, 'RUBYOPT' => nil, 'RUBYLIB' => nil],
-                        Autobuild.tool('bundler'), 'exec', Autobuild.tool('ruby'), '-rbundler/setup', '-e', 'puts $LOAD_PATH',
+                        Autobuild.tool('ruby'), '-rbundler/setup', '-e', 'puts $LOAD_PATH',
                         out: io, **silent_redirect)
                         
                     if result

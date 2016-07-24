@@ -315,7 +315,7 @@ module Autoproj
                 PackageManagers::BundlerManager.run_bundler_install(
                     self, gemfile, gem_home: config.autoproj_gem_home, gem_path: nil, binstubs: binstubs)
             ensure
-                Ops::Install.clean_binstubs(binstubs, config.ruby_executable, File.join(config.autoproj_gem_home, 'bin', 'bundler'))
+                Ops::Install.rewrite_shims(binstubs, config.ruby_executable, gemfile, config.autoproj_gem_home)
             end
             new_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(
                 self, 'autoproj', gemfile: gemfile, gem_home: config.autoproj_gem_home, gem_path: nil)

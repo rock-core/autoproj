@@ -11,7 +11,14 @@ module Autoproj
 
             it "installs fine when using the default gem source" do
                 shared_dir = make_tmpdir
-                invoke_test_script 'install.sh', use_autoproj_from_rubygems: true, env: Hash['HOME' => shared_dir]
+                autoproj_dir  = find_gem_dir('autoproj').full_gem_path
+                autobuild_dir = find_gem_dir('autobuild').full_gem_path
+                gemfile_source = "source \"https://rubygems.org\"
+gem 'autoproj', path: '#{autoproj_dir}'
+gem 'autobuild', path: '#{autobuild_dir}'"
+
+                invoke_test_script 'install.sh', use_autoproj_from_rubygems: true, env: Hash['HOME' => shared_dir],
+                    gemfile_source: gemfile_source
             end
 
             describe "default shared gems location" do
@@ -24,13 +31,18 @@ module Autoproj
 
                 it "saves a shim to the installed bundler" do
                     shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
-                    content = File.read(shim_path)
-                    assert_match(/exec .*#{File.join(shared_gem_home, 'bin', 'bundler')}/, content)
+                    assert File.file?(shim_path)
+                    stdout, stderr = capture_subprocess_io do
+                        if !Bundler.clean_system(shim_path, 'show', 'bundler')
+                            flunk("could not run the bundler shim")
+                        end
+                    end
+                    assert stdout.start_with?(shared_gem_home), "expected #{stdout} to start with #{shared_gem_home}"
                 end
 
                 it "sets the environment so that the shared bundler is found" do
                     shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
-                    _, stdout, _ = invoke_test_script 'bundler-path.sh', dir: install_dir
+                    _, stdout, _ = invoke_test_script 'bundler-path.sh', dir: install_dir, chdir: File.join(install_dir, '.autoproj')
                     bundler_bin_path, bundler_gem_path =
                         stdout.chomp.split("\n")
                     assert_equal bundler_bin_path, shim_path
@@ -65,13 +77,19 @@ module Autoproj
 
                 it "saves a shim to the installed bundler" do
                     shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
-                    content = File.read(shim_path)
-                    assert_match(/exec .*#{File.join(shared_gem_home, 'bin', 'bundler')}/, content)
+                    assert File.file?(shim_path)
+                    stdout, stderr = capture_subprocess_io do
+                        if !Bundler.clean_system(shim_path, 'show', 'bundler')
+                            flunk("could not run the bundler shim")
+                        end
+                    end
+                    assert stdout.start_with?(shared_gem_home), "expected #{stdout} to start with #{shared_gem_home}"
                 end
 
                 it "sets the environment so that the shared bundler is found" do
                     shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
-                    _, stdout, _ = invoke_test_script 'bundler-path.sh', dir: install_dir
+                    _, stdout, _ = invoke_test_script 'bundler-path.sh', dir: install_dir, chdir: File.join(install_dir, '.autoproj')
+
                     bundler_bin_path, bundler_gem_path =
                         stdout.chomp.split("\n")
                     assert_equal bundler_bin_path, shim_path
@@ -111,18 +129,23 @@ module Autoproj
                     bundler_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
                     autoproj_gemfile = File.join(install_dir, '.autoproj', 'Gemfile')
                     utilrb_gem = find_bundled_gem_path(bundler_path, 'utilrb', autoproj_gemfile)
-                    assert utilrb_gem.start_with?(autoproj_gem_home.to_s)
+                    assert utilrb_gem.start_with?(autoproj_gem_home.to_s), "expected #{utilrb_gem} to be located in #{autoproj_gem_home}"
                 end
 
                 it "saves a shim to the installed bundler" do
                     shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
-                    content = File.read(shim_path)
-                    assert_match(/exec .*#{File.join(autoproj_gem_home, 'bin', 'bundler')}/, content)
+                    assert File.file?(shim_path)
+                    stdout, stderr = capture_subprocess_io do
+                        if !Bundler.clean_system(shim_path, 'show', 'bundler')
+                            flunk("could not run the bundler shim")
+                        end
+                    end
+                    assert stdout.start_with?(autoproj_gem_home.to_s), "expected #{stdout} to start with #{autoproj_gem_home}"
                 end
 
                 it "sets the environment so that bundler is found" do
                     shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
-                    _, stdout, _ = invoke_test_script 'bundler-path.sh', dir: install_dir
+                    _, stdout, _ = invoke_test_script 'bundler-path.sh', dir: install_dir, chdir: File.join(install_dir, '.autoproj')
                     bundler_bin_path, bundler_gem_path =
                         stdout.chomp.split("\n")
                     assert_equal bundler_bin_path, shim_path
@@ -161,7 +184,7 @@ module Autoproj
                 attr_reader :install_dir
                 before do
                     shared_gems = make_tmpdir
-                    @install_dir, _ = invoke_test_script 'upgrade_from_v1.sh', "--shared-gems", shared_gems, copy_from: 'upgrade_from_v1'
+                    @install_dir, _ = invoke_test_script 'upgrade_from_v1.sh', "--shared-gems=#{shared_gems}", copy_from: 'upgrade_from_v1'
                 end
                 it "saves the original v1 env.sh" do
                     assert_equal "UPGRADE_FROM_V1=1", File.read(File.join(install_dir, 'env.sh-autoproj-v1')).strip

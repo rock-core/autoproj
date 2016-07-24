@@ -32,11 +32,7 @@ module Autoproj
             def initialize(root_dir)
                 @root_dir = root_dir
                 @gem_source = "https://rubygems.org"
-                if File.file?(autoproj_gemfile_path)
-                    @gemfile = File.read(autoproj_gemfile_path)
-                else
-                    @gemfile = default_gemfile_contents
-                end
+                @gemfile = nil
 
                 @autoproj_options = Array.new
 
@@ -216,7 +212,6 @@ module Autoproj
                     end
                     opt.on '--gem-source=URL', String, "use this source for RubyGems instead of rubygems.org" do |url|
                         @gem_source = url
-                        @gemfile = default_gemfile_contents
                     end
                     opt.on '--shared-gems[=PATH]', "install gems in a shared location. By default,  uses the default RubyGems locations" do |path|
                         if path
@@ -232,9 +227,15 @@ module Autoproj
                         self.gems_install_path     = 'gems'
                     end
                     opt.on '--version=VERSION_CONSTRAINT', String, 'use the provided string as a version constraint for autoproj' do |version|
+                        if @gemfile
+                            raise "cannot give both --version and --gemfile"
+                        end
                         @gemfile = default_gemfile_contents(version)
                     end
                     opt.on '--gemfile=PATH', String, 'use the given Gemfile to install autoproj instead of the default' do |path|
+                        if @gemfile
+                            raise "cannot give both --version and --gemfile"
+                        end
                         @gemfile = File.read(path)
                     end
                     opt.on '--seed-config=PATH', String, 'path to a seed file that should be used to initialize the configuration' do |path|
@@ -320,39 +321,69 @@ module Autoproj
                     exit 1
                 end
             ensure
-                self.class.clean_binstubs(shims_path, ruby_executable, bundler)
+                self.class.rewrite_shims(shims_path, ruby_executable, autoproj_gemfile_path, autoproj_gem_home)
             end
 
-            def self.clean_binstubs(shim_path, ruby_executable, bundler_path)
-                %w{bundler bundle rake thor ruby}.each do |bundler_bin|
-                    path = File.join(shim_path, bundler_bin)
-                    if File.file?(path)
-                        FileUtils.rm path
-                    end
+            def self.rewrite_shims(shim_path, ruby_executable, autoproj_gemfile_path, autoproj_gem_home)
+                FileUtils.mkdir_p shim_path
+                File.open(File.join(shim_path, 'ruby'), 'w') do |io|
+                    io.puts "#! /bin/sh"
+                    io.puts "exec #{ruby_executable} \"$@\""
                 end
+                FileUtils.chmod 0755, File.join(shim_path, 'ruby')
 
-                # Now tune the binstubs to force the usage of the autoproj
-                # gemfile. Otherwise, they get BUNDLE_GEMFILE from the
-                # environment by default
-                Dir.glob(File.join(shim_path, '*')) do |path|
-                    next if !File.file?(path)
+                FileUtils.touch File.join(shim_path, 'bundler')
+                FileUtils.touch File.join(shim_path, 'bundle')
+                Dir.glob(File.join(shim_path, '*')) do |bin_script|
+                    next if !File.file?(bin_script)
+                    bin_name = File.basename(bin_script)
+                    next if bin_name == 'ruby'
 
-                    lines = File.readlines(path)
-                    matched = false
-                    filtered = lines.map do |l|
-                        matched ||= (ENV_BUNDLE_GEMFILE_RX === l)
-                        l.gsub(ENV_BUNDLE_GEMFILE_RX, '\\1=')
+                    bin_shim = File.join(shim_path, bin_name)
+                    bin_script_lines = File.readlines(bin_script)
+                    File.open(bin_shim, 'w') do |io|
+                        if bin_name == 'bundler' || bin_name == 'bundle'
+                            io.puts shim_bundler(ruby_executable, autoproj_gemfile_path, autoproj_gem_home)
+                        else
+                            load_line = bin_script_lines.grep(/load Gem.bin_path/).first
+                            io.puts shim_script(ruby_executable, autoproj_gemfile_path, autoproj_gem_home, load_line)
+                        end
                     end
-                    if !matched
-                        raise UnexpectedBinstub, "expected #{path} to contain a line looking like ENV['BUNDLE_GEMFILE'] ||= but could not find one"
-                    end
-                    File.open(path, 'w') do |io|
-                        io.write filtered.join("")
-                    end
+                    FileUtils.chmod 0755, bin_shim
                 end
+            end
 
-            ensure
-                save_ruby_and_bundler_shims(shim_path, ruby_executable, bundler_path)
+            def self.shim_bundler(ruby_executable, autoproj_gemfile_path, autoproj_gem_home)
+"#! #{ruby_executable}
+
+if defined?(Bundler)
+    Bundler.with_clean_env do
+        exec($0, *ARGV)
+    end
+end
+
+ENV.delete('BUNDLE_GEMFILE')
+ENV['GEM_HOME'] = '#{autoproj_gem_home}'
+ENV.delete('GEM_PATH')
+Gem.paths = Hash['GEM_HOME' => '#{autoproj_gem_home}', 'GEM_PATH' => '']
+
+load Gem.bin_path('bundler', 'bundler')"
+            end
+            
+            def self.shim_script(ruby_executable, autoproj_gemfile_path, autoproj_gem_home, load_line)
+"#! #{ruby_executable}
+
+if defined?(Bundler)
+    Bundler.with_clean_env do
+        exec($0, *ARGV)
+    end
+end
+
+ENV['BUNDLE_GEMFILE'] = '#{autoproj_gemfile_path}'
+require 'rubygems'
+Gem.paths = Hash['GEM_HOME' => '#{autoproj_gem_home}', 'GEM_PATH' => '']
+require 'bundler/setup'
+#{load_line}"
             end
 
             def save_env_sh(*vars)
@@ -383,6 +414,15 @@ module Autoproj
             end
 
             def save_gemfile
+                gemfile =
+                    if @gemfile
+                        @gemfile
+                    elsif File.file?(autoproj_gemfile_path)
+                        File.read(autoproj_gemfile_path)
+                    else
+                        default_gemfile_contents
+                    end
+
                 FileUtils.mkdir_p File.dirname(autoproj_gemfile_path)
                 File.open(autoproj_gemfile_path, 'w') do |io|
                     io.write gemfile
@@ -425,21 +465,6 @@ module Autoproj
                 end
             end
 
-            def self.save_ruby_and_bundler_shims(shim_path, ruby_executable, bundler_path)
-                FileUtils.mkdir_p shim_path
-                bundler_rubylib = File.expand_path(File.join('..', '..', 'lib'), bundler_path)
-                File.open(File.join(shim_path, 'bundler'), 'w') do |io|
-                    io.puts "#! /bin/sh"
-                    io.puts "exec #{ruby_executable} #{bundler_path} \"$@\""
-                end
-                FileUtils.chmod 0755, File.join(shim_path, 'bundler')
-                File.open(File.join(shim_path, 'ruby'), 'w') do |io|
-                    io.puts "#! /bin/sh"
-                    io.puts "exec #{ruby_executable} \"$@\""
-                end
-                FileUtils.chmod 0755, File.join(shim_path, 'ruby')
-            end
-
             def install
                 if ENV['BUNDLER_GEMFILE']
                     raise "cannot run autoproj_install or autoproj_bootstrap while under a 'bundler exec' subcommand or having loaded an env.sh. Open a new console and try again"
@@ -457,10 +482,11 @@ module Autoproj
                         exit 1
                     end
                 end
-                self.class.save_ruby_and_bundler_shims(
+                self.class.rewrite_shims(
                     File.join(dot_autoproj, 'bin'),
                     ruby_executable,
-                    bundler)
+                    autoproj_gemfile_path,
+                    autoproj_gem_home)
                 env['PATH'].unshift File.join(dot_autoproj, 'bin')
                 save_gemfile
 

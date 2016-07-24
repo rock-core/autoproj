@@ -48,22 +48,9 @@ module Autoproj
             @ws = Workspace.new('/test/dir')
             ws.load_config
             Autoproj.workspace = ws
+            FileUtils.rm_rf fixture_gem_home
 
             super
-        end
-
-        def create_bootstrap
-            dir = Dir.mktmpdir
-            @tmpdir << dir
-            require 'autoproj/ops/main_config_switcher'
-            FileUtils.cp_r Ops::MainConfigSwitcher::MAIN_CONFIGURATION_TEMPLATE, File.join(dir, 'autoproj')
-            Workspace.new(dir)
-        end
-
-        def make_tmpdir
-            dir = Dir.mktmpdir
-            @tmpdir << dir
-            dir
         end
 
         def teardown
@@ -78,6 +65,20 @@ module Autoproj
             end
 
             FileUtils.rm_rf fixture_gem_home
+        end
+
+        def create_bootstrap
+            dir = Dir.mktmpdir
+            @tmpdir << dir
+            require 'autoproj/ops/main_config_switcher'
+            FileUtils.cp_r Ops::MainConfigSwitcher::MAIN_CONFIGURATION_TEMPLATE, File.join(dir, 'autoproj')
+            Workspace.new(dir)
+        end
+
+        def make_tmpdir
+            dir = Dir.mktmpdir
+            @tmpdir << dir
+            dir
         end
 
         def scripts_dir
@@ -107,7 +108,8 @@ gem 'autobuild', path: '#{autobuild_dir}'
                                gemfile_source: nil,
                                use_autoproj_from_rubygems: (ENV['USE_AUTOPROJ_FROM_RUBYGEMS'] == '1'),
                                seed_config: File.join(scripts_dir, 'seed-config.yml'),
-                               env: Hash.new, display_output: false, copy_from: nil)
+                               env: Hash.new, display_output: false, copy_from: nil,
+                               **system_options)
             package_base_dir = File.expand_path(File.join('..', '..'), File.dirname(__FILE__))
             script = File.expand_path(name, scripts_dir)
             if !File.file?(script)
@@ -121,10 +123,11 @@ gem 'autobuild', path: '#{autobuild_dir}'
             dir ||= make_tmpdir
 
             if gemfile_source || !use_autoproj_from_rubygems
-                File.open(File.join(dir, 'Gemfile-dev'), 'w') do |io|
+                gemfile_path = File.join(dir, 'Gemfile-dev')
+                File.open(gemfile_path, 'w') do |io|
                     io.puts(gemfile_source || autoproj_gemfile_to_local_checkout)
                 end
-                arguments << "--gemfile" << File.join(dir, "Gemfile-dev") << "--gem-source" << "http://localhost:8808"
+                arguments << "--gemfile" << gemfile_path << "--gem-source" << "http://localhost:8808"
             end
 
             if copy_from
@@ -138,7 +141,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
             stdout, stderr = capture_subprocess_io do
                 result = Bundler.clean_system(
                     Hash['PACKAGE_BASE_DIR' => package_base_dir, 'RUBY' => Gem.ruby].merge(env),
-                    script, *arguments, chdir: dir, in: :close)
+                    script, *arguments, in: :close, **Hash[chdir: dir].merge(system_options))
             end
 
             if !result
@@ -153,7 +156,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
         end
 
         def fixture_gem_home
-            File.join(__dir__, '..', '..', 'test', 'gem_home')
+            File.join(__dir__, '..', '..', 'vendor', 'test_gem_home')
         end
 
         def prepare_fixture_gem_home
@@ -171,7 +174,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
             end
 
             capture_subprocess_io do
-                system(Hash['GEM_HOME' => fixture_gem_home], Ops::Install.guess_gem_program, 'install', '--no-document', cached_bundler_gem)
+                Bundler.clean_system(Hash['GEM_HOME' => fixture_gem_home, 'GEM_PATH' => nil], Ops::Install.guess_gem_program, 'install', '--no-document', cached_bundler_gem)
             end
         end
 
@@ -181,7 +184,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
             if @gem_server_pid
                 raise ArgumentError, "#start_gem_server already called, call stop_gem_server before calling start_gem_server again"
             end
-            @gem_server_pid = spawn(Gem.ruby, Ops::Install.guess_gem_program, 'server', '--quiet', '--dir', path, out: :close, err: :close)
+            @gem_server_pid = spawn(Hash['RUBYOPT' => nil], Gem.ruby, Ops::Install.guess_gem_program, 'server', '--quiet', '--dir', path, out: :close, err: :close)
             while true
                 begin TCPSocket.new('127.0.0.1', 8808)
                     break
@@ -199,9 +202,9 @@ gem 'autobuild', path: '#{autobuild_dir}'
         def find_bundled_gem_path(bundler, gem_name, gemfile)
             out_r, out_w = IO.pipe
             result = Bundler.clean_system(
-                Hash['BUNDLE_GEMFILE' => gemfile],
                 bundler, 'show', gem_name,
-                out: out_w)
+                out: out_w,
+                chdir: File.dirname(gemfile))
             out_w.close
             output = out_r.read.chomp
             assert result, "#{output}"
