@@ -341,7 +341,6 @@ if defined?(Bundler)
     end
 end
 
-ENV.delete('BUNDLE_GEMFILE')
 ENV['GEM_HOME'] = '#{gems_gem_home}'
 ENV.delete('GEM_PATH')
 Gem.paths = Hash['GEM_HOME' => '#{gems_gem_home}', 'GEM_PATH' => '']
@@ -546,13 +545,13 @@ require 'bundler/setup'
                 require 'autobuild'
                 puts "saving env.sh and .autoproj/env.sh"
                 save_env_sh(*vars)
-                if !system(Gem.ruby, autoproj_path, 'envsh', *autoproj_options, '--debug')
+                if !system(Gem.ruby, autoproj_path, 'envsh', *autoproj_options)
                     STDERR.puts "failed to run autoproj envsh on the newly installed autoproj (#{autoproj_path})"
                     exit 1
                 end
                 # This is really needed on an existing install to install the
                 # gems that were present in the v1 layout
-                if !system(Gem.ruby, autoproj_path, 'osdeps', '--debug')
+                if !system(Gem.ruby, autoproj_path, 'osdeps')
                     STDERR.puts "failed to run autoproj osdeps on the newly installed autoproj (#{autoproj_path})"
                     exit 1
                 end

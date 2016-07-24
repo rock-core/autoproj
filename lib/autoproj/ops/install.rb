@@ -331,7 +331,6 @@ if defined?(Bundler)
     end
 end
 
-ENV.delete('BUNDLE_GEMFILE')
 ENV['GEM_HOME'] = '#{gems_gem_home}'
 ENV.delete('GEM_PATH')
 Gem.paths = Hash['GEM_HOME' => '#{gems_gem_home}', 'GEM_PATH' => '']
