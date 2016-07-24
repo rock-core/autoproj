@@ -310,15 +310,15 @@ module Autoproj
             gemfile  = File.join(dot_autoproj_dir, 'Gemfile')
             binstubs = File.join(dot_autoproj_dir, 'bin')
             old_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(
-                self, 'autoproj', gemfile: gemfile, gem_home: config.autoproj_gem_home, gem_path: nil)
+                self, 'autoproj', gemfile: gemfile)
             begin
                 PackageManagers::BundlerManager.run_bundler_install(
-                    self, gemfile, gem_home: config.autoproj_gem_home, gem_path: nil, binstubs: binstubs)
+                    self, gemfile, binstubs: binstubs)
             ensure
-                Ops::Install.rewrite_shims(binstubs, config.ruby_executable, gemfile, config.autoproj_gem_home)
+                Ops::Install.rewrite_shims(binstubs, config.ruby_executable, gemfile, config.gems_gem_home)
             end
             new_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(
-                self, 'autoproj', gemfile: gemfile, gem_home: config.autoproj_gem_home, gem_path: nil)
+                self, 'autoproj', gemfile: gemfile)
 
 
             # First things first, see if we need to update ourselves

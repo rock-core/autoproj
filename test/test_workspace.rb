@@ -70,6 +70,8 @@ module Autoproj
             end
 
             it "updates and restarts autoproj if a new version is available" do
+                gems_path = make_tmpdir
+
                 # First, we need to package autoproj as-is so that we can
                 # install while using the gem server
                 capture_subprocess_io do
@@ -79,7 +81,7 @@ module Autoproj
 
                 autobuild_full_path  = find_gem_dir('autobuild').full_gem_path
                 install_dir, _ = invoke_test_script(
-                    'install.sh', '--private', '--gem-source', 'http://localhost:8808',
+                    'install.sh', "--gems-path=#{gems_path}", '--gem-source', 'http://localhost:8808',
                     gemfile_source: "source 'http://localhost:8808'\ngem 'autoproj', '>= 2.0.0.a'\ngem 'autobuild', path: '#{autobuild_full_path}'")
 
                 # We create a fake high-version gem and put it in the

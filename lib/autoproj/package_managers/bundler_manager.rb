@@ -38,8 +38,8 @@ module Autoproj
 
                 env.add_path 'PATH', File.join(ws.prefix_dir, 'gems', 'bin')
                 env.add_path 'PATH', File.join(ws.dot_autoproj_dir, 'bin')
-                env.set 'GEM_HOME', config.gems_gem_home(ws)
-                env.set 'GEM_PATH', config.autoproj_gem_home
+                env.set 'GEM_HOME', config.gems_gem_home
+                env.clear 'GEM_PATH'
 
                 gemfile_path = File.join(ws.prefix_dir, 'gems', 'Gemfile')
                 if File.file?(gemfile_path)
@@ -128,18 +128,19 @@ module Autoproj
                 end
             end
 
-            def self.run_bundler_install(ws, gemfile, *options, update: true, binstubs: nil, gem_home: ws.config.gems_gem_home(ws), gem_path: ws.config.autoproj_gem_home)
+            def self.run_bundler_install(ws, gemfile, *options, update: true, binstubs: nil, gem_path: ws.config.gems_install_path)
                 if update && File.file?("#{gemfile}.lock")
                     FileUtils.rm "#{gemfile}.lock"
                 end
 
+                options << '--path' << gem_path
                 options << "--shebang" << Gem.ruby
                 if binstubs
                     options << "--binstubs" << binstubs
                 end
 
                 connections = Set.new
-                run_bundler(ws, 'install', *options, gemfile: gemfile, gem_home: gem_home, gem_path: gem_path) do |line|
+                run_bundler(ws, 'install', *options, gemfile: gemfile) do |line|
                     case line
                     when /Installing (.*)/
                         Autobuild.message "  bundler: installing #{$1}"
@@ -153,19 +154,19 @@ module Autoproj
                 end
             end
 
-            def self.bundle_gem_path(ws, gem_name, gemfile: nil, gem_home: nil, gem_path: nil)
+            def self.bundle_gem_path(ws, gem_name, gemfile: nil)
                 path = String.new
-                PackageManagers::BundlerManager.run_bundler(ws, 'show', gem_name, gemfile: gemfile, gem_home: gem_home, gem_path: gem_path) do |line|
+                PackageManagers::BundlerManager.run_bundler(ws, 'show', gem_name, gemfile: gemfile) do |line|
                     path << line
                 end
                 path.chomp
             end
 
-            def self.run_bundler(ws, *commandline, gemfile: nil, gem_home: nil, gem_path: nil)
+            def self.run_bundler(ws, *commandline, gemfile: nil)
                 Bundler.with_clean_env do
                     target_env = Hash[
-                        'GEM_HOME' => gem_home,
-                        'GEM_PATH' => gem_path,
+                        'GEM_HOME' => nil,
+                        'GEM_PATH' => nil,
                         'BUNDLE_GEMFILE' => gemfile,
                         'RUBYOPT' => nil,
                         'RUBYLIB' => nil
