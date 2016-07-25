@@ -352,7 +352,7 @@ module Autoproj
                 return
             else
                 config = YAML.load(File.read(File.join(dot_autoproj_dir, 'config.yml')))
-                return if config['autoproj_install_path']
+                return if config['gems_install_path']
             end
 
             Autoproj.silent = false
