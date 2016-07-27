@@ -105,7 +105,38 @@ module Autoproj
                 end
                 assert_match(/autoproj has been updated/, stdout)
             end
+        end
 
+        describe ".from_dir" do
+            def make_v1_workspace
+                workspace_dir = make_tmpdir
+                FileUtils.mkdir_p File.join(workspace_dir, 'autoproj')
+                workspace_dir
+            end
+            def make_v2_workspace
+                workspace_dir = make_tmpdir
+                FileUtils.mkdir_p File.join(workspace_dir, '.autoproj')
+                FileUtils.touch File.join(workspace_dir, '.autoproj', 'config.yml')
+                workspace_dir
+            end
+
+            it "returns the path to the enclosing workspace" do
+                workspace_dir = make_v2_workspace
+                FileUtils.mkdir_p(test_dir = File.join(workspace_dir, 'test'))
+                assert_equal workspace_dir, Workspace.from_dir(test_dir).root_dir
+                assert_equal workspace_dir, Workspace.from_dir(workspace_dir).root_dir
+            end
+
+            it "raises OutdatedWorkspace if called within a v1 workspace" do
+                workspace_dir = make_v1_workspace
+                FileUtils.mkdir_p(test_dir = File.join(workspace_dir, 'test'))
+                assert_raises(OutdatedWorkspace) do
+                    Workspace.from_dir(test_dir)
+                end
+                assert_raises(OutdatedWorkspace) do
+                    Workspace.from_dir(workspace_dir)
+                end
+            end
         end
     end
 end
