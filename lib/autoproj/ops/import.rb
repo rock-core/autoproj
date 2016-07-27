@@ -279,8 +279,8 @@ module Autoproj
                     if File.directory?(pkg.srcdir)
                         pkg.prepare
                         Rake::Task["#{pkg.name}-prepare"].instance_variable_set(:@already_invoked, true)
-                        pkg.update_environment
                     end
+                    pkg.update_environment
                     package_queue.concat(pkg.dependencies)
                 end
                 all
