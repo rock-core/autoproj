@@ -703,6 +703,12 @@ module Autoproj
             install_os_packages(required_os_packages, options)
         end
 
+        # Register a package on this workspace
+        def register_package(package, block = nil, package_set = manifest.main_package_set, file = nil)
+            pkg = manifest.register_package(package, block, package_set, file)
+            pkg.autobuild.ws = self
+            pkg
+        end
     end
 
     def self.workspace

@@ -40,6 +40,11 @@ end
 
 module Autobuild
     class Package
+        attr_writer :ws
+        def ws
+            @ws ||= Autoproj.workspace
+        end
+
         # The Autoproj::PackageManifest object that describes this package
         attr_accessor :description
         # The set of tags for this package. This is an union of the tags
@@ -136,7 +141,7 @@ module Autobuild
 
         def partition_package(pkg_name)
             pkg_autobuild, pkg_osdeps = [], []
-            Autoproj.workspace.manifest.resolve_package_name(pkg_name).each do |type, dep_name|
+            ws.manifest.resolve_package_name(pkg_name).each do |type, dep_name|
                 if type == :osdeps
                     pkg_osdeps << dep_name
                 elsif type == :package
