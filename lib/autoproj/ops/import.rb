@@ -107,8 +107,6 @@ module Autoproj
             # Import all packages from the given selection, and their
             # dependencies
             def import_selected_packages(selection, updated_packages, options = Hash.new)
-                all_processed_packages = Set.new
-
                 parallel_options, options = Kernel.filter_options options,
                     parallel: ws.config.parallel_import_level
 
