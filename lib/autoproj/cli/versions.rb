@@ -35,12 +35,23 @@ module Autoproj
                                    ignore_non_imported_packages: true)
                 
                 ops = Ops::Snapshot.new(ws.manifest, ignore_errors: options[:keep_going])
+                
+                if user_selection.empty?
+                    snapshot_package_sets = (options[:config] != false)
+                    snapshot_packages = !options[:config]
+                elsif config_selected
+                    snapshot_package_sets = true
+                    snapshot_packages = user_selection.size > 1
+                else
+                    snapshot_package_sets = options[:config]
+                    snapshot_packages = true
+                end
 
                 versions = Array.new
-                if (config_selected && options[:config] != false) || user_selection.empty?
+                if snapshot_package_sets
                     versions += ops.snapshot_package_sets(nil, only_local: options[:only_local])
                 end
-                if (!config_selected && !options[:config]) || !user_selection.empty?
+                if snapshot_packages
                     versions += ops.snapshot_packages(packages, nil, only_local: options[:only_local])
                 end
 

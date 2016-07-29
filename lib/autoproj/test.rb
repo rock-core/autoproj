@@ -68,10 +68,11 @@ module Autoproj
         end
 
         def create_bootstrap
-            dir = Dir.mktmpdir
-            @tmpdir << dir
+            dir = make_tmpdir
             require 'autoproj/ops/main_config_switcher'
             FileUtils.cp_r Ops::MainConfigSwitcher::MAIN_CONFIGURATION_TEMPLATE, File.join(dir, 'autoproj')
+            FileUtils.mkdir_p File.join(dir, '.autoproj')
+            FileUtils.touch File.join(dir, '.autoproj', 'config.yml')
             Workspace.new(dir)
         end
 
