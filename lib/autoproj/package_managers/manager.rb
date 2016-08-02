@@ -31,11 +31,6 @@ module Autoproj
                 @call_while_empty = false
             end
 
-            # The primary name for this package manager
-            def name
-                names.first
-            end
-
             # Overload to perform initialization of environment variables in
             # order to have a properly functioning package manager
             #
