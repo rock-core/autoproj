@@ -95,21 +95,6 @@ build-essential:
   opensuse: ["@devel_C_C++", "gcc-c++"]
   default: clang
 
-autobuild:
-  - gem: autobuild
-  - osdep: readline
-autoproj:
-  - gem: autoproj
-  - osdep: readline
-
-readline:
-  debian,ubuntu: libreadline-dev
-  fedora: readline-devel
-  opensuse: readline-devel
-  arch: core/readline
-  macos-brew: readline
-  default: ignore
-
 # The following definitions are for the VCS and build systems
 git:
   debian:
