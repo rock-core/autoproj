@@ -244,6 +244,7 @@ module Autoproj
         def setup
             migrate_bundler_and_autoproj_gem_layout
             load_config
+            rewrite_shims
             autodetect_operating_system
             config.validate_ruby_executable
             config.apply_autobuild_configuration
@@ -297,6 +298,12 @@ module Autoproj
                     FileUtils.chmod 0755, File.join(bindir, name)
                 end
             end
+        end
+
+        def rewrite_shims
+            gemfile  = File.join(dot_autoproj_dir, 'Gemfile')
+            binstubs = File.join(dot_autoproj_dir, 'bin')
+            Ops::Install.rewrite_shims(binstubs, config.ruby_executable, gemfile, config.gems_gem_home)
         end
 
         def update_autoproj(restart_on_update: true)
