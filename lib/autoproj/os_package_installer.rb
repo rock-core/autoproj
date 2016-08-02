@@ -342,14 +342,14 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             [os_packages, other_packages].each do |packages|
                 packages.each do |handler, list|
                     list = list.to_set - installed_resolved_packages[handler]
-                    next if !run_package_managers_without_packages ||
-                        (list.empty? && !handler.call_while_empty?)
 
-                    handler.install(
-                        list.to_a,
-                        filter_uptodate_packages: filter_uptodate_packages?,
-                        install_only: install_only)
-                    installed_resolved_packages[handler].merge(list)
+                    if !list.empty? || (run_package_managers_without_packages && handler.call_while_empty?)
+                        handler.install(
+                            list.to_a,
+                            filter_uptodate_packages: filter_uptodate_packages?,
+                            install_only: install_only)
+                        installed_resolved_packages[handler].merge(list)
+                    end
                 end
             end
             installed_packages.merge(packages)
