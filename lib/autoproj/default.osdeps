@@ -97,67 +97,27 @@ build-essential:
 
 # The following definitions are for the VCS and build systems
 git:
-  debian:
-    lenny: git
-    default: git-core
-  ubuntu: git-core
   gentoo: dev-vcs/git
-  arch: git
-  fedora: git
-  macos-port: git
-  macos-brew: git
-  opensuse: git
-  freebsd: git
+  default: git
 
 hg:
-  debian,ubuntu: mercurial
   gentoo: dev-vcs/mercurial
-  arch: mercurial
-  fedora: mercurial
-  darwin: mercurial
-  opensuse: mercurial
-  freebsd: mercurial
+  default: mercurial
 
 svn:
-  debian,ubuntu: subversion
   gentoo: dev-vcs/subversion
-  arch: subversion
-  fedora: subversion
-  darwin: subversion
-  opensuse: subversion
-  freebsd: subversion
+  default: subversion
 
 cmake:
-  debian,ubuntu:
-    - cmake
   gentoo: dev-util/cmake
-  arch: cmake
-  fedora: cmake
-  darwin: cmake
-  opensuse: cmake
-  freebsd: cmake
+  default: cmake
   osdep: build-essential
 
 autotools:
-  debian,ubuntu:
-  - automake
-  - autoconf
   gentoo:
-  - "sys-devel/automake"
+  - sys-devel/automake
   - sys-devel/autoconf
-  arch: 
-  - automake 
-  - autoconf
-  fedora:
-  - automake
-  - autoconf
-  darwin:
-  - automake
-  - autoconf
-  opensuse:
-  - automake
-  - autoconf
-  freebsd:
+  default:
   - automake
   - autoconf
   osdep: build-essential
@@ -186,12 +146,7 @@ archive:
   default: ignore
 
 cvs:
-  debian,ubuntu: cvs
-  fedora: cvs
-  darwin: cvs
-  arch: cvs
-  opensuse: cvs
-  freebsd: cvs
+  default: cvs
 
 pip:
   debian,ubuntu: python-pip
