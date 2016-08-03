@@ -4,6 +4,23 @@ require 'rubygems/server'
 
 module Autoproj
     describe Workspace do
+        describe "#setup" do
+            attr_reader :ws
+            before do
+                @ws = create_bootstrap
+            end
+
+            it "rewrite the shims to fix any discrepancy" do
+                flexmock(Ops::Install).should_receive(:rewrite_shims).
+                    with(File.join(ws.root_dir, ".autoproj", 'bin'),
+                         ws.config.ruby_executable,
+                         File.join(ws.root_dir, ".autoproj", 'Gemfile'),
+                         ws.config.gems_gem_home).
+                     once
+                ws.setup
+            end
+        end
+
         describe "#load_package_sets" do
             attr_reader :test_dir, :test_autoproj_dir, :workspace
             before do

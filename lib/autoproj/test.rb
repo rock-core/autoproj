@@ -72,8 +72,11 @@ module Autoproj
             require 'autoproj/ops/main_config_switcher'
             FileUtils.cp_r Ops::MainConfigSwitcher::MAIN_CONFIGURATION_TEMPLATE, File.join(dir, 'autoproj')
             FileUtils.mkdir_p File.join(dir, '.autoproj')
-            FileUtils.touch File.join(dir, '.autoproj', 'config.yml')
-            Workspace.new(dir)
+            ws = Workspace.new(dir)
+            ws.config.set 'osdeps_mode', 'all'
+            ws.config.set 'gems_install_path', File.join(dir, 'gems')
+            ws.config.save
+            ws
         end
 
         def make_tmpdir

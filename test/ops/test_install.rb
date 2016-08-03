@@ -40,6 +40,12 @@ gem 'autobuild', path: '#{autobuild_dir}'"
                     assert stdout.start_with?(shared_gem_home), "expected #{stdout} to start with #{shared_gem_home}"
                 end
 
+                it "removes non-autoproj and non-bundler shims from the shim folder" do
+                    shim_path = File.join(install_dir, '.autoproj', 'bin')
+                    refute File.file?(File.join(shim_path, 'rake')), "rake is still present in the shim folder"
+                    refute File.file?(File.join(shim_path, 'thor')), "thor is still present in the shim folder"
+                end
+
                 it "sets the environment so that the shared bundler is found" do
                     shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
                     _, stdout, _ = invoke_test_script 'bundler-path.sh', dir: install_dir, chdir: File.join(install_dir, '.autoproj')
@@ -84,6 +90,12 @@ gem 'autobuild', path: '#{autobuild_dir}'"
                         end
                     end
                     assert stdout.start_with?(shared_gem_home), "expected #{stdout} to start with #{shared_gem_home}"
+                end
+
+                it "removes non-autoproj and non-bundler shims from the shim folder" do
+                    shim_path = File.join(install_dir, '.autoproj', 'bin')
+                    refute File.file?(File.join(shim_path, 'rake')), "rake is still present in the shim folder"
+                    refute File.file?(File.join(shim_path, 'thor')), "thor is still present in the shim folder"
                 end
 
                 it "sets the environment so that the shared bundler is found" do

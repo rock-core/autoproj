@@ -25,7 +25,7 @@ module Autoproj
             @env = Environment.new
             env.source_before(File.join(dot_autoproj_dir, 'env.sh'))
             @manifest = Manifest.new
-            @config = Configuration.new
+            @config = Configuration.new(config_file_path)
 
             @os_package_installer = OSPackageInstaller.new(self, os_package_resolver)
             env.prepare(root_dir)
