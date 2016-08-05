@@ -79,6 +79,10 @@ module Autoproj
             ws
         end
 
+        def skip_long_tests?
+            ENV['AUTOPROJ_SKIP_LONG_TESTS'] == '1'
+        end
+
         def make_tmpdir
             dir = Dir.mktmpdir
             @tmpdir << dir

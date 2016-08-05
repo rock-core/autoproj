@@ -5,6 +5,10 @@ module Autoproj
     module Ops
         describe Install do
             before do
+                if skip_long_tests?
+                    skip "long test"
+                end
+
                 prepare_fixture_gem_home
                 start_gem_server
             end

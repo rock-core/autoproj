@@ -82,6 +82,7 @@ module Autoproj
 
         describe "update_autoproj" do
             before do
+                skip "long test" if skip_long_tests?
                 prepare_fixture_gem_home
                 start_gem_server
             end
