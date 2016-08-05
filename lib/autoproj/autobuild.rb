@@ -21,29 +21,6 @@ module Autoproj
     end
 end
 
-def explicit_osdeps_selection(name, config = Autoproj.config)
-    if !config.declared?("osdeps_#{name}")
-	if config.has_value_for?("osdeps_#{name}")
-	    doc_string = "install #{name} from source ?"
-	else
-	    # Declare the option
-	    doc_string =<<-EOT
-The #{name} package is listed as a dependency of #{self.name}. It is listed as an operating
-system package for other operating systems than yours, and is also listed as a source package.
-Since you requested manual updates, I have to ask you:
-
-Do you want me to build #{name} from source ? If you say 'no', you will have to install it yourself.
-	    EOT
-	end
-
-	config.declare(
-	    "osdeps_#{name}", "boolean",
-	    :default => "yes",
-	    :doc => doc_string)
-    end
-    !config.get("osdeps_#{name}")
-end
-
 module Autobuild
     class Package
         attr_writer :ws
@@ -229,8 +206,6 @@ module Autoproj
     #
     # Helper method that extracts the package name from a Rake-style package
     # definition (e.g. package_name => package_deps)
-    @file_stack       = Array.new
-
     def self.package_name_from_options(spec)
         if spec.kind_of?(Hash)
             spec.to_a.first.first.to_str
