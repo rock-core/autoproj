@@ -56,7 +56,11 @@ module Autoproj
             #   resolved
             def resolve_user_selection(selected_packages, **options)
                 if selected_packages.empty?
-                    return ws.manifest.default_packages
+                    selection = ws.manifest.default_packages
+                    if Autoproj.verbose
+                        Autoproj.message "selected packages: #{selection.each_package_name.to_a.sort.join(", ")}"
+                    end
+                    return selection, []
                 end
                 selected_packages = selected_packages.to_set
 
@@ -65,6 +69,7 @@ module Autoproj
 
                 # Try to auto-add stuff if nonresolved
                 nonresolved.delete_if do |sel|
+                    sel = File.expand_path(sel)
                     next if !File.directory?(sel)
                     while sel != '/'
                         handler, srcdir = Autoproj.package_handler_for(sel)
@@ -73,7 +78,7 @@ module Autoproj
                             srcdir = File.expand_path(srcdir)
                             relative_to_root = Pathname.new(srcdir).relative_path_from(Pathname.new(ws.root_dir))
                             pkg = ws.in_package_set(ws.manifest.main_package_set, ws.manifest.file) do
-                                send(handler, relative_to_root.to_s)
+                                send(handler, relative_to_root.to_s, workspace: ws)
                             end
                             ws.setup_package_directories(pkg)
                             selected_packages.select(sel, pkg.name, weak: true)
@@ -85,7 +90,7 @@ module Autoproj
                 end
 
                 if Autoproj.verbose
-                    Autoproj.message "will install #{selected_packages.packages.to_a.sort.join(", ")}"
+                    Autoproj.message "selected packages: #{selected_packages.each_package_name.to_a.sort.join(", ")}"
                 end
                 return selected_packages, nonresolved
             end

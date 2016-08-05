@@ -55,6 +55,12 @@ module Autoproj
                 each_source_package_name(&block)
             end
 
+            def each_package_name(&block)
+                return enum_for(__method__) if !block
+                each_source_package_name(&block)
+                each_osdep_package_name(&block)
+            end
+
             def each_source_package_name(&block)
                 source_packages.each(&block)
             end
