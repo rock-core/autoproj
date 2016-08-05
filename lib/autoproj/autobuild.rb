@@ -4,13 +4,19 @@ require 'autobuild'
 require 'set'
 
 module Autoproj
+    # @deprecated use Workspace.config.ruby_executable instead, or
+    #   Autoproj.config.ruby_executable if you don't have a workspace context
+    #   object
     def self.ruby_executable
-        Autoproj.workspace.config.ruby_executable
+        config.ruby_executable
     end
 
     module CmdLine
+        # @deprecated use Workspace.config.ruby_executable instead, or
+        #   Autoproj.config.ruby_executable if you don't have a workspace context
+        #   object
         def self.ruby_executable
-            Autoproj.workspace.config.ruby_executable
+            Autoproj.config.ruby_executable
         end
     end
 end
@@ -219,6 +225,10 @@ module Autobuild
 end
 
 module Autoproj
+    # @api private
+    #
+    # Helper method that extracts the package name from a Rake-style package
+    # definition (e.g. package_name => package_deps)
     @file_stack       = Array.new
 
     def self.package_name_from_options(spec)
@@ -232,16 +242,19 @@ module Autoproj
     # @deprecated use Autoproj.workspace.in_package_set or add a proper Loader object to your
     #   class
     def self.in_package_set(package_set, path, &block)
+        Autoproj.warn_deprecated __method__, "use Autoproj.workspace.in_package_set instead"
         Autoproj.workspace.in_package_set(package_set, path, &block)
     end
     # @deprecated use Autoproj.workspace.current_file or add a proper Loader object to your
     #   class
     def self.current_file
+        Autoproj.warn_deprecated __method__, "use AUtoproj.workspace.current_file instead"
         Autoproj.workspace.current_file
     end
     # @deprecated use Autoproj.workspace.current_package_set or add a proper Loader object to your
     #   class
     def self.current_package_set
+        Autoproj.warn_deprecated __method__, "use Autoproj.workspace.current_package_set instead"
         Autoproj.workspace.current_package_set
     end
 
@@ -255,10 +268,12 @@ module Autoproj
     end
 
     def self.loaded_autobuild_files
+        Autoproj.warn_deprecated __method__, "use Autoproj.workspace.loaded_autobuild_files"
         Autoproj.workspace.loaded_autobuild_files
     end
 
     def self.import_autobuild_file(package_set, path)
+        Autoproj.warn_deprecated __method__, "use Autoproj.workspace.import_autobuild_file"
         Autoproj.workspace.import_autobuild_file(package_set, path)
     end
 
@@ -406,10 +421,15 @@ def autotools_package(name, workspace: Autoproj.workspace)
     end
 end
 
+# @deprecated use Autoproj.env.set instead
 def env_set(name, value)
+    Autoproj.warn_deprecated __method__, "use Autoproj.env.set instead"
     Autoproj.env.set(name, value)
 end
+
+# @deprecated use Autoproj.env.add instead
 def env_add(name, value)
+    Autoproj.warn_deprecated __method__, "use Autoproj.env.add instead"
     Autoproj.env.add(name, value)
 end
 
