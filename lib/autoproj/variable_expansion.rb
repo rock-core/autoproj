@@ -26,36 +26,12 @@ module Autoproj
         result
     end
 
-    # Expand build options in +value+.
-    #
-    # The method will expand in +value+ patterns of the form $NAME, replacing
-    # them with the corresponding build option.
-    def self.expand_environment(value)
-        return value if !contains_expansion?(value)
-
-        # Perform constant expansion on the defined environment variables,
-        # including the option set
-        options = flatten_recursive_hash(config.validated_values)
-
-        loop do
-            new_value = single_expansion(value, options)
-            if new_value == value
-                break
-            else
-                value = new_value
-            end
-        end
-        value
-    end
-
     # Does a non-recursive expansion in +data+ of configuration variables
     # ($VAR_NAME) listed in +definitions+
     #
     # If the values listed in +definitions+ also contain configuration
     # variables, they do not get expanded
-    def self.single_expansion(data, definitions, options = Hash.new)
-        options = Kernel.validate_options options, config: Autoproj.config
-
+    def self.single_expansion(data, definitions)
         if !data.respond_to?(:to_str)
             return data
         end
@@ -73,10 +49,8 @@ module Autoproj
             end
 
             if !(value = definitions[constant_name])
-                if !(value = options[:config].get(constant_name))
-                    if !block_given? || !(value = yield(constant_name))
-                        raise ArgumentError, "cannot find a definition for $#{constant_name}"
-                    end
+                if !block_given? || !(value = yield(constant_name))
+                    raise ArgumentError, "cannot find a definition for $#{constant_name}"
                 end
             end
             "#{prefix}#{value}"

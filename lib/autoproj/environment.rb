@@ -18,10 +18,6 @@ module Autoproj
             env.find_all { |p| !Workspace.in_autoproj_project?(p) }
         end
 
-        def expand(value)
-            Autoproj.expand_environment(value)
-        end
-
         def export_env_sh(subdir = nil, options = Hash.new)
             if subdir.kind_of?(Hash)
                 subdir, options = nil, subdir
