@@ -152,15 +152,20 @@ module Autoproj
 
         # The Gem::SpecFetcher object that should be used to query RubyGems, and
         # install RubyGems packages
-        def initialize(defs = Hash.new, file = nil)
+        def initialize(defs = Hash.new, file = nil,
+                       operating_system: nil,
+                       package_managers: PACKAGE_MANAGERS.dup,
+                       os_package_manager: nil)
             @definitions = defs.to_hash
             @all_definitions = Hash.new { |h, k| h[k] = Array.new }
-            @package_managers = PACKAGE_MANAGERS.dup
+            @package_managers = package_managers
+            self.os_package_manager = os_package_manager
+
             @prefer_indep_over_os_packages = false
 
             @sources     = Hash.new
             @installed_packages = Set.new
-            @operating_system = self.class.operating_system
+            @operating_system = operating_system
             if file
                 defs.each_key do |package_name|
                     sources[package_name] = file
@@ -181,6 +186,10 @@ module Autoproj
         # definition for +package_name+ has been taken
         def source_of(package_name)
             sources[package_name]
+        end
+
+        def add_entries(entries, file: nil)
+            merge(self.class.new(entries, file))
         end
 
         # Merges the osdeps information of +info+ into +self+. If packages are
@@ -247,12 +256,7 @@ module Autoproj
         # system on which we are installed
         def supported_operating_system?
             if @supported_operating_system.nil?
-                os_names, _ = operating_system
-                @supported_operating_system =
-                    if !os_names then false
-                    else
-                        os_names.any? { |os_name| OS_PACKAGE_MANAGERS.has_key?(os_name) }
-                    end
+                @supported_operating_system = (os_package_manager != 'unknown')
             end
             return @supported_operating_system
         end
@@ -337,21 +341,18 @@ module Autoproj
             return names, versions
         end
 
+        # The operating system self is targetting
+        #
+        # If unset in {#initialize} or by calling {#operating_system=}, it will
+        # attempt to autodetect it on the first call
         def operating_system
-            @operating_system || self.class.operating_system
+            @operating_system ||= self.class.autodetect_operating_system
         end
 
+        # Change the operating system this resolver is targetting
         def operating_system=(values)
             @supported_operating_system = nil
-            @operating_system = values
-        end
-
-        def self.operating_system
-            @operating_system
-        end
-        @operating_system = nil
-
-        def self.operating_system=(values)
+            @os_package_manager = nil
             @operating_system = values
         end
 
@@ -712,6 +713,10 @@ module Autoproj
             return all_packages
         end
 
+        # Returns true if the given name has an entry in the osdeps
+        def include?(name)
+            definitions.has_key?(name)
+        end
 
         # Returns true if +name+ is an acceptable OS package for this OS and
         # version

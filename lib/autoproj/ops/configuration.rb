@@ -403,7 +403,7 @@ module Autoproj
             ws.load_main_initrb
             ws.manifest.load(manifest_path)
 
-            root_pkg_set = ws.manifest.local_package_set
+            root_pkg_set = ws.manifest.main_package_set
             root_pkg_set.load_description_file
             root_pkg_set.explicit = true
             package_sets = load_and_update_package_sets(root_pkg_set, options)

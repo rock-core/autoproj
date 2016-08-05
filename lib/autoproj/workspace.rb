@@ -15,10 +15,15 @@ module Autoproj
 
         attr_reader :loader
 
-        def os_package_resolver; manifest.os_package_resolver end
+        def os_package_resolver
+            manifest.os_package_resolver
+        end
+
         attr_reader :os_package_installer
 
-        def initialize(root_dir)
+        def initialize(root_dir,
+                       os_package_resolver: OSPackageResolver.new,
+                       package_managers: OSPackageInstaller::PACKAGE_MANAGERS)
             @root_dir = root_dir
 
             @loader = loader
@@ -27,7 +32,8 @@ module Autoproj
             @manifest = Manifest.new
             @config = Configuration.new(config_file_path)
 
-            @os_package_installer = OSPackageInstaller.new(self, os_package_resolver)
+            @os_package_installer = OSPackageInstaller.new(
+                self, os_package_resolver, package_managers: package_managers)
             env.prepare(root_dir)
             super(root_dir)
         end
@@ -196,7 +202,7 @@ module Autoproj
                         type: 'local', url: config_dir)
                 end
                 os_package_resolver.prefer_indep_over_os_packages = config.prefer_indep_over_os_packages?
-                OSPackageResolver.operating_system ||= config.get('operating_system', nil)
+                os_package_resolver.operating_system ||= config.get('operating_system', nil)
             end
             @config
         end
@@ -213,7 +219,7 @@ module Autoproj
                     Autobuild.progress_start :operating_system_autodetection,
                         "autodetecting the operating system"
                     names, versions = OSPackageResolver.autodetect_operating_system
-                    OSPackageResolver.operating_system = [names, versions]
+                    os_package_resolver.operating_system = [names, versions]
                     Autobuild.progress :operating_system_autodetection,
                         "operating system: #{(names - ['default']).join(",")} - #{(versions - ['default']).join(",")}"
                 ensure
@@ -485,7 +491,7 @@ module Autoproj
                 handler, _srcdir = Autoproj.package_handler_for(full_path)
                 if handler
                     Autoproj.message "  auto-adding #{pkg_or_set} #{"in #{layout_level} " if layout_level != "/"}using the #{handler.gsub(/_package/, '')} package handler"
-                    in_package_set(manifest.local_package_set, manifest.file) do
+                    in_package_set(manifest.main_package_set, manifest.file) do
                         send(handler, pkg_or_set)
                     end
                 else

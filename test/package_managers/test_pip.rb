@@ -6,12 +6,11 @@ module Autoproj
             attr_reader :pip_manager
 
             def setup
-                OSPackageResolver.operating_system = [['test', 'debian', 'default'], ['v1.0', 'v1', 'default']]
+                super
 
-                ws = flexmock(prefix_dir: '/prefix', env: Hash.new)
+                ws_create
                 @pip_manager = PipManager.new(ws)
                 Autobuild.programs['pip'] = 'mypip'
-                super
             end
 
             def teardown

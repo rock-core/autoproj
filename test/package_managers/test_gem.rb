@@ -12,9 +12,9 @@ module Autoproj
             attr_reader :gem_spec
 
             def setup
-                OSPackageResolver.operating_system = [['test', 'debian', 'default'], ['v1.0', 'v1', 'default']]
+                super
 
-                ws = flexmock
+                ws_create
                 @gem_manager = GemManager.new(ws)
                 @gem_fetcher = flexmock("fake gem fetcher")
                 gem_manager.gem_fetcher = gem_fetcher

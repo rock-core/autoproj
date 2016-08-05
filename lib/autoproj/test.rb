@@ -40,15 +40,26 @@ module Autoproj
     #   end
     #
     module SelfTest
+        # Define package managers for the next workspace created by {#ws_create}
+        #
+        # Use {#ws_define_package_manager}
+        #
+        # Two package managers called 'os' and 'os_indep' are always created,
+        # 'os' is used as the os package manager.
+        #
+        # @return [Hash<String,PackageManagers::Manager>]
+        attr_reader :ws_package_managers
+        # The workspace created by the last call to #ws_create
         attr_reader :ws
 
         def setup
+            FileUtils.rm_rf fixture_gem_home
             @gem_server_pid = nil
             @tmpdir = Array.new
-            @ws = Workspace.new('/test/dir')
-            ws.load_config
-            Autoproj.workspace = ws
-            FileUtils.rm_rf fixture_gem_home
+            @ws = nil
+            @ws_package_managers = Hash.new
+            ws_define_package_manager 'os'
+            ws_define_package_manager 'os_indep'
 
             super
         end
@@ -68,15 +79,7 @@ module Autoproj
         end
 
         def create_bootstrap
-            dir = make_tmpdir
-            require 'autoproj/ops/main_config_switcher'
-            FileUtils.cp_r Ops::MainConfigSwitcher::MAIN_CONFIGURATION_TEMPLATE, File.join(dir, 'autoproj')
-            FileUtils.mkdir_p File.join(dir, '.autoproj')
-            ws = Workspace.new(dir)
-            ws.config.set 'osdeps_mode', 'all'
-            ws.config.set 'gems_install_path', File.join(dir, 'gems')
-            ws.config.save
-            ws
+            ws_create
         end
 
         def skip_long_tests?
@@ -224,6 +227,61 @@ gem 'autobuild', path: '#{autobuild_dir}'
             stdout.chomp
         end
 
+        attr_reader :ws_os_package_resolver
+
+        def ws_define_package_manager(name, strict: false, call_while_empty: false)
+            manager = Class.new(PackageManagers::Manager)
+            manager.class_eval do
+                define_method(:strict?) { strict }
+                define_method(:call_while_empty?) { call_while_empty }
+            end
+            manager = flexmock(manager),
+            ws_package_managers[name] = manager
+        end
+
+        def ws_create_os_package_resolver
+            @ws_os_package_resolver = OSPackageResolver.new(
+                operating_system: [['test_os_family'], ['test_os_version']],
+                package_managers: ws_package_managers.keys,
+                os_package_manager: 'os')
+        end
+
+        def ws_create
+            dir = make_tmpdir
+            require 'autoproj/ops/main_config_switcher'
+            FileUtils.cp_r Ops::MainConfigSwitcher::MAIN_CONFIGURATION_TEMPLATE, File.join(dir, 'autoproj')
+            FileUtils.mkdir_p File.join(dir, '.autoproj')
+
+            ws_create_os_package_resolver
+            @ws = Workspace.new(
+                dir, os_package_resolver: ws_os_package_resolver,
+                     package_managers: ws_package_managers)
+            ws.config.set 'osdeps_mode', 'all'
+            ws.config.set 'gems_install_path', File.join(dir, 'gems')
+            ws.config.save
+            ws
+        end
+
+        def ws_add_osdep_entries(entries)
+            ws_os_package_resolver.add_entries(entries)
+        end
+
+        def ws_define_package(package_type, package_name, create: true)
+            package = Autobuild.send(package_type, package_name)
+            package.srcdir = File.join(ws.root_dir, package_name.to_s)
+            if create
+                FileUtils.mkdir_p package.srcdir
+            end
+            autoproj_package = ws.register_package(package, nil)
+            yield(package) if block_given?
+            autoproj_package
+        end
+
+        def ws_add_package(package_type, package_name, &block)
+            pkg = ws_define_package(package_type, package_name, &block)
+            ws.manifest.add_package(pkg)
+            pkg
+        end
     end
 end
 

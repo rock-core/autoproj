@@ -6,18 +6,22 @@ module Autoproj
         FOUND_PACKAGES = OSPackageResolver::FOUND_PACKAGES
         FOUND_NONEXISTENT = OSPackageResolver::FOUND_NONEXISTENT
 
+        attr_reader :operating_system
+
         def setup
-            OSPackageResolver.operating_system = [['test', 'debian', 'default'], ['v1.0', 'v1', 'default']]
             super
+            @operating_system = [['test', 'debian', 'default'], ['v1.0', 'v1', 'default']]
         end
 
-        def test_it_initialies_itself_with_the_global_operating_system
-            OSPackageResolver.operating_system = [['test', 'debian', 'default'], ['v1.0', 'v1', 'default']]
+        def test_it_initializes_itself_with_the_global_operating_system
             resolver = OSPackageResolver.new
-            assert_equal resolver.operating_system, OSPackageResolver.operating_system
+            flexmock(OSPackageResolver).should_receive(:autodetect_operating_system).
+                once.and_return(operating_system)
+            assert_equal operating_system, resolver.operating_system
         end
 
         def test_supported_operating_system
+            flexmock(OSPackageResolver).should_receive(:autodetect_operating_system).never
             resolver = OSPackageResolver.new
             resolver.operating_system = [['test', 'debian', 'default'], ['v1.0', 'v1', 'default']]
             assert(resolver.supported_operating_system?)
@@ -25,11 +29,11 @@ module Autoproj
             assert(!resolver.supported_operating_system?)
         end
 
-        def create_osdep(data, file = nil)
+        def create_osdep(data, file = nil, operating_system: self.operating_system)
             if data
-                osdeps = OSPackageResolver.new(Hash['pkg' => data], file)
+                osdeps = OSPackageResolver.new(Hash['pkg' => data], file, operating_system: operating_system)
             else
-                osdeps = OSPackageResolver.new(Hash.new, file)
+                osdeps = OSPackageResolver.new(Hash.new, file, operating_system: operating_system)
             end
 
             # Mock the package handlers
@@ -505,34 +509,27 @@ module Autoproj
         end
 
         def test_merge_issues_a_warning_if_two_definitions_differ_by_the_operating_system_packages
-            OSPackageResolver.operating_system = [['os0'], []]
-            osdeps0 = create_osdep(Hash['os0' => ['osdep0'], 'gem' => ['gem0']], 'bla/bla')
-            osdeps1 = create_osdep(Hash['os0' => ['osdep1'], 'gem' => ['gem0']], 'bla/blo')
+            osdeps0 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem0']], 'bla/bla')
+            osdeps1 = create_osdep(Hash['test' => ['osdep1'], 'gem' => ['gem0']], 'bla/blo')
             flexmock(Autoproj).should_receive(:warn).once.
                 with(->(msg) { msg =~ /bla\/bla/ && msg =~ /bla\/blo/ })
             osdeps0.merge(osdeps1)
         end
         def test_merge_issues_a_warning_if_two_definitions_differ_by_an_os_independent_package
-            OSPackageResolver.operating_system = [['os0'], []]
-            osdeps0 = create_osdep(Hash['os0' => ['osdep0'], 'gem' => ['gem0']], 'bla/bla')
-            osdeps1 = create_osdep(Hash['os0' => ['osdep0'], 'gem' => ['gem1']], 'bla/blo')
+            osdeps0 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem0']], 'bla/bla')
+            osdeps1 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem1']], 'bla/blo')
             flexmock(Autoproj).should_receive(:warn).once.
                 with(->(msg) { msg =~ /bla\/bla/ && msg =~ /bla\/blo/ })
             osdeps0.merge(osdeps1)
         end
         def test_merge_does_not_issue_a_warning_if_two_definitions_are_identical_for_the_local_operating_system
-            OSPackageResolver.operating_system = [['os0'], []]
-            osdeps0 = create_osdep(Hash['os0' => ['osdep0'], 'gem' => ['gem0'], 'os1' => ['osdep0']], 'bla/bla')
-            osdeps1 = create_osdep(Hash['os0' => ['osdep0'], 'gem' => ['gem0'], 'os1' => ['osdep1']], 'bla/blo')
+            osdeps0 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem0'], 'os1' => ['osdep0']], 'bla/bla')
+            osdeps1 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem0'], 'os1' => ['osdep1']], 'bla/blo')
             flexmock(Autoproj).should_receive(:warn).never
             osdeps0.merge(osdeps1)
         end
 
         describe "prefer_indep_over_os_packages is set" do
-            before do
-                OSPackageResolver.operating_system = [['os0'], ['v0']]
-            end
-            
             def create_osdep(*)
                 resolver = super
                 resolver.prefer_indep_over_os_packages = true
@@ -540,19 +537,19 @@ module Autoproj
             end
 
             it "resolves the default entry first" do
-                resolver = create_osdep(Hash['os0' => ['osdep0'], 'default' => 'gem'], 'bla/bla')
+                resolver = create_osdep(Hash['test' => ['osdep0'], 'default' => 'gem'], 'bla/bla')
                 assert_equal [['gem', ['pkg']]], resolver.resolve_os_packages(['pkg'])
             end
             it "resolves the default entry first" do
-                resolver = create_osdep(Hash['os0' => ['osdep0'], 'default' => Hash['gem' => 'gem0']], 'bla/bla')
+                resolver = create_osdep(Hash['test' => ['osdep0'], 'default' => Hash['gem' => 'gem0']], 'bla/bla')
                 assert_equal [['gem', ['gem0']]], resolver.resolve_os_packages(['pkg'])
             end
             it "falls back to the OS-specific entry if there is no default entry" do
-                resolver = create_osdep(Hash['os0' => ['osdep0']], 'bla/bla')
+                resolver = create_osdep(Hash['test' => ['osdep0']], 'bla/bla')
                 assert_equal [['apt-dpkg', ['osdep0']]], resolver.resolve_os_packages(['pkg'])
             end
             it "does not affect os versions, only os names" do
-                resolver = create_osdep(Hash['os0' => Hash['v0' => 'osdep0', 'default' => 'gem']], 'bla/bla')
+                resolver = create_osdep(Hash['test' => Hash['v1.0' => 'osdep0', 'default' => 'gem']], 'bla/bla')
                 assert_equal [['apt-dpkg', ['osdep0']]], resolver.resolve_os_packages(['pkg'])
             end
         end

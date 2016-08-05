@@ -160,7 +160,9 @@ module Autoproj
                 end
 
                 all_paths = Array.new
-                ws.manifest.resolve_package_set(from).each do |pkg_name|
+                ws.manifest.resolve_package_name(from).each do |pkg_type, pkg_name|
+                    next if pkg_type != :package
+
                     path = if pkg_name == from then []
                            else [pkg_name]
                            end

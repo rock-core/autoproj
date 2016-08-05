@@ -26,6 +26,29 @@ module Autoproj
             manifest
 	end
 
+        # A normalized version of the layout as represented in the manifest file
+        #
+        # It is a mapping from a selection name into the layout level it is
+        # defined in. For instance:
+        #
+        #     layout:
+        #     - subdir:
+        #       - pkg/in/subdir
+        #     - pkg/in/root
+        #
+        # Would be normalized as
+        #
+        #     'pkg/in/subdir' => '/subdir/',
+        #     'pkg/in/root' => '/'
+        #
+        # Note that these are only strings. There is no normalization against
+        # package names or metapackages.
+        #
+        # This is computed by {#compute_normalized_layout}
+        #
+        # @return [Hash]
+        attr_reader :normalized_layout
+
         # Load the manifest data contained in +file+
         def load(file)
             if !File.exist?(file)
@@ -41,15 +64,23 @@ module Autoproj
             @ignored_packages |= (data['ignored_packages'] || Set.new).to_set
             @manifest_exclusions |= (data['exclude_packages'] || Set.new).to_set
 
-            @normalized_layout = Hash.new
+            normalized_layout = Hash.new
             compute_normalized_layout(
                 normalized_layout,
                 '/',
                 data['layout'] || Hash.new)
+            @normalized_layout = normalized_layout
+            @has_layout = !!data['layout']
 
             if data['constants']
                 @constant_definitions = Autoproj.resolve_constant_definitions(data['constants'])
             end
+        end
+
+        # Add this package into the layout
+        def add_package(package_definition)
+            @has_layout = true
+            normalized_layout[package_definition.name] = '/'
         end
 
         # The manifest data as a Hash
@@ -80,15 +111,6 @@ module Autoproj
         # Sets {#accept_unavailable_osdeps?}
         def accept_unavailable_osdeps=(flag); @accept_unavailable_osdeps = flag end
 
-        # True if osdeps should be handled in update and build, or left to the
-        # osdeps command
-        def auto_osdeps?
-            if data.has_key?('auto_osdeps')
-                !!data['auto_osdeps']
-            else true
-            end
-        end
-
         attr_reader :constant_definitions
 
         attr_reader :metapackages
@@ -101,13 +123,21 @@ module Autoproj
         # The definition of all OS packages available on this installation
         attr_reader :os_package_resolver
 
-	def initialize
+        # Whether there is a layout specified
+        #
+        # This is used to disambiguate between an empty layout (which would
+        # build nothing) and no layout at all
+        attr_predicate :has_layout?
+
+        def initialize(os_package_resolver: OSPackageResolver.new)
             @file = nil
 	    @data = Hash.new
+            @has_layout = false
+            @normalized_layout = Hash.new
             @packages = Hash.new
             @package_manifests = Hash.new
             @package_sets = []
-            @os_package_resolver = OSPackageResolver.new
+            @os_package_resolver = os_package_resolver
 
             @automatic_exclusions = Hash.new
             @constants_definitions = Hash.new
@@ -269,9 +299,7 @@ module Autoproj
 
         # Yields each osdeps definition files that are present in our sources
         def each_osdeps_file
-            if !block_given?
-                return enum_for(__method__)
-            end
+            return enum_for(__method__) if !block_given?
 
             each_package_set do |source|
 		Dir.glob(File.join(source.local_dir, "*.osdeps")).each do |file|
@@ -296,25 +324,6 @@ module Autoproj
             end
         end
 
-        # Enumerates the version control information for all the package sets
-        # listed directly in the manifest file
-        #
-        # @yieldparam [VCSDefinition] vcs the package set VCS object
-        # @yieldparam [Hash] options additional import options
-        # @options options [Boolean] :auto_update (true) if true, the set of
-        #   package sets declared as imports in package set's source.yml file
-        #   will be auto-imported by autoproj, otherwise they won't
-        # @return [nil]
-        def each_raw_explicit_package_set
-            return enum_for(__method__) if !block_given?
-            (data['package_sets'] || []).map do |spec|
-                Autoproj.in_file(self.file) do
-                    yield(*PackageSet.resolve_definition(self, spec))
-                end
-            end
-            nil
-        end
-
         # Lists all package sets defined in this manifest, including the package
         # sets that are auto-imported
         #
@@ -326,19 +335,9 @@ module Autoproj
             @package_sets.each(&block)
         end
 
-        # Load the package set information
-        def load_and_update_package_sets
-            Autoproj.warn_deprecated __method__,
-                "use Ops::Configuration instead"
-            Ops::Configuration.new(Autoproj.workspace).load_and_update_package_sets
-        end
-
-        # Returns a package set that is used by autoproj for its own purposes
-        def local_package_set
-            each_package_set.find { |s| s.kind_of?(LocalPackageSet) }
-        end
-
         # Registers a new package set
+        #
+        # @param [PackageSet] pkg_set the package set object
         def register_package_set(pkg_set)
             metapackage(pkg_set.name)
             metapackage("#{pkg_set.name}.all")
@@ -395,7 +394,14 @@ module Autoproj
         end
 
         # @deprecated use {#find_package_definition} instead
+        def package(name)
+            Autoproj.warn_deprecated __method__, "use #find_package_definition instead"
+            find_package_definition(name)
+        end
+
+        # @deprecated use {#find_package_definition} instead
         def find_package(name)
+            Autoproj.warn_deprecated __method__, "use #find_package_definition instead"
             find_package_definition(name)
         end
 
@@ -416,14 +422,9 @@ module Autoproj
         # @param [String,#name] name the package name
         # @return [Autobuild::Package,nil]
         def find_autobuild_package(name)
-            if pkg = find_package(name)
+            if pkg = find_package_definition(name)
                 pkg.autobuild
             end
-        end
-
-        # @deprecated use {#find_package} instead
-        def package(name)
-            find_package(name)
         end
 
         # @deprecated use {each_autobuild_package} instead
@@ -454,18 +455,6 @@ module Autoproj
         def self.create_autobuild_package(vcs, text_name, into)
             Autoproj.warn_deprecated __method__, "use Ops::Tools.create_autobuild_package instead"
             Ops::Tools.create_autobuild_package(vcs, text_name, into)
-        end
-
-        # @deprecated use Ops::Configuration#update_main_configuration
-        def update_yourself(only_local = false)
-            Autoproj.warn_deprecated __method__, "use Ops::Configuration instead"
-            Ops::Configuration.new(Autoproj.workspace).update_main_configuration(only_local)
-        end
-
-        # @deprecated use Ops::Configuration.update_remote_package_set
-        def update_remote_set(vcs, only_local = false)
-            Autoproj.warn_deprecated __method__, "use Ops::Configuration instead"
-            Ops::Configuration.update_remote_package_set(vcs, only_local)
         end
 
         # Compute the VCS definition for a given package
@@ -527,7 +516,6 @@ module Autoproj
                 vcs = importer_definition_for(pkg.autobuild.name, pkg.package_set, options) ||
                     pkg.package_set.default_importer
 
-
                 if vcs
                     pkg.vcs = vcs
                     pkg.autobuild.importer = vcs.create_autobuild_importer
@@ -539,20 +527,21 @@ module Autoproj
 
         # Checks if there is a package with a given name
         #
-        # @param [String] name
+        # @param [String] name the name of a source or osdep package
         # @return [Boolean]
         def has_package?(name)
-            packages.has_key?(name)
+            packages.has_key?(name) || os_package_resolver.include?(name)
         end
 
-        # Returns true if +name+ is the name of a package set known to this
-        # autoproj installation
+        # Checks if there is a package set with a given name
         def has_package_set?(name)
             each_package_set.find { |set| set.name == name }
         end
 
-        # Returns the PackageSet object for the given package set, or raises
-        # ArgumentError if none exists with that name
+        # The PackageSet object for the given package set
+        #
+        # @return [PackageSet] the package set
+        # @raise [ArgumentError] if none exists with that name
         def package_set(name)
             set = each_package_set.find { |set| set.name == name }
             if !set
@@ -561,6 +550,7 @@ module Autoproj
             set
         end
 
+        # The root package set, which represents the workspace itself
         def main_package_set
             each_package_set.find(&:main?)
         end
@@ -572,7 +562,7 @@ module Autoproj
         # package set).
         #
         # @return [nil,Array] either nil if there is no such osdep, or a list of
-        #   (type, package_name) pairs where type is either :package or :osdep and
+        #   (type, package_name) pairs where type is either :package or :osdeps and
         #   package_name the corresponding package name
         # @raise [PackageNotFound] if the given package name cannot be resolved
         #   into a package. If {#accept_unavailable_osdeps?} is false (the
@@ -599,27 +589,6 @@ module Autoproj
             result
         end
 
-        # Resolves all the source package dependencies for given packages
-        #
-        # @param [Set<String>] the set of package names of which we want to
-        #   discover the dependencies
-        # @return [Set<String>] the set of all package names that the packages designed
-        #   by root_names depend on
-        def resolve_packages_dependencies(*root_names)
-            result = Set.new
-            queue = root_names.dup
-            while pkg_name = queue.shift
-                next if result.include?(pkg_name)
-                result << pkg_name
-
-                pkg = find_autobuild_package(pkg_name)
-                pkg.dependencies.each do |dep_name|
-                    queue << dep_name
-                end
-            end
-            result
-        end
-
         # @api private
         #
         # Resolves a package name, where +name+ cannot be resolved as a
@@ -629,7 +598,7 @@ module Autoproj
         # directly
         #
         # @return [nil,Array] either nil if there is no such osdep, or a list of
-        #   (type, package_name) pairs where type is either :package or :osdep and
+        #   (type, package_name) pairs where type is either :package or :osdeps and
         #   package_name the corresponding package name
         def resolve_single_package_name(name)
             resolve_package_name_as_osdep(name)
@@ -703,23 +672,6 @@ module Autoproj
             end
         end
 
-        # +name+ can either be the name of a source or the name of a package. In
-        # the first case, we return all packages defined by that source. In the
-        # latter case, we return the singleton array [name]
-        def resolve_package_set(name)
-            if find_autobuild_package(name)
-                [name]
-            else
-                pkg_set = find_metapackage(name)
-                if !pkg_set
-                    raise UnknownPackage.new(name), "#{name} is neither a package nor a package set name. Packages in autoproj must be declared in an autobuild file."
-                end
-                pkg_set.each_package.
-                    map(&:name).
-                    find_all { |pkg_name| !os_package_resolver.has?(pkg_name) }
-            end
-        end
-
         def find_metapackage(name)
             @metapackages[name.to_s]
         end
@@ -744,13 +696,27 @@ module Autoproj
         def metapackage(name, *packages, &block)
             meta = (@metapackages[name.to_s] ||= Metapackage.new(name))
             packages.each do |pkg|
-                if pkg.respond_to?(:to_str)
-                    package_names = resolve_package_set(pkg)
-                    package_names.each do |pkg_name|
-                        meta.add(find_autobuild_package(pkg_name))
-                    end
-                else
+                if !pkg.respond_to?(:to_str)
                     meta.add(pkg)
+                    next
+                end
+
+                # Use resolve_package_set and not resolve_package_name in
+                # order to propagate package names regardless of whether
+                # there are osdep overrides.
+                #
+                # The overrides would be applied when the new package set is
+                # selected in e.g. the layout
+                if pkg = find_autobuild_package(name)
+                    meta.add(pkg)
+                elsif pkg_set = find_metapackage(name)
+                    pkg_set.each_package do |pkg|
+                        meta.add(pkg)
+                    end
+                elsif os_package_resolver.has?(name)
+                    raise ArgumentError, "cannot specify the osdep #{name} as an element of a metapackage"
+                else
+                    raise ArgumentError, "cannot find a package called #{name}"
                 end
             end
 
@@ -780,8 +746,9 @@ module Autoproj
                                    meta.weak_dependencies?
                                end
 
-
-                        result.select(pkg_or_set, resolve_package_set(pkg_or_set), weak: weak)
+                        resolve_package_name(pkg_or_set).each do |pkg_type, pkg_name|
+                            result.select(pkg_or_set, pkg_name, osdep: (pkg_type == :osdeps), weak: weak)
+                        end
                     rescue UnknownPackage => e
                         raise e, "#{e.name}, which is selected in the layout, is unknown: #{e.message}", e.backtrace
                     end
@@ -798,35 +765,15 @@ module Autoproj
             result
         end
 
-        # Enumerates the sublayouts defined in +layout_def+.
-        def each_sublayout(layout_def)
-            layout_def.each do |value|
-                if value.kind_of?(Hash)
-                    name, layout = value.find { true }
-                    yield(name, layout)
-                end
-            end
-        end
-
         # Returns the set of package names that are explicitely listed in the
         # layout, minus the excluded and ignored ones
         def all_layout_packages(validate = true)
             default_packages(validate)
         end
 
-        # Returns all defined package names, minus the excluded and ignored ones
+        # Returns all defined package names
         def all_package_names
             each_autobuild_package.map(&:name)
-        end
-
-        # Returns all the packages that can be built in this installation
-        def all_packages
-            result = Set.new
-            each_package_set do |pkg_set|
-                result |= metapackage(pkg_set.name).packages.map(&:name).to_set
-            end
-            result.to_a.
-                find_all { |pkg_name| !os_package_resolver.has?(pkg_name) }
         end
 
         # Returns true if +name+ is a valid package and is included in the build
@@ -862,6 +809,9 @@ module Autoproj
         end
 
         # Returns the set of packages that are selected by the layout
+        #
+        # Unless {#default_packages}, it returns both the selected packages and
+        # the dependencies (resolved recursively)
         def all_selected_packages(validate = true)
             result = Set.new
             root = default_packages(validate).source_packages.to_set
@@ -874,24 +824,23 @@ module Autoproj
         # Returns the set of packages that should be built if the user does not
         # specify any on the command line
         def default_packages(validate = true)
-            if data['layout']
-                return layout_packages(validate)
+            if has_layout?
+                layout_packages(validate)
             else
                 result = PackageSelection.new
-                # No layout, all packages are selected
-                names = all_packages
-                names.delete_if { |pkg_name| excluded?(pkg_name) || ignored?(pkg_name) }
-                names.each do |pkg_name|
-                    result.select(pkg_name, pkg_name)
+                all_package_names.each do |pkg_name|
+                    package_type, package_name = resolve_single_package_name(pkg_name)
+                    next if package_type != :package 
+                    next if excluded?(package_name) || ignored?(package_name)
+                    result.select(package_name, package_name)
                 end
                 result
             end
         end
 
-        # A mapping from names to layout placement, as found in the layout
-        # section of the manifest
-        attr_reader :normalized_layout
-
+        # @api private
+        #
+        # Compute a layout structure that is normalized
         def compute_normalized_layout(result, layout_level, layout_data)
             layout_data.each do |value|
                 if value.kind_of?(Hash)
@@ -1093,8 +1042,7 @@ module Autoproj
         #   name, or a prefix of the package's source directory. For osdeps, it
         #   has to be the plain package name
         # @return [PackageSelection, Array<String>]
-        def expand_package_selection(selection, options = Hash.new)
-            options = Kernel.validate_options options, filter: true
+        def expand_package_selection(selection, filter: true)
             result = PackageSelection.new
 
             # First, remove packages that are directly referenced by name or by
@@ -1147,7 +1095,7 @@ module Autoproj
                 end
             end
 
-            if options[:filter]
+            if filter
                 result.filter_excluded_and_ignored_packages(self)
             end
 

@@ -46,13 +46,17 @@ module Autoproj
             attr_accessor :force_osdeps
         end
 
-        def initialize(ws, os_package_resolver)
+        def initialize(ws, os_package_resolver, package_managers: PACKAGE_MANAGERS)
             @ws = ws
             @os_package_resolver = os_package_resolver
             @installed_packages = Set.new
             @installed_resolved_packages = Hash.new { |h, k| h[k] = Set.new }
             @silent = true
             @filter_uptodate_packages = true
+            @package_managers = Hash.new
+            package_managers.each do |name, klass|
+                @package_managers[name] = klass.new(ws)
+            end
         end
 
         # Returns the package manager object for the current OS
@@ -66,15 +70,7 @@ module Autoproj
         end
 
         # Returns the set of package managers
-        def package_managers
-            if !@package_managers
-                @package_managers = Hash.new
-                PACKAGE_MANAGERS.each do |name, klass|
-                    @package_managers[name] = klass.new(ws)
-                end
-            end
-            @package_managers
-        end
+        attr_reader :package_managers
 
         def each_manager(&block)
             package_managers.each_value(&block)
@@ -172,9 +168,9 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
         end
 
         def osdeps_mode_string_to_value(string)
-            string = string.to_s.downcase.split(',')
+            user_modes = string.to_s.downcase.split(',')
             modes = []
-            string.map do |str|
+            user_modes.each do |str|
                 case str
                 when 'all'  then modes.concat(['os', 'gem', 'pip'])
                 when 'ruby' then modes << 'gem'
@@ -182,7 +178,12 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
                 when 'pip'  then modes << 'pip'
                 when 'os'   then modes << 'os'
                 when 'none' then
-                else raise ArgumentError, "#{str} is not a known package handler"
+                else
+                    if package_managers.has_key?(str)
+                        modes << str
+                    else
+                        raise ArgumentError, "#{str} is not a known package handler, known handlers are #{package_managers.keys.sort.join(", ")}"
+                    end
                 end
             end
             modes
@@ -268,7 +269,7 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
                 elsif pkg = package_managers[m]
                     pkg.enabled = true
                 else
-                    Autoproj.warn "osdep handler #{m.inspect} has no handler, available handlers are #{package_managers.keys.map(&:inspect).sort.join(", ")}"
+                    Autoproj.warn "osdep handler #{m.inspect} found in osdep_mode has no handler, available handlers are #{package_managers.keys.map(&:inspect).sort.join(", ")}"
                 end
             end
             os_package_manager.silent = self.silent?
