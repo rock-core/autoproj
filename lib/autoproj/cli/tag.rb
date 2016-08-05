@@ -9,7 +9,7 @@ module Autoproj
             def run(arguments, options = Hash.new)
                 tag_name, *user_selection = *arguments
                 ws.load_config
-                main_package_set = LocalPackageSet.new(ws.manifest, ws.config_dir)
+                main_package_set = LocalPackageSet.new(ws)
 
                 pkg = main_package_set.create_autobuild_package
                 importer = pkg.importer

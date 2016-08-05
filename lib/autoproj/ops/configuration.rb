@@ -129,7 +129,7 @@ module Autoproj
                 reset: false,
                 retry_count: nil
 
-            name = PackageSet.name_of(ws.manifest, vcs)
+            name = PackageSet.name_of(ws, vcs)
             raw_local_dir = PackageSet.raw_local_dir_of(vcs)
 
             return if options[:checkout_only] && File.exist?(raw_local_dir)
@@ -140,7 +140,7 @@ module Autoproj
                 Autoproj.message("autoproj: updating remote definitions of package sets", :bold)
                 @remote_update_message_displayed = true
             end
-            ws.install_os_packages([vcs.type])
+            ws.install_os_packages([vcs.type], all: nil)
             update_configuration_repository(
                 vcs, name, raw_local_dir, options)
         end
@@ -150,7 +150,7 @@ module Autoproj
         # @param [VCSDefinition] vcs the package set VCS
         # @return [String] the full path to the created user dir
         def create_remote_set_user_dir(vcs)
-            name = PackageSet.name_of(ws.manifest, vcs)
+            name = PackageSet.name_of(ws, vcs)
             raw_local_dir = PackageSet.raw_local_dir_of(vcs)
             FileUtils.mkdir_p(remotes_user_dir)
             symlink_dest = File.join(remotes_user_dir, name)
@@ -172,7 +172,7 @@ module Autoproj
         end
 
         def load_package_set(vcs, options, imported_from)
-            pkg_set = PackageSet.new(ws.manifest, vcs)
+            pkg_set = PackageSet.new(ws, vcs)
             pkg_set.auto_imports = options[:auto_imports]
             ws.load_if_present(pkg_set, pkg_set.local_dir, 'init.rb')
             pkg_set.load_description_file
@@ -254,7 +254,7 @@ module Autoproj
                     required_remotes_dirs << raw_local_dir
                 end
 
-                name = PackageSet.name_of(ws.manifest, vcs)
+                name = PackageSet.name_of(ws, vcs)
 
                 required_user_dirs = by_name.collect { |k,v| k }
                 Autoproj.debug "Trying to load package_set: #{name} from definition #{repository_id}"

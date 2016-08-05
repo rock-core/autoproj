@@ -129,7 +129,8 @@ module Autoproj
         # build nothing) and no layout at all
         attr_predicate :has_layout?
 
-        def initialize(os_package_resolver: OSPackageResolver.new)
+        def initialize(ws, os_package_resolver: OSPackageResolver.new)
+            @ws = ws
             @file = nil
 	    @data = Hash.new
             @has_layout = false
@@ -152,7 +153,7 @@ module Autoproj
             @accept_unavailable_osdeps = false
 
             @constant_definitions = Hash.new
-            @package_sets << LocalPackageSet.new(self)
+            @package_sets << LocalPackageSet.new(ws, vcs: self.vcs)
 	end
 
 

@@ -29,7 +29,8 @@ module Autoproj
             @loader = loader
             @env = Environment.new
             env.source_before(File.join(dot_autoproj_dir, 'env.sh'))
-            @manifest = Manifest.new
+
+            @manifest = Manifest.new(self, os_package_resolver: os_package_resolver)
             @config = Configuration.new(config_file_path)
 
             @os_package_installer = OSPackageInstaller.new(

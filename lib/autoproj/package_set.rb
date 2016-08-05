@@ -27,8 +27,12 @@ module Autoproj
             end
         end
 
+        attr_reader :ws
+
         # @return [Manifest] the manifest this package set is being used by
-        attr_reader :manifest
+        def manifest
+            ws.manifest
+        end
 
         # The VCSDefinition object that defines the version control holding
         # information for this source. Local package sets (i.e. the ones that are not
@@ -87,8 +91,8 @@ module Autoproj
         end
 
         # Create this source from a VCSDefinition object
-        def initialize(manifest, vcs)
-            @manifest = manifest
+        def initialize(ws, vcs)
+            @ws = ws
             @vcs = vcs
             @os_package_resolver = OSPackageResolver.new
             @all_osdeps = []
@@ -158,8 +162,8 @@ module Autoproj
         # checked out, and the vcs (as a string) otherwise
         #
         # @return [String]
-        def self.name_of(manifest, vcs)
-            pkg_set = PackageSet.new(manifest, vcs)
+        def self.name_of(ws, vcs)
+            pkg_set = PackageSet.new(ws, vcs)
             if pkg_set.present?
                 name = pkg_set.raw_description_file['name']
             end
@@ -176,7 +180,7 @@ module Autoproj
             if vcs.local?
                 File.expand_path(vcs.url)
             else
-                File.expand_path(File.join(Autoproj.workspace.remotes_dir, vcs.create_autobuild_importer.repository_id.gsub(/[^\w]/, '_')))
+                File.expand_path(File.join(ws.remotes_dir, vcs.create_autobuild_importer.repository_id.gsub(/[^\w]/, '_')))
             end
         end
 
@@ -187,7 +191,7 @@ module Autoproj
         # returns the corresponding VCSDefinition object
         def self.resolve_definition(manifest, raw_spec)
             if raw_spec.respond_to?(:to_str)
-                local_path = File.join(Autoproj.workspace.config_dir, raw_spec)
+                local_path = File.join(ws.config_dir, raw_spec)
                 if File.directory?(local_path)
                     raw_spec = { :type => 'local', :url => local_path }
                 end
@@ -243,7 +247,7 @@ module Autoproj
             if local?
                 return vcs.url 
             else
-                File.join(Autoproj.workspace.config_dir, 'remotes', name)
+                File.join(ws.config_dir, 'remotes', name)
             end
         end
 
@@ -265,7 +269,7 @@ module Autoproj
 
         # Returns the source name
         def name
-            @name || self.class.name_of(manifest, vcs)
+            @name || self.class.name_of(ws, vcs)
         end
 
         # Loads the source.yml file, validates it and returns it as a hash
@@ -483,8 +487,8 @@ module Autoproj
             if !vcs_spec.empty?
                 expansions = Hash["PACKAGE" => package_name,
                     "PACKAGE_BASENAME" => File.basename(package_name),
-                    "AUTOPROJ_ROOT" => Autoproj.workspace.root_dir,
-                    "AUTOPROJ_CONFIG" => Autoproj.workspace.config_dir,
+                    "AUTOPROJ_ROOT" => ws.root_dir,
+                    "AUTOPROJ_CONFIG" => ws.config_dir,
                     "AUTOPROJ_SOURCE_DIR" => local_dir]
 
                 vcs_spec = expand(vcs_spec, expansions)
@@ -571,8 +575,8 @@ module Autoproj
 
     # Specialization of the PackageSet class for the overrides listed in autoproj/
     class LocalPackageSet < PackageSet
-        def initialize(manifest, local_dir = nil)
-            super(manifest, manifest.vcs)
+        def initialize(ws, vcs: ws.manifest.vcs, local_dir: ws.config_dir)
+            super(ws, vcs)
             @local_dir = local_dir
         end
 
@@ -625,7 +629,7 @@ module Autoproj
         end
 
         def load_overrides
-            files = Dir.glob(File.join( Autoproj.workspace.overrides_dir, "*.yml" ) ).sort
+            files = Dir.glob(File.join( ws.overrides_dir, "*.yml" ) ).sort
             overrides = files.map do |file|
                 source_data = Autoproj.in_file(file, Autoproj::YAML_LOAD_ERROR) do
                     YAML.load(File.read(file)) || Array.new
