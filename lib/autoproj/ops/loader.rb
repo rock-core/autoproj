@@ -15,7 +15,10 @@ module Autoproj
         end
 
         def in_package_set(pkg_set, path)
-            @file_stack.push([pkg_set, File.expand_path(path).gsub(/^#{Regexp.quote(root_dir)}\//, '')])
+            if path
+                path = File.expand_path(path, root_dir)
+            end
+            @file_stack.push([pkg_set, path])
             yield
         ensure
             @file_stack.pop

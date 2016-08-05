@@ -937,7 +937,11 @@ module Autoproj
             end
 
             manifest_paths =
-                [File.join(package_set.local_dir, "manifests", package.name + ".xml"), File.join(package.srcdir, "manifest.xml")]
+                [File.join(package.srcdir, "manifest.xml")]
+
+            if package_set.local_dir
+                manifest_paths << File.join(package_set.local_dir, "manifests", package.name + ".xml")
+            end
             manifest_path = manifest_paths.find do |path|
                 File.directory?(File.dirname(path)) &&
                     File.file?(path)
