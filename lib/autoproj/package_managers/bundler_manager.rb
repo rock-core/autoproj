@@ -92,6 +92,15 @@ module Autoproj
                 end
             end
 
+            # @api private
+            #
+            # Update RUBYLIB to add the gems that are part of the bundler
+            # install
+            #
+            # @param [Array<String>] bundle_rubylib the rubylib entries reported
+            #   by bundler
+            # @param [Array<String>] system_rubylib the rubylib entries that are
+            #   set by the underlying ruby interpreter itself
             def update_env_rubylib(bundle_rubylib, system_rubylib = discover_rubylib)
                 current = (ws.env.resolved_env['RUBYLIB'] || '').split(File::PATH_SEPARATOR) + system_rubylib
                 (bundle_rubylib - current).each do |p|
@@ -99,6 +108,16 @@ module Autoproj
                 end
             end
 
+            # @api private
+            #
+            # Parse an osdep entry into a gem name and gem version
+            #
+            # The 'gem' entries in the osdep files can contain a version
+            # specification. This method parses the two parts and return them
+            #
+            # @param [String] entry the osdep entry
+            # @return [(String,String),(String,nil)] the gem name, and an
+            #   optional version specification
             def parse_package_entry(entry)
                 if entry =~ /^([^><=~]*)([><=~]+.*)$/
                     [$1.strip, $2.strip]
@@ -108,7 +127,14 @@ module Autoproj
             end
 
             class NotCleanState < RuntimeError; end
-
+            
+            # @api private
+            #
+            # Create backup files matching a certain file mapping
+            #
+            # @param [Hash<String,String>] mapping a mapping from the original
+            #   file to the file into which it should be backed up. The source
+            #   file might not exist.
             def backup_files(mapping)
                 mapping.each do |file, backup_file|
                     if File.file?(file)
@@ -117,6 +143,11 @@ module Autoproj
                 end
             end
 
+            # @api private
+            #
+            # Restore backups saved by {#backup_file}
+            #
+            # @param (see #backup_file)
             def backup_restore(mapping)
                 mapping.each do |file, backup_file|
                     if File.file?(backup_file)
@@ -125,6 +156,11 @@ module Autoproj
                 end
             end
 
+            # @api private
+            #
+            # Remove backups created by {#backup_files}
+            #
+            # @param (see #backup_file)
             def backup_clean(mapping)
                 mapping.each do |file, backup_file|
                     if File.file?(backup_file)
