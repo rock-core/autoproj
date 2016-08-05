@@ -199,9 +199,8 @@ module Autoproj
             root_dir = nil
             @definitions = definitions.merge(info.definitions) do |h, v1, v2|
                 if v1 != v2
-                    root_dir ||= "#{Autoproj.root_dir}/"
-                    old = source_of(h).gsub(root_dir, '')
-                    new = info.source_of(h).gsub(root_dir, '')
+                    old = source_of(h)
+                    new = info.source_of(h)
 
                     # Warn if the new osdep definition resolves to a different
                     # set of packages than the old one
