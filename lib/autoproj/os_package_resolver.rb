@@ -130,13 +130,18 @@ module Autoproj
         def prefer_indep_over_os_packages=(flag); @prefer_indep_over_os_packages = flag end
 
         # Use to override the autodetected OS-specific package handler
-        attr_writer :os_package_manager
+        def os_package_manager=(manager_name)
+            if manager_name && !package_managers.include?(manager_name)
+                raise ArgumentError, "#{manager_name} is not a known package manager"
+            end
+            @os_package_manager = manager_name
+        end
 
         # Returns the name of the package manager object for the current OS
         #
         # @return [String]
         def os_package_manager
-            if !instance_variable_defined?(:@os_package_manager)
+            if !@os_package_manager
                 os_names, _ = operating_system
                 os_name = os_names.find { |name| OS_PACKAGE_MANAGERS[name] }
                 @os_package_manager = OS_PACKAGE_MANAGERS[os_name] ||

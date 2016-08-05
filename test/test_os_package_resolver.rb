@@ -553,6 +553,30 @@ module Autoproj
                 assert_equal [['apt-dpkg', ['osdep0']]], resolver.resolve_os_packages(['pkg'])
             end
         end
+
+        describe "#os_package_manager=" do
+            attr_reader :resolver
+            before do
+                @resolver = OSPackageResolver.new(
+                    operating_system: [['test'], []],
+                    package_managers: ['os1', 'os2'],
+                    os_package_manager: 'os1')
+            end
+
+            it "sets the package manager" do
+                resolver.os_package_manager = 'os2'
+                assert_equal 'os2', resolver.os_package_manager
+            end
+            it "raises if the given name does not match a declared package manager" do
+                ws_create
+                # NOTE: we pick an existing package manager ON PURPOSE. The
+                # resolver-under-test has a different list, so this tests that
+                # the validation does not resolve against the global list
+                assert_raises(ArgumentError) do
+                    resolver.os_package_manager = 'apt-dpkg'
+                end
+            end
+        end
     end
 end
 
