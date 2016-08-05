@@ -1199,9 +1199,6 @@ module Autoproj
     end
 
     def self.config
-        Autoproj.warn_deprecated(
-            __method__, "use workspace.config instead")
-
         workspace.config
     end
 

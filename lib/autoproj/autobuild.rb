@@ -535,18 +535,16 @@ def source_package(options, workspace: Autoproj.workspace)
     end
 end
 
-# Define a configuration option
-#
-# @see Autoproj::Configuration#declare
+# @deprecated use Autoproj.config.declare instead
 def configuration_option(*opts, &block)
+    Autoproj.warn_deprecated __method__, "use Autoproj.config.declare instead"
     Autoproj.config.declare(*opts, &block)
 end
 
-# Retrieves the configuration value for the given option
-#
-# See Autoproj.user_config
+# @deprecated use Autoproj.config.get instead
 def user_config(key)
-    Autoproj.user_config(key)
+    Autoproj.warn_deprecated __method__, "use Autoproj.config.get instead"
+    Autoproj.config.get(key)
 end
 
 class Autobuild::Git
