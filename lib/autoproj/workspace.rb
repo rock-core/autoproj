@@ -15,10 +15,7 @@ module Autoproj
 
         attr_reader :loader
 
-        def os_package_resolver
-            manifest.os_package_resolver
-        end
-
+        attr_reader :os_package_resolver
         attr_reader :os_package_installer
 
         def initialize(root_dir,
@@ -30,6 +27,7 @@ module Autoproj
             @env = Environment.new
             env.source_before(File.join(dot_autoproj_dir, 'env.sh'))
 
+            @os_package_resolver = os_package_resolver
             @manifest = Manifest.new(self, os_package_resolver: os_package_resolver)
             @config = Configuration.new(config_file_path)
 
@@ -421,8 +419,10 @@ module Autoproj
         #
         # @return [void]
         def load_osdeps_from_package_sets
-            manifest.each_osdeps_file do |pkg_set, file|
-                os_package_resolver.merge(pkg_set.load_osdeps(file))
+            manifest.each_package_set do |pkg_set|
+                pkg_set.each_osdeps_file do |file|
+                    os_package_resolver.merge(pkg_set.load_osdeps(file))
+                end
             end
         end
 
@@ -464,8 +464,10 @@ module Autoproj
                 Autoproj.message("and use 'autoproj switch-config' to change the remote source for", :bold)
                 Autoproj.message("autoproj's main build configuration", :bold)
             end
-            manifest.each_autobuild_file do |source, name|
-                import_autobuild_file source, name
+            manifest.each_package_set do |pkg_set|
+                pkg_set.each_autobuild_file do |path|
+                    import_autobuild_file pkg_set, path
+                end
             end
 
             # Now, load the package's importer configurations (from the various
@@ -523,11 +525,11 @@ module Autoproj
 
                 case os_package_resolver.availability_of(osdep_name)
                 when OSPackageResolver::UNKNOWN_OS
-                    manifest.add_exclusion(osdep_name, "this operating system is unknown to autoproj")
+                    manifest.exclude_package(osdep_name, "this operating system is unknown to autoproj")
                 when OSPackageResolver::WRONG_OS
-                    manifest.add_exclusion(osdep_name, "there are definitions for it, but not for this operating system")
+                    manifest.exclude_package(osdep_name, "there are definitions for it, but not for this operating system")
                 when OSPackageResolver::NONEXISTENT
-                    manifest.add_exclusion(osdep_name, "it is marked as unavailable for this operating system")
+                    manifest.exclude_package(osdep_name, "it is marked as unavailable for this operating system")
                 end
             end
         end
@@ -545,7 +547,7 @@ module Autoproj
             manifest.reused_installations.each do |imported_manifest|
                 imported_manifest.each do |imported_pkg|
                     imported_packages << imported_pkg.name
-                    if pkg = manifest.find_package(imported_pkg.name)
+                    if pkg = manifest.find_package_definition(imported_pkg.name)
                         pkg.autobuild.srcdir = imported_pkg.srcdir
                         pkg.autobuild.prefix = imported_pkg.prefix
                     end
@@ -681,28 +683,14 @@ module Autoproj
         # Export the workspace's env.sh file
         def export_env_sh(package_names = all_present_packages, shell_helpers: true)
             env = self.env.dup
-            manifest.all_selected_packages.each do |pkg_name|
-                pkg = manifest.find_autobuild_package(pkg_name)
-                pkg.apply_env(env)
+            manifest.all_selected_source_packages.each do |pkg|
+                pkg.autobuild.apply_env(env)
             end
             env.export_env_sh(shell_helpers: shell_helpers)
         end
 
         def pristine_os_packages(packages, options = Hash.new)
             os_package_installer.pristine(packages, options)
-        end
-
-        # Restores the OS dependencies required by the given packages to
-        # pristine conditions
-        #
-        # This is usually called as a rebuild step to make sure that all these
-        # packages are updated to whatever required the rebuild
-        def pristine_os_packages_for(packages)
-            required_os_packages, package_os_deps =
-                manifest.list_os_packages(packages)
-            required_os_packages =
-                manifest.filter_os_packages(required_os_packages, package_os_deps)
-            pristine_os_packages(required_os_packages)
         end
 
         # Returns the list of all OS packages required by the state of the
@@ -724,15 +712,6 @@ module Autoproj
             os_package_installer.install(packages, all: all, **options)
         end
 
-        # Installs the OS dependencies that are required by the given packages
-        def install_os_packages_for(packages, **options)
-            required_os_packages, package_os_deps =
-                manifest.list_os_packages(packages)
-            required_os_packages =
-                manifest.filter_os_packages(required_os_packages, package_os_deps)
-            install_os_packages(required_os_packages, **options)
-        end
-
         # Define and register an autobuild package on this workspace
         #
         # @param [Symbol] package_type a package-creation method on {Autobuild},
@@ -745,7 +724,7 @@ module Autoproj
         # @param [Proc,nil] block a setup block that should be called to
         #   configure the package
         # @return [PackageDefinition]
-        def define_package(package_type, package_name, block, package_set = manifest.main_package_set, file = nil)
+        def define_package(package_type, package_name, block = nil, package_set = manifest.main_package_set, file = nil)
             autobuild_package = Autobuild.send(package_type, package_name)
             register_package(autobuild_package, block, package_set, file)
         end

@@ -130,7 +130,7 @@ module Autoproj
                 retry_count: nil
 
             name = PackageSet.name_of(ws, vcs)
-            raw_local_dir = PackageSet.raw_local_dir_of(vcs)
+            raw_local_dir = PackageSet.raw_local_dir_of(ws, vcs)
 
             return if options[:checkout_only] && File.exist?(raw_local_dir)
 
@@ -151,7 +151,7 @@ module Autoproj
         # @return [String] the full path to the created user dir
         def create_remote_set_user_dir(vcs)
             name = PackageSet.name_of(ws, vcs)
-            raw_local_dir = PackageSet.raw_local_dir_of(vcs)
+            raw_local_dir = PackageSet.raw_local_dir_of(ws, vcs)
             FileUtils.mkdir_p(remotes_user_dir)
             symlink_dest = File.join(remotes_user_dir, name)
 
@@ -250,7 +250,7 @@ module Autoproj
                 if !vcs.local?
                     update_remote_package_set(vcs, options)
                     create_remote_set_user_dir(vcs)
-                    raw_local_dir = PackageSet.raw_local_dir_of(vcs)
+                    raw_local_dir = PackageSet.raw_local_dir_of(ws, vcs)
                     required_remotes_dirs << raw_local_dir
                 end
 

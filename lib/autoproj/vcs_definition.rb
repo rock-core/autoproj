@@ -32,6 +32,7 @@ module Autoproj
         #
         # @return [nil,Hash]
         attr_reader :raw
+        
 
         def initialize(type, url, vcs_options, options = Hash.new)
             if raw && !raw.respond_to?(:to_ary)
@@ -52,6 +53,16 @@ module Autoproj
 
             @history = (options[:history] || Array.new) + [[options[:from], self]]
             @raw = options[:raw] || [[options[:from], to_hash]]
+        end
+
+        # Create a null VCS object
+        def self.none
+            from_raw(type: 'none')
+        end
+
+        # Whether there is actually a version control definition
+        def none?
+            @type == 'none'
         end
 
         # Whether this points to a local directory
@@ -76,7 +87,7 @@ module Autoproj
             end
             from, options = filter_options options, from: nil, raw: nil
             from = from[:from]
-            new = self.class.vcs_definition_to_hash(spec)
+            new = self.class.normalize_vcs_hash(spec)
             new_raw  = options[:raw] || [[from, spec]]
             new_history = Array.new
 
@@ -95,9 +106,9 @@ module Autoproj
         #
         # Both +old+ and +new+ are supposed to be in hash form. It is assumed
         # that +old+ has already been normalized by a call to
-        # {.vcs_definition_to_hash}. +new+ can be in "raw" form.
+        # {.normalize_vcs_hash}. +new+ can be in "raw" form.
         def self.update_raw_vcs_spec(old, new)
-            new = vcs_definition_to_hash(new)
+            new = normalize_vcs_hash(new)
             if new.has_key?(:type) && (old[:type] != new[:type])
                 # The type changed. We replace the old definition by the new one
                 # completely, and we make sure that the new definition is valid
@@ -115,7 +126,7 @@ module Autoproj
         #
         #   - package_name
         #     branch: value
-        def self.vcs_definition_to_hash(spec)
+        def self.normalize_vcs_hash(spec, base_dir: nil)
             plain = Array.new
             filtered_spec = Hash.new
 
@@ -141,24 +152,26 @@ module Autoproj
                 # shortcut. If it is not, look for a local directory called
                 # short_url
                 if Autobuild.respond_to?(vcs)
-                    spec.merge!(:type => vcs, :url => url.join(':'))
+                    spec.merge!(type: vcs, url: url.join(':'))
                 elsif Autoproj.has_source_handler?(vcs)
                     spec = Autoproj.call_source_handler(vcs, url.join(':'), spec)
                 else
                     source_dir =
                         if Pathname.new(short_url).absolute?
                             File.expand_path(short_url)
+                        elsif base_dir
+                            File.expand_path(short_url, base_dir)
                         else
-                            File.expand_path(File.join(Autoproj.config_dir, short_url))
+                            raise ArgumentError, "VCS path '#{short_url}' is relative and no base_dir was given"
                         end
                     if !File.directory?(source_dir)
-                        raise ConfigError.new, "'#{spec.inspect}' is neither a remote source specification, nor an existing local directory"
+                        raise ArgumentError, "'#{short_url}' is neither a remote source specification, nor an existing local directory"
                     end
-                    spec.merge!(:type => 'local', :url => source_dir)
+                    spec.merge!(type: 'local', url: source_dir)
                 end
             end
 
-            spec, vcs_options = Kernel.filter_options spec, :type => nil, :url => nil
+            spec, vcs_options = Kernel.filter_options spec, type: nil, url: nil
             spec.merge!(vcs_options)
             if !spec[:url]
                 # Verify that none of the keys are source handlers. If it is the
@@ -176,6 +189,13 @@ module Autoproj
             spec
         end
 
+        # @api private
+        #
+        # Converts a raw spec (a hash, really) into a nicely formatted string
+        def self.raw_spec_to_s(spec)
+            "{ #{spec.sort_by(&:first).map { |k, v| "#{k}: #{v}" }.join(", ")} }"
+        end
+
         # Converts a 'raw' VCS representation to a normalized hash.
         #
         # The raw definition can have three forms:
@@ -186,22 +206,17 @@ module Autoproj
         # @return [VCSDefinition]
         # @raise ArgumentError if the raw specification does not match an
         #   expected format
-        def self.from_raw(spec, options = Hash.new)
-            if !options.kind_of?(Hash)
-                options = Hash[raw: options]
-            end
-            options = validate_options options, from: nil, raw: nil, history: nil
-            from = options[:from]
-            history = options[:history] || Array.new
-            raw = options[:raw] || [[from, spec]]
-
-            spec = vcs_definition_to_hash(spec)
-            if !(spec[:type] && (spec[:type] == 'none' || spec[:url]))
-                raise ConfigError.new, "the source specification #{spec.inspect} misses either the VCS type or an URL"
+        def self.from_raw(spec, from: nil, raw: [[from, spec]], history: Array.new)
+            normalized_spec = normalize_vcs_hash(spec)
+            if !(type = normalized_spec.delete(:type))
+                raise ArgumentError, "the source specification #{raw_spec_to_s(spec)} normalizes into #{raw_spec_to_s(normalized_spec)}, which does not have a VCS type"
+            elsif !(url  = normalized_spec.delete(:url))
+                if type != 'none'
+                    raise ArgumentError, "the source specification #{raw_spec_to_s(spec)} normalizes into #{raw_spec_to_s(normalized_spec)}, which does not have a URL. Only VCS of type 'none' do not require one"
+                end
             end
 
-            spec, vcs_options = Kernel.filter_options spec, :type => nil, :url => nil
-            return VCSDefinition.new(spec[:type], spec[:url], vcs_options, from: from, history: history, raw: raw)
+            VCSDefinition.new(type, url, normalized_spec, from: from, history: history, raw: raw)
         end
 
         def ==(other_vcs)
@@ -295,30 +310,33 @@ module Autoproj
         end
     end
 
-    # call-seq:
-    #   Autoproj.add_source_handler name do |url, options|
-    #     # build a hash that represent source configuration
-    #     # and return it
-    #   end
-    #
     # Add a custom source handler named +name+
     #
     # Custom source handlers are shortcuts that can be used to represent VCS
-    # information. For instance, the gitorious_server_configuration method
-    # defines a source handler that allows to easily add new gitorious packages:
+    # information. For instance, the {Autoproj.git_server_configuration} helper defines a
+    # source handler that allows to easily add new github packages:
     #
-    #   gitorious_server_configuration 'GITORIOUS', 'gitorious.org'
+    #   Autoproj.git_server_configuration('GITHUB', 'github.com',
+    #      http_url: 'https://github.com',
+    #      default: 'http,ssh')
     #
-    # defines the "gitorious" source handler, which allows people to write
-    #
+    # Defines a 'github' custom handler that expands into the full VCS
+    # configuration to access github
     #
     #   version_control:
-    #       - tools/orocos.rb
-    #         gitorious: rock-toolchain/orocos-rb
+    #       - tools/orocos.rb:
+    #         github: rock-core/base-types
     #         branch: test
-    #
     # 
+    # @yieldparam [String] url the url given to the handler
+    # @yieldparam [Hash] the rest of the VCS hash
+    # @return [Hash] a VCS hash with the information expanded
     def self.add_source_handler(name, &handler)
         @custom_source_handlers[name.to_s] = lambda(&handler)
+    end
+
+    # Deregister a source handler defined with {.add_source_handler}
+    def self.remove_source_handler(name)
+        @custom_source_handlers.delete(name)
     end
 end

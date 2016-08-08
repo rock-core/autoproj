@@ -39,7 +39,7 @@ module Autoproj
                 end
                 puts "  source definition"
                 ws.manifest.load_package_manifest(pkg_name)
-                vcs = ws.manifest.find_package(pkg_name).vcs
+                vcs = ws.manifest.find_package_definition(pkg_name).vcs
 
                 fragments = []
                 if !vcs

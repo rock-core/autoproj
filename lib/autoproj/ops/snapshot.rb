@@ -218,7 +218,7 @@ module Autoproj
                 # Do a full snapshot this time only
                 Autoproj.message "  building initial autoproj import log, this may take a while"
                 packages = manifest.all_selected_packages.
-                    find_all { |pkg| File.directory?(manifest.find_package(pkg).autobuild.srcdir) }
+                    find_all { |pkg| File.directory?(manifest.find_package_definition(pkg).autobuild.srcdir) }
             end
             versions  = snapshot_package_sets
             versions += snapshot_packages(packages)

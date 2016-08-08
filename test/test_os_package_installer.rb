@@ -22,7 +22,7 @@ module Autoproj
             end
 
             it "installs the resolved packages" do
-                ws_add_osdep_entries(
+                ws_define_osdep_entries(
                     'pkg0' => ['test_os_family' => 'test_os_pkg'],
                     'pkg1' => ['os_indep' => 'test_os_indep_pkg'])
 
@@ -35,7 +35,7 @@ module Autoproj
             end
 
             it "performs the install without problem even if the os package manager is not involved" do
-                ws_add_osdep_entries(
+                ws_define_osdep_entries(
                     'pkg' => ['os_indep' => 'test_os_indep_pkg'])
                 os_manager.should_receive(:install).never
                 os_indep_manager.should_receive(:install).
@@ -45,7 +45,6 @@ module Autoproj
             end
 
             it "runs the package managers without packages if run_package_managers_without_packages is true and the handler has call_while_empty set" do
-
                 os_indep_manager.should_receive(:install).
                     with([], filter_uptodate_packages: true, install_only: false).once
                 os_indep_manager.should_receive(:call_while_empty?).and_return(true)
@@ -59,7 +58,7 @@ module Autoproj
             end
 
             it "does run package managers with packages regardless of call_while_empty" do
-                ws_add_osdep_entries('pkg' => ['os_indep' => 'test_os_indep_pkg'])
+                ws_define_osdep_entries('pkg' => ['os_indep' => 'test_os_indep_pkg'])
                 os_indep_manager.should_receive(:install).
                     with(['test_os_indep_pkg'], install_only: false, filter_uptodate_packages: true)
 

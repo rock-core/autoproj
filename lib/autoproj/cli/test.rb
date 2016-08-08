@@ -42,7 +42,7 @@ module Autoproj
 
                 lines = Array.new
                 resolved_selection.each do |pkg_name|
-                    pkg = ws.manifest.find_package(pkg_name).autobuild
+                    pkg = ws.manifest.find_package_definition(pkg_name).autobuild
                     lines << [pkg.name, pkg.test_utility.enabled?, pkg.test_utility.available?]
                 end
                 lines = lines.sort_by { |name, _| name }

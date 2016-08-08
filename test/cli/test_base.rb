@@ -15,16 +15,16 @@ module Autoproj
 
                 describe "empty user selection" do
                     it "returns all the selected packages if called without a user selection" do
-                        ws_add_package :cmake, 'pkg0'
-                        ws_add_package :cmake, 'pkg1'
+                        ws_add_package_to_layout :cmake, 'pkg0'
+                        ws_add_package_to_layout :cmake, 'pkg1'
                         selection, non_resolved = base.resolve_user_selection([]) 
                         assert_equal ['pkg0', 'pkg1'], selection.each_source_package_name.to_a.sort
                         assert_equal [], non_resolved
                     end
                     it "displays the packages to be installed if verbose is set" do
                         Autoproj.verbose = true
-                        ws_add_package :cmake, 'pkg0'
-                        ws_add_package :cmake, 'pkg1'
+                        ws_add_package_to_layout :cmake, 'pkg0'
+                        ws_add_package_to_layout :cmake, 'pkg1'
                         out, err = capture_subprocess_io do
                             base.resolve_user_selection([]) 
                         end
@@ -43,8 +43,8 @@ module Autoproj
                     end
                     it "displays the packages to be installed if verbose is set" do
                         Autoproj.verbose = true
-                        ws_add_package :cmake, 'pkg0'
-                        ws_add_package :cmake, 'pkg1'
+                        ws_add_package_to_layout :cmake, 'pkg0'
+                        ws_add_package_to_layout :cmake, 'pkg1'
                         out, err = capture_subprocess_io do
                             base.resolve_user_selection(['pkg0']) 
                         end

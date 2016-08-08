@@ -32,6 +32,9 @@ module Autoproj
                 File.open(File.join(test_autoproj_dir, 'test.osdeps'), 'w') do |io|
                     YAML.dump(Hash.new, io)
                 end
+                File.open(File.join(test_autoproj_dir, 'overrides.yml'), 'w') do |io|
+                    YAML.dump(Hash['version_control' => Array.new, 'overrides' => Array.new], io)
+                end
                 @workspace = Workspace.new(test_dir)
                 workspace.os_package_resolver.operating_system = [['debian', 'tests'], ['test_version']]
                 workspace.load_config
@@ -48,6 +51,17 @@ module Autoproj
             def add_in_packages(lines)
                 File.open(File.join(test_autoproj_dir, 'test.autobuild'), 'a') do |io|
                     io.puts lines
+                end
+            end
+
+            def add_version_control(package_name, type: 'local', url: package_name, **vcs)
+                overrides_yml = YAML.load(File.read(File.join(test_autoproj_dir, 'overrides.yml')))
+                overrides_yml['version_control'] << Hash[
+                    package_name =>
+                        vcs.merge(type: type, url: url)
+                ]
+                File.open(File.join(test_autoproj_dir, 'overrides.yml'), 'w') do |io|
+                    io.write YAML.dump(overrides_yml)
                 end
             end
 
@@ -68,12 +82,14 @@ module Autoproj
             it "does not exclude osdeps for which a source package with the same name exists" do
                 add_in_osdeps Hash['test' => 'nonexistent']
                 add_in_packages 'cmake_package "test"'
+                add_version_control 'test'
                 workspace.load_package_sets
                 refute workspace.manifest.excluded?('test')
             end
             it "does not exclude osdeps for which an osdep override exists" do
                 add_in_osdeps Hash['test' => 'nonexistent']
                 add_in_packages 'cmake_package "mapping_test"'
+                add_version_control 'mapping_test'
                 add_in_packages 'Autoproj.add_osdeps_overrides "test", package: "mapping_test"'
                 workspace.load_package_sets
                 refute workspace.manifest.excluded?('test')
@@ -160,15 +176,41 @@ module Autoproj
         describe "#all_os_packages" do
             it "returns the list of all osdeps that are needed by the current workspace state" do
                 ws_create
-                ws_add_osdep_entries 'os_pkg' => Hash['os' => 'os_pkg_test']
-                ws_add_osdep_entries 'os_indep_pkg' => Hash['os_indep' => 'os_indep_pkg_test']
-                ws_add_osdep_entries 'not_used' => Hash['os_indep' => 'not_used']
-                ws_add_package :cmake, :test do |pkg|
+                ws_define_osdep_entries 'os_pkg' => Hash['os' => 'os_pkg_test']
+                ws_define_osdep_entries 'os_indep_pkg' => Hash['os_indep' => 'os_indep_pkg_test']
+                ws_define_osdep_entries 'not_used' => Hash['os_indep' => 'not_used']
+                ws_add_package_to_layout :cmake, :test do |pkg|
                     pkg.depends_on 'os_pkg'
                     pkg.depends_on 'os_indep_pkg'
                 end
                 assert_equal Set['os_pkg', 'os_indep_pkg'], ws.all_os_packages.to_set
             end
         end
+
+        describe "#export_env_sh" do
+            attr_reader :pkg0, :pkg1, :env
+            before do
+                ws_create
+                @pkg0         = ws_add_package_to_layout :cmake, :pkg0
+                @pkg1         = ws_define_package :cmake, :pkg1
+                flexmock(ws.env).should_receive(:dup).once.and_return(@env = flexmock)
+            end
+            it "aggregates the environment of all the selected packages" do
+                flexmock(pkg0.autobuild).should_receive(:apply_env).with(env).once.globally.ordered
+                flexmock(pkg1.autobuild).should_receive(:apply_env).with(env).never
+                env.should_receive(:export_env_sh).once.globally.ordered
+                ws.export_env_sh
+            end
+            it "ignores OS dependencies" do
+                ws_define_osdep_entries 'root_osdep' => 'ignore'
+                ws_define_osdep_entries 'dep_osdep' => 'ignore'
+                pkg0.autobuild.depends_on 'dep_osdep'
+
+                flexmock(pkg0.autobuild).should_receive(:apply_env).with(env).once.globally.ordered
+                env.should_receive(:export_env_sh).once.globally.ordered
+                ws.export_env_sh
+            end
+        end
     end
 end
+

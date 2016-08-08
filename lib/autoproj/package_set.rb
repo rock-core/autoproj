@@ -27,12 +27,29 @@ module Autoproj
             end
         end
 
+        # The underlying workspace
+        #
+        # @return [Workspace]
         attr_reader :ws
 
-        # @return [Manifest] the manifest this package set is being used by
+        # The manifest this package set is registered on
+        #
+        # @return [Manifest] 
         def manifest
             ws.manifest
         end
+
+        # The minimum autoproj version this package set requires
+        #
+        # It defaults to 0
+        #
+        # @return [String]
+        attr_reader :required_autoproj_version
+
+        # The package set name
+        #
+        # @return [String]
+        attr_accessor :name
 
         # The VCSDefinition object that defines the version control holding
         # information for this source. Local package sets (i.e. the ones that are not
@@ -42,10 +59,13 @@ module Autoproj
 
         # The set of OSPackageResolver object that represent the osdeps files
         # available in this package set
+        #
+        # @return [Array<(String,OSPackageResolver)>] the list of osdep files
+        #   and the corresponding OSPackageResolver object
         attr_reader :all_osdeps
 
         # The OSPackageResolver which is a merged version of all OSdeps in
-        # #all_osdeps
+        # {#all_osdeps}
         attr_reader :os_package_resolver
 
         # If this package set has been imported from another package set, this
@@ -57,8 +77,16 @@ module Autoproj
         def explicit?; !!@explicit end
         attr_writer :explicit
 
-        attr_reader :source_definition
         attr_reader :constants_definitions
+
+        # The version control information defined in this package set
+        attr_reader :version_control
+
+        # The importer that should be used for packages that have no explicit
+        # entry
+        #
+        # @return [VCSDefinition]
+        attr_accessor :default_importer
 
         # The set of overrides defined in this package set
         attr_reader :overrides
@@ -90,13 +118,38 @@ module Autoproj
             metapackage.packages
         end
 
+        # Remote sources can be accessed through a hidden directory in
+        # {Workspace#remotes_dir}, or through a symbolic link in
+        # autoproj/remotes/
+        #
+        # This returns the former. See #user_local_dir for the latter.
+        #
+        # For local sources, is simply returns the path to the source directory.
+        attr_reader :raw_local_dir
+
         # Create this source from a VCSDefinition object
-        def initialize(ws, vcs)
+        def initialize(
+            ws, vcs,
+            name: self.class.name_of(ws, vcs),
+            raw_local_dir: self.class.raw_local_dir_of(ws, vcs))
+
             @ws = ws
             @vcs = vcs
-            @os_package_resolver = OSPackageResolver.new
+            if !vcs
+                raise ArgumentError, "cannot create a package set with a nil vcs, create a null VCS using VCSDefinition.none"
+            end
+            @name = name
+            @os_package_resolver = OSPackageResolver.new(
+                operating_system: ws.os_package_resolver.operating_system,
+                package_managers: ws.os_package_resolver.package_managers,
+                os_package_manager: ws.os_package_resolver.os_package_manager)
             @all_osdeps = []
+            @constants_definitions = Hash.new
+            @required_autoproj_version = '0'
+            @version_control = Array.new
             @overrides = Array.new
+            @raw_local_dir = raw_local_dir
+            @default_importer = VCSDefinition.from_raw(type: 'none')
 
             @provides = Set.new
             @imports  = Set.new
@@ -116,7 +169,7 @@ module Autoproj
 
         # Enumerate all osdeps package names from this package set
         def each_osdep(&block)
-            os_package_resolver.definitions.each_key(&block)
+            os_package_resolver.all_package_names.each(&block)
         end
 
         # True if this source has already been checked out on the local autoproj
@@ -129,7 +182,7 @@ module Autoproj
         def local?; vcs.local? end
         # True if this source defines nothing
         def empty?
-            !source_definition['version_control'] && overrides.empty?
+            version_control.empty? && overrides.empty?
                 !each_package.find { true } &&
                 !File.exist?(File.join(raw_local_dir, "overrides.rb")) &&
                 !File.exist?(File.join(raw_local_dir, "init.rb"))
@@ -140,6 +193,8 @@ module Autoproj
             create_autobuild_package
         end
 
+        # Create a stub autobuild package to handle the import of this package
+        # set
         def create_autobuild_package
             Ops::Tools.create_autobuild_package(vcs, name, raw_local_dir)
         end
@@ -162,12 +217,12 @@ module Autoproj
         # checked out, and the vcs (as a string) otherwise
         #
         # @return [String]
-        def self.name_of(ws, vcs)
-            pkg_set = PackageSet.new(ws, vcs)
-            if pkg_set.present?
-                name = pkg_set.raw_description_file['name']
+        def self.name_of(ws, vcs, raw_local_dir: raw_local_dir_of(ws, vcs))
+            if File.directory?(raw_local_dir)
+                raw_description_file(raw_local_dir)['name']
+            else
+                vcs.to_s
             end
-            name || vcs.to_s
         end
 
         # Returns the local directory in which the given package set should be
@@ -176,11 +231,13 @@ module Autoproj
         # @param [VCSDefinition] vcs the version control information for the
         #   package set
         # @return [String]
-        def self.raw_local_dir_of(vcs)
-            if vcs.local?
+        def self.raw_local_dir_of(ws, vcs)
+            if vcs.needs_import?
+                repository_id = vcs.create_autobuild_importer.repository_id
+                path = File.join(ws.remotes_dir, repository_id.gsub(/[^\w]/, '_'))
+                File.expand_path(path)
+            elsif !vcs.none?
                 File.expand_path(vcs.url)
-            else
-                File.expand_path(File.join(ws.remotes_dir, vcs.create_autobuild_importer.repository_id.gsub(/[^\w]/, '_')))
             end
         end
 
@@ -189,20 +246,11 @@ module Autoproj
         # This parses the information stored in the package_sets section of
         # autoproj/manifest, or the imports section of the source.yml files and
         # returns the corresponding VCSDefinition object
-        def self.resolve_definition(manifest, raw_spec)
-            if raw_spec.respond_to?(:to_str)
-                local_path = File.join(ws.config_dir, raw_spec)
-                if File.directory?(local_path)
-                    raw_spec = { :type => 'local', :url => local_path }
-                end
-            end
-            spec = VCSDefinition.vcs_definition_to_hash(raw_spec)
-            options, vcs_spec = Kernel.filter_options spec, :auto_imports => true
+        def self.resolve_definition(ws, raw_spec)
+            spec = VCSDefinition.normalize_vcs_hash(raw_spec, base_dir: ws.config_dir)
+            options, vcs_spec = Kernel.filter_options spec, auto_imports: true
 
-            # Look up for short notation (i.e. not an explicit hash). It is
-            # either vcs_type:url or just url. In the latter case, we expect
-            # 'url' to be a path to a local directory
-            vcs_spec = Autoproj.expand(vcs_spec, manifest.constant_definitions)
+            vcs_spec = Autoproj.expand(vcs_spec, ws.manifest.constant_definitions)
             return VCSDefinition.from_raw(vcs_spec, raw: [[nil, raw_spec]]), options
         end
 
@@ -214,7 +262,7 @@ module Autoproj
         # from exactly the same source.
         def repository_id
             if local?
-                local_dir
+                raw_local_dir
             else
                 importer = vcs.create_autobuild_importer
                 if importer.respond_to?(:repository_id)
@@ -223,17 +271,6 @@ module Autoproj
                     vcs.to_s
                 end
             end
-        end
-
-        # Remote sources can be accessed through a hidden directory in
-        # {Workspace#remotes_dir}, or through a symbolic link in
-        # autoproj/remotes/
-        #
-        # This returns the former. See #user_local_dir for the latter.
-        #
-        # For local sources, is simply returns the path to the source directory.
-        def raw_local_dir
-            self.class.raw_local_dir_of(vcs)
         end
 
         # Remote sources can be accessed through a hidden directory in
@@ -255,32 +292,23 @@ module Autoproj
         def local_dir
             ugly_dir   = raw_local_dir
             pretty_dir = user_local_dir
-            if File.symlink?(pretty_dir) && File.readlink(pretty_dir) == ugly_dir
+            if ugly_dir == pretty_dir
+                pretty_dir
+            elsif File.symlink?(pretty_dir) && File.readlink(pretty_dir) == ugly_dir
                 pretty_dir
             else
                 ugly_dir
             end
         end
 
-        def required_autoproj_version
-            definition = @source_definition || raw_description_file
-            definition['required_autoproj_version'] || '0'
-        end
-
-        # Returns the source name
-        def name
-            @name || self.class.name_of(ws, vcs)
-        end
-
-        # Loads the source.yml file, validates it and returns it as a hash
+        # @api private
         #
-        # Raises InternalError if the source has not been checked out yet (it
-        # should have), and ConfigError if the source.yml file is not valid.
-        def raw_description_file
-            if !present?
-                raise InternalError, "source #{vcs} has not been fetched yet, cannot load description for it"
-            end
-
+        # Read the description information for a package set in a given
+        # directory
+        #
+        # @param [String] raw_local_dir the package set's directory
+        # @return [Hash] the raw description information
+        def self.raw_description_file(raw_local_dir)
             master_source_file = File.join(raw_local_dir, PackageSet.master_source_file)
             if !File.exist?(master_source_file)
                 raise ConfigError.new, "source #{vcs.type}:#{vcs.url} should have a source.yml file, but does not"
@@ -301,11 +329,22 @@ module Autoproj
                     end
                 end
             end
-
             if !source_definition['name']
                 raise ConfigError.new(master_source_file), "in #{master_source_file}: missing a 'name' field"
             end
             source_definition
+        end
+
+        # Loads the source.yml file, validates it and returns it as a hash
+        #
+        # Raises InternalError if the source has not been checked out yet (it
+        # should have), and ConfigError if the source.yml file is not valid.
+        def raw_description_file
+            if !present?
+                raise InternalError, "source #{vcs} has not been fetched yet, cannot load description for it"
+            end
+
+            self.class.raw_description_file(raw_local_dir)
         end
 
         # Yields the package sets imported by this package set
@@ -326,15 +365,27 @@ module Autoproj
             @imports_vcs.each(&block)
         end
 
+        # Add a new entry in the list of version control resolutions
+        def add_version_control_entry(matcher, vcs_definition)
+            version_control << [matcher, vcs_definition]
+        end
+
+        # Add a new entry in the list of version control resolutions
+        def add_overrides_entry(matcher, vcs_definition)
+            overrides << [matcher, vcs_definition]
+        end
+
         # Path to the source.yml file
         def source_file
-            File.join(local_dir, 'source.yml')
+            if local_dir
+                File.join(local_dir, 'source.yml')
+            end
         end
 
         # Load the source.yml file and resolves all information it contains.
         def load_description_file
-            @source_definition = raw_description_file
-            name = @source_definition['name']
+            source_definition = raw_description_file
+            name = source_definition['name']
             if name !~ /^[\w\.-]+$/
                 raise ConfigError.new(source_file),
                     "in #{source_file}: invalid source name '#{@name}': source names can only contain alphanumeric characters, and .-_"
@@ -343,11 +394,10 @@ module Autoproj
                     "in #{source_file}: the name 'local' is a reserved name"
             end
 
-            parse_source_definition
-            @overrides = load_overrides
+            parse_source_definition(source_definition)
         end
 
-        def load_overrides
+        def load_overrides(source_definition)
             if data = source_definition['overrides']
                 [[source_file, data]]
             else
@@ -355,8 +405,9 @@ module Autoproj
             end
         end
 
-        def parse_source_definition
+        def parse_source_definition(source_definition)
             @name = source_definition['name']
+            @required_autoproj_version = source_definition.fetch('required_autoproj_version', '0')
             @provides = (source_definition['provides'] || Set.new).to_set
             @imports_vcs  = Array(source_definition['imports'] || Array.new).map do |set_def|
                 if !set_def.kind_of?(Hash) && !set_def.respond_to?(:to_str)
@@ -365,7 +416,7 @@ module Autoproj
                 end
 
                 Autoproj.in_file(source_file) do
-                    PackageSet.resolve_definition(manifest, set_def)
+                    PackageSet.resolve_definition(ws, set_def)
                 end
             end
 
@@ -374,12 +425,21 @@ module Autoproj
                 constants = source_definition['constants'] || Hash.new
                 @constants_definitions = Autoproj.resolve_constant_definitions(constants)
             end
+
+            version_control = source_definition.fetch('version_control', Array.new)
+            @version_control = normalize_vcs_list('version_control', version_control)
+            Autoproj.in_file(source_file) do
+                default_vcs_spec, raw = version_control_field('default', version_control)
+                if default_vcs_spec
+                    @default_importer = VCSDefinition.from_raw(default_vcs_spec, raw: raw, from: self)
+                end
+            end
+            @overrides = load_overrides(source_definition).map do |file, entries|
+                [file, normalize_vcs_list('overrides', entries)]
+            end
         end
 
         def single_expansion(data, additional_expansions = Hash.new)
-            if !source_definition
-                raise NotLoaded.new(self), "you must load the package set information with #load_description_file before you can call #single_expansion"
-            end
             Autoproj.single_expansion(data, additional_expansions.merge(constants_definitions))
         end
 
@@ -387,154 +447,145 @@ module Autoproj
         # listed in the source.yml file, and returns it. Raises if not all
         # variables can be expanded.
         def expand(data, additional_expansions = Hash.new)
-            if !source_definition
-                load_description_file
-            end
             Autoproj.expand(data, additional_expansions.merge(constants_definitions))
         end
 
-        # Returns the default importer definition for this package set, as a
-        # VCSDefinition instance
-        def default_importer
-            importer_definition_for('default')
+        # @api private
+        #
+        # Validate the format of a VCS list field (formatted in array-of-hashes)
+        def normalize_vcs_list(name, list)
+            if list.kind_of?(Hash)
+                raise InvalidYAMLFormatting, "wrong format for the #{name} section, you forgot the '-' in front of the package names"
+            elsif !list.kind_of?(Array)
+                raise InvalidYAMLFormatting, "wrong format for the #{name} section"
+            end
+
+            list.map do |spec|
+                spec = spec.dup
+                if !spec.kind_of?(Hash)
+                    raise InvalidYAMLFormatting, "wrong format for the #{spec} entry in the #{name} section, expected #{spec} followed by a colon and one importer option per following line"
+                end
+
+                if spec.values.size != 1
+                    # Maybe the user wrote the spec like
+                    #   - package_name:
+                    #     type: git
+                    #     url: blah
+                    #
+                    # or as
+                    #   - package_name
+                    #     type: git
+                    #     url: blah
+                    #
+                    # In that case, we should have the package name as
+                    # "name => nil". Check that.
+                    name, _ = spec.find { |n, v| v.nil? }
+                    if name
+                        spec.delete(name)
+                    else
+                        name, _ = spec.find { |n, v| n =~ / \w+$/ }
+                        name =~ / (\w+)$/
+                        spec[$1] = spec.delete(name)
+                        name = name.gsub(/ \w+$/, '')
+                    end
+                else
+                    name, spec = spec.to_a.first
+                    if name =~ / (\w+)/
+                        spec = { $1 => spec }
+                        name = name.gsub(/ \w+$/, '')
+                    end
+
+                    if spec.respond_to?(:to_str)
+                        if spec == "none"
+                            spec = { :type => "none" }
+                        else
+                            raise ConfigError.new, "invalid VCS specification in the #{section_name} section '#{name}: #{spec}'"
+                        end
+                    end
+                end
+
+                name_match = name
+                if name_match =~ /[^\w\/-]/
+                    name_match = Regexp.new("^" + name_match)
+                end
+                [name_match, spec]
+            end
         end
 
         # Returns an importer definition for the given package, if one is
         # available. Otherwise returns nil.
         #
         # The returned value is a VCSDefinition object.
-        def version_control_field(package_name, section_name, validate = true)
-            vcs_field( source_definition, package_name, section_name, validate )
-        end
-
-        def vcs_field( source_definition, package_name, section_name, validate )
-            urls = source_definition['urls'] || Hash.new
-            urls['HOME'] = ENV['HOME']
-
-            all_vcs     = source_definition[section_name]
-            if all_vcs
-                if all_vcs.kind_of?(Hash)
-                    raise ConfigError.new, "wrong format for the #{section_name} section, you forgot the '-' in front of the package names"
-                elsif !all_vcs.kind_of?(Array)
-                    raise ConfigError.new, "wrong format for the #{section_name} section"
-                end
-            end
-
+        def version_control_field(package_name, entry_list, validate = true)
             raw = []
             vcs_spec = Hash.new
 
-            if all_vcs
-                all_vcs.each do |spec|
-                    spec = spec.dup
-                    if !spec.kind_of?(Hash)
-                        raise ConfigError.new, "wrong format for the #{spec} entry, expected #{spec} followed by a colon and one importer option per following line"
-                    end
-
-                    if spec.values.size != 1
-                        # Maybe the user wrote the spec like
-                        #   - package_name:
-                        #     type: git
-                        #     url: blah
-                        #
-                        # or as
-                        #   - package_name
-                        #     type: git
-                        #     url: blah
-                        #
-                        # In that case, we should have the package name as
-                        # "name => nil". Check that.
-                        name, _ = spec.find { |n, v| v.nil? }
-                        if name
-                            spec.delete(name)
-                        else
-                            name, _ = spec.find { |n, v| n =~ / \w+$/ }
-                            name =~ / (\w+)$/
-                            spec[$1] = spec.delete(name)
-                            name = name.gsub(/ \w+$/, '')
+            entry_list.each do |name_match, spec|
+                if name_match === package_name
+                    raw << [self, spec]
+                    vcs_spec =
+                        begin
+                            VCSDefinition.update_raw_vcs_spec(vcs_spec, spec)
+                        rescue ConfigError => e
+                            raise ConfigError.new, "invalid VCS definition in the #{section_name} section for '#{name}': #{e.message}", e.backtrace
                         end
-                    else
-                        name, spec = spec.to_a.first
-                        if name =~ / (\w+)/
-                            spec = { $1 => spec }
-                            name = name.gsub(/ \w+$/, '')
-                        end
-
-                        if spec.respond_to?(:to_str)
-                            if spec == "none"
-                                spec = { :type => "none" }
-                            else
-                                raise ConfigError.new, "invalid VCS specification in the #{section_name} section '#{name}: #{spec}'"
-                            end
-                        end
-                    end
-
-                    name_match = name
-                    if name_match =~ /[^\w\/-]/
-                        name_match = Regexp.new("^" + name_match)
-                    end
-                    if name_match === package_name
-                        raw << [self, spec]
-                        vcs_spec =
-                            begin
-                                VCSDefinition.update_raw_vcs_spec(vcs_spec, spec)
-                            rescue ConfigError => e
-                                raise ConfigError.new, "invalid VCS definition in the #{section_name} section for '#{name}': #{e.message}", e.backtrace
-                            end
-                    end
                 end
             end
 
-            if !vcs_spec.empty?
-                expansions = Hash["PACKAGE" => package_name,
-                    "PACKAGE_BASENAME" => File.basename(package_name),
-                    "AUTOPROJ_ROOT" => ws.root_dir,
-                    "AUTOPROJ_CONFIG" => ws.config_dir,
-                    "AUTOPROJ_SOURCE_DIR" => local_dir]
-
-                vcs_spec = expand(vcs_spec, expansions)
-                vcs_spec.dup.each do |name, value|
-                    vcs_spec[name] = expand(value, expansions)
-                end
-
-                # If required, verify that the configuration is a valid VCS
-                # configuration
-                if validate
-                    begin
-                        VCSDefinition.from_raw(vcs_spec)
-                    rescue ConfigError => e
-                        raise ConfigError.new, "invalid resulting VCS definition for package #{package_name}: #{e.message}", e.backtrace
-                    end
-                end
-                return vcs_spec, raw
-            else
+            if vcs_spec.empty?
                 return nil, []
             end
+
+            expansions = Hash["PACKAGE" => package_name,
+                "PACKAGE_BASENAME" => File.basename(package_name),
+                "AUTOPROJ_ROOT" => ws.root_dir,
+                "AUTOPROJ_CONFIG" => ws.config_dir,
+                "AUTOPROJ_SOURCE_DIR" => local_dir]
+
+            vcs_spec = expand(vcs_spec, expansions)
+            vcs_spec.dup.each do |name, value|
+                vcs_spec[name] = expand(value, expansions)
+            end
+
+            # If required, verify that the configuration is a valid VCS
+            # configuration
+            if validate
+                begin
+                    VCSDefinition.from_raw(vcs_spec)
+                rescue ConfigError => e
+                    raise ConfigError.new, "invalid resulting VCS definition for package #{package_name}: #{e.message}", e.backtrace
+                end
+            end
+            return vcs_spec, raw
         end
 
         # Returns the VCS definition for +package_name+ as defined in this
         # source, or nil if the source does not have any.
         #
-        # The definition is an instance of VCSDefinition
-        def importer_definition_for(package_name)
+        # @param [PackageDefinition] package
+        # @return [VCSDefinition] the importer definition, or nil if none
+        #   could be found
+        def importer_definition_for(package, default: default_importer)
             Autoproj.in_file source_file do
-                vcs_spec, raw = version_control_field(package_name, 'version_control')
+                vcs_spec, raw = version_control_field(package.name, version_control)
                 if vcs_spec
                     VCSDefinition.from_raw(vcs_spec, raw: raw, from: self)
+                else
+                    default
                 end
             end
         end
 
         # Update a VCS object using the overrides defined in this package set
         #
-        # @param [String] package_name the package name
+        # @param [PackageDefinition] package the package name
         # @param [VCSDefinition] the vcs to be updated
         # @return [VCSDefinition] the new, updated vcs object
-        def overrides_for(package_name, vcs)
+        def overrides_for(package, vcs)
             overrides.each do |file, override|
                 new_spec, new_raw_entry = 
                     Autoproj.in_file file do
-                        vcs_field(Hash['overrides' => override],
-                                              package_name, 'overrides', false)
+                        version_control_field(package.name, overrides, false)
                     end
 
                 if new_spec
@@ -542,7 +593,7 @@ module Autoproj
                         begin
                             vcs = vcs.update(new_spec, raw: new_raw_entry, from: self)
                         rescue ConfigError => e
-                            raise ConfigError.new, "invalid resulting VCS specification in the overrides section for package #{package_name}: #{e.message}"
+                            raise ConfigError.new, "invalid resulting VCS specification in the overrides section for package #{package.name}: #{e.message}"
                         end
                     end
                 end
@@ -571,103 +622,23 @@ module Autoproj
             name == self.name ||
                 provides.include?(name)
         end
-    end
 
-    # Specialization of the PackageSet class for the overrides listed in autoproj/
-    class LocalPackageSet < PackageSet
-        def initialize(ws, vcs: ws.manifest.vcs, local_dir: ws.config_dir)
-            super(ws, vcs)
-            @local_dir = local_dir
-        end
-
-        def name
-            'main configuration'
-        end
-
-        def vcs
-            manifest.vcs
-        end
-
-        def main?
-            true
-        end
-
-        def local?
-            true
-        end
-
-        def local_dir
-            @local_dir || (File.dirname(manifest.file) if manifest.file)
-        end
-
-        def raw_local_dir; local_dir end
-
-        def manifest_path
-            manifest.file
-        end
-
-        def overrides_file_path
-            if d = local_dir
-                File.join(d, "overrides.yml")
+        # List the autobuild files that are part of this package set
+        def each_autobuild_file
+            return enum_for(__method__) if !block_given?
+            Dir.glob(File.join(local_dir, "*.autobuild")).sort.each do |file|
+                yield(file)
             end
         end
 
-        def source_file
-            manifest_path
-        end
-
-        # Returns the default importer for this package set
-        def default_importer
-            importer_definition_for('default') ||
-                VCSDefinition.from_raw(:type => 'none')
-        end
-
-        def load_description_file
-            @source_definition = raw_description_file
-            parse_source_definition
-            @overrides = load_overrides
-        end
-
-        def load_overrides
-            files = Dir.glob(File.join( ws.overrides_dir, "*.yml" ) ).sort
-            overrides = files.map do |file|
-                source_data = Autoproj.in_file(file, Autoproj::YAML_LOAD_ERROR) do
-                    YAML.load(File.read(file)) || Array.new
-                end
-                source_data =
-                    if source_data.respond_to?(:to_ary)
-                        source_data
-                    else source_data['overrides'] || Array.new
-                    end
-                [file, source_data]
+        # Yields each osdeps definition files that are present in this package
+        # set
+        def each_osdeps_file
+            return enum_for(__method__) if !block_given?
+            Dir.glob(File.join(local_dir, "*.osdeps")).each do |file|
+                yield(file)
             end
-            overrides + super
-        end
-
-        def raw_description_file
-            description = Hash[
-                'imports' => Array.new,
-                'version_control' => Array.new,
-                'overrides' => Array.new]
-            if File.file?(overrides_file_path)
-                overrides_data = Autoproj.in_file(overrides_file_path, Autoproj::YAML_LOAD_ERROR) do
-                    YAML.load(File.read(overrides_file_path)) || Hash.new
-                end
-                description = description.merge(overrides_data)
-            end
-
-            manifest_data = Autoproj.in_file(manifest_path, Autoproj::YAML_LOAD_ERROR) do
-                YAML.load(File.read(manifest_path)) || Hash.new
-            end
-            description['imports'] = description['imports'].
-                concat(manifest_data['package_sets'] || Array.new)
-            description['name'] = name
-            description
         end
     end
-
-    # DEPRECATED. For backward-compatibility only.
-    Source = PackageSet
-    # DEPRECATED. For backward-compatibility only.
-    LocalSource = LocalPackageSet
 end
+

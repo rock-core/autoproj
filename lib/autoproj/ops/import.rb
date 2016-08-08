@@ -13,9 +13,9 @@ module Autoproj
                     reason = ws.manifest.exclusion_reason(pkg_name)
                 else
                     if chain.size == 1
-                        ws.manifest.add_exclusion(pkg_name, "its dependency #{reason}")
+                        ws.manifest.exclude_package(pkg_name, "its dependency #{reason}")
                     else
-                        ws.manifest.add_exclusion(pkg_name, "#{reason} (dependency chain: #{chain.join(">")})")
+                        ws.manifest.exclude_package(pkg_name, "#{reason} (dependency chain: #{chain.join(">")})")
                     end
                 end
 

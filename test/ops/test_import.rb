@@ -5,7 +5,11 @@ module Autoproj
         describe Import do
             before do
                 ws_create
-                ws.manifest.add_exclusion '0', 'reason0'
+                ws_define_package :cmake, '0'
+                ws_define_package :cmake, '1'
+                ws_define_package :cmake, '11'
+                ws_define_package :cmake, '12'
+                ws.manifest.exclude_package '0', 'reason0'
             end
 
             subject { Import.new(ws) }
@@ -30,8 +34,8 @@ module Autoproj
                     assert_match(/reason0/, ws.manifest.exclusion_reason('12'))
                 end
                 it "ignores packages that are already excluded" do
-                    ws.manifest.add_exclusion '11', 'reason11'
-                    flexmock(ws.manifest).should_receive(:add_exclusion).with(->(name) { name != '11' }, any).pass_thru
+                    ws.manifest.exclude_package '11', 'reason11'
+                    flexmock(ws.manifest).should_receive(:exclude_package).with(->(name) { name != '11' }, any).twice.pass_thru
                     subject.mark_exclusion_along_revdeps('0', revdeps)
                 end
             end

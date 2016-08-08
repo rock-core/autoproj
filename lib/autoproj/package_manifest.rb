@@ -83,6 +83,12 @@ module Autoproj
             @xml = doc
         end
 
+        # Whether this is a null manifest (used for packages that have actually
+        # no manifest) or not
+        def null?
+            !xml.elements['/package']
+        end
+
         def each_dependency(in_modes = Array.new, &block)
             return enum_for(__method__) if !block_given?
 

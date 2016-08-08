@@ -12,6 +12,9 @@ module Autoproj
     class PackageNotFound < ConfigError
     end
 
+    class UnregisteredPackage < ArgumentError
+    end
+
     class InputError < RuntimeError; end
 
     # Exception raised when a caller requires to use an excluded package
@@ -22,15 +25,12 @@ module Autoproj
         end
     end
 
-    # Exception raised when an unknown package is encountered
-    class UnknownPackage < ConfigError
-        attr_reader :name
-        def initialize(name)
-            @name = name
-        end
-    end
-
     class MissingOSDep < ConfigError; end
+
+    # Exception raised when finding unexpected objects in a YAML file
+    #
+    # E.g. having a hash instead of an array
+    class InvalidYAMLFormatting < ConfigError; end
 
     # Exception raised by
     # PackageSelection#filter_excluded_and_ignored_packages when a given

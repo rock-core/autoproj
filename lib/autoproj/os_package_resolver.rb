@@ -176,6 +176,10 @@ module Autoproj
                     sources[package_name] = file
                     all_definitions[package_name] << [[file], defs[package_name]]
                 end
+            else
+                defs.each_key do |package_name|
+                    all_definitions[package_name] << [[], defs[package_name]]
+                end
             end
         end
 
@@ -184,7 +188,7 @@ module Autoproj
         # It includes even the packages for which there are no definitions on
         # this OS
         def all_package_names
-            all_definitions.keys
+            definitions.keys
         end
 
         # Returns the full path to the osdeps file from which the package

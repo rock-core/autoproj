@@ -112,6 +112,10 @@ module Autoproj
                 matches.has_key?(sel)
             end
 
+            def match_for(sel)
+                matches[sel]
+            end
+
             # Remove packages that are explicitely excluded and/or ignored
             #
             # Raise an error if an explicit selection expands only to an

@@ -262,24 +262,55 @@ gem 'autobuild', path: '#{autobuild_dir}'
             ws
         end
 
-        def ws_add_osdep_entries(entries)
+        def ws_clear_layout
+            ws.manifest.clear_layout
+        end
+
+        def ws_define_package_set(name, vcs = VCSDefinition.from_raw(type: 'none'), **options)
+            package_set = PackageSet.new(ws, vcs, name: name, **options)
+            ws.manifest.register_package_set(package_set)
+            package_set
+        end
+
+        def ws_add_package_set_to_layout(name, vcs = VCSDefinition.from_raw(type: 'none'), **options)
+            package_set = ws_define_package_set(name, vcs, **options)
+            ws.manifest.add_package_set_to_layout(package_set)
+            package_set
+        end
+
+        def ws_define_osdep_entries(entries)
             ws_os_package_resolver.add_entries(entries)
         end
 
-        def ws_define_package(package_type, package_name, create: true)
+        def ws_add_osdep_entries_to_layout(entries)
+            ws_os_package_resolver.add_entries(entries)
+            entries.each_key do |pkg_name|
+                manifest.add_package_to_layout(pkg_name)
+            end
+        end
+
+        def ws_define_package(package_type, package_name, package_set: ws.manifest.main_package_set, create: true)
             package = Autobuild.send(package_type, package_name)
             package.srcdir = File.join(ws.root_dir, package_name.to_s)
             if create
                 FileUtils.mkdir_p package.srcdir
             end
-            autoproj_package = ws.register_package(package, nil)
+            autoproj_package = ws.register_package(package, nil, package_set)
             yield(package) if block_given?
             autoproj_package
         end
 
-        def ws_add_package(package_type, package_name, &block)
-            pkg = ws_define_package(package_type, package_name, &block)
-            ws.manifest.add_package(pkg)
+        def ws_define_package_vcs(package, vcs_spec)
+            package.package_set.add_version_control_entry(package.name, vcs_spec)
+        end
+
+        def ws_define_package_overrides(package, package_set, vcs_spec)
+            package_set.add_overrides_entry(package.name, vcs_spec)
+        end
+
+        def ws_add_package_to_layout(package_type, package_name, package_set: ws.manifest.main_package_set, &block)
+            pkg = ws_define_package(package_type, package_name, package_set: package_set, &block)
+            ws.manifest.add_package_to_layout(pkg)
             pkg
         end
     end

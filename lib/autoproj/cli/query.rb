@@ -19,11 +19,11 @@ module Autoproj
                     packages = ws.manifest.packages.to_a
                 else
                     packages = all_selected_packages.map do |pkg_name|
-                        [pkg_name, ws.manifest.find_package(pkg_name)]
+                        [pkg_name, ws.manifest.find_package_definition(pkg_name)]
                     end
                     packages += ws.manifest.all_selected_packages.map do |pkg_name|
                         if !all_selected_packages.include?(pkg_name)
-                            [pkg_name, ws.manifest.find_package(pkg_name)]
+                            [pkg_name, ws.manifest.find_package_definition(pkg_name)]
                         end
                     end.compact
                 end
@@ -47,7 +47,7 @@ module Autoproj
                 fields = Hash.new
                 matches = matches.sort
                 matches.each do |priority, name|
-                    pkg_def = ws.manifest.find_package(name)
+                    pkg_def = ws.manifest.find_package_definition(name)
                     pkg = ws.manifest.find_autobuild_package(name)
                     fields['SRCDIR'] = pkg.srcdir
                     fields['PREFIX'] = pkg.prefix

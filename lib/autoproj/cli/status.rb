@@ -42,7 +42,7 @@ module Autoproj
 
                 Autoproj.message("autoproj: displaying status of packages", :bold)
                 packages = packages.sort.map do |pkg_name|
-                    ws.manifest.find_package(pkg_name)
+                    ws.manifest.find_package_definition(pkg_name)
                 end
                 display_status(packages, parallel: options[:parallel], snapshot: options[:snapshot], only_local: options[:only_local])
             end

@@ -60,8 +60,16 @@ module Autoproj
             end
 
             @file = file
+            initialize_from_hash(data)
+        end
+
+        # @api private
+        #
+        # Initialize the manifest from a hash, as loaded from a manifest file
+        def initialize_from_hash(data)
             @data = data
             @ignored_packages |= (data['ignored_packages'] || Set.new).to_set
+            @ignored_packages |= (data['ignore_packages'] || Set.new).to_set
             @manifest_exclusions |= (data['exclude_packages'] || Set.new).to_set
 
             normalized_layout = Hash.new
@@ -77,10 +85,42 @@ module Autoproj
             end
         end
 
-        # Add this package into the layout
-        def add_package(package_definition)
+        # Make an empty layout
+        #
+        # Unless the default layout (that you can get with {#remove_layout}), this
+        # means that no package is selected by default
+        def clear_layout
             @has_layout = true
-            normalized_layout[package_definition.name] = '/'
+            normalized_layout.clear
+        end
+
+        # Remove the layout
+        #
+        # Unlike {#clear_layout}, this means that all defined source packages
+        # will be selected by default
+        def remove_layout
+            @has_layout = false
+            normalized_layout.clear
+        end
+
+        # Add a package into the layout
+        def add_package_to_layout(package)
+            package_name = validate_package_name_argument(package)
+            @has_layout = true
+            normalized_layout[package_name] = '/'
+        end
+
+        # Add a package into the layout
+        def add_package_set_to_layout(package_set)
+            validate_package_set_in_self(package_set)
+            add_metapackage_to_layout(package_set.metapackage)
+        end
+
+        # Add a metapackage into the layout
+        def add_metapackage_to_layout(metapackage)
+            validate_metapackage_in_self(metapackage)
+            @has_layout = true
+            normalized_layout[metapackage.name] = '/'
         end
 
         # The manifest data as a Hash
@@ -89,9 +129,6 @@ module Autoproj
         # The set of packages defined so far as a mapping from package name to 
         # [Autobuild::Package, package_set, file] tuple
         attr_reader :packages
-
-        # A mapping from package names into PackageManifest objects
-        attr_reader :package_manifests
 
         # The path to the manifest file that has been loaded
         attr_reader :file
@@ -136,13 +173,11 @@ module Autoproj
             @has_layout = false
             @normalized_layout = Hash.new
             @packages = Hash.new
-            @package_manifests = Hash.new
             @package_sets = []
             @os_package_resolver = os_package_resolver
 
             @automatic_exclusions = Hash.new
             @constants_definitions = Hash.new
-            @disabled_imports = Set.new
             @moved_packages = Hash.new
             @osdeps_overrides = Hash.new
             @metapackages = Hash.new
@@ -153,25 +188,70 @@ module Autoproj
             @accept_unavailable_osdeps = false
 
             @constant_definitions = Hash.new
-            @package_sets << LocalPackageSet.new(ws, vcs: self.vcs)
+            @package_sets << LocalPackageSet.new(ws)
 	end
 
+        # @api private
+        #
+        # Validate that the given metapackage object is defined in self
+        def validate_metapackage_in_self(metapackage)
+            if find_metapackage(metapackage.name) != metapackage
+                raise UnregisteredPackage, "#{metapackage.name} is not registered on #{self}"
+            end
+        end
+
+        # @api private
+        #
+        # Validate that the given package object is defined in self
+        def validate_package_in_self(package)
+            if find_package_definition(package.name) != package
+                raise UnregisteredPackage, "#{package.name} is not registered on #{self}"
+            end
+        end
+
+        # @api private
+        #
+        # Massage an argument that should be interpreted as a package name
+        def validate_package_name_argument(package, require_existing: true)
+            if package.respond_to?(:name)
+                validate_package_in_self(package)
+                package.name
+            else
+                package = package.to_str
+                if require_existing && !has_package?(package)
+                    raise PackageNotFound, "no package named #{package} in #{self}"
+                end
+                package
+            end
+        end
+
+        # @api private
+        #
+        # Validate that the given package object is defined in self
+        def validate_package_set_in_self(package_set)
+            if find_package_set(package.name) != package_set
+                raise UnregisteredPackageSet, "#{package_set.name} is not registered on #{self}"
+            end
+        end
 
         # Call this method to ignore a specific package. It must not be used in
         # init.rb, as the manifest is not yet loaded then
-        def ignore_package(package_name)
-            @ignored_packages << package_name.to_str
+        def ignore_package(package)
+            @ignored_packages << validate_package_name_argument(package, require_existing: false)
         end
 
         # True if the given package should not be built, with the packages that
         # depend on him have this dependency met.
         #
         # This is useful if the packages are already installed on this system.
-        def ignored?(package_name)
+        def ignored?(package)
+            package_name = validate_package_name_argument(package)
+            source_package = find_package_definition(package_name)
+
             ignored_packages.any? do |l|
                 if package_name == l
                     true
-                elsif (pkg_set = metapackages[l]) && pkg_set.include?(package_name)
+                elsif source_package && (pkg_set = metapackages[l]) && pkg_set.include?(source_package.autobuild)
                     true
                 else
                     false
@@ -180,23 +260,11 @@ module Autoproj
         end
 
         # Enumerates the package names of all ignored packages
-        def each_excluded_package
-            each_autobuild_package do |pkg|
-                yield(pkg) if excluded?(pkg.name)
-            end
-        end
-
-        # Enumerates the package names of all ignored packages
         def each_ignored_package
+            return enum_for(__method__) if !block_given?
             each_autobuild_package do |pkg|
                 yield(pkg) if ignored?(pkg.name)
             end
-        end
-
-        # Removes all registered exclusions
-        def clear_exclusions
-            automatic_exclusions.clear
-            data['exclude_packages'].clear
         end
 
         # Removes all registered ignored packages
@@ -204,24 +272,67 @@ module Autoproj
             ignored_packages.clear
         end
 
-        # The set of package names that are listed in the excluded_packages
-        # section of the manifest
-        def manifest_exclusions
-            @manifest_exclusions
+        # True if the given package should not be built and its dependencies
+        # should be considered as met.
+        #
+        # This is useful to avoid building packages that are of no use for the
+        # user.
+        def excluded?(package_name)
+            package_name = validate_package_name_argument(package_name)
+
+            if excluded_in_manifest?(package_name)
+                true
+            elsif automatic_exclusions.any? { |pkg_name, | pkg_name == package_name }
+                true
+            else
+                false
+            end
         end
 
-        # A package_name => reason map of the exclusions added with #add_exclusion.
+        # Enumerates the package names of all ignored packages
+        def each_excluded_package
+            return enum_for(__method__) if !block_given?
+            each_autobuild_package do |pkg|
+                yield(pkg) if excluded?(pkg.name)
+            end
+        end
+
+        # Removes all registered exclusions
+        def clear_exclusions
+            automatic_exclusions.clear
+            manifest_exclusions.clear
+        end
+
+        # The set of package names that are listed in the excluded_packages
+        # section of the manifest
+        attr_reader :manifest_exclusions
+
+        # A package_name => reason map of the exclusions added with {#exclude_package}
         # Exclusions listed in the manifest file are returned by #manifest_exclusions
         attr_reader :automatic_exclusions
 
+        # @deprecated use {#exclude_package} instead
+        def add_exclusion(package_name, reason)
+            Autoproj.warn_deprecated __method__, "use #exclude_package instead"
+            exclude_package(package_name, reason)
+        end
+
         # Exclude +package_name+ from the build. +reason+ is a string describing
         # why the package is to be excluded.
-        def add_exclusion(package_name, reason)
-            automatic_exclusions[package_name] = reason
+        def exclude_package(package_name, reason)
+            package = validate_package_name_argument(package_name, require_existing: false)
+            if meta = find_metapackage(package)
+                meta.each_package do |pkg|
+                    automatic_exclusions[pkg.name] = "#{meta.name} is an excluded metapackage, and it includes #{pkg.name}: #{reason}"
+                end
+            else
+                automatic_exclusions[package] = reason
+            end
         end
 
         # Tests whether the given package is excluded in the manifest
         def excluded_in_manifest?(package_name)
+            package_name = validate_package_name_argument(package_name)
             manifest_exclusions.any? do |matcher|
                 if (pkg_set = metapackages[matcher]) && pkg_set.include?(package_name)
                     true
@@ -238,11 +349,15 @@ module Autoproj
         # exclude_packages section of the manifest, or because they are
         # disabled on this particular operating system.
         def exclusion_reason(package_name)
-            if excluded_in_manifest?(package_name)
-                "#{package_name} is listed in the exclude_packages section of the manifest"
-            else
-                automatic_exclusions[package_name]
+            package_name = validate_package_name_argument(package_name)
+            manifest_exclusions.any? do |matcher|
+                if (pkg_set = metapackages[matcher]) && pkg_set.include?(package_name)
+                    return "#{pkg_set.name} is a metapackage listed in the exclude_packages section of the manifest, and it includes #{package_name}"
+                elsif Regexp.new(matcher) === package_name
+                    return "#{package_name} is listed in the exclude_packages section of the manifest"
+                end
             end
+            automatic_exclusions[package_name]
         end
 
         # Returns true if the given package name has been explicitely added to
@@ -255,63 +370,9 @@ module Autoproj
             normalized_layout.has_key?(package_name)
         end
 
-        # True if the given package should not be built and its dependencies
-        # should be considered as met.
-        #
-        # This is useful to avoid building packages that are of no use for the
-        # user.
-        def excluded?(package_name)
-            package_name = package_name.to_str
-
-            if excluded_in_manifest?(package_name)
-                true
-            elsif automatic_exclusions.any? { |pkg_name, | pkg_name == package_name }
-                true
-            else
-                false
-            end
-        end
-
-        # Lists the autobuild files that are in the package sets we know of
-	def each_autobuild_file(source_name = nil, &block)
-            if !block_given?
-                return enum_for(__method__, source_name)
-            end
-
-            # This looks very inefficient, but it is because source names are
-            # contained in source.yml and we must therefore load that file to
-            # check the package set name ...
-            #
-            # And honestly I don't think someone will have 20 000 package sets
-            done_something = false
-            each_package_set do |source| 
-                next if source_name && source.name != source_name
-                done_something = true
-
-                Dir.glob(File.join(source.local_dir, "*.autobuild")).sort.each do |file|
-                    yield(source, file)
-                end
-            end
-
-            if source_name && !done_something
-                raise ConfigError.new(file), "in #{file}: package set '#{source_name}' does not exist"
-            end
-	end
-
-        # Yields each osdeps definition files that are present in our sources
-        def each_osdeps_file
-            return enum_for(__method__) if !block_given?
-
-            each_package_set do |source|
-		Dir.glob(File.join(source.local_dir, "*.osdeps")).each do |file|
-		    yield(source, file)
-		end
-            end
-        end
-
         # True if some of the sources are remote sources
-        def has_remote_sources?
-            each_remote_source(false).any? { true }
+        def has_remote_package_sets?
+            each_remote_package_set.any? { true }
         end
 
         # Like #each_package_set, but filters out local package sets
@@ -363,59 +424,12 @@ module Autoproj
             pkg
         end
 
-        # Returns the package set that defines a package
-        #
-        # @param [String] package_name the package name
-        # @return [PackageSet] the package set
-        # @raise ArgumentError if package_name is not the name of a known
-        #   package
-        def definition_package_set(package_name)
-            if pkg_def = @packages[package_name]
-                pkg_def.package_set
-            else raise ArgumentError, "no package called #{package_name}"
-            end
-        end
-
-        # @deprecated use {definition_package_set} instead
-        def definition_source(package_name)
-            definition_package_set(package_name)
-        end
-
-        # Returns the full path to the file that defines a package
-        #
-        # @param [String] package_name the package name
-        # @return [String] the package set
-        # @raise ArgumentError if package_name is not the name of a known
-        #   package
-        def definition_file(package_name)
-            if pkg_def = @packages[package_name]
-                pkg_def.file
-            else raise ArgumentError, "no package called #{package_name}"
-            end
-        end
-
-        # @deprecated use {#find_package_definition} instead
-        def package(name)
-            Autoproj.warn_deprecated __method__, "use #find_package_definition instead"
-            find_package_definition(name)
-        end
-
-        # @deprecated use {#find_package_definition} instead
-        def find_package(name)
-            Autoproj.warn_deprecated __method__, "use #find_package_definition instead"
-            find_package_definition(name)
-        end
-
         # The autoproj description of a package by its name
         #
         # @param [String,#name] name the package name
         # @return [PackageDefinition,nil]
         def find_package_definition(name)
-            if name.respond_to?(:name)
-                name = name.name
-            end
-
-            packages[name.to_str]
+            packages[validate_package_name_argument(name, require_existing: false)]
         end
 
         # The autobuild description of a package by its name
@@ -426,13 +440,6 @@ module Autoproj
             if pkg = find_package_definition(name)
                 pkg.autobuild
             end
-        end
-
-        # @deprecated use {each_autobuild_package} instead
-        def each_package(&block)
-            Autoproj.warn "Manifest#each_package is deprecated, use each_autobuild_package instead"
-            Autoproj.warn "  " + caller.join("\n  ")
-            each_autobuild_package(&block)
         end
 
         # Lists all defined packages
@@ -451,46 +458,34 @@ module Autoproj
             each_package_definition { |pkg| yield(pkg.autobuild) }
         end
 
-        # @deprecated use Ops::Tools.create_autobuild_package or include
-        #   Ops::Tools into your class to get it as instance method
-        def self.create_autobuild_package(vcs, text_name, into)
-            Autoproj.warn_deprecated __method__, "use Ops::Tools.create_autobuild_package instead"
-            Ops::Tools.create_autobuild_package(vcs, text_name, into)
-        end
-
         # Compute the VCS definition for a given package
         #
-        # @param [String] package_name the name of the package to be resolved
-        # @param [PackageSet,nil] package_source the package set that defines the
-        #   given package, defaults to the package's definition source (as
-        #   returned by {definition_package_set}) if not given
+        # @param [PackageDefinition] package the name of the package to be resolved
+        # @param [PackageSet,nil] mainline the reference package set for which
+        #   we want to compute the importer definition. Pass package.package_set
+        #   if you want to avoid applying any override
         # @return [VCSDefinition] the VCS definition object
-        def importer_definition_for(package_name, package_set = definition_package_set(package_name),
-                                    options = Hash.new)
-            options = validate_options options, mainline: nil
-            mainline = 
-                if options[:mainline] == true
-                    package_set
-                else
-                    options[:mainline]
-                end
+        def importer_definition_for(package, mainline: nil)
+            mainline = if mainline == true
+                           package.package_set
+                       else mainline
+                       end
 
-            vcs = package_set.importer_definition_for(package_name)
-            return if !vcs
+            vcs = package.package_set.importer_definition_for(package)
 
-            # Get the sets that come *after* the one that defines the package to
-            # apply the overrides
             package_sets = each_package_set.to_a.dup
-            while !package_sets.empty? && package_sets.first != package_set
-                set = package_sets.shift
-                return vcs if set == mainline
+            index = package_sets.find_index(package.package_set)
+            if !index
+                raise RuntimeError, "found inconsistency: package #{package.name} is not in a package set of #{self}"
             end
-            set = package_sets.shift
-            return vcs if set == mainline
+
+            if package_sets[0, index + 1].include?(mainline)
+                return vcs
+            end
 
             # Then apply the overrides
-            package_sets.inject(vcs) do |updated_vcs, pkg_set|
-                updated_vcs = pkg_set.overrides_for(package_name, updated_vcs)
+            package_sets[(index + 1)..-1].inject(vcs) do |updated_vcs, pkg_set|
+                updated_vcs = pkg_set.overrides_for(package, updated_vcs)
                 return updated_vcs if pkg_set == mainline
                 updated_vcs
             end
@@ -512,17 +507,16 @@ module Autoproj
         #  * S1 must have a VCS line for P
         #  * S0 can have a VCS line for P, which would override the one defined
         #    by S1
-        def load_importers(options = Hash.new)
+        def load_importers(mainline: nil)
             packages.each_value do |pkg|
-                vcs = importer_definition_for(pkg.autobuild.name, pkg.package_set, options) ||
-                    pkg.package_set.default_importer
+                vcs = importer_definition_for(pkg, mainline: mainline)
 
-                if vcs
-                    pkg.vcs = vcs
-                    pkg.autobuild.importer = vcs.create_autobuild_importer
-                else
+                pkg.vcs = vcs
+                if vcs.none?
                     raise ConfigError.new, "source #{pkg.package_set.name} defines #{pkg.autobuild.name}, but does not provide a version control definition for it"
                 end
+
+                pkg.autobuild.importer = vcs.create_autobuild_importer
             end
         end
 
@@ -696,28 +690,19 @@ module Autoproj
         #
         def metapackage(name, *packages, &block)
             meta = (@metapackages[name.to_s] ||= Metapackage.new(name))
-            packages.each do |pkg|
-                if !pkg.respond_to?(:to_str)
+            packages.each do |arg|
+                if !arg.respond_to?(:to_str)
+                    meta.add(arg)
+                elsif pkg = find_autobuild_package(arg)
                     meta.add(pkg)
-                    next
-                end
-
-                # Use resolve_package_set and not resolve_package_name in
-                # order to propagate package names regardless of whether
-                # there are osdep overrides.
-                #
-                # The overrides would be applied when the new package set is
-                # selected in e.g. the layout
-                if pkg = find_autobuild_package(name)
-                    meta.add(pkg)
-                elsif pkg_set = find_metapackage(name)
+                elsif pkg_set = find_metapackage(arg)
                     pkg_set.each_package do |pkg|
                         meta.add(pkg)
                     end
-                elsif os_package_resolver.has?(name)
-                    raise ArgumentError, "cannot specify the osdep #{name} as an element of a metapackage"
+                elsif os_package_resolver.has?(arg)
+                    raise ArgumentError, "cannot specify the osdep #{arg} as an element of a metapackage"
                 else
-                    raise ArgumentError, "cannot find a package called #{name}"
+                    raise PackageNotFound, "cannot find a package called #{arg}"
                 end
             end
 
@@ -738,7 +723,7 @@ module Autoproj
         # Returns the packages selected in this manifest's layout
         #
         # @return [PackageSelection]
-        def layout_packages(validate)
+        def layout_packages(validate = true)
             result = PackageSelection.new
             Autoproj.in_file(self.file) do
                 normalized_layout.each_key do |pkg_or_set|
@@ -750,8 +735,8 @@ module Autoproj
                         resolve_package_name(pkg_or_set).each do |pkg_type, pkg_name|
                             result.select(pkg_or_set, pkg_name, osdep: (pkg_type == :osdeps), weak: weak)
                         end
-                    rescue UnknownPackage => e
-                        raise e, "#{e.name}, which is selected in the layout, is unknown: #{e.message}", e.backtrace
+                    rescue PackageNotFound => e
+                        raise e, "#{pkg_or_set}, which is selected in the layout, is unknown: #{e.message}", e.backtrace
                     end
                 end
             end
@@ -785,14 +770,7 @@ module Autoproj
         # If it is false, the method will simply return false on non-defined
         # packages 
         def package_enabled?(name, validate = true)
-            if !find_autobuild_package(name) && !os_package_resolver.has?(name)
-                if validate
-                    raise ArgumentError, "package #{name} does not exist"
-                end
-                return false
-            end
-
-            !excluded?(name)
+            raise NotImplementedError, "#package_enabled? and #package_selected? were broken in autoproj v1, and there are usually other ways to get the same effect (as e.g. splitting package sets). Feel free to contact the autoproj developers if you have a use case that demands this functionality"
         end
 
         # Returns true if +name+ is a valid package and is neither excluded from
@@ -804,8 +782,22 @@ module Autoproj
         # If it is false, the method will simply return false on non-defined
         # packages 
         def package_selected?(name, validate = true)
-            if package_enabled?(name)
-                !ignored?(name)
+            raise NotImplementedError, "#package_enabled? and #package_selected? were broken in autoproj v1, and there are usually other ways to get the same effect (as e.g. splitting package sets). Feel free to contact the autoproj developers if you have a use case that demands this functionality"
+        end
+
+        # Returns the set of source packages that are selected by the layout
+        #
+        # @return [Array<PackageDefinition>]
+        def all_selected_source_packages(validate = true)
+            result = Set.new
+            selection = default_packages(validate)
+
+            root_sources = selection.each_source_package_name.to_set
+            root_sources.each do |pkg_name|
+                find_autobuild_package(pkg_name).all_dependencies(result)
+            end
+            result.merge(root_sources).map do |pkg_name|
+                find_package_definition(pkg_name)
             end
         end
 
@@ -813,13 +805,17 @@ module Autoproj
         #
         # Unless {#default_packages}, it returns both the selected packages and
         # the dependencies (resolved recursively)
+        #
+        # @return [Array<String>] a list of source and osdep package names
         def all_selected_packages(validate = true)
             result = Set.new
-            root = default_packages(validate).source_packages.to_set
-            root.each do |pkg_name|
-                find_autobuild_package(pkg_name).all_dependencies(result)
+            selection = default_packages(validate)
+
+            root_sources = selection.each_source_package_name.to_set
+            root_sources.each do |pkg_name|
+                find_autobuild_package(pkg_name).all_dependencies_with_osdeps(result)
             end
-            result | root
+            result | root_sources | selection.each_osdep_package_name.to_set
         end
 
         # Returns the set of packages that should be built if the user does not
@@ -830,10 +826,9 @@ module Autoproj
             else
                 result = PackageSelection.new
                 all_package_names.each do |pkg_name|
-                    package_type, package_name = resolve_single_package_name(pkg_name)
-                    next if package_type != :package 
+                    package_type, package_name = resolve_single_package_name(pkg_name).first
                     next if excluded?(package_name) || ignored?(package_name)
-                    result.select(package_name, package_name)
+                    result.select(package_name, package_name, osdep: (package_type == :osdeps))
                 end
                 result
             end
@@ -847,7 +842,7 @@ module Autoproj
                 if value.kind_of?(Hash)
                     subname, subdef = value.find { true }
                     if subdef
-                        normalized_layout(result, "#{layout_level}#{subname}/", subdef)
+                        compute_normalized_layout(result, "#{layout_level}#{subname}/", subdef)
                     end
                 else
                     result[value] = layout_level
@@ -856,19 +851,28 @@ module Autoproj
             result
         end
 
-        # Returns the package directory for the given package name
+        # Returns the level of the layout into which of a certain package
+        # would be selected
+        #
+        # @return [String]
         def whereis(package_name)
-            Autoproj.in_file(self.file) do
-                set_name = definition_package_set(package_name).name
-                actual_layout = normalized_layout
-                return actual_layout[package_name] || actual_layout[set_name] || '/'
-            end
-        end
+            package_name = validate_package_name_argument(package_name)
 
-        def resolve_optional_dependencies
-            packages.each_value do |pkg|
-                pkg.autobuild.resolve_optional_dependencies
+            matches = [package_name]
+            if source_package = find_package_definition(package_name)
+                each_metapackage do |meta|
+                    if meta.include?(source_package)
+                        matches << meta.name
+                    end
+                end
             end
+
+            matches.each do |name|
+                if place = normalized_layout[name]
+                    return place
+                end
+            end
+            '/'
         end
 
         # Loads the package's manifest.xml file for the current package
@@ -877,41 +881,31 @@ module Autoproj
         # warning. This will later be changed into an error.
         def load_package_manifest(pkg)
             if pkg.respond_to?(:to_str)
-                pkg = packages.values.
-                    find { |p| p.autobuild.name == pkg }
+                pkg_definition = find_package_definition(pkg)
+                if !pkg_definition
+                    raise ArgumentError, "#{pkg} is not a known package in #{self}"
+                end
+                pkg = pkg_definition
             end
             package, package_set, file = pkg.autobuild, pkg.package_set, pkg.file
 
-            if !pkg
-                raise ArgumentError, "package #{pkg} is not defined"
-            end
-
-            manifest_paths =
-                [File.join(package.srcdir, "manifest.xml")]
-
+            # Look for the package's manifest.xml, but fallback to a manifest in
+            # the package set if present
+            manifest_paths = [File.join(package.srcdir, "manifest.xml")]
             if package_set.local_dir
                 manifest_paths << File.join(package_set.local_dir, "manifests", package.name + ".xml")
             end
             manifest_path = manifest_paths.find do |path|
-                File.directory?(File.dirname(path)) &&
-                    File.file?(path)
+                File.file?(path)
             end
 
-            manifest =
-                if !manifest_path
-                    if !pkg.autobuild.description
-                        Autoproj.warn "#{package.name} from #{package_set.name} does not have a manifest"
-                        PackageManifest.new(package)
-                    else
-                        pkg.autobuild.description
-                    end
-                else
-                    PackageManifest.load(package, manifest_path)
-                end
+            if manifest_path
+                pkg.autobuild.description = PackageManifest.load(package, manifest_path)
+            elsif pkg.autobuild.description.null?
+                Autoproj.warn "#{package.name} from #{package_set.name} does not have a manifest"
+            end
 
-            pkg.autobuild.description = manifest
-            package_manifests[package.name] = manifest
-
+            manifest = pkg.autobuild.description
             manifest.each_dependency(pkg.modes) do |name, is_optional|
                 begin
                     if is_optional
@@ -919,68 +913,12 @@ module Autoproj
                     else
                         package.depends_on name
                     end
-                rescue Autobuild::ConfigException => e
-                    raise ConfigError.new(manifest_path),
-                        "manifest #{manifest_path} of #{package.name} from #{package_set.name} lists '#{name}' as dependency, which is listed in the layout of #{file} but has no autobuild definition", e.backtrace
                 rescue ConfigError => e
                     raise ConfigError.new(manifest_path),
                         "manifest #{manifest_path} of #{package.name} from #{package_set.name} lists '#{name}' as dependency, but it is neither a normal package nor an osdeps package. osdeps reports: #{e.message}", e.backtrace
                 end
             end
             manifest
-        end
-
-        # Loads the manifests for all packages known to this project.
-        #
-        # See #load_package_manifest
-        def load_package_manifests(selected_packages)
-            selected_packages.each(&:load_package_manifest)
-        end
-
-        # Disable all automatic imports from the given package set name
-        def disable_imports_from(pkg_set_name)
-            @disabled_imports << pkg_set_name
-        end
-
-        # call-seq:
-        #   list_os_packages(packages) => required_packages, ospkg_to_pkg
-        #
-        # Returns the set of dependencies required by the listed packages.
-        #
-        # +required_packages+ is the set of osdeps names that are required for
-        # +packages+ and +ospkg_to_pkg+ a mapping from the osdeps name to the
-        # set of packages that require this OS package.
-        def list_os_packages(packages)
-            required_os_packages = Set.new
-            package_os_deps = Hash.new { |h, k| h[k] = Array.new }
-            packages.each do |pkg_name|
-                pkg = find_autobuild_package(pkg_name)
-                if !pkg
-                    raise InternalError, "internal error: #{pkg_name} is not a package"
-                end
-
-                pkg.os_packages.each do |osdep_name|
-                    package_os_deps[osdep_name] << pkg_name
-                    required_os_packages << osdep_name
-                end
-            end
-
-            return required_os_packages, package_os_deps
-        end
-
-        def filter_os_packages(required_os_packages, package_os_deps)
-            required_os_packages.find_all do |pkg|
-                if excluded?(pkg)
-                    raise ConfigError.new, "the osdeps package #{pkg} is excluded from the build in #{file}. It is required by #{package_os_deps[pkg].join(", ")}"
-                end
-                if ignored?(pkg)
-                    if Autoproj.verbose
-                        Autoproj.message "ignoring osdeps package #{pkg}"
-                    end
-                    false
-                else true
-                end
-            end
         end
 
         # The set of overrides added with #add_osdeps_overrides
@@ -1049,7 +987,7 @@ module Autoproj
             # First, remove packages that are directly referenced by name or by
             # package set names. When it comes to packages (NOT package sets),
             # we prefer the ones selected in the layout
-            all_selected_packages = self.all_selected_packages
+            all_selected_packages = self.all_selected_packages.to_set
             candidates = all_selected_packages.to_a +
                 each_metapackage.map { |metapkg| [metapkg.name, metapkg.weak_dependencies?] }
             selection.each do |sel|
@@ -1070,10 +1008,12 @@ module Autoproj
                 all_matches = Array.new
                 all_source_package_names.each do |pkg_name|
                     pkg = find_autobuild_package(pkg_name)
-                    if pkg_name =~ match_pkg_name ||
-                        "#{sel}/" =~ Regexp.new("^#{Regexp.quote(pkg.srcdir)}/") ||
-                        pkg.srcdir =~ Regexp.new("^#{Regexp.quote(sel)}")
-                        all_matches << [pkg_name, (pkg_name == sel || pkg.srcdir == sel)]
+                    if pkg.name =~ match_pkg_name
+                        all_matches << [pkg.name, pkg.name == sel]
+                    elsif sel.start_with?(pkg.srcdir)
+                        all_matches << [pkg.name, "#{sel}/".start_with?("#{pkg.srcdir}/")]
+                    elsif pkg.srcdir.start_with?(sel) && all_selected_packages.include?(pkg.name)
+                        all_matches << [pkg.name, false]
                     end
                 end
                 all_osdeps_package_names.each do |pkg_name|
@@ -1150,13 +1090,9 @@ module Autoproj
             result
         end
 
-        # @deprecated use Autoproj.config.each_reused_autoproj_installation
-        def each_reused_autoproj_installation
-            Autoproj.config.each_reused_autoproj_installation(&proc)
-        end
-
-        def reuse(*dir)
-            dir = File.expand_path(File.join(*dir), Autoproj.root_dir)
+        # Declare that we should reuse the autoproj installation present at the
+        # given path
+        def reuse(path)
             if reused_installations.any? { |mnf| mnf.path == dir }
                 return
             end
@@ -1169,17 +1105,6 @@ module Autoproj
             @reused_installations << manifest
             manifest.each do |pkg|
                 ignore_package pkg.name
-            end
-        end
-
-        # Load OS dependency information contained in our registered package
-        # sets into the provided osdep object
-        #
-        # @param [OSPackageResolver] osdeps the osdep handling object
-        # @return [void]
-        def load_osdeps_from_package_sets(osdeps)
-            each_package_set do |pkg_set, file|
-                osdeps.merge(pkg_set.load_osdeps(file))
             end
         end
     end
