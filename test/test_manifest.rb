@@ -81,7 +81,7 @@ module Autoproj
                 assert_equal [pkg.autobuild], manifest.each_ignored_package.to_a
             end
             it "clears the existing ignores" do
-                pkg = ws.define_package :cmake, 'pkg'
+                ws.define_package :cmake, 'pkg'
                 manifest.ignore_package 'pkg'
                 manifest.clear_ignored
                 assert !manifest.ignored?('pkg')
@@ -122,7 +122,7 @@ module Autoproj
                 assert_equal "for testing", manifest.exclusion_reason(package)
             end
             it "accepts a package name as well" do
-                package = ws.define_package :cmake, 'test'
+                ws.define_package :cmake, 'test'
                 manifest.exclude_package 'test', "for testing"
                 assert manifest.excluded?('test')
                 refute manifest.excluded_in_manifest?('test')
@@ -160,7 +160,7 @@ module Autoproj
                 assert_equal [pkg.autobuild], manifest.each_excluded_package.to_a
             end
             it "clears the existing exclusions" do
-                pkg = ws.define_package :cmake, 'pkg'
+                ws.define_package :cmake, 'pkg'
                 manifest.exclude_package 'pkg', "for testing"
                 manifest.clear_exclusions
                 assert !manifest.excluded?('pkg')

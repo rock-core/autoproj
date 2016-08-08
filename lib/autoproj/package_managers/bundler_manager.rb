@@ -224,8 +224,8 @@ module Autoproj
             def merge_gemfiles(*path, unlock: [])
                 gems_remotes = Set.new
                 dependencies = Hash.new do |h, k|
-                    h[k] = Hash.new do |h, k|
-                        h[k] = Hash.new do |a, b|
+                    h[k] = Hash.new do |i, j|
+                        i[j] = Hash.new do |a, b|
                             a[b] = Array.new
                         end
                     end
@@ -305,8 +305,8 @@ module Autoproj
                     end
                 end
                 # In addition, look into overrides.d
-                Dir.glob(File.join(ws.overrides_dir, "*.gemfile")) do |gemfile_path|
-                    gemfiles << gemfile_path
+                Dir.glob(File.join(ws.overrides_dir, "*.gemfile")) do |overrides_gemfile_path|
+                    gemfiles << overrides_gemfile_path
                 end
                 gemfiles << File.join(ws.dot_autoproj_dir, 'Gemfile')
 

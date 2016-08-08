@@ -9,7 +9,7 @@ module Autoproj
             end
 
             def filter_uptodate_packages(packages)
-                result = `LANG=C rpm -q --whatprovides '#{packages.join("' '")}'`
+                `LANG=C rpm -q --whatprovides '#{packages.join("' '")}'`
                 has_all_pkgs = $?.success?
 
                 if !has_all_pkgs

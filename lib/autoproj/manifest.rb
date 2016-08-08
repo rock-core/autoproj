@@ -538,11 +538,11 @@ module Autoproj
         # @return [PackageSet] the package set
         # @raise [ArgumentError] if none exists with that name
         def package_set(name)
-            set = each_package_set.find { |set| set.name == name }
-            if !set
+            if set = find_package_set(name)
+                set
+            else
                 raise ArgumentError, "no package set called #{name} exists"
             end
-            set
         end
 
         # The root package set, which represents the workspace itself
@@ -696,8 +696,8 @@ module Autoproj
                 elsif pkg = find_autobuild_package(arg)
                     meta.add(pkg)
                 elsif pkg_set = find_metapackage(arg)
-                    pkg_set.each_package do |pkg|
-                        meta.add(pkg)
+                    pkg_set.each_package do |pkg_in_set|
+                        meta.add(pkg_in_set)
                     end
                 elsif os_package_resolver.has?(arg)
                     raise ArgumentError, "cannot specify the osdep #{arg} as an element of a metapackage"
@@ -887,7 +887,7 @@ module Autoproj
                 end
                 pkg = pkg_definition
             end
-            package, package_set, file = pkg.autobuild, pkg.package_set, pkg.file
+            package, package_set = pkg.autobuild, pkg.package_set
 
             # Look for the package's manifest.xml, but fallback to a manifest in
             # the package set if present

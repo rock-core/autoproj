@@ -140,9 +140,9 @@ module Autoproj
                                 raise ExcludedSelection.new(sel), "#{base_msg}, but its dependency #{exclusions.map(&:first).join(", ")} is excluded from the build: #{reason}"
                             end
                         elsif weak_dependencies[sel]
-                            raise ExcludedSelection.new(sel), "#{base_msg}, but expands to #{exclusions.map(&:first).join(", ")}, and all these packages are excluded from the build:\n  #{exclusions.map { |name, reason| "#{name}: #{reason}" }.join("\n  ")}"
+                            raise ExcludedSelection.new(sel), "#{base_msg}, but expands to #{exclusions.map(&:first).join(", ")}, and all these packages are excluded from the build:\n  #{exclusions.map { |e_name, e_reason| "#{e_name}: #{e_reason}" }.join("\n  ")}"
                         else
-                            raise ExcludedSelection.new(sel), "#{base_msg}, but it requires #{exclusions.map(&:first).join(", ")}, and all these packages are excluded from the build:\n  #{exclusions.map { |name, reason| "#{name}: #{reason}" }.join("\n  ")}"
+                            raise ExcludedSelection.new(sel), "#{base_msg}, but it requires #{exclusions.map(&:first).join(", ")}, and all these packages are excluded from the build:\n  #{exclusions.map { |e_name, e_reason| "#{e_name}: #{e_reason}" }.join("\n  ")}"
                         end
                     else
                         self.exclusions[sel] |= excluded.to_set.dup

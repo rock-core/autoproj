@@ -90,6 +90,8 @@ module Autoproj
             def self.gem_home
                 @gem_home
             end
+
+            @gem_home = nil
             
             # Returns the set of default options that are added to gem
             #

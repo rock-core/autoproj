@@ -32,7 +32,7 @@ module Autoproj
                 assert_equal Hash[type: 'local', url: dir], vcs
             end
             it "raises if given a relative path and no base_dir" do
-                FileUtils.mkdir_p(dir = File.join(root_dir, 'dir'))
+                FileUtils.mkdir_p(File.join(root_dir, 'dir'))
                 e = assert_raises(ArgumentError) do
                     VCSDefinition.normalize_vcs_hash('dir')
                 end
@@ -80,12 +80,12 @@ module Autoproj
                     e.message
             end
             it "raises if the VCS has no URL and type is not 'none'" do
-                e = assert_raises(ArgumentError) do
+                assert_raises(ArgumentError) do
                     VCSDefinition.from_raw(type: 'local')
                 end
             end
             it "passes if the VCS type is none and there is no URL" do
-                e = assert_raises(ArgumentError) do
+                assert_raises(ArgumentError) do
                     VCSDefinition.from_raw(type: 'local')
                 end
             end
@@ -108,7 +108,7 @@ module Autoproj
             end
             it "adds one" do
                 recorder = flexmock
-                recorder.should_receive(:called).with('url', options = flexmock).
+                recorder.should_receive(:called).with('url', expected_options = flexmock).
                     once
                 ret = flexmock
                 Autoproj.add_source_handler 'custom_handler' do |url, options|
@@ -116,7 +116,7 @@ module Autoproj
                     ret
                 end
                 assert Autoproj.has_source_handler?('custom_handler')
-                assert_equal ret, Autoproj.call_source_handler('custom_handler', 'url', options)
+                assert_equal ret, Autoproj.call_source_handler('custom_handler', 'url', expected_options)
             end 
             it "raises ArgumentError if attempting to call a handler that does not exist" do
                 refute Autoproj.has_source_handler?('custom_handler')

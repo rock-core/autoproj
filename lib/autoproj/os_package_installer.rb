@@ -46,6 +46,7 @@ module Autoproj
         def initialize(ws, os_package_resolver, package_managers: PACKAGE_MANAGERS)
             @ws = ws
             @os_package_resolver = os_package_resolver
+            @os_package_manager  = nil
             @installed_resolved_packages = Hash.new { |h, k| h[k] = Set.new }
             @silent = true
             @filter_uptodate_packages = true

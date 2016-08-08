@@ -30,17 +30,17 @@ module Autoproj
                       end
 
 	    result = new
-	    candidates.each do |file|
-                next if !File.file?(file)
-                file = File.expand_path(file)
+	    candidates.each do |file_candidate|
+                next if !File.file?(file_candidate)
+                file_candidate = File.expand_path(file_candidate)
                 begin
-                    data = YAML.load(File.read(file)) || Hash.new
+                    data = YAML.load(File.read(file_candidate)) || Hash.new
                     verify_definitions(data)
                 rescue *error_t => e
-                    raise ConfigError.new, "error in #{file}: #{e.message}", e.backtrace
+                    raise ConfigError.new, "error in #{file_candidate}: #{e.message}", e.backtrace
                 end
 
-                result.merge(new(data, file))
+                result.merge(new(data, file_candidate))
 	    end
 	    result
         end
@@ -171,6 +171,8 @@ module Autoproj
             @sources     = Hash.new
             @installed_packages = Set.new
             @operating_system = operating_system
+            @supported_operating_system = nil
+            @odeps_mode = nil
             if file
                 defs.each_key do |package_name|
                     sources[package_name] = file
@@ -205,7 +207,6 @@ module Autoproj
         # defined in both OSPackageResolver objects, the information in +info+
         # takes precedence
         def merge(info)
-            root_dir = nil
             @definitions = definitions.merge(info.definitions) do |h, v1, v2|
                 if v1 != v2
                     old = source_of(h)

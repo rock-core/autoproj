@@ -54,7 +54,7 @@ module Autoproj
                 if !File.directory?(File.join(Dir.pwd, '.autoproj'))
                     require 'autoproj/ops/install'
                     ops = Autoproj::Ops::Install.new(Dir.pwd)
-                    remaining = ops.parse_options(args)
+                    ops.parse_options(args)
                     ops.run
                     exec Gem.ruby, $0, 'bootstrap', *args
                 end
