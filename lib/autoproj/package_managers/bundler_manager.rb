@@ -24,13 +24,18 @@ module Autoproj
                 end
             end
 
-            def initialize(ws)
-                super
-                self.call_while_empty = true
+            # (see Manager#call_while_empty?)
+            def call_while_empty?
+                true
             end
 
-            # Filters all paths that come from other autoproj installations out
-            # of GEM_PATH
+            # (see Manager#strict?)
+            def strict?
+                true
+            end
+
+            # Set up the workspace environment to work with the bundler-managed
+            # gems
             def initialize_environment
                 env = ws.env
 

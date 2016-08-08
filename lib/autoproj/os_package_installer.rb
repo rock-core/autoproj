@@ -33,9 +33,6 @@ module Autoproj
 
         attr_reader :os_package_resolver
 
-        # The set of packages that have already been installed
-        attr_reader :installed_packages
-
         # The set of resolved packages that have already been installed
         attr_reader :installed_resolved_packages
 
@@ -49,10 +46,10 @@ module Autoproj
         def initialize(ws, os_package_resolver, package_managers: PACKAGE_MANAGERS)
             @ws = ws
             @os_package_resolver = os_package_resolver
-            @installed_packages = Set.new
             @installed_resolved_packages = Hash.new { |h, k| h[k] = Set.new }
             @silent = true
             @filter_uptodate_packages = true
+
             @package_managers = Hash.new
             package_managers.each do |name, klass|
                 @package_managers[name] = klass.new(ws)
@@ -315,45 +312,104 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             end
         end
 
-        # Requests the installation of the given set of packages
-        def install(osdep_packages, install_only: false, run_package_managers_without_packages: false, **options)
-            osdep_packages = osdep_packages.to_set - installed_packages
-
-            setup_package_managers(**options)
-
-            managers = package_managers.dup
-            packages = os_package_resolver.resolve_os_packages(osdep_packages)
-            packages = packages.map do |handler_name, list|
-                if manager = managers.delete(handler_name)
-                    [manager, list]
+        # @api private
+        #
+        # Resolves the package managers from their name in a manager-to-package
+        # list mapping.
+        #
+        # This is a helper method to resolve the value returned by
+        # {OSPackageResolver#resolve_os_packages}
+        #
+        # @raise [ArgumentError] if a manager name cannot be resolved
+        def resolve_package_managers_in_mapping(mapping)
+            resolved = Hash.new
+            mapping.each do |manager_name, package_list|
+                if manager = package_managers[manager_name]
+                    resolved[manager] = package_list
                 else
                     raise ArgumentError, "no package manager called #{handler_name} found"
                 end
             end
+            resolved
+        end
 
-            managers.each_value do |pkg_manager|
-                packages << [pkg_manager, []]
+        # @api private
+        #
+        # Resolves and partitions osdep packages into the various package
+        # managers. The returned hash will have one entry per package manager
+        # that has a package, with additional entries for package managers that
+        # have an empty list but for which
+        # {PackageManagers::Manager#call_while_empty?} returns true
+        #
+        # @param [Array<String>] osdep_packages the list of osdeps to install
+        # @return [Hash<PackageManagers::Manager,Array<(String, String)>] the
+        #   resolved and partitioned osdeps
+        # @raise (see #resolve_package_managers_in_mapping)
+        # @raise [InternalError] if all_osdep_packages is not provided (is nil)
+        #   and some strict package managers need to be called to handle
+        #   osdep_packages
+        def resolve_and_partition_osdep_packages(osdep_packages, all_osdep_packages = nil)
+            packages = os_package_resolver.resolve_os_packages(osdep_packages)
+            packages = resolve_package_managers_in_mapping(packages)
+            all_packages = os_package_resolver.resolve_os_packages(all_osdep_packages || Array.new)
+            all_packages = resolve_package_managers_in_mapping(all_packages)
+
+            partitioned_packages = packages.merge(all_packages) do |manager, package_list, all_package_list|
+                if manager.strict?
+                    all_package_list | package_list
+                else
+                    package_list
+                end
             end
+
+            package_managers.each do |manager_name, manager|
+                # If the manager is strict, we need to bypass it if we did not
+                # get the complete list of osdep packages
+                if manager.strict? && !all_osdep_packages
+                    if partitioned_packages[manager]
+                        raise InternalError, "requesting to install the osdeps #{partitioned_packages[manager].to_a.sort.join(", ")} through #{manager_name} but the complete list of osdep packages managed by this manager was not provided. This would break the workspace"
+                    end
+                    next
+                end
+
+                if manager.call_while_empty?
+                    partitioned_packages[manager] ||= Array.new
+                end
+            end
+
+            partitioned_packages
+        end
+
+        # Requests the installation of the given set of packages
+        def install(osdep_packages, all: nil, install_only: false, run_package_managers_without_packages: false, **options)
+            setup_package_managers(**options)
+            partitioned_packages =
+                resolve_and_partition_osdep_packages(osdep_packages, all)
 
             # Install OS packages first, as the other package handlers might
             # depend on OS packages
-            os_packages, other_packages = packages.partition do |handler, list|
-                handler == os_package_manager
+            if os_packages = partitioned_packages.delete(os_package_manager)
+                install_manager_packages(os_package_manager, os_packages,
+                                         install_only: install_only,
+                                         run_package_managers_without_packages: run_package_managers_without_packages)
             end
-            [os_packages, other_packages].each do |packages|
-                packages.each do |handler, list|
-                    list = list.to_set - installed_resolved_packages[handler]
+            partitioned_packages.each do |manager, package_list|
+                install_manager_packages(manager, package_list,
+                                         install_only: install_only,
+                                         run_package_managers_without_packages: run_package_managers_without_packages)
+            end
+        end
 
-                    if !list.empty? || (run_package_managers_without_packages && handler.call_while_empty?)
-                        handler.install(
-                            list.to_a,
-                            filter_uptodate_packages: filter_uptodate_packages?,
-                            install_only: install_only)
-                        installed_resolved_packages[handler].merge(list)
-                    end
-                end
+        def install_manager_packages(manager, package_list, install_only: false, run_package_managers_without_packages: false)
+            list = package_list.to_set - installed_resolved_packages[manager]
+
+            if !list.empty? || run_package_managers_without_packages
+                manager.install(
+                    list.to_a,
+                    filter_uptodate_packages: filter_uptodate_packages?,
+                    install_only: install_only)
+                installed_resolved_packages[manager].merge(list)
             end
-            installed_packages.merge(packages)
         end
     end
 end 

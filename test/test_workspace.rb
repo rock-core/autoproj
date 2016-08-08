@@ -156,5 +156,19 @@ module Autoproj
                 end
             end
         end
+
+        describe "#all_os_packages" do
+            it "returns the list of all osdeps that are needed by the current workspace state" do
+                ws_create
+                ws_add_osdep_entries 'os_pkg' => Hash['os' => 'os_pkg_test']
+                ws_add_osdep_entries 'os_indep_pkg' => Hash['os_indep' => 'os_indep_pkg_test']
+                ws_add_osdep_entries 'not_used' => Hash['os_indep' => 'not_used']
+                ws_add_package :cmake, :test do |pkg|
+                    pkg.depends_on 'os_pkg'
+                    pkg.depends_on 'os_indep_pkg'
+                end
+                assert_equal Set['os_pkg', 'os_indep_pkg'], ws.all_os_packages.to_set
+            end
+        end
     end
 end

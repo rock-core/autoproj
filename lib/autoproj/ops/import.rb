@@ -240,7 +240,9 @@ module Autoproj
                     executor.shutdown
                     executor.wait_for_termination
                 end
-                updated_packages.concat(all_processed_packages.find_all(&:updated?).map(&:name))
+                if all_processed_packages
+                    updated_packages.concat(all_processed_packages.find_all(&:updated?).map(&:name))
+                end
             end
             
             def finalize_package_load(processed_packages)

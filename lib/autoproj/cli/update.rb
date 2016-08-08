@@ -121,7 +121,9 @@ module Autoproj
                             raise "cannot find package #{pkg_name}"
                         end
                     end
-                    ws.install_os_packages(vcs_to_install, osdeps_options)
+                    # This assumes that the VCS packages do not depend on a
+                    # 'strict' package mangers such as e.g. BundlerManager
+                    ws.install_os_packages(vcs_to_install, all: nil, **osdeps_options)
                 end
 
                 ops = Autoproj::Ops::Import.new(ws)
@@ -139,7 +141,7 @@ module Autoproj
                 ws.export_installation_manifest
 
                 if options[:osdeps] && !osdep_packages.empty?
-                    ws.install_os_packages(osdep_packages, osdeps_options)
+                    ws.install_os_packages(osdep_packages, **osdeps_options)
                 end
 
                 ws.export_env_sh(source_packages)

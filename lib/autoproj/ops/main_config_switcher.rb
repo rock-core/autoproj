@@ -170,7 +170,7 @@ module Autoproj
                 vcs = VCSDefinition.from_raw(vcs_def)
 
                 # Install the OS dependencies required for this VCS
-                ws.install_os_packages([vcs.type])
+                ws.install_os_packages([vcs.type], all: nil)
 
                 # Now check out the actual configuration
                 config_dir = File.join(ws.root_dir, "autoproj")
