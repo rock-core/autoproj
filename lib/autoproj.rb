@@ -57,9 +57,13 @@ module Autoproj
     end
     @warn_deprecated_level = 1
 
-    def self.warn_deprecated(method, msg, level = 0)
+    def self.warn_deprecated(method, msg = nil, level = 0)
         if level >= @warn_deprecated_level
-            Autoproj.warn "#{method} is deprecated, #{msg}"
+            if msg
+                Autoproj.warn "#{method} is deprecated, #{msg}"
+            else
+                Autoproj.warn msg
+            end
             caller.each { |l| Autoproj.warn "  #{l}" }
         end
     end

@@ -4,6 +4,7 @@ module Autoproj
     module Ops
         describe Import do
             before do
+                ws_create
                 ws.manifest.add_exclusion '0', 'reason0'
             end
 

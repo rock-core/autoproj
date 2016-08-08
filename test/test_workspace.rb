@@ -7,7 +7,7 @@ module Autoproj
         describe "#setup" do
             attr_reader :ws
             before do
-                @ws = create_bootstrap
+                @ws = ws_create
             end
 
             it "rewrite the shims to fix any discrepancy" do

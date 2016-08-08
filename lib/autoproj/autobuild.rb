@@ -206,7 +206,7 @@ module Autobuild
         def pick_from_autoproj_root(package, installation_manifest)
             # Get the cachefile w.r.t. the autoproj root
             cachefile = Pathname.new(self.cachefile).
-                relative_path_from(Pathname.new(Autoproj.root_dir)).to_s
+                relative_path_from(Pathname.new(ws.root_dir)).to_s
 
             # The cachefile in the other autoproj installation
             other_cachefile = File.join(installation_manifest.path, cachefile)
@@ -245,10 +245,13 @@ module Autoproj
         Autoproj.workspace.current_package_set
     end
 
+    # @deprecated use {Workspace#define_package} directly instead.
+    #   Beware that the return value changed from Autobuild::Package to
+    #   Autoproj::PackageDefinition
     def self.define(package_type, spec, &block)
-        package = Autobuild.send(package_type, spec)
-        Autoproj.workspace.manifest.register_package(package, block, *current_file)
-        package
+        Autoproj.warn_deprecated __method__, "use Autoproj.workspace.define_package instead (and beware that the return value changed from Autobuild::Package to Autoproj::PackageDefinition)"
+        workspace.define_package(package_type, spec, block, *current_file).
+            autobuild
     end
 
     def self.loaded_autobuild_files
@@ -310,12 +313,12 @@ def ignore(*paths)
 end
 
 # Adds a new setup block to an existing package
-def setup_package(package_name, &block)
+def setup_package(package_name, workspace: Autoproj.workspace, &block)
     if !block
         raise ConfigError.new, "you must give a block to #setup_package"
     end
 
-    package_definition = Autoproj.workspace.manifest.package(package_name)
+    package_definition = workspace.manifest.find_package_definition(package_name)
     if !package_definition
         raise ConfigError.new, "#{package_name} is not a known package"
     elsif package_definition.autobuild.kind_of?(Autobuild::DummyPackage)
@@ -326,24 +329,23 @@ def setup_package(package_name, &block)
 end
 
 # Common setup for packages
-def package_common(package_type, spec, &block)
+def package_common(package_type, spec, workspace: Autoproj.workspace, &block)
     package_name = Autoproj.package_name_from_options(spec)
 
-    if Autobuild::Package[package_name]
-        current_file = Autoproj.current_file[1]
-        old_file     = Autoproj.workspace.manifest.definition_file(package_name)
+    if existing_package = workspace.manifest.find_package_definition(package_name)
+        current_file = workspace.current_file[1]
+        old_file     = existing_package.file
         Autoproj.warn "#{package_name} from #{current_file} is overridden by the definition in #{old_file}"
-
-        return Autobuild::Package[package_name]
+        return existing_package.autobuild
     end
 
-    pkg = Autoproj.define(package_type, spec, &block)
-    pkg.srcdir = pkg.name
+    pkg = workspace.define_package(package_type, spec, block, *current_file)
+    pkg.autobuild.srcdir = pkg.name
     pkg
 end
 
-def import_package(options, &block)
-    package_common(:import, options, &block)
+def import_package(name, workspace: Autoproj.workspace, &block)
+    package_common(:import, name, workspace: Autoproj.workspace, &block)
 end
 
 def common_make_based_package_setup(pkg)
@@ -379,8 +381,8 @@ end
 #
 # +pkg+ is an Autobuild::CMake instance. See the Autobuild API for more
 # information.
-def cmake_package(options, &block)
-    package_common(:cmake, options) do |pkg|
+def cmake_package(name, workspace: Autoproj.workspace)
+    package_common(:cmake, name, workspace: workspace) do |pkg|
         pkg.depends_on 'cmake'
         common_make_based_package_setup(pkg)
         yield(pkg) if block_given?
@@ -396,8 +398,8 @@ end
 #
 # +pkg+ is an Autobuild::Autotools instance. See the Autobuild API for more
 # information.
-def autotools_package(options, &block)
-    package_common(:autotools, options) do |pkg|
+def autotools_package(name, workspace: Autoproj.workspace)
+    package_common(:autotools, name, workspace: workspace) do |pkg|
         pkg.depends_on 'autotools'
         common_make_based_package_setup(pkg)
         yield(pkg) if block_given?
@@ -422,8 +424,8 @@ end
 #
 # +pkg+ is an Autobuild::Importer instance. See the Autobuild API for more
 # information.
-def ruby_package(options)
-    package_common(:ruby, options) do |pkg|
+def ruby_package(name, workspace: Autoproj.workspace)
+    package_common(:ruby, name, workspace: workspace) do |pkg|
         # Documentation code. Ignore if the user provided its own documentation
         # task, or disabled the documentation generation altogether by setting
         # rake_doc_task to nil
@@ -458,8 +460,8 @@ end
 #
 # +pkg+ is an Autobuild::Orogen instance. See the Autobuild API for more
 # information.
-def orogen_package(options, &block)
-    package_common(:orogen, options) do |pkg|
+def orogen_package(name, workspace: Autoproj.workspace)
+    package_common(:orogen, name, workspace: workspace) do |pkg|
         common_make_based_package_setup(pkg)
         yield(pkg) if block_given?
     end
@@ -513,20 +515,21 @@ def not_on(*architectures)
 
     # Simply get the current list of packages, yield the block, and exclude all
     # packages that have been added
-    current_packages = Autobuild::Package.each(true).map(&:last).map(&:name).to_set
+    manifest = Autoproj.workspace.manifest
+    current_packages = manifest.each_autobuild_package.map(&:name).to_set
     yield
-    new_packages = Autobuild::Package.each(true).map(&:last).map(&:name).to_set -
+    new_packages = manifest.each_autobuild_package.map(&:name).to_set -
         current_packages
 
     new_packages.each do |pkg_name|
-        Autoproj.workspace.manifest.add_exclusion(pkg_name, "#{pkg_name} is disabled on this operating system")
+        manifest.add_exclusion(pkg_name, "#{pkg_name} is disabled on this operating system")
     end
 end
 
 # Defines an import-only package, i.e. a package that is simply checked out but
 # not built in any way
-def source_package(options)
-    package_common(options) do |pkg|
+def source_package(options, workspace: Autoproj.workspace)
+    package_common(options, workspace: workspace) do |pkg|
         pkg.srcdir   = pkg.name
         yield(pkg) if block_given?
     end

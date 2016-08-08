@@ -704,20 +704,61 @@ module Autoproj
             pristine_os_packages(required_os_packages)
         end
 
-        def install_os_packages(packages, options = Hash.new)
-            os_package_installer.install(packages, options)
+        # Returns the list of all OS packages required by the state of the
+        # workspace
+        #
+        # @return [Array<String>] the list of OS packages that can be fed to
+        #   {OSPackageManager#install}
+        def all_os_packages(parallel: config.parallel_import_level)
+            ops = Autoproj::Ops::Import.new(self)
+            _, all_os_packages =
+                ops.import_packages(manifest.default_packages,
+                                checkout_only: true, only_local: true, reset: false,
+                                recursive: true, ignore_errors: true, parallel: parallel,
+                                retry_count: 0)
+            all_os_packages
+        end
+
+        def install_os_packages(packages, all: all_os_packages, **options)
+            os_package_installer.install(packages, all: all, **options)
         end
 
         # Installs the OS dependencies that are required by the given packages
-        def install_os_packages_for(packages, options = Hash.new)
+        def install_os_packages_for(packages, **options)
             required_os_packages, package_os_deps =
                 manifest.list_os_packages(packages)
             required_os_packages =
                 manifest.filter_os_packages(required_os_packages, package_os_deps)
-            install_os_packages(required_os_packages, options)
+            install_os_packages(required_os_packages, **options)
         end
 
-        # Register a package on this workspace
+        # Define and register an autobuild package on this workspace
+        #
+        # @param [Symbol] package_type a package-creation method on {Autobuild},
+        #   e.g. :cmake
+        # @param [String] package_name the package name
+        # @param [PackageSet] package_set the package set into which this
+        #   package is defined
+        # @param [String,nil] file the path to the file that defines this
+        #   package (used for error reporting)
+        # @param [Proc,nil] block a setup block that should be called to
+        #   configure the package
+        # @return [PackageDefinition]
+        def define_package(package_type, package_name, block, package_set = manifest.main_package_set, file = nil)
+            autobuild_package = Autobuild.send(package_type, package_name)
+            register_package(autobuild_package, block, package_set, file)
+        end
+
+        # Register an autobuild package on this workspace
+        #
+        # @param [Autobuild::Package] package
+        # @param [PackageSet] package_set the package set into which this
+        #   package is defined
+        # @param [String,nil] file the path to the file that defines this
+        #   package (used for error reporting)
+        # @param [Proc,nil] block a setup block that should be called to
+        #   configure the package
+        # @return [PackageDefinition]
         def register_package(package, block = nil, package_set = manifest.main_package_set, file = nil)
             pkg = manifest.register_package(package, block, package_set, file)
             pkg.autobuild.ws = self
