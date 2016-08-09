@@ -772,7 +772,8 @@ module Autoproj
         # If it is false, the method will simply return false on non-defined
         # packages 
         def package_enabled?(name, validate = true)
-            raise NotImplementedError, "#package_enabled? and #package_selected? were broken in autoproj v1, and there are usually other ways to get the same effect (as e.g. splitting package sets). Feel free to contact the autoproj developers if you have a use case that demands this functionality"
+            Autoproj.warn_deprecated "#package_enabled? and #package_selected? were broken in autoproj v1, and there are usually other ways to get the same effect (as e.g. splitting package sets). Feel free to contact the autoproj developers if you have a use case that demands this functionality. For now, this method returns true for backward compatibility reasons."
+            true
         end
 
         # Returns true if +name+ is a valid package and is neither excluded from
@@ -784,7 +785,8 @@ module Autoproj
         # If it is false, the method will simply return false on non-defined
         # packages 
         def package_selected?(name, validate = true)
-            raise NotImplementedError, "#package_enabled? and #package_selected? were broken in autoproj v1, and there are usually other ways to get the same effect (as e.g. splitting package sets). Feel free to contact the autoproj developers if you have a use case that demands this functionality"
+            Autoproj.warn_deprecated "#package_enabled? and #package_selected? were broken in autoproj v1, and there are usually other ways to get the same effect (as e.g. splitting package sets). Feel free to contact the autoproj developers if you have a use case that demands this functionality. For now, this method returns true for backward compatibility reasons."
+            true
         end
 
         # Returns the set of source packages that are selected by the layout
