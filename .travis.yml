@@ -12,8 +12,10 @@ matrix:
 
 cache: bundler
 
-# Some tests expect gems to be present in vendor/bundle
-install: bundler install --path vendor/bundle
+install:
+    - gem install bundler
+    # Some tests expect gems to be present in vendor/bundle
+    - bundler install --path vendor/bundle
 script:
     - bundler exec rake
     - bundler exec rake test
