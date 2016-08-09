@@ -81,24 +81,18 @@ module Autoproj
         # the updated definition
         #
         # @return [VCSDefinition]
-        def update(spec, options = Hash.new)
-            if !options.kind_of?(Hash)
-                options = Hash[raw: options]
-            end
-            from, options = filter_options options, from: nil, raw: nil
-            from = from[:from]
+        def update(spec, from: nil, raw: [[from, spec]])
             new = self.class.normalize_vcs_hash(spec)
-            new_raw  = options[:raw] || [[from, spec]]
             new_history = Array.new
 
             # If the type changed, we replace the old definition by the new one
             # completely. Otherwise, we append it to the current one
             if !new.has_key?(:type) || (type == new[:type])
                 new = to_hash.merge(new)
-                new_raw = self.raw + new_raw
+                raw = self.raw + raw
                 new_history = self.history
             end
-            self.class.from_raw(new, from: from, history: new_history, raw: new_raw)
+            self.class.from_raw(new, from: from, history: new_history, raw: raw)
         end
 
         # Updates the VCS specification +old+ by the information contained in
