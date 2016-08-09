@@ -11,7 +11,7 @@ module Autoproj
 
         describe "#add_package_to_layout" do
             it "raises if the package is not registered on the receiver" do
-                package = Autobuild.cmake('test')
+                package = PackageDefinition.new(Autobuild.cmake(:test), PackageSet.new(ws, VCSDefinition.none, name: 'test'), nil)
                 assert_raises(UnregisteredPackage) do
                     manifest.add_package_to_layout(package)
                 end

@@ -204,7 +204,9 @@ module Autoproj
         #
         # Validate that the given package object is defined in self
         def validate_package_in_self(package)
-            if find_package_definition(package.name) != package
+            if !package.respond_to?(:autobuild)
+                raise ArgumentError, "expected a PackageDefinition object but got an Autobuild package"
+            elsif find_package_definition(package.name) != package
                 raise UnregisteredPackage, "#{package.name} is not registered on #{self}"
             end
         end
@@ -260,6 +262,8 @@ module Autoproj
         end
 
         # Enumerates the package names of all ignored packages
+        #
+        # @yieldparam [Autobuild::Package]
         def each_ignored_package
             return enum_for(__method__) if !block_given?
             each_autobuild_package do |pkg|

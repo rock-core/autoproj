@@ -637,13 +637,8 @@ module Autoproj
         # have been properly set up (a.k.a. after package import)
         def finalize_setup
             # Finally, disable all ignored packages on the autobuild side
-            manifest.each_ignored_package do |pkg_name|
-                pkg = manifest.find_autobuild_package(pkg_name)
-                if !pkg
-                    Autoproj.warn "ignore line #{pkg_name} does not match anything"
-                else
-                    pkg.disable
-                end
+            manifest.each_ignored_package do |pkg|
+                pkg.disable
             end
 
             # We now have processed the process setup blocks. All configuration
