@@ -357,12 +357,20 @@ module Autoproj
             @imports.each(&block)
         end
 
+        # Add a new VCS import to the list of imports
+        #
+        # @param [VCSDefinition] vcs the VCS specification for the import
+        # @return [void]
+        def add_raw_imported_set(vcs, auto_imports: true)
+            imports_vcs << [vcs, Hash[auto_imports: auto_imports]]
+        end
+
         # Yields the imports raw information
         #
         # @yieldparam [VCSDefinition] vcs the import VCS information
         # @yieldparam [Hash] options import options
         def each_raw_imported_set(&block)
-            @imports_vcs.each(&block)
+            imports_vcs.each(&block)
         end
 
         # Add a new entry in the list of version control resolutions
@@ -575,14 +583,23 @@ module Autoproj
 
         # Update a VCS object using the overrides defined in this package set
         #
-        # @param [PackageDefinition] package the package name
+        # @param [PackageDefinition] package the package
         # @param [VCSDefinition] the vcs to be updated
         # @return [VCSDefinition] the new, updated vcs object
         def overrides_for(package, vcs)
+            resolve_overrides(manifest.validate_package_name_argument(package), vcs)
+        end
+
+        # @api private
+        #
+        # Apply overrides on a VCS object from its (string) key
+        #
+        # This is a helper for {#overrides_for}
+        def resolve_overrides(key, vcs)
             overrides.each do |file, override|
                 new_spec, new_raw_entry = 
                     Autoproj.in_file file do
-                        version_control_field(package.name, overrides, false)
+                        version_control_field(key, overrides, false)
                     end
 
                 if new_spec
@@ -590,7 +607,7 @@ module Autoproj
                         begin
                             vcs = vcs.update(new_spec, raw: new_raw_entry, from: self)
                         rescue ConfigError => e
-                            raise ConfigError.new, "invalid resulting VCS specification in the overrides section for package #{package.name}: #{e.message}"
+                            raise ConfigError.new, "invalid resulting VCS specification in the overrides section for #{key}: #{e.message}"
                         end
                     end
                 end

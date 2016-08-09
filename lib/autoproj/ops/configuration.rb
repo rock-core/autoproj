@@ -187,7 +187,7 @@ module Autoproj
             if pkg_set.auto_imports?
                 pkg_set.each_raw_imported_set do |import_vcs, import_options|
                     repository_id = repository_id_of(import_vcs)
-                    import_vcs = root_set.overrides_for("pkg_set:#{repository_id}", import_vcs)
+                    import_vcs = root_set.resolve_overrides("pkg_set:#{repository_id}", import_vcs)
                     queue << [import_vcs, import_options, pkg_set]
                 end
             end
