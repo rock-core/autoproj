@@ -34,7 +34,7 @@ module Autoproj
         end
 
         def source_file
-            manifest_path
+            overrides_file_path
         end
 
         # Reimplemented from {PackageSet#load_description_file} to remove the

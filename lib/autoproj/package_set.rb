@@ -427,7 +427,7 @@ module Autoproj
             end
 
             version_control = source_definition.fetch('version_control', Array.new)
-            @version_control = normalize_vcs_list('version_control', version_control)
+            @version_control = normalize_vcs_list('version_control', source_file, version_control)
             Autoproj.in_file(source_file) do
                 default_vcs_spec, raw = version_control_field('default', version_control)
                 if default_vcs_spec
@@ -435,7 +435,7 @@ module Autoproj
                 end
             end
             @overrides = load_overrides(source_definition).map do |file, entries|
-                [file, normalize_vcs_list('overrides', entries)]
+                [file, normalize_vcs_list('overrides', source_file, entries)]
             end
         end
 
@@ -452,28 +452,31 @@ module Autoproj
 
         # @api private
         #
+        # Converts a number to an ordinal string representation (i.e. 1st, 25th)
+        def number_to_nth(number)
+            Hash[1 => '1st', 2 => '2nd', 3 => '3rd'].fetch(number, "#{number}th")
+        end
+
+        # @api private
+        #
         # Validate the format of a VCS list field (formatted in array-of-hashes)
-        def normalize_vcs_list(name, list)
+        def normalize_vcs_list(section_name, file, list)
             if list.kind_of?(Hash)
-                raise InvalidYAMLFormatting, "wrong format for the #{name} section, you forgot the '-' in front of the package names"
+                raise InvalidYAMLFormatting, "wrong format for the #{section_name} section of #{file}, you forgot the '-' in front of the package names"
             elsif !list.kind_of?(Array)
-                raise InvalidYAMLFormatting, "wrong format for the #{name} section"
+                raise InvalidYAMLFormatting, "wrong format for the #{section_name} section of #{file}"
             end
 
-            list.map do |spec|
-                spec = spec.dup
+            list.each_with_index.map do |spec, spec_idx|
+                spec_nth = number_to_nth(spec_idx + 1)
                 if !spec.kind_of?(Hash)
-                    raise InvalidYAMLFormatting, "wrong format for the #{spec} entry in the #{name} section, expected #{spec} followed by a colon and one importer option per following line"
+                    raise InvalidYAMLFormatting, "wrong format for the #{spec_nth} entry (#{spec.inspect}) of the #{section_name} section of #{file}, expected a package name, followed by a colon, and one importer option per following line"
                 end
 
+                spec = spec.dup
                 if spec.values.size != 1
                     # Maybe the user wrote the spec like
                     #   - package_name:
-                    #     type: git
-                    #     url: blah
-                    #
-                    # or as
-                    #   - package_name
                     #     type: git
                     #     url: blah
                     #
@@ -483,24 +486,18 @@ module Autoproj
                     if name
                         spec.delete(name)
                     else
-                        name, _ = spec.find { |n, v| n =~ / \w+$/ }
-                        name =~ / (\w+)$/
-                        spec[$1] = spec.delete(name)
-                        name = name.gsub(/ \w+$/, '')
+                        raise InvalidYAMLFormatting, "cannot make sense of the #{spec_nth} entry in the #{section_name} section of #{file}: #{spec}"
                     end
                 else
                     name, spec = spec.to_a.first
-                    if name =~ / (\w+)/
-                        spec = { $1 => spec }
-                        name = name.gsub(/ \w+$/, '')
-                    end
-
                     if spec.respond_to?(:to_str)
                         if spec == "none"
-                            spec = { :type => "none" }
+                            spec = Hash['type' => "none"]
                         else
-                            raise ConfigError.new, "invalid VCS specification in the #{section_name} section '#{name}: #{spec}'"
+                            raise ConfigError.new, "invalid VCS specification in the #{section_name} section of #{file}: '#{name}: #{spec}'. One can only use this shorthand to declare the absence of a VCS with the 'none' keyword"
                         end
+                    elsif !spec.kind_of?(Hash)
+                        raise InvalidYAMLFormatting, "expected '#{name}:' followed by version control options, but got nothing, in the #{spec_nth} entry of the #{section_name} section of #{file}"
                     end
                 end
 

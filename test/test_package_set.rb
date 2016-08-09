@@ -139,6 +139,100 @@ module Autoproj
                 assert_equal vcs.to_s, package_set.repository_id
             end
         end
+
+        describe "#normalize_vcs_list" do
+            it "raises with a specific error message if the list is a hash" do
+                e = assert_raises(InvalidYAMLFormatting) do
+                    package_set.normalize_vcs_list('version_control', '/path/to/file', Hash.new)
+                end
+                assert_equal "wrong format for the version_control section of /path/to/file, you forgot the '-' in front of the package names", e.message
+            end
+            it "raises with a generic error message if the list is neither an array nor a hash" do
+                e = assert_raises(InvalidYAMLFormatting) do
+                    package_set.normalize_vcs_list('version_control', '/path/to/file', nil)
+                end
+                assert_equal "wrong format for the version_control section of /path/to/file",
+                    e.message
+            end
+
+            it "converts a number to a string using convert_to_nth" do
+                Hash[1 => '1st', 2 => '2nd', 3 => '3rd'].each do |n, string|
+                    assert_equal string, package_set.number_to_nth(n)
+                end
+                assert_equal "25th", package_set.number_to_nth(25)
+            end
+
+            it "raises if the entry elements are not hashes" do
+                e = assert_raises(InvalidYAMLFormatting) do
+                    package_set.normalize_vcs_list('version_control', '/path/to/file', [nil])
+                end
+                assert_equal "wrong format for the 1st entry (nil) of the version_control section of /path/to/file, expected a package name, followed by a colon, and one importer option per following line", e.message
+            end
+
+            it "normalizes the YAML loaded if all a package keys are at the same level" do
+                # - package_name:
+                #   type: git
+                #
+                # is loaded as { 'package_name' => nil, 'type' => 'git' }
+                assert_equal [['package_name', Hash['type' => 'git']]],
+                    package_set.normalize_vcs_list(
+                        'section', 'file', [
+                            Hash['package_name' => nil, 'type' => 'git']
+                        ])
+            end
+
+            it "normalizes the YAML loaded from a properly formatted source file" do
+                # - package_name:
+                #     type: git
+                #
+                # is loaded as { 'package_name' => { 'type' => 'git' } }
+                assert_equal [['package_name', Hash['type' => 'git']]],
+                    package_set.normalize_vcs_list(
+                        'section', 'file', [
+                            Hash['package_name' => Hash['type' => 'git']]
+                        ])
+            end
+
+            it "accepts a package_name: none shorthand" do
+                assert_equal [['package_name', Hash['type' => 'none']]],
+                    package_set.normalize_vcs_list(
+                        'section', 'file', [
+                            Hash['package_name' => 'none']
+                        ])
+            end
+            
+            it "converts the package name into a regexp if it contains non-standard characters" do
+                assert_equal [[/^test.*/, Hash['type' => 'none']]],
+                    package_set.normalize_vcs_list(
+                        'section', 'file', [
+                            Hash['test.*' => 'none']
+                        ])
+            end
+
+            it "raises InvalidYAMLFormatting for a package name without a specification" do
+                e = assert_raises(InvalidYAMLFormatting) do
+                    package_set.normalize_vcs_list(
+                        'version_control', '/path/to/file', [Hash['test' => nil]])
+                end
+                assert_equal "expected 'test:' followed by version control options, but got nothing, in the 1st entry of the version_control section of /path/to/file", e.message
+            end
+
+            it "raises InvalidYAMLFormatting for an inconsistent formatted hash" do
+                e = assert_raises(InvalidYAMLFormatting) do
+                    package_set.normalize_vcs_list(
+                        'version_control', '/path/to/file', [Hash['test' => 'with_value', 'type' => 'git']])
+                end
+                assert_equal "cannot make sense of the 1st entry in the version_control section of /path/to/file: {\"test\"=>\"with_value\", \"type\"=>\"git\"}", e.message
+            end
+
+            it "raises for the shorthand for any other importer than 'none'" do
+                e = assert_raises(ConfigError) do
+                    package_set.normalize_vcs_list(
+                        'version_control', '/path/to/file', [Hash['package_name' => 'local']])
+                end
+                assert_equal "invalid VCS specification in the version_control section of /path/to/file: 'package_name: local'. One can only use this shorthand to declare the absence of a VCS with the 'none' keyword", e.message
+            end
+        end
     end
 end
 
