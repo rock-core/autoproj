@@ -455,7 +455,17 @@ module Autoproj
         # listed in the source.yml file, and returns it. Raises if not all
         # variables can be expanded.
         def expand(data, additional_expansions = Hash.new)
-            Autoproj.expand(data, additional_expansions.merge(constants_definitions))
+            defs = additional_expansions.
+                merge(constants_definitions).
+                merge(manifest.constant_definitions)
+
+            config = ws.config
+            defs = Hash.new do |h, k|
+                if config.has_value_for?(k) || config.declared?(k)
+                    config.get(k)
+                end
+            end.merge(defs)
+            Autoproj.expand(data, defs)
         end
 
         # @api private

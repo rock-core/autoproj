@@ -35,7 +35,6 @@ module Autoproj
         if !data.respond_to?(:to_str)
             return data
         end
-        definitions = { 'HOME' => ENV['HOME'] }.merge(definitions)
 
         data = data.gsub(/(.|^)\$(\w+)/) do |constant_name|
             prefix = constant_name[0, 1]
