@@ -219,7 +219,7 @@ module Autoproj
         # @return [String]
         def self.name_of(ws, vcs, raw_local_dir: raw_local_dir_of(ws, vcs))
             if File.directory?(raw_local_dir)
-                raw_description_file(raw_local_dir)['name']
+                raw_description_file(raw_local_dir, package_set_name: "#{vcs.type}:#{vcs.url}")['name']
             else
                 vcs.to_s
             end
@@ -308,10 +308,10 @@ module Autoproj
         #
         # @param [String] raw_local_dir the package set's directory
         # @return [Hash] the raw description information
-        def self.raw_description_file(raw_local_dir)
+        def self.raw_description_file(raw_local_dir, package_set_name: nil)
             master_source_file = File.join(raw_local_dir, PackageSet.master_source_file)
             if !File.exist?(master_source_file)
-                raise ConfigError.new, "source #{vcs.type}:#{vcs.url} should have a source.yml file, but does not"
+                raise ConfigError.new, "package set #{package_set_name} present in #{raw_local_dir} should have a source.yml file, but does not"
             end
 
             source_definition = Hash.new
@@ -330,7 +330,7 @@ module Autoproj
                 end
             end
             if !source_definition['name']
-                raise ConfigError.new(master_source_file), "in #{master_source_file}: missing a 'name' field"
+                raise ConfigError.new(master_source_file), "#{master_source_file} does not have a 'name' field"
             end
             source_definition
         end
@@ -344,7 +344,7 @@ module Autoproj
                 raise InternalError, "source #{vcs} has not been fetched yet, cannot load description for it"
             end
 
-            self.class.raw_description_file(raw_local_dir)
+            self.class.raw_description_file(raw_local_dir, package_set_name: name)
         end
 
         # Yields the package sets imported by this package set

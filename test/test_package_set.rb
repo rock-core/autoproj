@@ -233,6 +233,62 @@ module Autoproj
                 assert_equal "invalid VCS specification in the version_control section of /path/to/file: 'package_name: local'. One can only use this shorthand to declare the absence of a VCS with the 'none' keyword", e.message
             end
         end
+
+        describe ".raw_description_file" do
+            it "raises if the source.yml does not exist" do
+                e = assert_raises(ConfigError) do
+                    PackageSet.raw_description_file('/path/to/package_set', package_set_name: 'name_of_package_set')
+                end
+                assert_equal "package set name_of_package_set present in /path/to/package_set should have a source.yml file, but does not",
+                    e.message
+            end
+            it "handles empty files gracefully" do
+                dir = make_tmpdir
+                FileUtils.touch(File.join(dir, 'source.yml'))
+                e = assert_raises(ConfigError) do
+                    PackageSet.raw_description_file(dir, package_set_name: 'name_of_package_set')
+                end
+                assert_equal "#{dir}/source.yml does not have a 'name' field", e.message
+            end
+            it "raises if the source.yml does not have a name field" do
+                dir = make_tmpdir
+                File.open(File.join(dir, 'source.yml'), 'w') do |io|
+                    YAML.dump(Hash[], io)
+                end
+                e = assert_raises(ConfigError) do
+                    PackageSet.raw_description_file(dir, package_set_name: 'name_of_package_set')
+                end
+                assert_equal "#{dir}/source.yml does not have a 'name' field", e.message
+            end
+        end
+
+        describe "raw_description_file" do
+            it "raises InternalError if the package set's directory does not exist" do
+                package_set = PackageSet.new(
+                    ws, VCSDefinition.from_raw('type' => 'git', 'url' => 'https://url'),
+                    raw_local_dir: '/path/to/package_set',
+                    name: 'name_of_package_set')
+
+                e = assert_raises(InternalError) do
+                    package_set.raw_description_file
+                end
+                assert_equal "source git:https://url has not been fetched yet, cannot load description for it",
+                    e.message
+            end
+            it "passes the package set's name to PackageSet.raw_description_file" do
+                dir = make_tmpdir
+                flexmock(PackageSet).should_receive(:raw_description_file).
+                    with(dir, package_set_name: 'name_of_package_set').
+                    once.pass_thru
+                package_set = PackageSet.new(ws, VCSDefinition.from_raw('type' => 'local', 'url' => dir),
+                                            name: 'name_of_package_set')
+                e = assert_raises(ConfigError) do
+                    package_set.raw_description_file
+                end
+                assert_equal "package set name_of_package_set present in #{dir} should have a source.yml file, but does not",
+                    e.message
+            end
+        end
     end
 end
 
