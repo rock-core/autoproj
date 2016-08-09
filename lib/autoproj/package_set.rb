@@ -570,9 +570,10 @@ module Autoproj
         # @param [PackageDefinition] package
         # @return [VCSDefinition] the importer definition, or nil if none
         #   could be found
-        def importer_definition_for(package, default: default_importer)
+        def importer_definition_for(package, default: default_importer, require_existing: true)
+            package_name = manifest.validate_package_name_argument(package, require_existing: require_existing)
             Autoproj.in_file source_file do
-                vcs_spec, raw = version_control_field(package.name, version_control)
+                vcs_spec, raw = version_control_field(package_name, version_control)
                 if vcs_spec
                     VCSDefinition.from_raw(vcs_spec, raw: raw, from: self)
                 else
@@ -586,8 +587,9 @@ module Autoproj
         # @param [PackageDefinition] package the package
         # @param [VCSDefinition] the vcs to be updated
         # @return [VCSDefinition] the new, updated vcs object
-        def overrides_for(package, vcs)
-            resolve_overrides(manifest.validate_package_name_argument(package), vcs)
+        def overrides_for(package, vcs, require_existing: true)
+            package_name = manifest.validate_package_name_argument(package, require_existing: require_existing)
+            resolve_overrides(package_name, vcs)
         end
 
         # @api private

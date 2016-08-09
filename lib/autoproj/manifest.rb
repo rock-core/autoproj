@@ -465,18 +465,20 @@ module Autoproj
         #   we want to compute the importer definition. Pass package.package_set
         #   if you want to avoid applying any override
         # @return [VCSDefinition] the VCS definition object
-        def importer_definition_for(package, mainline: nil)
+        def importer_definition_for(package, mainline: nil, require_existing: true, package_set: package.package_set)
             mainline = if mainline == true
-                           package.package_set
+                           package_set
                        else mainline
                        end
 
-            vcs = package.package_set.importer_definition_for(package)
+            package_name = validate_package_name_argument(package, require_existing: require_existing)
+            # package_name is already validated, do not re-validate
+            vcs = package_set.importer_definition_for(package_name, require_existing: false)
 
             package_sets = each_package_set.to_a.dup
-            index = package_sets.find_index(package.package_set)
+            index = package_sets.find_index(package_set)
             if !index
-                raise RuntimeError, "found inconsistency: package #{package.name} is not in a package set of #{self}"
+                raise RuntimeError, "found inconsistency: package #{package_name} is not in a package set of #{self}"
             end
 
             if package_sets[0, index + 1].include?(mainline)
@@ -485,7 +487,7 @@ module Autoproj
 
             # Then apply the overrides
             package_sets[(index + 1)..-1].inject(vcs) do |updated_vcs, pkg_set|
-                updated_vcs = pkg_set.overrides_for(package, updated_vcs)
+                updated_vcs = pkg_set.overrides_for(package_name, updated_vcs, require_existing: false)
                 return updated_vcs if pkg_set == mainline
                 updated_vcs
             end

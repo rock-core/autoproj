@@ -410,6 +410,45 @@ module Autoproj
                     assert_equal 'wip', vcs.options[:branch]
                 end
             end
+
+            describe "resolution by name" do
+                it "handles package names if the package set is explicitely given" do
+                    ws_define_package_vcs(
+                        package,
+                        Hash[type: 'git', url: 'https://github.com/test'])
+                    ws_define_package_overrides(
+                        package, overrides_pkg_set,
+                        Hash[type: 'git', url: 'https://github.com/test/fork', branch: 'wip'])
+                    vcs = manifest.importer_definition_for(
+                        package.name, package_set: package.package_set)
+                    assert_equal 'git', vcs.type
+                    assert_equal 'https://github.com/test/fork', vcs.url
+                    assert_equal 'wip', vcs.options[:branch]
+                end
+                it "validates the existence of the package by default" do
+                    assert_raises(PackageNotFound) do
+                        manifest.importer_definition_for(
+                            'does_not_exist', mainline: overrides_pkg_set, package_set: package.package_set)
+                    end
+                end
+                it "handles package names if the package set is explicitely given" do
+                    base_pkg_set.add_version_control_entry(
+                        'does_not_exist',
+                        Hash[type: 'git', url: 'https://remote'])
+                    vcs = manifest.importer_definition_for(
+                        'does_not_exist', package_set: base_pkg_set, require_existing: false)
+                    assert_equal 'git', vcs.type
+                    assert_equal 'https://remote', vcs.url
+
+                    overrides_pkg_set.add_overrides_entry(
+                        'does_not_exist',
+                        Hash[url: 'https://remote/fork'])
+                    vcs = manifest.importer_definition_for(
+                        'does_not_exist', package_set: base_pkg_set, require_existing: false)
+                    assert_equal 'git', vcs.type
+                    assert_equal 'https://remote/fork', vcs.url
+                end
+            end
         end
 
         describe "#expand_package_selection" do
