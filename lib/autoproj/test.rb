@@ -18,6 +18,7 @@ end
 require 'minitest/autorun'
 require 'autoproj'
 require 'flexmock/minitest'
+FlexMock.partials_are_based = true
 require 'minitest/spec'
 
 if ENV['TEST_ENABLE_PRY'] != '0'
