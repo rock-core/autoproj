@@ -9,6 +9,9 @@ module Autoproj
             before do
                 @workspace_dir = create_bootstrap.root_dir
             end
+            after do
+                Autoproj.verbose = false
+            end
 
             describe "#versions" do
                 before do
