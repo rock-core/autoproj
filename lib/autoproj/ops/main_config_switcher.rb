@@ -107,7 +107,7 @@ module Autoproj
 
                 elsif buildconf_info.size >= 2 # is a VCS definition for the manifest itself ...
                     type, url, *options = *buildconf_info
-                    url = VCSDefinition.to_absolute_url(url, Dir.pwd)
+                    url = VCSDefinition.to_absolute_url(url, ws.root_dir)
                     do_switch_config(false, type, url, *options)
                 end
                 ws.env.export_env_sh(nil, shell_helpers: ws.config.shell_helpers?)
@@ -125,7 +125,7 @@ module Autoproj
                 end
                 options = args
 
-                url = VCSDefinition.to_absolute_url(url)
+                url = VCSDefinition.to_absolute_url(url, ws.root_dir)
 
                 if vcs && (vcs.type == type && vcs.url == url)
                     vcs = vcs.to_hash
@@ -157,7 +157,7 @@ module Autoproj
             def do_switch_config(delete_current, type, url, *options)
                 vcs_def = Hash.new
                 vcs_def[:type] = type
-                vcs_def[:url]  = VCSDefinition.to_absolute_url(url)
+                vcs_def[:url]  = VCSDefinition.to_absolute_url(url, ws.root_dir)
                 options.each do |opt|
                     name, value = opt.split("=")
                     if value =~ /^\d+$/

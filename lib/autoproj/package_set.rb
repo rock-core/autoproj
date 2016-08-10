@@ -549,14 +549,19 @@ module Autoproj
                 if name_match =~ /[^\w\/-]/
                     name_match = Regexp.new("^" + name_match)
                 end
+
                 [name_match, spec]
             end
         end
 
-        # Returns an importer definition for the given package, if one is
+        # Returns a VCS definition for the given package, if one is
         # available. Otherwise returns nil.
         #
-        # The returned value is a VCSDefinition object.
+        # @return [[(Hash,nil),Array]] the resolved VCS definition, as well
+        #   as the "history" of it, that is the list of entries that matched the
+        #   package in the form (PackageSet,Hash), where PackageSet is self.
+        #   The Hash part is nil if there are no matching entries. Hash keys are
+        #   normalized to symbols
         def version_control_field(package_name, entry_list, validate = true)
             raw = []
             vcs_spec = Hash.new
@@ -586,6 +591,11 @@ module Autoproj
             vcs_spec = expand(vcs_spec, expansions)
             vcs_spec.dup.each do |name, value|
                 vcs_spec[name] = expand(value, expansions)
+            end
+
+            # Resolve relative paths w.r.t. the workspace root dir
+            if url = (vcs_spec.delete('url') || vcs_spec.delete(:url))
+                vcs_spec[:url] = VCSDefinition.to_absolute_url(url, ws.root_dir)
             end
 
             # If required, verify that the configuration is a valid VCS

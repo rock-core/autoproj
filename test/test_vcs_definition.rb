@@ -207,5 +207,23 @@ module Autoproj
                 end
             end
         end
+
+        describe ".to_absolute_url" do
+            it "keeps absolute paths unchanged" do
+                assert_equal '/absolute/path', VCSDefinition.to_absolute_url('/absolute/path', flexmock)
+            end
+            it "keeps well-formed URIs unchanged" do
+                assert_equal 'https://absolute/path', VCSDefinition.to_absolute_url('https://absolute/path', flexmock)
+            end
+            it "keeps git-like URIs unchanged" do
+                assert_equal 'git@github.com:path', VCSDefinition.to_absolute_url('git@github.com:path', flexmock)
+            end
+            it "keeps svn-like URIs unchanged" do
+                assert_equal 'svn+ssh://path', VCSDefinition.to_absolute_url('svn+ssh://path', flexmock)
+            end
+            it "resolves relative paths w.r.t. the given root dir" do
+                assert_equal '/absolute/path', VCSDefinition.to_absolute_url('path', '/absolute')
+            end
+        end
     end
 end

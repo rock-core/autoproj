@@ -631,13 +631,13 @@ module Autoproj
         describe "#load_importers" do
             it "resolves and sets the importers on all defined packages" do
                 pkg = ws_define_package :cmake, 'test'
-                ws_set_version_control_entry pkg, Hash['type' => 'git', 'url' => 'test']
+                ws_set_version_control_entry pkg, Hash['type' => 'git', 'url' => '/absolute/test']
                 manifest.load_importers
 
-                vcs = VCSDefinition.from_raw Hash['type' => 'git', 'url' => 'test']
+                vcs = VCSDefinition.from_raw Hash['type' => 'git', 'url' => '/absolute/test']
                 assert_equal vcs, pkg.vcs
                 assert_kind_of Autobuild::Git, pkg.autobuild.importer
-                assert_equal 'test', pkg.autobuild.importer.repository
+                assert_equal '/absolute/test', pkg.autobuild.importer.repository
             end
 
             it "raises if the package's defining package set has no definition for it" do

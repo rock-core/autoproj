@@ -238,14 +238,11 @@ module Autoproj
             to_hash == other_vcs.to_hash
         end
 
-        def self.to_absolute_url(url, root_dir = nil)
-            # NOTE: we MUST use nil as default argument of root_dir as we don't
-            # want to call Autoproj.root_dir unless completely necessary
-            # (to_absolute_url might be called on installations that are being
-            # bootstrapped, and as such don't have a root dir yet).
-            url = Autoproj.single_expansion(url, 'HOME' => ENV['HOME'])
-            if url && url !~ /^(\w+:\/)?\/|^[:\w]+\@|^(\w+\@)?[\w\.-]+:/
-                url = File.expand_path(url, root_dir || Autoproj.root_dir)
+        ABSOLUTE_PATH_OR_URI = /^([\w+]+:\/)?\/|^[:\w]+\@|^(\w+\@)?[\w\.-]+:/
+
+        def self.to_absolute_url(url, root_dir)
+            if url && url !~ ABSOLUTE_PATH_OR_URI
+                url = File.expand_path(url, root_dir)
             end
             url
         end
@@ -262,13 +259,11 @@ module Autoproj
         def create_autobuild_importer
             return if !needs_import?
 
-            url = VCSDefinition.to_absolute_url(self.url)
             importer = Autobuild.send(type, url, options)
             if importer.respond_to?(:declare_alternate_repository)
                 history.each do |from, vcs|
                     next if !from || from.main?
-                    url = VCSDefinition.to_absolute_url(vcs.url)
-                    importer.declare_alternate_repository(from.name, url, vcs.options)
+                    importer.declare_alternate_repository(from.name, vcs.url, vcs.options)
                 end
             end
             importer
