@@ -8,7 +8,7 @@ elsif ENV['AUTOPROJ_CURRENT_ROOT'] && (ENV['AUTOPROJ_CURRENT_ROOT'] != Dir.pwd)
     exit 1
 end
 
-AUTOPROJ_OPS_INSTALL
+require 'autoproj/ops/install'
 
 ENV.delete('BUNDLE_GEMFILE')
 ENV.delete('RUBYLIB')

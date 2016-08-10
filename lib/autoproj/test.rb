@@ -4,6 +4,7 @@ if ENV['TEST_ENABLE_COVERAGE'] == '1'
     begin
         require 'simplecov'
         SimpleCov.start do
+            command_name 'master'
             add_filter "/test/"
         end
     rescue LoadError
@@ -151,8 +152,13 @@ gem 'autobuild', path: '#{autobuild_dir}'
             end
             result = nil
             stdout, stderr = capture_subprocess_io do
+                default_env = Hash[
+                    'TEST_COMMAND_NAME' => self.to_s.gsub(/[^\w]/, '_'),
+                    'PACKAGE_BASE_DIR' => package_base_dir,
+                    'RUBY' => Gem.ruby
+                ]
                 result = Bundler.clean_system(
-                    Hash['PACKAGE_BASE_DIR' => package_base_dir, 'RUBY' => Gem.ruby].merge(env),
+                    default_env.merge(env),
                     script, *arguments, in: :close, **Hash[chdir: dir].merge(system_options))
             end
 
