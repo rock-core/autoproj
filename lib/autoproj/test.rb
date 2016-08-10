@@ -314,6 +314,14 @@ gem 'autobuild', path: '#{autobuild_dir}'
             ws.manifest.add_package_to_layout(pkg)
             pkg
         end
+
+        def ws_set_version_control_entry(package, entry)
+            package.package_set.add_version_control_entry(package.name, entry)
+        end
+
+        def ws_set_overrides_entry(package, package_set, entry)
+            package_set.add_overrides_entry(package.name, entry)
+        end
     end
 end
 

@@ -627,6 +627,48 @@ module Autoproj
                 assert_equal "manifest #{File.join(ws.root_dir, 'test', 'manifest.xml')} of test from pkg_set lists 'dependency' as dependency, but it is neither a normal package nor an osdeps package. osdeps reports: cannot resolve dependency: dependency is not an osdep and it cannot be resolved as a source package", e.message
             end
         end
+
+        describe "#load_importers" do
+            it "resolves and sets the importers on all defined packages" do
+                pkg = ws_define_package :cmake, 'test'
+                ws_set_version_control_entry pkg, Hash['type' => 'git', 'url' => 'test']
+                manifest.load_importers
+
+                vcs = VCSDefinition.from_raw Hash['type' => 'git', 'url' => 'test']
+                assert_equal vcs, pkg.vcs
+                assert_kind_of Autobuild::Git, pkg.autobuild.importer
+                assert_equal 'test', pkg.autobuild.importer.repository
+            end
+
+            it "raises if the package's defining package set has no definition for it" do
+                pkg = ws_define_package :cmake, 'test'
+                e = assert_raises(ConfigError) do
+                    manifest.load_importers
+                end
+                assert_equal "package set main configuration defines the package 'test', but does not provide a version control definition for it",
+                    e.message
+            end
+
+            it "raises if 'none' is explicitely given as version control entry for the package in its defining package set" do
+                pkg = ws_define_package :cmake, 'test'
+                e = assert_raises(ConfigError) do
+                    manifest.load_importers
+                end
+                assert_equal "package set main configuration defines the package 'test', but does not provide a version control definition for it",
+                    e.message
+            end
+
+            it "does not raise if a non-null version control entry was given in the defining package set, but later on overriden to 'none'" do
+                pkg_set = ws_define_package_set 'test_set'
+                override_set = ws_define_package_set 'override_set'
+                pkg = ws_define_package :cmake, 'test', package_set: pkg_set
+                ws_set_version_control_entry pkg, Hash['type' => 'local', 'url' => 'test']
+                ws_set_overrides_entry pkg, override_set, Hash['type' => 'none']
+                manifest.load_importers
+                assert pkg.vcs.none?
+                refute pkg.autobuild.importer
+            end
+        end
     end
 end
 

@@ -517,11 +517,15 @@ module Autoproj
             packages.each_value do |pkg|
                 vcs = importer_definition_for(pkg, mainline: mainline)
 
-                pkg.vcs = vcs
                 if vcs.none?
-                    raise ConfigError.new, "source #{pkg.package_set.name} defines #{pkg.autobuild.name}, but does not provide a version control definition for it"
+                    # A package's package set is required to define a VCS for
+                    # it. But it can be overriden later on.
+                    if pkg.package_set.importer_definition_for(pkg).none?
+                        raise ConfigError.new, "package set #{pkg.package_set.name} defines the package '#{pkg.name}', but does not provide a version control definition for it"
+                    end
                 end
 
+                pkg.vcs = vcs
                 pkg.autobuild.importer = vcs.create_autobuild_importer
             end
         end
