@@ -442,13 +442,13 @@ module Autoproj
             it "returns a the VCSDefinition object built from a matching entry in the list" do
                 vcs, raw = package_set.version_control_field(
                     'package', [['package', Hash['type' => 'none']]])
-                assert_equal [[package_set, Hash['type' => 'none']]], raw
+                assert_equal [VCSDefinition::RawEntry.new(package_set, package_set.source_file, Hash['type' => 'none'])], raw
                 assert_equal Hash[type: 'none'], vcs
             end
             it "uses #=== to match the entries" do
                 vcs, raw = package_set.version_control_field(
                     'package', [[flexmock(:=== => true), Hash['type' => 'none']]])
-                assert_equal [[package_set, Hash['type' => 'none']]], raw
+                assert_equal [VCSDefinition::RawEntry.new(package_set, package_set.source_file, Hash['type' => 'none'])], raw
                 assert_equal Hash[type: 'none'], vcs
             end
             it "overrides earlier entries with later matching entries" do
@@ -459,8 +459,8 @@ module Autoproj
                     ])
 
                 expected_raw = [
-                    [package_set, Hash['type' => 'git', 'url' => 'https://github.com']],
-                    [package_set, Hash['branch' => 'master']]
+                    VCSDefinition::RawEntry.new(package_set, package_set.source_file, Hash['type' => 'git', 'url' => 'https://github.com']),
+                    VCSDefinition::RawEntry.new(package_set, package_set.source_file, Hash['branch' => 'master'])
                 ]
                 assert_equal expected_raw, raw
                 assert_equal Hash[type: 'git', url: 'https://github.com', branch: 'master'], vcs
@@ -471,7 +471,7 @@ module Autoproj
                         [flexmock(:=== => true), Hash['type' => 'local', 'url' => '$AUTOPROJ_ROOT']]
                     ])
 
-                assert_equal [[package_set, Hash['type' => 'local', 'url' => '$AUTOPROJ_ROOT']]], raw
+                assert_equal [VCSDefinition::RawEntry.new(package_set, package_set.source_file, Hash['type' => 'local', 'url' => '$AUTOPROJ_ROOT'])], raw
                 assert_equal Hash[type: 'local', url: ws.root_dir], vcs
             end
             it "expands relative path URLs w.r.t. the workspace root" do
@@ -480,7 +480,7 @@ module Autoproj
                         [flexmock(:=== => true), Hash['type' => 'local', 'url' => 'test']]
                     ])
 
-                assert_equal [[package_set, Hash['type' => 'local', 'url' => 'test']]], raw
+                assert_equal [VCSDefinition::RawEntry.new(package_set, package_set.source_file, Hash['type' => 'local', 'url' => 'test'])], raw
                 assert_equal Hash[type: 'local', url: File.join(ws.root_dir, 'test')], vcs
             end
         end

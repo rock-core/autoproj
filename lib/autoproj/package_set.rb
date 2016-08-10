@@ -247,12 +247,12 @@ module Autoproj
         # This parses the information stored in the package_sets section of
         # autoproj/manifest, or the imports section of the source.yml files and
         # returns the corresponding VCSDefinition object
-        def self.resolve_definition(ws, raw_spec)
+        def self.resolve_definition(ws, raw_spec, from: nil, raw: Array.new)
             spec = VCSDefinition.normalize_vcs_hash(raw_spec, base_dir: ws.config_dir)
             options, vcs_spec = Kernel.filter_options spec, auto_imports: true
 
             vcs_spec = Autoproj.expand(vcs_spec, ws.manifest.constant_definitions)
-            return VCSDefinition.from_raw(vcs_spec, raw: [[nil, raw_spec]]), options
+            return VCSDefinition.from_raw(vcs_spec, from: from, raw: raw), options
         end
 
         # Returns a string that uniquely represents the version control
@@ -432,7 +432,7 @@ module Autoproj
                     end
 
                     Autoproj.in_file(source_file) do
-                        PackageSet.resolve_definition(ws, set_def)
+                        PackageSet.resolve_definition(ws, set_def, from: self, raw: [VCSDefinition::RawEntry.new(self, source_file, set_def)])
                     end
                 end
             end
@@ -449,7 +449,7 @@ module Autoproj
                 @version_control = normalize_vcs_list('version_control', source_file, new_version_control)
 
                 Autoproj.in_file(source_file) do
-                    default_vcs_spec, raw = version_control_field('default', version_control)
+                    default_vcs_spec, raw = version_control_field('default', version_control, file: source_file)
                     if default_vcs_spec
                         @default_importer = VCSDefinition.from_raw(default_vcs_spec, raw: raw, from: self)
                     end
@@ -566,13 +566,13 @@ module Autoproj
         #   package in the form (PackageSet,Hash), where PackageSet is self.
         #   The Hash part is nil if there are no matching entries. Hash keys are
         #   normalized to symbols
-        def version_control_field(package_name, entry_list, validate = true)
+        def version_control_field(package_name, entry_list, validate: true, file: source_file)
             raw = []
             vcs_spec = Hash.new
 
             entry_list.each do |name_match, spec|
                 if name_match === package_name
-                    raw << [self, spec]
+                    raw << VCSDefinition::RawEntry.new(self, file, spec)
                     vcs_spec =
                         begin
                             VCSDefinition.update_raw_vcs_spec(vcs_spec, spec)
@@ -620,7 +620,7 @@ module Autoproj
         def importer_definition_for(package, default: default_importer, require_existing: true)
             package_name = manifest.validate_package_name_argument(package, require_existing: require_existing)
             Autoproj.in_file source_file do
-                vcs_spec, raw = version_control_field(package_name, version_control)
+                vcs_spec, raw = version_control_field(package_name, version_control, file: source_file)
                 if vcs_spec
                     VCSDefinition.from_raw(vcs_spec, raw: raw, from: self)
                 else
@@ -648,7 +648,7 @@ module Autoproj
             overrides.each do |file, file_overrides|
                 new_spec, new_raw_entry = 
                     Autoproj.in_file file do
-                        version_control_field(key, file_overrides, false)
+                        version_control_field(key, file_overrides, validate: false, file: file)
                     end
 
                 if new_spec

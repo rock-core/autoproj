@@ -100,6 +100,22 @@ module Autoproj
                 vcs = Autoproj::VCSDefinition.from_raw(type: 'local', url: '/test')
                 assert !vcs.create_autobuild_importer
             end
+            it "creates an importer of the required type and options" do
+                vcs = Autoproj::VCSDefinition.from_raw(type: 'git', url: 'https://github.com')
+                importer = vcs.create_autobuild_importer
+                assert_kind_of Autobuild::Git, importer
+                assert_equal 'https://github.com', importer.repository
+            end
+            it "registers the various versions of the history if the importer supports declare_alternate_repository" do
+                ws_create
+                base_package_set = ws_define_package_set 'base'
+                base_vcs     = Autoproj::VCSDefinition.from_raw(Hash[type: 'git', url: 'https://github.com'], from: base_package_set)
+                override_package_set = ws_define_package_set 'override'
+                override_vcs = base_vcs.update(Hash[url: 'https://github.com/fork'], from: override_package_set)
+                importer = override_vcs.create_autobuild_importer
+                assert_equal [['base', 'https://github.com', 'https://github.com'],
+                              ['override', 'https://github.com/fork', 'https://github.com/fork']], importer.additional_remotes
+            end
         end
 
         describe "custom source handlers" do

@@ -22,37 +22,29 @@ module Autoproj
         # i.e. the list of VCSDefinition objects that led to this one by means
         # of calls to {#update}
         #
-        # @return [Array<VCSDefinition>]
+        # @return [Array<HistoryEntry>]
         attr_reader :history
 
         # The original spec in hash form
         #
-        # Set if this VCSDefinition object has been created using
-        # VCSDefinition.from_raw
-        #
-        # @return [nil,Hash]
+        # @return [Array<RawEntry>]
         attr_reader :raw
-        
 
-        def initialize(type, url, vcs_options, options = Hash.new)
-            if raw && !raw.respond_to?(:to_ary)
+        HistoryEntry  = Struct.new :package_set, :vcs
+        RawEntry      = Struct.new :package_set, :file, :vcs
+
+        def initialize(type, url, vcs_options, from: nil, raw: Array.new, history: Array.new)
+            if !raw.respond_to?(:to_ary)
                 raise ArgumentError, "wrong format for the raw field (#{raw.inspect})"
             end
-            if !options.kind_of?(Hash)
-                options = Hash[raw: options]
-            end
-            if vcs_options[:raw]
-                raise
-            end
-            options = validate_options options, from: nil, raw: nil, history: nil
 
             @type, @url, @options = type, url, vcs_options
             if type != "none" && type != "local" && !Autobuild.respond_to?(type)
                 raise ConfigError.new, "version control #{type} is unknown to autoproj"
             end
 
-            @history = (options[:history] || Array.new) + [[options[:from], self]]
-            @raw = options[:raw] || [[options[:from], to_hash]]
+            @history = history + [HistoryEntry.new(from, self)]
+            @raw     = raw
         end
 
         # Create a null VCS object
@@ -81,18 +73,19 @@ module Autoproj
         # the updated definition
         #
         # @return [VCSDefinition]
-        def update(spec, from: nil, raw: [[from, spec]])
+        def update(spec, from: nil, raw: Array.new)
             new = self.class.normalize_vcs_hash(spec)
+            new_raw = Array.new
             new_history = Array.new
 
             # If the type changed, we replace the old definition by the new one
             # completely. Otherwise, we append it to the current one
             if !new.has_key?(:type) || (type == new[:type])
                 new = to_hash.merge(new)
-                raw = self.raw + raw
+                new_raw = self.raw + raw
                 new_history = self.history
             end
-            self.class.from_raw(new, from: from, history: new_history, raw: raw)
+            self.class.from_raw(new, from: from, history: new_history, raw: new_raw)
         end
 
         # Updates the VCS specification +old+ by the information contained in
@@ -200,7 +193,7 @@ module Autoproj
         # @return [VCSDefinition]
         # @raise ArgumentError if the raw specification does not match an
         #   expected format
-        def self.from_raw(spec, from: nil, raw: [[from, spec]], history: Array.new)
+        def self.from_raw(spec, from: nil, raw: Array.new, history: Array.new)
             normalized_spec = normalize_vcs_hash(spec)
             if !(type = normalized_spec.delete(:type))
                 raise ArgumentError, "the source specification #{raw_spec_to_s(spec)} normalizes into #{raw_spec_to_s(normalized_spec)}, which does not have a VCS type"
@@ -261,9 +254,11 @@ module Autoproj
 
             importer = Autobuild.send(type, url, options)
             if importer.respond_to?(:declare_alternate_repository)
-                history.each do |from, vcs|
-                    next if !from || from.main?
-                    importer.declare_alternate_repository(from.name, vcs.url, vcs.options)
+                history.each do |entry|
+                    package_set = entry.package_set
+                    vcs         = entry.vcs
+                    next if !package_set || package_set.main?
+                    importer.declare_alternate_repository(package_set.name, vcs.url, vcs.options)
                 end
             end
             importer

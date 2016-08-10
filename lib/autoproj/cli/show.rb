@@ -44,19 +44,25 @@ module Autoproj
                 fragments = []
                 if !vcs
                     fragments << ["has no VCS definition", []]
-                elsif vcs.raw
+                else
                     first = true
                     fragments << [nil, vcs_to_array(vcs)]
-                    vcs.raw.each do |pkg_set, vcs_info|
-                        pkg_set = if pkg_set then pkg_set.name
-                                  end
+                    vcs.raw.each do |entry|
+                        entry_name =
+                            if entry.package_set && entry.file
+                                "#{entry.package_set.name} (#{entry.file})"
+                            elsif entry.package_set
+                                "#{entry.package_set.name}"
+                            elsif entry.file
+                                "#{entry.file}"
+                            end
 
                         title = if first
-                                    "first match: in #{pkg_set}"
-                                else "overriden in #{pkg_set}"
+                                    "first match: in #{entry_name}"
+                                else "overriden in #{entry_name}"
                                 end
                         first = false
-                        fragments << [title, vcs_to_array(vcs_info)]
+                        fragments << [title, vcs_to_array(entry.vcs)]
                     end
                 end
                 fragments.each do |title, elements|
