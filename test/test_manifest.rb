@@ -513,6 +513,18 @@ module Autoproj
                 assert_equal [], sel.each_source_package_name.to_a
                 assert_equal ['osdep'], sel.each_osdep_package_name.to_a
             end
+            it "does not select packages whose basename is a substring of the query string" do
+                pkg = ws_add_package_to_layout :cmake, 'test/package'
+                pkg.autobuild.srcdir = File.join(ws.root_dir, "test", "package")
+                pkg = ws_add_package_to_layout :cmake, 'test/package_plugin'
+                pkg.autobuild.srcdir = File.join(ws.root_dir, "test", "package_plugin")
+                dir = File.join(ws.root_dir, "test", 'package_pl')
+                sel, nonresolved = manifest.expand_package_selection([dir])
+                assert nonresolved.empty?
+                assert_equal Set['test/package_plugin'], sel.match_for(dir)
+                assert_equal ['test/package_plugin'], sel.each_source_package_name.to_a
+                assert_equal [], sel.each_osdep_package_name.to_a
+            end
             it "restricts the selection by srcdir to the exact match" do
                 pkg = ws_add_package_to_layout :cmake, 'test/package'
                 pkg.autobuild.srcdir = File.join(ws.root_dir, "test", "package")

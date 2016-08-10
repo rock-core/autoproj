@@ -1007,34 +1007,23 @@ module Autoproj
         def expand_package_selection(selection, filter: true)
             result = PackageSelection.new
 
-            # First, remove packages that are directly referenced by name or by
-            # package set names. When it comes to packages (NOT package sets),
-            # we prefer the ones selected in the layout
             all_selected_packages = self.all_selected_packages.to_set
-            candidates = all_selected_packages.to_a +
-                each_metapackage.map { |metapkg| [metapkg.name, metapkg.weak_dependencies?] }
-            selection.each do |sel|
-                match_pkg_name = Regexp.new(Regexp.quote(sel))
-                candidates.each do |name, weak|
-                    next if name !~ match_pkg_name
-                    update_selection(result, sel, name, true)
-                end
-            end
-
-            pending_selections = Hash.new { |h, k| h[k] = Array.new }
-
-            # Finally, check for partial matches
             all_source_package_names = self.all_package_names
             all_osdeps_package_names = os_package_resolver.all_package_names
             selection.each do |sel|
                 match_pkg_name = Regexp.new(Regexp.quote(sel))
                 all_matches = Array.new
+                each_metapackage do |meta_pkg|
+                    if meta_pkg.name =~ match_pkg_name
+                        all_matches << [meta_pkg.name, meta_pkg.name == sel]
+                    end
+                end
                 all_source_package_names.each do |pkg_name|
                     pkg = find_autobuild_package(pkg_name)
                     if pkg.name =~ match_pkg_name
                         all_matches << [pkg.name, pkg.name == sel]
-                    elsif sel.start_with?(pkg.srcdir)
-                        all_matches << [pkg.name, "#{sel}/".start_with?("#{pkg.srcdir}/")]
+                    elsif "#{sel}/".start_with?("#{pkg.srcdir}/")
+                        all_matches << [pkg.name, true]
                     elsif pkg.srcdir.start_with?(sel) && all_selected_packages.include?(pkg.name)
                         all_matches << [pkg.name, false]
                     end
@@ -1045,15 +1034,18 @@ module Autoproj
                     end
                 end
 
-                all_matches.each do |pkg_name, exact_match|
-                    # Select packages that are not in the manifest only
-                    # if they are explicitely selected. However, we do store
-                    # them as "possible resolutions" for the user selection,
-                    # and add them if -- at the end of the method -- nothing
-                    # has been found for this particular selection
-                    if !all_selected_packages.include?(pkg_name) && !exact_match
-                        pending_selections[sel] << pkg_name
-                    else
+                exact_matches, partial_matches =
+                    all_matches.partition { |_, exact_match| exact_match }
+                selected_partial_matches, not_selected_partial_matches =
+                    partial_matches.partition { |pkg_name, _| all_selected_packages.include?(pkg_name) }
+                if result.has_match_for?(sel)
+                    not_selected_partial_matches.clear
+                end
+
+                matches = [exact_matches, selected_partial_matches, not_selected_partial_matches].
+                    find { |m| !m.empty? }
+                if matches
+                    matches.each do |pkg_name, _|
                         update_selection(result, sel, pkg_name, true)
                     end
                 end
@@ -1064,15 +1056,6 @@ module Autoproj
             end
 
             nonresolved = selection - result.matches.keys
-            nonresolved.delete_if do |sel|
-                if pending = pending_selections.fetch(sel, nil)
-                    pending.each do |name|
-                        update_selection(result, sel, name, true)
-                    end
-                    true
-                end
-            end
-
             return result, nonresolved
         end
 
