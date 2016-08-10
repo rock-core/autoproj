@@ -115,7 +115,7 @@ module Autoproj
         #   should be converted to lowercase before it gets validated / saved.
         # @option options [Boolean] :uppercase (false) whether the user's input
         #   should be converted to uppercase before it gets validated / saved.
-        def declare(name, type, options, &validator)
+        def declare(name, type, **options, &validator)
             declared_options[name] = BuildOption.new(name, type, options, validator)
         end
 

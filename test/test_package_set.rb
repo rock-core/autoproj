@@ -262,6 +262,37 @@ module Autoproj
             end
         end
 
+        describe "#inject_constants_and_config_for_expansion" do
+            it "gives access to config entries that have values" do
+                ws.config.set("A", "10")
+                h = package_set.inject_constants_and_config_for_expansion(Hash.new)
+                assert_equal "10", h['A']
+            end
+            it "gives access to config entries that are declared but do not have values yet" do
+                ws.config.declare("A", 'string')
+                flexmock(ws.config).should_receive(:get).and_return(resolved_value = flexmock)
+                h = package_set.inject_constants_and_config_for_expansion(Hash.new)
+                assert_equal resolved_value, h['A']
+            end
+            it "overrides configuration entries by manifest-level ones" do
+                ws.config.set("A", '10')
+                ws.manifest.add_constant_definition('A', '20')
+                h = package_set.inject_constants_and_config_for_expansion(Hash.new)
+                assert_equal '20', h['A']
+            end
+            it "overrides manifest-level entries by package-set-local ones" do
+                ws.manifest.constant_definitions['A'] = '20'
+                package_set.add_constant_definition('A', '30')
+                h = package_set.inject_constants_and_config_for_expansion(Hash.new)
+                assert_equal '30', h['A']
+            end
+            it "overrides package-set-local entries by ones given as argument" do
+                package_set.add_constant_definition('A', '30')
+                h = package_set.inject_constants_and_config_for_expansion('A' => '40')
+                assert_equal '40', h['A']
+            end
+        end
+
         describe "#parse_source_definitions" do
             attr_reader :package_set
             before do

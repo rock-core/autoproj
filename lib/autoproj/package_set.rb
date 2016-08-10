@@ -469,9 +469,13 @@ module Autoproj
         # configuration variables, into a hash suitable to be used for variable
         # expansion using {Autoproj.expand} and {Autoproj.single_expansion}
         def inject_constants_and_config_for_expansion(additional_expansions)
-            defs = additional_expansions.
+            defs = Hash[
+                "AUTOPROJ_ROOT" => ws.root_dir,
+                "AUTOPROJ_CONFIG" => ws.config_dir,
+                "AUTOPROJ_SOURCE_DIR" => local_dir].
+                merge(manifest.constant_definitions).
                 merge(constants_definitions).
-                merge(manifest.constant_definitions)
+                merge(additional_expansions)
 
             config = ws.config
             Hash.new do |h, k|
@@ -583,10 +587,7 @@ module Autoproj
             end
 
             expansions = Hash["PACKAGE" => package_name,
-                "PACKAGE_BASENAME" => File.basename(package_name),
-                "AUTOPROJ_ROOT" => ws.root_dir,
-                "AUTOPROJ_CONFIG" => ws.config_dir,
-                "AUTOPROJ_SOURCE_DIR" => local_dir]
+                "PACKAGE_BASENAME" => File.basename(package_name)]
 
             vcs_spec = expand(vcs_spec, expansions)
             vcs_spec.dup.each do |name, value|

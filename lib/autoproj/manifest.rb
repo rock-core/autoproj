@@ -123,6 +123,12 @@ module Autoproj
             normalized_layout[metapackage.name] = '/'
         end
 
+        # Add a constant definition, used when resolving $CONSTANT in loaded
+        # files
+        def add_constant_definition(key, value)
+            constant_definitions[key] = value
+        end
+
         # The manifest data as a Hash
         attr_reader :data
 
