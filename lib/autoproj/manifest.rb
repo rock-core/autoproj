@@ -515,7 +515,12 @@ module Autoproj
         #    by S1
         def load_importers(mainline: nil)
             packages.each_value do |pkg|
-                vcs = importer_definition_for(pkg, mainline: mainline)
+                package_mainline =
+                    if mainline == true
+                        pkg.package_set
+                    else mainline
+                    end
+                vcs = importer_definition_for(pkg, mainline: package_mainline)
 
                 if vcs.none?
                     # A package's package set is required to define a VCS for

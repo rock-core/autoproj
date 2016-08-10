@@ -668,6 +668,22 @@ module Autoproj
                 assert pkg.vcs.none?
                 refute pkg.autobuild.importer
             end
+
+            it "converts mainline: true into the package's definition package set" do
+                pkg_set_a = ws_define_package_set 'pkg_set_a'
+                pkg_a = ws_define_package :cmake, 'pkg_a', package_set: pkg_set_a
+                ws_set_version_control_entry pkg_a, Hash['type' => 'local', 'url' => 'test']
+                pkg_set_b = ws_define_package_set 'pkg_set_b'
+                pkg_b = ws_define_package :cmake, 'pkg_b', package_set: pkg_set_b
+                ws_set_version_control_entry pkg_b, Hash['type' => 'local', 'url' => 'test']
+                flexmock(manifest).should_receive(:importer_definition_for).once.
+                    with(pkg_a, mainline: pkg_set_a).
+                    pass_thru
+                flexmock(manifest).should_receive(:importer_definition_for).once.
+                    with(pkg_b, mainline: pkg_set_b).
+                    pass_thru
+                manifest.load_importers(mainline: true)
+            end
         end
     end
 end
