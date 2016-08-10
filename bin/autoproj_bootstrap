@@ -303,6 +303,8 @@ module Autoproj
                 self.class.rewrite_shims(shims_path, ruby_executable, autoproj_gemfile_path, gems_gem_home)
             end
 
+            EXCLUDED_FROM_SHIMS = %w{rake thor}
+
             def self.rewrite_shims(shim_path, ruby_executable, autoproj_gemfile_path, gems_gem_home)
                 FileUtils.mkdir_p shim_path
                 File.open(File.join(shim_path, 'ruby'), 'w') do |io|
@@ -316,6 +318,10 @@ module Autoproj
                 Dir.glob(File.join(shim_path, '*')) do |bin_script|
                     next if !File.file?(bin_script)
                     bin_name = File.basename(bin_script)
+                    if EXCLUDED_FROM_SHIMS.include?(bin_name)
+                        FileUtils.rm_f bin_script
+                        next
+                    end
                     next if bin_name == 'ruby'
 
                     bin_shim = File.join(shim_path, bin_name)
