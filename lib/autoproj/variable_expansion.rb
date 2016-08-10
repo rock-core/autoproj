@@ -82,8 +82,9 @@ module Autoproj
     def self.contains_expansion?(string); string =~ /\$/ end
 
     def self.resolve_one_constant(name, value, result, definitions)
-        result[name] = single_expansion(value, result) do |missing_name|
-            result[missing_name] = resolve_one_constant(missing_name, definitions.delete(missing_name), result, definitions)
+        result[name] ||= single_expansion(value, result) do |missing_name|
+            result[missing_name] =
+                resolve_one_constant(missing_name, definitions[missing_name], result, definitions)
         end
     end
 
@@ -91,17 +92,15 @@ module Autoproj
     #
     # I.e. replaces variables by their values, so that no value in +constants+
     # refers to variables defined in +constants+
-    def self.resolve_constant_definitions(constants)
-        constants = constants.dup
-        constants['HOME'] = ENV['HOME']
+    def self.resolve_constant_definitions(constants, definitions = Hash.new)
+        definitions = definitions.merge(constants)
         
-        result = Hash.new
-        while !constants.empty?
-            name  = constants.keys.first
-            value = constants.delete(name)
-            resolve_one_constant(name, value, result, constants)
+        all_resolutions = Hash.new
+        resolution_cache = Hash.new
+        constants.each do |key, value|
+            all_resolutions[key] = resolve_one_constant(key, value, resolution_cache, definitions)
         end
-        result
+        all_resolutions
     end
 end
 

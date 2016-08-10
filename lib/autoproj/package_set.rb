@@ -44,7 +44,7 @@ module Autoproj
         # It defaults to 0
         #
         # @return [String]
-        attr_reader :required_autoproj_version
+        attr_accessor :required_autoproj_version
 
         # The package set name
         #
@@ -77,6 +77,8 @@ module Autoproj
         def explicit?; !!@explicit end
         attr_writer :explicit
 
+        # Definition of key => value mappings used to resolve e.g. $KEY values
+        # in the version control sections
         attr_reader :constants_definitions
 
         # The version control information defined in this package set
@@ -151,7 +153,6 @@ module Autoproj
             @raw_local_dir = raw_local_dir
             @default_importer = VCSDefinition.from_raw(type: 'none')
 
-            @provides = Set.new
             @imports  = Set.new
             @imports_vcs  = Array.new
             @imported_from = Array.new
@@ -357,6 +358,11 @@ module Autoproj
             @imports.each(&block)
         end
 
+        # Add a new constant to be used to resolve e.g. version control entries
+        def add_constant_definition(key, value)
+            constants_definitions[key] = value
+        end
+
         # Add a new VCS import to the list of imports
         #
         # @param [VCSDefinition] vcs the VCS specification for the import
@@ -379,8 +385,12 @@ module Autoproj
         end
 
         # Add a new entry in the list of version control resolutions
-        def add_overrides_entry(matcher, vcs_definition)
-            overrides << [matcher, vcs_definition]
+        def add_overrides_entry(matcher, vcs_definition, file: '#add_overrides_entry')
+            if (last_entry = overrides.last) && last_entry[0] == file
+                last_entry[1] << [matcher, vcs_definition]
+            else
+                overrides << [file, [[matcher, vcs_definition]]]
+            end
         end
 
         # Path to the source.yml file
@@ -408,63 +418,79 @@ module Autoproj
         def load_overrides(source_definition)
             if data = source_definition['overrides']
                 [[source_file, data]]
-            else
-                []
             end
         end
 
         def parse_source_definition(source_definition)
-            @name = source_definition['name']
-            @required_autoproj_version = source_definition.fetch('required_autoproj_version', '0')
-            @provides = (source_definition['provides'] || Set.new).to_set
-            @imports_vcs  = Array(source_definition['imports'] || Array.new).map do |set_def|
-                if !set_def.kind_of?(Hash) && !set_def.respond_to?(:to_str)
-                    raise ConfigError.new(source_file),
-                        "in #{source_file}: wrong format for 'imports' section. Expected an array of maps or strings (e.g. - github: my/url)."
-                end
+            @name = source_definition['name'] || self.name
+            @required_autoproj_version = source_definition.fetch('required_autoproj_version', self.required_autoproj_version)
+            if new_imports = source_definition['imports']
+                @imports_vcs  = Array(new_imports).map do |set_def|
+                    if !set_def.kind_of?(Hash) && !set_def.respond_to?(:to_str)
+                        raise ConfigError.new(source_file),
+                            "in #{source_file}: wrong format for 'imports' section. Expected an array of maps or strings (e.g. - github: my/url)."
+                    end
 
-                Autoproj.in_file(source_file) do
-                    PackageSet.resolve_definition(ws, set_def)
+                    Autoproj.in_file(source_file) do
+                        PackageSet.resolve_definition(ws, set_def)
+                    end
                 end
             end
 
             # Compute the definition of constants
-            Autoproj.in_file(source_file) do
-                constants = source_definition['constants'] || Hash.new
-                @constants_definitions = Autoproj.resolve_constant_definitions(constants)
-            end
-
-            version_control = source_definition.fetch('version_control', Array.new)
-            @version_control = normalize_vcs_list('version_control', source_file, version_control)
-            Autoproj.in_file(source_file) do
-                default_vcs_spec, raw = version_control_field('default', version_control)
-                if default_vcs_spec
-                    @default_importer = VCSDefinition.from_raw(default_vcs_spec, raw: raw, from: self)
+            if new_constants = source_definition['constants']
+                Autoproj.in_file(source_file) do
+                    variables = inject_constants_and_config_for_expansion(Hash.new)
+                    @constants_definitions = Autoproj.resolve_constant_definitions(new_constants, variables)
                 end
             end
-            @overrides = load_overrides(source_definition).map do |file, entries|
-                [file, normalize_vcs_list('overrides', source_file, entries)]
+
+            if new_version_control = source_definition['version_control']
+                @version_control = normalize_vcs_list('version_control', source_file, new_version_control)
+
+                Autoproj.in_file(source_file) do
+                    default_vcs_spec, raw = version_control_field('default', version_control)
+                    if default_vcs_spec
+                        @default_importer = VCSDefinition.from_raw(default_vcs_spec, raw: raw, from: self)
+                    end
+                end
+            end
+            if new_overrides = load_overrides(source_definition)
+                @overrides = new_overrides.map do |file, entries|
+                    [file, normalize_vcs_list('overrides', file, entries)]
+                end
             end
         end
 
+        # @api private
+        #
+        # Injects the values of {#constants_definitions} and
+        # {#manifest}.constant_definitions, as well as the available
+        # configuration variables, into a hash suitable to be used for variable
+        # expansion using {Autoproj.expand} and {Autoproj.single_expansion}
+        def inject_constants_and_config_for_expansion(additional_expansions)
+            defs = additional_expansions.
+                merge(constants_definitions).
+                merge(manifest.constant_definitions)
+
+            config = ws.config
+            Hash.new do |h, k|
+                if config.has_value_for?(k) || config.declared?(k)
+                    config.get(k)
+                end
+            end.merge(defs)
+        end
+
         def single_expansion(data, additional_expansions = Hash.new)
-            Autoproj.single_expansion(data, additional_expansions.merge(constants_definitions))
+            defs = inject_constants_and_config_for_expansion(additional_expansions)
+            Autoproj.single_expansion(data, defs)
         end
 
         # Expands the given string as much as possible using the expansions
         # listed in the source.yml file, and returns it. Raises if not all
         # variables can be expanded.
         def expand(data, additional_expansions = Hash.new)
-            defs = additional_expansions.
-                merge(constants_definitions).
-                merge(manifest.constant_definitions)
-
-            config = ws.config
-            defs = Hash.new do |h, k|
-                if config.has_value_for?(k) || config.declared?(k)
-                    config.get(k)
-                end
-            end.merge(defs)
+            defs = inject_constants_and_config_for_expansion(additional_expansions)
             Autoproj.expand(data, defs)
         end
 
@@ -608,10 +634,10 @@ module Autoproj
         #
         # This is a helper for {#overrides_for}
         def resolve_overrides(key, vcs)
-            overrides.each do |file, override|
+            overrides.each do |file, file_overrides|
                 new_spec, new_raw_entry = 
                     Autoproj.in_file file do
-                        version_control_field(key, overrides, false)
+                        version_control_field(key, file_overrides, false)
                     end
 
                 if new_spec
@@ -639,14 +665,6 @@ module Autoproj
                     yield(pkg.autobuild)
                 end
             end
-        end
-
-        # True if this package set provides the given package set name. I.e. if
-        # it has this name or the name is listed in the "replaces" field of
-        # source.yml
-        def provides?(name)
-            name == self.name ||
-                provides.include?(name)
         end
 
         # List the autobuild files that are part of this package set

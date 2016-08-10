@@ -262,6 +262,123 @@ module Autoproj
             end
         end
 
+        describe "#parse_source_definitions" do
+            attr_reader :package_set
+            before do
+                @package_set = PackageSet.new(
+                    ws, VCSDefinition.from_raw('type' => 'git', 'url' => 'https://url'),
+                    raw_local_dir: '/path/to/package_set',
+                    name: 'name_of_package_set')
+            end
+
+            # The expected behaviour of #parse_source_definition is to override
+            # existing values with new ones if the new value is in the def, but
+            # leave the value as-is otherwise. This tests this pattern.
+            def assert_loads_value(attribute_name, expected_new_value, expected_current_value, source_definition: Hash[attribute_name => expected_new_value])
+                current_value = package_set.send(attribute_name)
+                assert_equal current_value, expected_current_value, "invalid expected current value for #{attribute_name}"
+
+                package_set.parse_source_definition(Hash.new)
+                new_value = package_set.send(attribute_name)
+                assert_equal current_value, new_value, "expected #parse_source_definition called with an empty hash to not override the value of '#{attribute_name}', but it did"
+
+                package_set.parse_source_definition(source_definition)
+                new_value = package_set.send(attribute_name)
+                assert_equal expected_new_value, new_value, "expected #parse_source_definition override the value of '#{attribute_name}' but it did not"
+            end
+
+            it "loads the name" do
+                assert_loads_value 'name', 'new_name', 'name_of_package_set'
+            end
+
+            it "loads the required autoproj version" do
+                package_set.required_autoproj_version = '2'
+                assert_loads_value 'required_autoproj_version', '1', '2'
+            end
+
+            it "loads the imports" do
+                original_vcs = VCSDefinition.from_raw(type: 'git', url: 'https://github.com')
+                package_set.add_raw_imported_set(original_vcs, auto_imports: false)
+                assert_loads_value 'imports_vcs',
+                    [[VCSDefinition.from_raw('type' => 'local', 'url' => 'path/to/package'), Hash[auto_imports: false]]],
+                    [[original_vcs, Hash[auto_imports: false]]],
+                    source_definition: Hash['imports' => Array[Hash['type' => 'local', 'url' => 'path/to/package', 'auto_imports' => false]]]
+            end
+
+            it "loads the constant definitions" do
+                package_set.add_constant_definition 'VAL', '10'
+                assert_loads_value 'constants_definitions',
+                    Hash['VAL' => '20'],
+                    Hash['VAL' => '10'],
+                    source_definition: Hash['constants' => Hash['VAL' => '20']]
+            end
+
+            it "cross-expands the constants the constant definitions" do
+                package_set.parse_source_definition(
+                    'constants' => Hash['A' => '10',
+                                        'B' => "20$A"])
+                assert_equal Hash['A' => '10', 'B' => '2010'],
+                    package_set.constants_definitions
+            end
+
+            it "expands configuration variables from the workspace when expanding the constants" do
+                ws.config.set('A', 10)
+                package_set.parse_source_definition(
+                    'constants' => Hash['B' => "20$A"])
+                assert_equal Hash['B' => '2010'],
+                    package_set.constants_definitions
+            end
+
+            it "normalizes the version control list" do
+                source_definitions = Hash['version_control' => (version_control_list = flexmock)]
+                flexmock(package_set).should_receive(:normalize_vcs_list).
+                    with('version_control', package_set.source_file, version_control_list).once.
+                    and_return(normalized_list = [['package_name', Hash['type' => 'test']]])
+                package_set.parse_source_definition(source_definitions)
+                assert_equal normalized_list, package_set.version_control
+            end
+
+            it "does not modify the version control list if there is no version_control entry in the source definition hash" do
+                package_set.add_version_control_entry('package_name', Hash['type' => 'local'])
+                flexmock(package_set).should_receive(:normalize_vcs_list).never
+                package_set.parse_source_definition(Hash.new)
+                assert_equal [['package_name', Hash['type' => 'local']]], package_set.version_control
+            end
+
+            it "resolves the default VCS entry" do
+                source_definitions = Hash['version_control' => Array[Hash['default' => Hash['type' => 'local', 'url' => 'test']]]]
+                package_set.parse_source_definition(source_definitions)
+                default_vcs = package_set.default_importer
+                assert default_vcs.local?
+                assert_equal 'test', default_vcs.url
+            end
+
+            it "leaves the default VCS if the new version control field has no 'default' entry" do
+                vcs = VCSDefinition.from_raw('type' => 'local', 'url' => 'test')
+                package_set.default_importer = vcs
+                source_definitions = Hash['version_control' => Array[]]
+                package_set.parse_source_definition(source_definitions)
+                assert_equal vcs, package_set.default_importer
+            end
+
+            it "normalizes the overrides list" do
+                source_definitions = Hash.new
+                flexmock(package_set).should_receive(:load_overrides).
+                    with(Hash.new).
+                    and_return([['file0', raw_list = flexmock]])
+                flexmock(package_set).should_receive(:normalize_vcs_list).
+                    with('overrides', 'file0', raw_list).once.
+                    and_return(normalized_list = flexmock)
+                package_set.parse_source_definition(Hash.new)
+                assert_equal [['file0', normalized_list]], package_set.overrides
+            end
+            it "does not change the overrides if there is no overrides entry" do
+                package_set.add_overrides_entry('package_name', VCSDefinition.none, file: 'test file')
+                package_set.parse_source_definition(Hash.new)
+                assert_equal [['test file', [['package_name', VCSDefinition.none]]]], package_set.overrides
+            end
+        end
+
         describe "raw_description_file" do
             it "raises InternalError if the package set's directory does not exist" do
                 package_set = PackageSet.new(

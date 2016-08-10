@@ -136,5 +136,76 @@ module Autoproj
                 end
             end 
         end
+
+        describe "#==" do
+            it "returns false if given an arbitrary object" do
+                refute_equal Object.new, VCSDefinition.none
+            end
+            
+            describe "null definitions" do
+                attr_reader :left
+                before do
+                    @left  = VCSDefinition.none
+                end
+
+                it "ignores all options for null definitions" do
+                    left.options[:garbage] = true
+                    right = VCSDefinition.none
+                    left.options[:garbage] = false
+                    assert_equal left, right
+                end
+
+                it "returns false for non-null definitions" do
+                    right = VCSDefinition.from_raw(type: 'local', url: '/path/to/somewhere/else', garbage_option: false)
+                    refute_equal left, right
+                end
+            end
+
+            describe "a local vcs receiver" do
+                attr_reader :left
+                before do
+                    @left  = VCSDefinition.from_raw(type: 'local', url: '/path/to', garbage_option: true)
+                end
+
+                it "only compares against the URL for local VCS" do
+                    right = VCSDefinition.from_raw(type: 'local', url: '/path/to', garbage_option: false)
+                    assert_equal left, right
+                    right = VCSDefinition.from_raw(type: 'local', url: '/path/to/somewhere/else', garbage_option: false)
+                    refute_equal left, right
+                end
+                it "returns false for non-local VCSes even if they have the same URL" do
+                    right = VCSDefinition.from_raw(type: 'git', url: '/path/to', garbage_option: false)
+                    refute_equal left, right
+                end
+            end
+
+            describe "an non-local, non-null definition" do
+                attr_reader :left
+                before do
+                    @left  = VCSDefinition.from_raw(type: 'git', url: '/path/to', branch: 'master')
+                end
+
+                it "returns false for a null VCS" do
+                    refute_equal left, VCSDefinition.none
+                end
+                it "returns false for a local VCS" do
+                    refute_equal left, VCSDefinition.from_raw(type: 'local', url: '/path/to')
+                end
+                it "delegates to the autobuild importer's #source_id implementation" do
+                    flexmock(left).should_receive(:create_autobuild_importer).
+                        and_return(flexmock(source_id: (source_id = flexmock)))
+
+                    right = VCSDefinition.from_raw(type: 'git', url: '/path/to', branch: 'arbitrary')
+                    flexmock(right).should_receive(:create_autobuild_importer).
+                        and_return(flexmock(source_id: source_id))
+                    assert_equal left, right
+
+                    right = VCSDefinition.from_raw(type: 'git', url: '/path/to', branch: 'arbitrary')
+                    flexmock(right).should_receive(:create_autobuild_importer).
+                        and_return(flexmock(source_id: flexmock))
+                    refute_equal left, right
+                end
+            end
+        end
     end
 end

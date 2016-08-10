@@ -216,8 +216,14 @@ module Autoproj
         def ==(other_vcs)
             return false if !other_vcs.kind_of?(VCSDefinition)
             if local?
-                other_vcs.local? && url == other.url
-            elsif !other_vcs.local?
+                other_vcs.local? && url == other_vcs.url
+            elsif other_vcs.local?
+                false
+            elsif none?
+                other_vcs.none?
+            elsif other_vcs.none?
+                false
+            else
                 this_importer = create_autobuild_importer
                 other_importer = other_vcs.create_autobuild_importer
                 this_importer.source_id == other_importer.source_id
