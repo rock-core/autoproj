@@ -333,7 +333,7 @@ module Autoproj
             #    considered in turn, and added at the earliest place that fits
             #    the dependencies
             topological = Array.new
-            queue = package_sets.to_a
+            queue = (package_sets.to_a + [root_pkg_set]).uniq
             while !queue.empty?
                 last_size = queue.size
                 pending = queue.dup
@@ -367,7 +367,13 @@ module Autoproj
                     result.insert(i + 1, pkg_set)
                 end
             end
-            result << root_pkg_set
+
+            # Sanity check related to the root package set
+            # - it should be last
+            # - it should be present only once
+            if result.last != root_pkg_set
+                raise InternalError, "failed to sort the package sets: the root package set should be last, but is not"
+            end
             result
         end
 
@@ -381,34 +387,39 @@ module Autoproj
             update_configuration(options)
         end
 
-        def update_configuration(options = Hash.new)
-            if !options.kind_of?(Hash)
-                options = Hash[only_local: options]
-            end
-            options = validate_options options,
+        def update_configuration(
                 only_local: false,
                 checkout_only: !Autobuild.do_update,
                 ignore_errors: false,
                 reset: false,
-                retry_count: nil
+                retry_count: nil)
 
-            # Load the installation's manifest a first time, to check if we should
-            # update it ... We assume that the OS dependencies for this VCS is already
-            # installed (i.e. that the user did not remove it)
+            update_options = Hash[
+                only_local: only_local,
+                checkout_only: checkout_only,
+                ignore_errors: ignore_errors,
+                reset: reset,
+                retry_count: retry_count]
+
             if ws.manifest.vcs && !ws.manifest.vcs.local?
-                update_main_configuration(options)
+                update_main_configuration(**update_options)
             end
             ws.load_main_initrb
             ws.manifest.load(manifest_path)
-
             root_pkg_set = ws.manifest.main_package_set
             root_pkg_set.load_description_file
             root_pkg_set.explicit = true
-            package_sets = load_and_update_package_sets(root_pkg_set, options)
+            update_package_sets(**update_options)
+        end
+
+        def update_package_sets(**update_options)
+            root_pkg_set = ws.manifest.main_package_set
+            package_sets = load_and_update_package_sets(root_pkg_set, **update_options)
             root_pkg_set.imports.each do |pkg_set|
                 pkg_set.explicit = true
             end
             package_sets = sort_package_sets_by_import_order(package_sets, root_pkg_set)
+            ws.manifest.reset_package_sets
             package_sets.each do |pkg_set|
                 ws.manifest.register_package_set(pkg_set)
             end

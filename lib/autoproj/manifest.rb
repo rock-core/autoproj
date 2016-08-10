@@ -407,6 +407,11 @@ module Autoproj
             @package_sets.each(&block)
         end
 
+        # Reset the list of package sets
+        def reset_package_sets
+            @package_sets.clear
+        end
+
         # Registers a new package set
         #
         # @param [PackageSet] pkg_set the package set object
