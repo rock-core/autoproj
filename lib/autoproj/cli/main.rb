@@ -1,6 +1,7 @@
 require 'thor'
 require 'tty/color'
 require 'autoproj/cli/main_test'
+require 'autoproj/cli/main_plugin'
 
 module Autoproj
     module CLI
@@ -335,6 +336,9 @@ The format is a string in which special values can be expanded using a $VARNAME 
                 end
                 ops.stage2(*vars)
             end
+
+            desc 'plugin', 'interface to manage autoproj plugins'
+            subcommand 'plugin', MainPlugin
         end
     end
 end

@@ -350,8 +350,10 @@ load Gem.bin_path('bundler', 'bundler')"
 
 if defined?(Bundler)
     Bundler.with_clean_env do
-        exec($0, *ARGV)
+        exec(Hash['RUBYLIB' => nil], $0, *ARGV)
     end
+elsif ENV['RUBYLIB']
+    exec(Hash['RUBYLIB' => nil], $0, *ARGV)
 end
 
 ENV['BUNDLE_GEMFILE'] = '#{autoproj_gemfile_path}'
@@ -397,6 +399,18 @@ require 'bundler/setup'
                     else
                         default_gemfile_contents
                     end
+
+                gemfile += [
+                    "",
+                    "config_path = File.join(__dir__, 'config.yml')",
+                    "if File.file?(config_path)",
+                    "    require 'yaml'",
+                    "    config = YAML.load(File.read(config_path))",
+                    "    (config['plugins'] || Hash.new).each do |plugin_name, (version, options)|",
+                    "        gem plugin_name, version, **options",
+                    "    end",
+                    "end"
+                ].join("\n")
 
                 FileUtils.mkdir_p File.dirname(autoproj_gemfile_path)
                 File.open(autoproj_gemfile_path, 'w') do |io|

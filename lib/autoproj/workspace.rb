@@ -206,6 +206,10 @@ module Autoproj
             @config
         end
 
+        def save_config
+            config.save(config_file_path)
+        end
+
         def load_manifest
             if File.exist?(manifest_file_path)
                 manifest.load(manifest_file_path)
@@ -322,20 +326,23 @@ module Autoproj
 
             gemfile  = File.join(dot_autoproj_dir, 'Gemfile')
             binstubs = File.join(dot_autoproj_dir, 'bin')
-            old_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(
-                self, 'autoproj', gemfile: gemfile)
+            if restart_on_update
+                old_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(
+                    self, 'autoproj', gemfile: gemfile)
+            end
             begin
                 PackageManagers::BundlerManager.run_bundler_install(
                     self, gemfile, binstubs: binstubs)
             ensure
                 Ops::Install.rewrite_shims(binstubs, config.ruby_executable, gemfile, config.gems_gem_home)
             end
-            new_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(
-                self, 'autoproj', gemfile: gemfile)
-
+            if restart_on_update
+                new_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(
+                    self, 'autoproj', gemfile: gemfile)
+            end
 
             # First things first, see if we need to update ourselves
-            if (new_autoproj_path != old_autoproj_path) && restart_on_update
+            if new_autoproj_path != old_autoproj_path
                 puts
                 Autoproj.message "autoproj has been updated, restarting"
                 puts
