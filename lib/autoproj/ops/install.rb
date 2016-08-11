@@ -337,6 +337,7 @@ if defined?(Bundler)
     end
 end
 
+ENV['BUNDLER_GEMFILE'] ||= '#{autoproj_gemfile_path}'
 ENV['GEM_HOME'] = '#{gems_gem_home}'
 ENV.delete('GEM_PATH')
 Gem.paths = Hash['GEM_HOME' => '#{gems_gem_home}', 'GEM_PATH' => '']
