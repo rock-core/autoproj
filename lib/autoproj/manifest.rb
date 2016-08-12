@@ -447,6 +447,17 @@ module Autoproj
             packages[validate_package_name_argument(name, require_existing: false)]
         end
 
+        # Resolve a package definition by name
+        #
+        # Unlike {#find_package_definition}, raise if the package does not exist
+        def package_definition_by_name(name)
+            if pkg = find_package_definition(name)
+                pkg
+            else
+                raise ArgumentError, "no package defined named '#{name}'"
+            end
+        end
+
         # The autobuild description of a package by its name
         #
         # @param [String,#name] name the package name
