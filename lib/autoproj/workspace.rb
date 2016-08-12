@@ -700,14 +700,22 @@ module Autoproj
         #
         # @return [Array<String>] the list of OS packages that can be fed to
         #   {OSPackageManager#install}
-        def all_os_packages(parallel: config.parallel_import_level)
-            ops = Autoproj::Ops::Import.new(self)
-            _, all_os_packages =
-                ops.import_packages(manifest.default_packages,
-                                checkout_only: true, only_local: true, reset: false,
-                                recursive: true, ignore_errors: true, parallel: parallel,
-                                retry_count: 0)
-            all_os_packages
+        def all_os_packages(import_missing: false, parallel: config.parallel_import_level)
+            if import_missing
+                ops = Autoproj::Ops::Import.new(self)
+                _, all_os_packages =
+                    ops.import_packages(manifest.default_packages,
+                                    checkout_only: true, only_local: true, reset: false,
+                                    recursive: true, ignore_errors: true, parallel: parallel,
+                                    retry_count: 0)
+                all_os_packages
+            else
+                result = Set.new
+                manifest.all_selected_source_packages.each do |source_package|
+                    result.merge(source_package.autobuild.os_packages)
+                end
+                result
+            end
         end
 
         def install_os_packages(packages, all: all_os_packages, **options)
