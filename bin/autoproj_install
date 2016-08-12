@@ -43,6 +43,7 @@ module Autoproj
                 @root_dir = root_dir
                 @gem_source = "https://rubygems.org"
                 @gemfile = nil
+                @skip_stage2 = false
 
                 @autoproj_options = Array.new
 
@@ -112,6 +113,11 @@ module Autoproj
             #
             # @return [String]
             def autoproj_config_path; File.join(dot_autoproj, 'config.yml') end
+
+            # Whether the stage2 install should be called or not
+            def skip_stage2?; !!@skip_stage2 end
+            # (see #skip_stage2?)
+            def skip_stage2=(flag); @skip_stage2 = flag end
 
             # Whether we can access the network while installing
             def local?; !!@local end
@@ -195,6 +201,9 @@ module Autoproj
                 options = OptionParser.new do |opt|
                     opt.on '--local', 'do not access the network (may fail)' do
                         @local = true
+                    end
+                    opt.on '--skip-stage2', 'do not run the stage2 install' do
+                        @skip_stage2 = true
                     end
                     opt.on '--gem-source=URL', String, "use this source for RubyGems instead of rubygems.org" do |url|
                         @gem_source = url
@@ -588,4 +597,6 @@ ENV.delete('RUBYLIB')
 ops = Autoproj::Ops::Install.new(Dir.pwd)
 ops.parse_options(ARGV)
 ops.stage1
-ops.call_stage2
+if !ops.skip_stage2?
+    ops.call_stage2
+end
