@@ -247,9 +247,7 @@ module Autoproj
                 # retrieve the actual name of the package set
                 if !vcs.local?
                     update_remote_package_set(vcs, options)
-                    create_remote_set_user_dir(vcs)
-                    raw_local_dir = PackageSet.raw_local_dir_of(ws, vcs)
-                    required_remotes_dirs << raw_local_dir
+                    required_remotes_dirs << PackageSet.raw_local_dir_of(ws, vcs)
                 end
 
                 name = PackageSet.name_of(ws, vcs)
@@ -262,8 +260,8 @@ module Autoproj
                     already_loaded_pkg_set, already_loaded_vcs = *already_loaded
                     if already_loaded_vcs != vcs
                         if imported_from
-                            Autoproj.warn "redundant auto-import by #{imported_from.name} for package set '#{name}'."
-                            Autoproj.warn "    A package set with the same name (#{name}) has already been imported from"
+                            Autoproj.warn "redundant auto-import of package set '#{name}' by package set '#{imported_from.name}'"
+                            Autoproj.warn "    A package set with the same name has already been imported from"
                             Autoproj.warn "        #{already_loaded_vcs}"
                             Autoproj.warn "    Skipping the following one: "
                             Autoproj.warn "        #{vcs}"
@@ -275,12 +273,14 @@ module Autoproj
                     if imported_from
                         already_loaded_pkg_set.imported_from << imported_from
                         imported_from.imports << already_loaded_pkg_set
+                        by_repository_id[repository_id][2] = already_loaded_pkg_set
                     end
                     next
-                else
-                    create_remote_set_user_dir(vcs)
                 end
 
+                if !vcs.local?
+                    create_remote_set_user_dir(vcs)
+                end
                 pkg_set = load_package_set(vcs, import_options, imported_from)
                 by_repository_id[repository_id][2] = pkg_set
                 package_sets << pkg_set

@@ -60,6 +60,7 @@ module Autoproj
             @tmpdir = Array.new
             @ws = nil
             @ws_package_managers = Hash.new
+            Autobuild.logdir = make_tmpdir
             ws_define_package_manager 'os'
             ws_define_package_manager 'os_indep'
 
@@ -266,6 +267,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
             ws.config.set 'osdeps_mode', 'all'
             ws.config.set 'gems_install_path', File.join(dir, 'gems')
             ws.config.save
+            ws.prefix_dir = make_tmpdir
             ws
         end
 
@@ -327,6 +329,23 @@ gem 'autobuild', path: '#{autobuild_dir}'
 
         def ws_set_overrides_entry(package, package_set, entry)
             package_set.add_overrides_entry(package.name, entry)
+        end
+
+        def ws_create_git_package_set(name, source_data = Hash.new)
+            dir = make_tmpdir
+            if !system('git', 'init', chdir: dir, out: :close)
+                raise "failed to run git init"
+            end
+            File.open(File.join(dir, 'source.yml'), 'w') do |io|
+                YAML.dump(Hash['name' => name].merge(source_data), io)
+            end
+            if !system('git', 'add', 'source.yml', chdir: dir, out: :close)
+                raise "failed to add the source.yml"
+            end
+            if !system('git', 'commit', '-m', 'add source.yml', chdir: dir, out: :close)
+                raise "failed to commit the source.yml"
+            end
+            dir
         end
     end
 end

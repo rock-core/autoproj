@@ -35,17 +35,73 @@ module Autoproj
                 end
 
                 describe "handling of package sets with the same name" do
-                    it "detects names collisions and uses only the first" do
-                        pkg_set_0 = ws_create_git_package_set "package_set_0", name: 'test.pkg.set'
-                        pkg_set_1 = ws_create_git_package_set "package_set_1", name: 'test.pkg.set'
-                        root_package_set = ws.manifest.main_package_set
-                        root_package_set.add_raw_imported_set VCSDefinition.from_raw('type' => 'git', 'url' => pkg_set_0)
-                        root_package_set.add_raw_imported_set VCSDefinition.from_raw('type' => 'git', 'url' => pkg_set_1)
-                        ops.load_and_update_package_sets(root_package_set)
-
+                    attr_reader :pkg_set_0, :pkg_set_1, :root_package_set
+                    before do
+                        flexmock(ws.os_package_installer).should_receive(:install)
+                        @pkg_set_0 = ws_create_git_package_set 'test.pkg.set'
+                        @pkg_set_1 = ws_create_git_package_set 'test.pkg.set'
+                        @root_package_set = ws.manifest.main_package_set
+                        root_package_set.add_raw_imported_set \
+                            VCSDefinition.from_raw('type' => 'git', 'url' => pkg_set_0)
                     end
 
-                    it "updates the link in remotes/ to point to the first" do
+                    it "uses only the first" do
+                        root_package_set.add_raw_imported_set \
+                            VCSDefinition.from_raw('type' => 'git', 'url' => pkg_set_1)
+                        package_sets = ops.load_and_update_package_sets(root_package_set)
+                        assert_equal 2, package_sets.size
+                        assert_same root_package_set, package_sets.first
+                        assert_equal pkg_set_0, package_sets.last.vcs.url
+                    end
+
+                    it "ensures that the user link in remotes/ points to the first match" do
+                        root_package_set.add_raw_imported_set \
+                            VCSDefinition.from_raw('type' => 'git', 'url' => pkg_set_1)
+                        package_sets = ops.load_and_update_package_sets(root_package_set)
+                        assert_equal pkg_set_0, package_sets[1].vcs.url
+                        assert_equal package_sets[1].raw_local_dir, File.readlink(
+                            File.join(ws.config_dir, 'remotes', 'test.pkg.set'))
+                    end
+
+                    it "redirects package sets that import a colliding package set to the first" do
+                        importing_pkg_set = ws_create_git_package_set 'importing.pkg.set',
+                            'imports' => Array['type' => 'git', 'url' => pkg_set_1]
+                        root_package_set.add_raw_imported_set \
+                            VCSDefinition.from_raw('type' => 'git', 'url' => importing_pkg_set)
+                        package_sets = ops.load_and_update_package_sets(root_package_set)
+
+                        assert_equal 3, package_sets.size
+                        assert_same  root_package_set, package_sets[0]
+                        assert_equal pkg_set_0, package_sets[1].vcs.url
+
+                        imported  = package_sets[1]
+                        importing = package_sets[2]
+                        assert_equal importing_pkg_set, importing.vcs.url
+                        assert imported.imported_from.include?(importing)
+                        assert importing.imports.include?(imported)
+                    end
+
+                    it "redirects following imports to the first as well" do
+                        importing_pkg_set = ws_create_git_package_set 'importing.pkg.set',
+                            'imports' => Array['type' => 'git', 'url' => pkg_set_1]
+                        other_importing_pkg_set = ws_create_git_package_set 'other_importing.pkg.set',
+                            'imports' => Array['type' => 'git', 'url' => pkg_set_1]
+                        root_package_set.add_raw_imported_set \
+                            VCSDefinition.from_raw('type' => 'git', 'url' => importing_pkg_set)
+                        root_package_set.add_raw_imported_set \
+                            VCSDefinition.from_raw('type' => 'git', 'url' => other_importing_pkg_set)
+                        package_sets = ops.load_and_update_package_sets(root_package_set)
+
+                        assert_equal 4, package_sets.size
+                        assert_same  root_package_set, package_sets[0]
+                        assert_equal pkg_set_0, package_sets[1].vcs.url
+                        assert_equal importing_pkg_set, package_sets[2].vcs.url
+
+                        imported  = package_sets[1]
+                        other_importing = package_sets[3]
+                        assert_equal other_importing_pkg_set, other_importing.vcs.url
+                        assert imported.imported_from.include?(other_importing)
+                        assert other_importing.imports.include?(imported)
                     end
                 end
             end
