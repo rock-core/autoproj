@@ -33,6 +33,21 @@ module Autoproj
                     end
                     ops.load_and_update_package_sets(root_package_set)
                 end
+
+                describe "handling of package sets with the same name" do
+                    it "detects names collisions and uses only the first" do
+                        pkg_set_0 = ws_create_git_package_set "package_set_0", name: 'test.pkg.set'
+                        pkg_set_1 = ws_create_git_package_set "package_set_1", name: 'test.pkg.set'
+                        root_package_set = ws.manifest.main_package_set
+                        root_package_set.add_raw_imported_set VCSDefinition.from_raw('type' => 'git', 'url' => pkg_set_0)
+                        root_package_set.add_raw_imported_set VCSDefinition.from_raw('type' => 'git', 'url' => pkg_set_1)
+                        ops.load_and_update_package_sets(root_package_set)
+
+                    end
+
+                    it "updates the link in remotes/ to point to the first" do
+                    end
+                end
             end
 
             describe "#update_package_sets" do
