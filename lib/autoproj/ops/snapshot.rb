@@ -134,7 +134,7 @@ module Autoproj
 
             result = Array.new
             packages.each do |package_name|
-                package  = manifest.packages[package_name]
+                package  = manifest.find_package_definition(package_name)
                 if !package
                     raise ArgumentError, "#{package_name} is not a known package"
                 end
@@ -217,8 +217,9 @@ module Autoproj
             if current_versions.empty?
                 # Do a full snapshot this time only
                 Autoproj.message "  building initial autoproj import log, this may take a while"
-                packages = manifest.all_selected_packages.
-                    find_all { |pkg| File.directory?(manifest.find_package_definition(pkg).autobuild.srcdir) }
+                packages = manifest.all_selected_source_packages.
+                    find_all { |pkg| File.directory?(pkg.autobuild.srcdir) }.
+                    map(&:name)
             end
             versions  = snapshot_package_sets
             versions += snapshot_packages(packages)

@@ -21,7 +21,7 @@ module Autoproj
                     packages = all_selected_packages.map do |pkg_name|
                         [pkg_name, ws.manifest.find_package_definition(pkg_name)]
                     end
-                    packages += ws.manifest.all_selected_packages.map do |pkg_name|
+                    packages += ws.manifest.all_selected_source_packages.map do |pkg_name|
                         if !all_selected_packages.include?(pkg_name)
                             [pkg_name, ws.manifest.find_package_definition(pkg_name)]
                         end
