@@ -130,7 +130,7 @@ module Autoproj
 
         # The installation manifest
         def installation_manifest_path
-            InstallationManifest.path_for_root(root_dir)
+            InstallationManifest.path_for_workspace_root(root_dir)
         end
 
         # The path to the workspace configuration file
@@ -663,20 +663,18 @@ module Autoproj
         #
         # @param [Array<String>] package_names the name of the packages that
         #   should be updated
-        def export_installation_manifest(package_names = all_present_packages)
+        def export_installation_manifest
+            selected_packages = manifest.all_selected_source_packages
             install_manifest = InstallationManifest.new(installation_manifest_path)
-            if install_manifest.exist?
-                install_manifest.load
-            end
-            # Delete obsolete entries
-            install_manifest.delete_if do |pkg|
-                !manifest.find_autobuild_package(pkg.name) ||
-                    !File.directory?(pkg.srcdir)
-            end
+
             # Update the new entries
-            package_names.each do |pkg_name|
-                install_manifest[pkg_name] =
-                    manifest.find_autobuild_package(pkg_name)
+            manifest.each_package_set do |pkg_set|
+                next if pkg_set.main?
+                install_manifest.add_package_set(pkg_set)
+            end
+            selected_packages.each do |pkg_name|
+                pkg = manifest.package_definition_by_name(pkg_name)
+                install_manifest.add_package(pkg)
             end
             # And save
             install_manifest.save

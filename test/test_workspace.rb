@@ -211,6 +211,54 @@ module Autoproj
                 ws.export_env_sh
             end
         end
+
+        describe "#export_installation_manifest" do
+            before do
+                ws_create
+            end
+            it "saves the package set information" do
+                pkg_set_dir = make_tmpdir
+                pkg_set = ws_define_package_set 'rock.core', raw_local_dir: pkg_set_dir
+                flexmock(pkg_set).should_receive(:user_local_dir).and_return('/user/dir')
+                ws.export_installation_manifest
+                manifest = InstallationManifest.from_workspace_root(ws.root_dir)
+                assert_equal [InstallationManifest::PackageSet.new('rock.core', pkg_set_dir, '/user/dir')],
+                    manifest.each_package_set.to_a
+            end
+            it "ignores selected osdeps" do
+                ws_add_osdep_entries_to_layout 'package' => 'gem'
+                ws.export_installation_manifest
+                manifest = InstallationManifest.from_workspace_root(ws.root_dir)
+                assert manifest.each_package.to_a.empty?
+            end
+            it "saves the information for the selected packages" do
+                ws_define_package :cmake, 'non_selected'
+                test_dep = ws_define_package :cmake, 'test_dep'
+                pkg = ws_add_package_to_layout :cmake, 'pkg'
+                srcdir = make_tmpdir
+                pkg.autobuild.srcdir = "#{srcdir}/pkg"
+                pkg.autobuild.prefix = '/prefix/pkg'
+                pkg.autobuild.builddir = '/builddir/pkg'
+                pkg.autobuild.depends_on 'test_dep'
+                test_dep.autobuild.srcdir = "#{srcdir}/test_dep"
+                test_dep.autobuild.prefix = '/prefix/test_dep'
+                test_dep.autobuild.builddir = '/builddir/test_dep'
+                FileUtils.mkdir_p(pkg.autobuild.srcdir)
+                FileUtils.mkdir_p(test_dep.autobuild.srcdir)
+
+                ws.export_installation_manifest
+                manifest = InstallationManifest.from_workspace_root(ws.root_dir)
+
+                test_dep = InstallationManifest::Package.new(
+                    'test_dep', "#{srcdir}/test_dep", '/prefix/test_dep', '/builddir/test_dep', [])
+                pkg      = InstallationManifest::Package.new(
+                    'pkg', "#{srcdir}/pkg", '/prefix/pkg', '/builddir/pkg', ['test_dep'])
+                packages = manifest.each_package.to_a
+                assert_equal 2, packages.size
+                assert packages.include?(test_dep)
+                assert packages.include?(pkg)
+            end
+        end
     end
 end
 

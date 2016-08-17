@@ -12,8 +12,8 @@ module Autoproj
             # @return [Workspace]
             attr_reader :ws
 
-            def initialize(ws = nil)
-                @ws = (ws || Workspace.default)
+            def initialize(ws = Workspace.default)
+                @ws = ws
             end
 
             # Normalizes the arguments given by the user on the command line

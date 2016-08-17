@@ -13,7 +13,7 @@ module Autoproj
                 end
 
                 if from = options[:from]
-                    options[:from] = Autoproj::InstallationManifest.from_root(options[:from])
+                    options[:from] = Autoproj::InstallationManifest.from_workspace_root(options[:from])
                 end
                 ws.os_package_installer.filter_uptodate_packages = options[:osdeps_filter_uptodate]
 

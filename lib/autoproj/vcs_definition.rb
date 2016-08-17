@@ -245,6 +245,15 @@ module Autoproj
             type != 'none' && type != 'local'
         end
 
+        def overrides_key
+            return if none?
+            if local?
+                "local:#{url}"
+            else
+                create_autobuild_importer.repository_id
+            end
+        end
+
         # Returns a properly configured instance of a subclass of
         # Autobuild::Importer that match this VCS definition
         #

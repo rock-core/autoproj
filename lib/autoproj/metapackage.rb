@@ -24,6 +24,10 @@ module Autoproj
             @weak_dependencies = false
         end
 
+        def size
+            packages.size
+        end
+
         # Adds a package to this metapackage
         #
         # @param [Autobuild::Package] pkg

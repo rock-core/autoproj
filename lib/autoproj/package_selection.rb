@@ -61,6 +61,10 @@ module Autoproj
                 each_osdep_package_name(&block)
             end
 
+            def selected_source_package?(pkg)
+                source_packages.include?(pkg.name)
+            end
+
             def each_source_package_name(&block)
                 source_packages.each(&block)
             end

@@ -567,6 +567,11 @@ module Autoproj
 
         # Checks if there is a package set with a given name
         def has_package_set?(name)
+            !!find_package_set(name)
+        end
+
+        # Returns a package set from its name
+        def find_package_set(name)
             each_package_set.find { |set| set.name == name }
         end
 
@@ -1114,15 +1119,13 @@ module Autoproj
 
         # Declare that we should reuse the autoproj installation present at the
         # given path
-        def reuse(path)
-            if reused_installations.any? { |mnf| mnf.path == dir }
+        def reuse(workspace_root)
+            manifest_path = InstallationManifest.path_for_workspace_root(workspace_root)
+            if reused_installations.any? { |mnf| mnf.path == workspace_root }
                 return
             end
 
-            manifest = InstallationManifest.new(dir)
-            if !File.file?(manifest.default_manifest_path)
-                raise ConfigError.new, "while setting up reuse of #{dir}, the .autoproj-installation-manifest file does not exist. You should probably rerun autoproj envsh in that folder first"
-            end
+            manifest = InstallationManifest.from_workspace_root(workspace_root)
             manifest.load
             @reused_installations << manifest
             manifest.each do |pkg|

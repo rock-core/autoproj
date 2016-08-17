@@ -11,24 +11,71 @@ module Autoproj
                 initialize_and_load(mainline: options.delete(:mainline))
                 default_packages = ws.manifest.default_packages
 
-                source_packages, osdep_packages, * =
-                    finalize_setup(user_selection,
-                                   recursive: false,
-                                   ignore_non_imported_packages: true)
-
-                if source_packages.empty? && osdep_packages.empty?
-                    Autoproj.error "no packages or OS packages match #{user_selection.join(" ")}"
-                    return
+                # Filter out selections that match package set names
+                package_set_names, user_selection = user_selection.partition do |name|
+                    ws.manifest.find_package_set(name)
                 end
-                load_all_available_package_manifests
-                revdeps = ws.manifest.compute_revdeps
 
+                if !user_selection.empty? || package_set_names.empty?
+                    source_packages, osdep_packages, * =
+                        finalize_setup(user_selection,
+                                       recursive: false,
+                                       ignore_non_imported_packages: true)
+                else
+                    source_packages, osdep_packages = Array.new, Array.new
+                end
+
+                if package_set_names.empty? && source_packages.empty? && osdep_packages.empty?
+                    Autoproj.error "no package set, packages or OS packages match #{user_selection.join(" ")}"
+                    return
+                elsif !source_packages.empty? || !osdep_packages.empty?
+                    load_all_available_package_manifests
+                    revdeps = ws.manifest.compute_revdeps
+                end
+
+                package_set_names.each do |pkg_set_name|
+                    display_package_set(pkg_set_name)
+                end
                 source_packages.each do |pkg_name|
                     display_source_package(pkg_name, default_packages, revdeps, env: options[:env])
                 end
                 osdep_packages.each do |pkg_name|
                     display_osdep_package(pkg_name, default_packages, revdeps)
                 end
+            end
+
+            def display_package_set(name, package_per_line: 8)
+                puts Autoproj.color("package set #{name}", :bold)
+                pkg_set = ws.manifest.find_package_set(name)
+                if !File.directory?(pkg_set.raw_local_dir)
+                    puts Autobuild.color("  this package set is not checked out", :magenta)
+                end
+                if overrides_key = pkg_set.vcs.overrides_key
+                    puts "  overrides key: pkg_set:#{overrides_key}"
+                end
+                if pkg_set.raw_local_dir != pkg_set.user_local_dir
+                    puts "  checkout dir: #{pkg_set.raw_local_dir}"
+                    puts "  symlinked to: #{pkg_set.user_local_dir}"
+                else
+                    puts "  path: #{pkg_set.raw_local_dir}"
+                end
+
+                puts "  version control information:"
+                display_vcs(pkg_set.vcs)
+
+                metapackage = ws.manifest.find_metapackage(name)
+                size = metapackage.size
+                if size == 0
+                    puts "  does not have any packages"
+                else
+                    puts "  refers to #{metapackage.size} package#{'s' if metapackage.size > 1}"
+                end
+                names = metapackage.each_package.map(&:name).sort
+                package_lines = names.each_slice(package_per_line).map do |*line_names|
+                    line_names.join(", ")
+                end
+                puts "    " + package_lines.join(",\n    ")
+
             end
 
             def display_source_package(pkg_name, default_packages, revdeps, options = Hash.new)
@@ -41,8 +88,31 @@ module Autoproj
                 ws.manifest.load_package_manifest(pkg_name)
                 vcs = ws.manifest.find_package_definition(pkg_name).vcs
 
+                display_vcs(vcs)
+                display_common_information(pkg_name, default_packages, revdeps)
+
+                puts "  directly depends on: #{pkg.dependencies.sort.join(", ")}"
+                puts "  optionally depends on: #{pkg.optional_dependencies.sort.join(", ")}"
+                puts "  dependencies on OS packages: #{pkg.os_packages.sort.join(", ")}"
+                if options[:env]
+                    puts "  environment"
+                    pkg.resolved_env.sort_by(&:first).each do |name, v|
+                        values = v.split(File::PATH_SEPARATOR)
+                        if values.size == 1
+                            puts "    #{name}: #{values.first}"
+                        else
+                            puts "    #{name}:"
+                            values.each do |single_v|
+                                puts "      #{single_v}"
+                            end
+                        end
+                    end
+                end
+            end
+
+            def display_vcs(vcs)
                 fragments = []
-                if !vcs
+                if vcs.none?
                     fragments << ["has no VCS definition", []]
                 else
                     first = true
@@ -74,26 +144,6 @@ module Autoproj
                     else
                         elements.each do |key, value|
                             puts "    #{key}: #{value}"
-                        end
-                    end
-                end
-
-                display_common_information(pkg_name, default_packages, revdeps)
-
-                puts "  directly depends on: #{pkg.dependencies.sort.join(", ")}"
-                puts "  optionally depends on: #{pkg.optional_dependencies.sort.join(", ")}"
-                puts "  dependencies on OS packages: #{pkg.os_packages.sort.join(", ")}"
-                if options[:env]
-                    puts "  environment"
-                    pkg.resolved_env.sort_by(&:first).each do |name, v|
-                        values = v.split(File::PATH_SEPARATOR)
-                        if values.size == 1
-                            puts "    #{name}: #{values.first}"
-                        else
-                            puts "    #{name}:"
-                            values.each do |single_v|
-                                puts "      #{single_v}"
-                            end
                         end
                     end
                 end

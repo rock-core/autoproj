@@ -184,20 +184,12 @@ module Autoproj
         def queue_auto_imports_if_needed(queue, pkg_set, root_set)
             if pkg_set.auto_imports?
                 pkg_set.each_raw_imported_set do |import_vcs, import_options|
-                    repository_id = repository_id_of(import_vcs)
-                    import_vcs = root_set.resolve_overrides("pkg_set:#{repository_id}", import_vcs)
+                    vcs_overrides_key = import_vcs.overrides_key
+                    import_vcs = root_set.resolve_overrides("pkg_set:#{vcs_overrides_key}", import_vcs)
                     queue << [import_vcs, import_options, pkg_set]
                 end
             end
             queue
-        end
-
-        def repository_id_of(vcs)
-            if vcs.local?
-                return "local:#{vcs.url}"
-            end
-
-            vcs.create_autobuild_importer.repository_id
         end
 
         # Load the package set information
@@ -228,7 +220,7 @@ module Autoproj
             queue = queue_auto_imports_if_needed(Array.new, root_pkg_set, root_pkg_set)
             while !queue.empty?
                 vcs, import_options, imported_from = queue.shift
-                repository_id = repository_id_of(vcs)
+                repository_id = vcs.overrides_key
                 if already_processed = by_repository_id[repository_id]
                     already_processed_vcs, already_processed_from, pkg_set = *already_processed
                     if (already_processed_from != root_pkg_set) && (already_processed_vcs != vcs)

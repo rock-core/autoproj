@@ -73,6 +73,7 @@ module Autoproj
                 FileUtils.remove_entry_secure dir
             end
             Autobuild::Package.clear
+            Autoproj.silent = false
 
             if @gem_server_pid
                 stop_gem_server
@@ -294,7 +295,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
         def ws_add_osdep_entries_to_layout(entries)
             ws_os_package_resolver.add_entries(entries)
             entries.each_key do |pkg_name|
-                manifest.add_package_to_layout(pkg_name)
+                ws.manifest.add_package_to_layout(pkg_name)
             end
         end
 
