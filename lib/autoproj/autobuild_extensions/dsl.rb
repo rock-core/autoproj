@@ -169,7 +169,8 @@ def common_make_based_package_setup(pkg)
         if !pkg.test_utility.source_dir
             test_dir = File.join(pkg.srcdir, 'test')
             if File.directory?(test_dir)
-                pkg.test_utility.source_dir = test_dir
+                pkg.test_utility.source_dir = File.join(pkg.builddir, 'test', 'results')
+                pkg.test_utility.target_dir = File.join(pkg.logdir, pkg.name)
             end
         end
 
