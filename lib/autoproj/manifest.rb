@@ -447,6 +447,12 @@ module Autoproj
             packages[validate_package_name_argument(name, require_existing: false)]
         end
 
+        # @deprecated use {#package_definition_by_name} instead
+        def package(name)
+            Autoproj.warn_deprecated "Manifest#package is deprecated, use #package_definition_by_name instead"
+            package_definition_by_name(name)
+        end
+
         # Resolve a package definition by name
         #
         # Unlike {#find_package_definition}, raise if the package does not exist
@@ -484,20 +490,24 @@ module Autoproj
             each_package_definition { |pkg| yield(pkg.autobuild) }
         end
 
-        # Compute the VCS definition for a given package
+        # @overload importer_definition_for(package, mainline: nil, require_existing: true, package_set: nil)
         #
         # @param [PackageDefinition] package the name of the package to be resolved
         # @param [PackageSet,nil] mainline the reference package set for which
         #   we want to compute the importer definition. Pass package.package_set
         #   if you want to avoid applying any override
         # @return [VCSDefinition] the VCS definition object
-        def importer_definition_for(package, mainline: nil, require_existing: true, package_set: package.package_set)
+        def importer_definition_for(package, _package_set = nil, mainline: nil, require_existing: true, package_set: nil)
+            package_name = validate_package_name_argument(package, require_existing: require_existing)
+            if _package_set
+                Autoproj.warn_deprecated "calling #importer_definition_for with the package set as second argument is deprecated, use the package_set: keyword argument instead"
+            end
+            package_set = _package_set || package_set || package.package_set
             mainline = if mainline == true
                            package_set
                        else mainline
                        end
 
-            package_name = validate_package_name_argument(package, require_existing: require_existing)
             # package_name is already validated, do not re-validate
             vcs = package_set.importer_definition_for(package_name, require_existing: false)
 
