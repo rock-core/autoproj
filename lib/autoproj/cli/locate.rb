@@ -21,6 +21,7 @@ module Autoproj
             def initialize(ws = Workspace.default,
                            installation_manifest: load_installation_manifest(ws))
                 super(ws)
+                ws.load_config
                 @installation_manifest = installation_manifest
             end
 
