@@ -1055,6 +1055,8 @@ module Autoproj
                         all_matches << [pkg.name, pkg.name == sel]
                     elsif "#{sel}/".start_with?("#{pkg.srcdir}/")
                         all_matches << [pkg.name, true]
+                    elsif pkg.respond_to?(:builddir) && "#{sel}/".start_with?("#{pkg.builddir}/")
+                        all_matches << [pkg.name, true]
                     elsif pkg.srcdir.start_with?(sel) && all_selected_packages.include?(pkg.name)
                         all_matches << [pkg.name, false]
                     end
