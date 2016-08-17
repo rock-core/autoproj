@@ -355,29 +355,30 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             all_packages = os_package_resolver.resolve_os_packages(all_osdep_packages || Array.new)
             all_packages = resolve_package_managers_in_mapping(all_packages)
 
-            partitioned_packages = packages.merge(all_packages) do |manager, package_list, all_package_list|
-                if manager.strict?
-                    all_package_list | package_list
-                else
-                    package_list
-                end
-            end
-
+            partitioned_packages = Hash.new
             package_managers.each do |manager_name, manager|
+                manager_selected = packages.fetch(manager, Set.new).to_set
+                manager_all      = all_packages.fetch(manager, Set.new).to_set
+
+                next if manager_selected.empty? && !manager.call_while_empty?
+
                 # If the manager is strict, we need to bypass it if we did not
                 # get the complete list of osdep packages
                 if manager.strict? && !all_osdep_packages
-                    if partitioned_packages[manager]
+                    if !manager_selected.empty?
                         raise InternalError, "requesting to install the osdeps #{partitioned_packages[manager].to_a.sort.join(", ")} through #{manager_name} but the complete list of osdep packages managed by this manager was not provided. This would break the workspace"
                     end
                     next
                 end
 
-                if manager.call_while_empty?
-                    partitioned_packages[manager] ||= Array.new
+                if manager.strict?
+                    manager_packages = manager_all | manager_selected
+                else
+                    manager_packages = manager_selected
                 end
-            end
 
+                partitioned_packages[manager] = manager_packages
+            end
             partitioned_packages
         end
 

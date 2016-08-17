@@ -2,25 +2,73 @@ require 'autoproj/test'
 
 module Autoproj
     describe OSPackageInstaller do
-        describe "#install" do
-            attr_reader :os_package_installer
-            attr_reader :os_manager
-            attr_reader :os_indep_manager
+        attr_reader :os_package_installer
+        attr_reader :os_manager
+        attr_reader :os_indep_manager
 
+        before do
+            # Use the helpers, but avoid creating a workspace
+            ws = flexmock
+            ws_create_os_package_resolver
+            @os_package_installer = OSPackageInstaller.new(
+                ws,
+                ws_os_package_resolver,
+                package_managers: ws_package_managers)
+
+            @os_manager       = flexmock(os_package_installer.os_package_manager)
+            @os_indep_manager = flexmock(os_package_installer.package_managers['os_indep'])
+            os_package_installer.osdeps_mode = 'os,os_indep'
+        end
+
+        describe "#resolve_and_partition_osdep_packages" do
             before do
-                # Use the helpers, but avoid creating a workspace
-                ws = flexmock
-                ws_create_os_package_resolver
-                @os_package_installer = OSPackageInstaller.new(
-                    ws,
-                    ws_os_package_resolver,
-                    package_managers: ws_package_managers)
-
-                @os_manager       = flexmock(os_package_installer.os_package_manager)
-                @os_indep_manager = flexmock(os_package_installer.package_managers['os_indep'])
-                os_package_installer.osdeps_mode = 'os,os_indep'
+                ws_define_osdep_entries 'pkg0' => Hash['os' => 'os:pkg0']
+                ws_define_osdep_entries 'pkg1' => Hash['os' => 'os:pkg1']
             end
 
+            it "returns the selected packages for managers that are not strict" do
+                os_manager.should_receive(strict?: false)
+                assert_equal Hash[os_manager => Set['os:pkg0']], os_package_installer.
+                    resolve_and_partition_osdep_packages(['pkg0'], ['pkg0', 'pkg1'])
+            end
+            it "does not invoke non-strict managers if they don't have a selected package" do
+                os_manager.should_receive(strict?: false)
+                assert_equal Hash.new, os_package_installer.
+                    resolve_and_partition_osdep_packages([], ['pkg0', 'pkg1'])
+            end
+            it "does call non-strict managers with an empty set if they have call_while_empty" do
+                os_manager.should_receive(strict?: false, call_while_empty?: true)
+                assert_equal Hash[os_manager => Set[]], os_package_installer.
+                    resolve_and_partition_osdep_packages([], ['pkg0', 'pkg1'])
+            end
+            it "returns all packages for managers that are strict" do
+                os_manager.should_receive(strict?: true)
+                assert_equal Hash[os_manager => Set['os:pkg0', 'os:pkg1']], os_package_installer.
+                    resolve_and_partition_osdep_packages(['pkg0'], ['pkg0', 'pkg1'])
+            end
+            it "does not invoke strict managers if they don't have a selected package" do
+                os_manager.should_receive(strict?: true)
+                assert_equal Hash[os_manager => Set['os:pkg0', 'os:pkg1']], os_package_installer.
+                    resolve_and_partition_osdep_packages(['pkg0'], ['pkg0', 'pkg1'])
+            end
+            it "does call strict managers with all the packages if they have call_while_empty" do
+                os_manager.should_receive(strict?: true, call_while_empty?: true)
+                assert_equal Hash[os_manager => Set['os:pkg0', 'os:pkg1']], os_package_installer.
+                    resolve_and_partition_osdep_packages([], ['pkg0', 'pkg1'])
+            end
+            it "raises if a strict manager is involved, but the all_osdep_packages argument is not given" do
+                os_manager.should_receive(strict?: true)
+                assert_raises(InternalError) do
+                    os_package_installer.resolve_and_partition_osdep_packages(['pkg0'])
+                end
+            end
+            it "bypasses a strict manager if all_osdep_packages is not given and no explicit package was selected" do
+                os_manager.should_receive(strict?: true, call_while_empty?: true)
+                assert_equal Hash.new, os_package_installer.
+                    resolve_and_partition_osdep_packages([])
+            end
+        end
+        describe "#install" do
             it "installs the resolved packages" do
                 ws_define_osdep_entries(
                     'pkg0' => ['test_os_family' => 'test_os_pkg'],
