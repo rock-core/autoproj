@@ -545,10 +545,10 @@ module Autoproj
                 vcs = importer_definition_for(pkg, mainline: package_mainline)
 
                 if vcs.none?
-                    # A package's package set is required to define a VCS for
-                    # it. But it can be overriden later on.
                     if pkg.package_set.importer_definition_for(pkg).none?
-                        raise ConfigError.new, "package set #{pkg.package_set.name} defines the package '#{pkg.name}', but does not provide a version control definition for it"
+                        if (pkg.package_set != main_package_set) || !File.exist?(pkg.autobuild.srcdir)
+                            raise ConfigError.new, "package set #{pkg.package_set.name} defines the package '#{pkg.name}', but does not provide a version control definition for it"
+                        end
                     end
                 end
 

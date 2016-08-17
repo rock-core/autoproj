@@ -653,21 +653,19 @@ module Autoproj
             end
 
             it "raises if the package's defining package set has no definition for it" do
-                pkg = ws_define_package :cmake, 'test'
+                pkg_set = ws_define_package_set 'pkg.set'
+                pkg = ws_define_package :cmake, 'test', package_set: pkg_set
                 e = assert_raises(ConfigError) do
                     manifest.load_importers
                 end
-                assert_equal "package set main configuration defines the package 'test', but does not provide a version control definition for it",
+                assert_equal "package set pkg.set defines the package 'test', but does not provide a version control definition for it",
                     e.message
             end
 
-            it "raises if 'none' is explicitely given as version control entry for the package in its defining package set" do
+            it "allows the main package set to have no definition for a package" do
                 pkg = ws_define_package :cmake, 'test'
-                e = assert_raises(ConfigError) do
-                    manifest.load_importers
-                end
-                assert_equal "package set main configuration defines the package 'test', but does not provide a version control definition for it",
-                    e.message
+                manifest.load_importers
+                assert pkg.vcs.none?
             end
 
             it "does not raise if a non-null version control entry was given in the defining package set, but later on overriden to 'none'" do
