@@ -512,10 +512,11 @@ module Autoproj
         #   if you want to avoid applying any override
         # @return [VCSDefinition] the VCS definition object
         def importer_definition_for(package, _package_set = nil, mainline: nil, require_existing: true, package_set: nil)
-            package_name = validate_package_name_argument(package, require_existing: require_existing)
             if _package_set
                 Autoproj.warn_deprecated "calling #importer_definition_for with the package set as second argument is deprecated, use the package_set: keyword argument instead"
+                require_existing = false
             end
+            package_name = validate_package_name_argument(package, require_existing: require_existing)
             package_set = _package_set || package_set || package.package_set
             mainline = if mainline == true
                            package_set
