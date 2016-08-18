@@ -239,6 +239,8 @@ end
 # information.
 def ruby_package(name, workspace: Autoproj.workspace)
     package_common(:ruby, name, workspace: workspace) do |pkg|
+        pkg.prefix = pkg.srcdir
+
         # Documentation code. Ignore if the user provided its own documentation
         # task, or disabled the documentation generation altogether by setting
         # rake_doc_task to nil
