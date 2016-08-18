@@ -249,7 +249,8 @@ def ruby_package(name, workspace: Autoproj.workspace)
             if !pkg.test_utility.source_dir
                 test_dir = File.join(pkg.srcdir, 'test')
                 if File.directory?(test_dir)
-                    pkg.test_utility.source_dir = test_dir
+                    pkg.test_utility.source_dir = File.join(pkg.srcdir, '.test-results')
+                    FileUtils.mkdir_p pkg.test_utility.source_dir
                 end
             end
 
