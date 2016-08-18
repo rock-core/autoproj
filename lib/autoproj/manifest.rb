@@ -447,6 +447,13 @@ module Autoproj
             packages[validate_package_name_argument(name, require_existing: false)]
         end
 
+        # @deprecated use {#find_package_definition}(pkg_name).package_set
+        # instead
+        def definition_package_set(name)
+            Autoproj.warn_deprecated __method__, "use #package_definition_by_name(name).package_set instead"
+            package_definition_by_name(name).package_set
+        end
+
         # @deprecated use {#package_definition_by_name} instead
         def package(name)
             Autoproj.warn_deprecated "Manifest#package is deprecated, use #package_definition_by_name instead"
