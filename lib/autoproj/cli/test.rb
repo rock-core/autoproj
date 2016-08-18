@@ -56,7 +56,8 @@ module Autoproj
 
             def run(user_selection, options = Hash.new)
                 initialize_and_load
-                packages, _ = finalize_setup(user_selection)
+                packages, _ = finalize_setup(user_selection,
+                                             recursive: options[:dep])
 
                 packages.each do |pkg|
                     Autobuild::Package[pkg].disable_phases('import', 'prepare', 'install')
