@@ -726,11 +726,11 @@ module Autoproj
             elsif osdeps_available || accept_unavailable_osdeps?
                 return [[:osdeps, name]]
             elsif osdeps_availability == OSPackageResolver::WRONG_OS
-                raise PackageNotFound, "#{name} is an osdep, but it is not available for this operating system"
+                raise PackageNotFound, "#{name} is an osdep, but it is not available for this operating system (#{os_package_resolver.operating_system})"
             elsif osdeps_availability == OSPackageResolver::UNKNOWN_OS
                 raise PackageNotFound, "#{name} is an osdep, but the local operating system is unavailable"
             elsif osdeps_availability == OSPackageResolver::NONEXISTENT
-                raise PackageNotFound, "#{name} is an osdep, but it is explicitely marked as 'nonexistent' for this operating system"
+                raise PackageNotFound, "#{name} is an osdep, but it is explicitely marked as 'nonexistent' for this operating system (#{os_package_resolver.operating_system})"
             end
         end
 
