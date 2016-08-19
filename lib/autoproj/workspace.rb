@@ -53,8 +53,8 @@ module Autoproj
         #
         # @return [Workspace]
         # @raise (see from_dir)
-        def self.from_pwd
-            from_dir(Dir.pwd)
+        def self.from_pwd(**workspace_options)
+            from_dir(Dir.pwd, **workspace_options)
         end
 
         # Returns the workspace a directory is part of
@@ -63,9 +63,9 @@ module Autoproj
         # @raise [MismatchingWorkspace] if the currently loaded env.sh
         #   and the one from +dir+ mismatch
         # @raise [NotWorkspace] if dir is not within an autoproj workspace
-        def self.from_dir(dir)
+        def self.from_dir(dir, **workspace_options)
             if path = Autoproj.find_workspace_dir(dir)
-                Workspace.new(path)
+                Workspace.new(path, **workspace_options)
             elsif Autoproj.find_v1_workspace_dir(dir)
                 raise OutdatedWorkspace, "#{dir} looks like a v1 workspace, run autoproj upgrade before continuing"
             else
@@ -73,9 +73,9 @@ module Autoproj
             end
         end
 
-        def self.from_environment
+        def self.from_environment(**workspace_options)
             if path = Autoproj.find_workspace_dir
-                from_dir(path)
+                from_dir(path, **workspace_options)
             elsif Autoproj.find_v1_workspace_dir(dir = Autoproj.default_find_base_dir)
                 raise OutdatedWorkspace, "#{dir} looks like a v1 workspace, run autoproj upgrade before continuing"
             elsif envvar = ENV['AUTOPROJ_CURRENT_ROOT']
@@ -99,8 +99,8 @@ module Autoproj
         # @raise MismatchingWorkspace if the workspace pointed by
         # AUTOPROJ_CURRENT_ROOT does not match the one containing the current
         # directory
-        def self.default
-            ws = from_environment
+        def self.default(**workspace_options)
+            ws = from_environment(**workspace_options)
             if (from_pwd = Autoproj.find_workspace_dir(Dir.pwd)) && (from_pwd != ws.root_dir)
                 raise MismatchingWorkspace, "the current environment points to #{ws.root_dir}, but you are in #{from_pwd}, make sure you are loading the right #{ENV_FILENAME} script !"
             end
