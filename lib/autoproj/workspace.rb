@@ -633,8 +633,9 @@ module Autoproj
                 end
             end
 
+            main_package_set = manifest.main_package_set
             Dir.glob(File.join( overrides_dir, "*.rb" ) ).sort.each do |file|
-                load file
+                load main_package_set, file
             end
         end
 

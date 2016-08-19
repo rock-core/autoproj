@@ -259,6 +259,26 @@ module Autoproj
                 assert packages.include?(pkg)
             end
         end
+
+        describe "#finalize_setup" do
+            it "loads .rb files in the main configuration's overrides.d folder, in alphabetical order" do
+                ws_create
+                overrides_d = File.join(ws.root_dir, 'autoproj', 'overrides.d')
+                FileUtils.mkdir_p overrides_d
+                File.open(overrides00 = File.join(overrides_d, '00_override.rb'), 'w') do |io|
+                    io.puts "LOADED_00 = true"
+                end
+                File.open(overrides99 = File.join(overrides_d, '99_override.rb'), 'w') do |io|
+                    io.puts "LOADED_00" # Verify that the 00 file has been loaded
+                    io.puts "LOADED_99 = true"
+                end
+                flexmock(Dir).should_receive(:glob).with(File.join(overrides_d, '*.rb')).
+                    once.and_return([overrides99, overrides00])
+                ws.finalize_package_setup
+                assert defined?(LOADED_00)
+                assert defined?(LOADED_99)
+            end
+        end
     end
 end
 
