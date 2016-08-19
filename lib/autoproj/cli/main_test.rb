@@ -44,10 +44,13 @@ module Autoproj
             desc 'exec [PACKAGES]', 'execute the tests for the given packages, or all if no packages are given on the command line'
             option :deps, type: :boolean, default: false,
                 desc: 'controls whether to execute the tests of the dependencies of the packages given on the command line (the default is not)'
+            option :fail, type: :boolean, default: true,
+                desc: 'return with a nonzero exit code if the test does not pass'
             def exec(*packages)
                 require 'autoproj/cli/test'
                 Autoproj.report do
                     cli = Test.new
+                    Autobuild.pass_test_errors = options[:fail]
                     args = cli.validate_options(packages, options)
                     cli.run(*args)
                 end
