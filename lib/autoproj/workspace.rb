@@ -428,7 +428,8 @@ module Autoproj
         def load_osdeps_from_package_sets
             manifest.each_package_set do |pkg_set|
                 pkg_set.each_osdeps_file do |file|
-                    os_package_resolver.merge(pkg_set.load_osdeps(file))
+                    file_osdeps = pkg_set.load_osdeps(file, operating_system: os_package_resolver.operating_system)
+                    os_package_resolver.merge(file_osdeps)
                 end
             end
         end

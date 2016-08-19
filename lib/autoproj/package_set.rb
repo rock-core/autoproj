@@ -161,8 +161,8 @@ module Autoproj
         end
 
         # Load a new osdeps file for this package set
-        def load_osdeps(file)
-            new_osdeps = OSPackageResolver.load(file)
+        def load_osdeps(file, **options)
+            new_osdeps = OSPackageResolver.load(file, **options)
             all_osdeps << new_osdeps
             os_package_resolver.merge(all_osdeps.last)
             new_osdeps

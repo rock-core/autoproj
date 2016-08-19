@@ -17,7 +17,7 @@ module Autoproj
 	end
 	@suffixes = []
 
-        def self.load(file)
+        def self.load(file, **options)
 	    if !File.file?(file)
 		raise ArgumentError, "no such file or directory #{file}"
 	    end
@@ -29,7 +29,7 @@ module Autoproj
                       else ArgumentError
                       end
 
-	    result = new
+	    result = new(**options)
 	    candidates.each do |file_candidate|
                 next if !File.file?(file_candidate)
                 file_candidate = File.expand_path(file_candidate)
@@ -40,7 +40,7 @@ module Autoproj
                     raise ConfigError.new, "error in #{file_candidate}: #{e.message}", e.backtrace
                 end
 
-                result.merge(new(data, file_candidate))
+                result.merge(new(data, file_candidate, **options))
 	    end
 	    result
         end
