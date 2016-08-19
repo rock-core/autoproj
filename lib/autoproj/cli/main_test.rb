@@ -4,13 +4,21 @@ module Autoproj
             namespace 'test'
 
             default_command 'exec'
+
+            no_commands do
+                def report(report_options = Hash.new)
+                    Autoproj.report(Hash[silent: !options[:debug], debug: options[:debug]].merge(report_options)) do
+                        yield
+                    end
+                end
+            end
             
             desc 'enable [PACKAGES]', 'enable tests for the given packages (or for all packages if none are given)'
             option :deps, type: :boolean, default: false,
                 desc: 'controls whether the dependencies of the packages given on the command line should be enabled as well (the default is not)'
             def enable(*packages)
                 require 'autoproj/cli/test'
-                Autoproj.report(silent: true) do
+                report(silent: true) do
                     cli = Test.new
                     args = cli.validate_options(packages, options)
                     cli.enable(*args)
@@ -22,7 +30,7 @@ module Autoproj
                 desc: 'controls whether the dependencies of the packages given on the command line should be disabled as well (the default is not)'
             def disable(*packages)
                 require 'autoproj/cli/test'
-                Autoproj.report(silent: true) do
+                report(silent: true) do
                     cli = Test.new
                     args = cli.validate_options(packages, options)
                     cli.disable(*args)
@@ -34,7 +42,7 @@ module Autoproj
                 desc: 'controls whether the dependencies of the packages given on the command line should be disabled as well (the default is not)'
             def list(*packages)
                 require 'autoproj/cli/test'
-                Autoproj.report(silent: true) do
+                report(silent: true) do
                     cli = Test.new
                     args = cli.validate_options(packages, options)
                     cli.list(*args)
@@ -48,7 +56,7 @@ module Autoproj
                 desc: 'return with a nonzero exit code if the test does not pass'
             def exec(*packages)
                 require 'autoproj/cli/test'
-                Autoproj.report do
+                report do
                     cli = Test.new
                     Autobuild.pass_test_errors = options[:fail]
                     args = cli.validate_options(packages, options)
