@@ -34,11 +34,11 @@ module Autoproj
                 new_packages = []
                 pkg.dependencies.each do |dep_name|
                     reverse_dependencies[dep_name] << pkg.name
-                    new_packages << ws.manifest.find_autobuild_package(dep_name)
+                    new_packages << ws.manifest.find_package_definition(dep_name)
                 end
                 pkg_opt_deps, pkg_opt_os_deps = pkg.partition_optional_dependencies
                 pkg_opt_deps.each do |dep_name|
-                    new_packages << ws.manifest.find_autobuild_package(dep_name)
+                    new_packages << ws.manifest.find_package_definition(dep_name)
                 end
 
                 # Handle OS dependencies, excluding the package if some
@@ -102,28 +102,67 @@ module Autoproj
                 end
             end
 
+            # Install the VCS osdep for the given packages
+            #
+            # @param [Hash] osdeps_options the options that will be passed to
+            #   {Workspace#install_os_packages}
+            # @return [Set] the set of installed OS packages
+            def install_vcs_packages_for(*packages, **osdeps_options)
+                vcs_to_install = packages.map { |pkg| pkg.vcs.type }.uniq
+                # This assumes that the VCS packages do not depend on a
+                # 'strict' package mangers such as e.g. BundlerManager
+                ws.install_os_packages(vcs_to_install, all: nil, **osdeps_options)
+                vcs_to_install
+            end
+
+            # @api private
+            #
+            # Queue the work necessary to import the given package, making sure
+            # that the execution results end up in a given queue
+            #
+            # @param executor the future executor 
+            # @param [Queue] completion_queue the queue where the completion
+            #   results should be pushed, as a (package, time, result,
+            #   error_reason) tuple
+            # @param [Integer] retry_count the number of retries that are
+            #   allowed. Set to zero for no retry
+            # @param [Hash] import_options options passed to {Autobuild::Importer#import}
+            def queue_import_work(executor, completion_queue, pkg, retry_count: nil, **import_options)
+                import_future = Concurrent::Future.new(executor: executor, args: [pkg]) do |import_pkg|
+                    ## COMPLETELY BYPASS RAKE HERE
+                    # The reason is that the ordering of import/prepare between
+                    # packages is not important BUT the ordering of import vs.
+                    # prepare in one package IS important: prepare is the method
+                    # that takes into account dependencies.
+                    if retry_count
+                        import_pkg.autobuild.importer.retry_count = retry_count
+                    end
+                    import_pkg.autobuild.import(**import_options)
+                end
+                import_future.add_observer do |time, result, reason|
+                    completion_queue << [pkg, time, result, reason]
+                end
+                import_future.execute
+            end
+
             class ImportFailed < RuntimeError; end
 
             # Import all packages from the given selection, and their
             # dependencies
-            def import_selected_packages(selection, updated_packages, options = Hash.new)
-                parallel_options, options = Kernel.filter_options options,
-                    parallel: ws.config.parallel_import_level
-
+            def import_selected_packages(selection, updated_packages,
+                                         parallel: ws.config.parallel_import_level,
+                                         recursive: true,
+                                         retry_count: nil,
+                                         ignore_errors: false,
+                                         install_vcs_packages: Hash.new,
+                                         **import_options)
                 # This is used in the ensure block, initialize as early as
                 # possible
-                executor = Concurrent::FixedThreadPool.new(parallel_options[:parallel], max_length: 0)
-
-                options, import_options = Kernel.filter_options options,
-                    recursive: true,
-                    retry_count: nil
-
-                ignore_errors = options[:ignore_errors]
-                retry_count = options[:retry_count]
+                executor = Concurrent::FixedThreadPool.new(parallel, max_length: 0)
                 manifest = ws.manifest
 
                 selected_packages = selection.each_source_package_name.map do |pkg_name|
-                    manifest.find_autobuild_package(pkg_name)
+                    manifest.find_package_definition(pkg_name)
                 end.to_set
 
                 # The reverse dependencies for the package tree. It is discovered as
@@ -141,61 +180,75 @@ module Autoproj
                 interactive_imports = Array.new
                 package_queue = selected_packages.to_a.sort_by(&:name)
                 failures = Hash.new
+                missing_vcs = Array.new
+                installed_vcs_packages = Set['none', 'local']
                 while failures.empty? || ignore_errors
                     # Queue work for all packages in the queue
                     package_queue.each do |pkg|
                         # Remove packages that have already been processed
                         next if all_processed_packages.include?(pkg)
+                        if install_vcs_packages && !installed_vcs_packages.include?(pkg.vcs.type)
+                            missing_vcs << pkg
+                            next
+                        end
                         all_processed_packages << pkg
 
-                        if !pre_package_import(selection, manifest, pkg, reverse_dependencies)
+                        importer = pkg.autobuild.importer
+                        if !pre_package_import(selection, manifest, pkg.autobuild, reverse_dependencies)
                             next
-                        elsif !pkg.importer
+                        elsif !importer
+                            # The validity of this is checked in
+                            # pre_package_import
                             completion_queue << [pkg, Time.now, false, nil]
                             next
-                        elsif pkg.importer.interactive?
+                        elsif importer.interactive?
                             interactive_imports << pkg
                             next
                         end
 
                         pending_packages << pkg
-                        import_future = Concurrent::Future.new(executor: executor, args: [pkg]) do |import_pkg|
-                            ## COMPLETELY BYPASS RAKE HERE
-                            # The reason is that the ordering of import/prepare between
-                            # packages is not important BUT the ordering of import vs.
-                            # prepare in one package IS important: prepare is the method
-                            # that takes into account dependencies.
-                            if retry_count
-                                import_pkg.importer.retry_count = retry_count
-                            end
-                            import_pkg.import(import_options.merge(allow_interactive: false))
+                        begin
+                            queue_import_work(
+                                executor, completion_queue, pkg, retry_count: retry_count,
+                                **import_options.merge(allow_interactive: false))
+                        rescue Exception
+                            pending_packages.delete(pkg)
+                            raise
                         end
-                        import_future.add_observer do |time, result, reason|
-                            completion_queue << [pkg, time, result, reason]
-                        end
-                        import_future.execute
+                        true
                     end
                     package_queue.clear
 
                     if completion_queue.empty? && pending_packages.empty?
+                        if !missing_vcs.empty?
+                            installed_vcs_packages.merge(
+                                install_vcs_packages_for(*missing_vcs, **install_vcs_packages))
+                            package_queue.concat(missing_vcs)
+                            missing_vcs.clear
+                            next
+                        end
+
                         # We've nothing to process anymore ... process
                         # interactive imports if there are some. Otherwise,
                         # we're done
                         if interactive_imports.empty?
                             break
                         else
-                            interactive_imports.each do |pkg|
+                            interactive_imports.delete_if do |pkg|
                                 begin
-                                    result = pkg.import(import_options.merge(allow_interactive: true))
+                                    if retry_count
+                                        pkg.autobuild.importer.retry_count = retry_count
+                                    end
+                                    result = pkg.autobuild.import(
+                                        **import_options.merge(allow_interactive: true))
                                 rescue Exception => reason
                                 end
                                 completion_queue << [pkg, Time.now, result, reason]
                             end
-                            interactive_imports.clear
                         end
                     end
 
-                    # And wait one to finish
+                    # And wait for one to finish
                     pkg, _time, _result, reason = completion_queue.pop
                     pending_packages.delete(pkg)
                     if reason
@@ -210,13 +263,13 @@ module Autoproj
                             failures[pkg] = reason
                         end
                     else
-                        if new_packages = post_package_import(selection, manifest, pkg, reverse_dependencies)
+                        if new_packages = post_package_import(selection, manifest, pkg.autobuild, reverse_dependencies)
                             # Excluded dependencies might have caused the package to be
                             # excluded as well ... do not add any dependency to the
                             # processing queue if it is the case
                             if manifest.excluded?(pkg.name)
                                 selection.filter_excluded_and_ignored_packages(manifest)
-                            elsif options[:recursive]
+                            elsif recursive
                                 package_queue = new_packages.sort_by(&:name)
                             end
                         end
@@ -241,7 +294,10 @@ module Autoproj
                     executor.wait_for_termination
                 end
                 if all_processed_packages
-                    updated_packages.concat(all_processed_packages.find_all(&:updated?).map(&:name))
+                    all_updated_packages = all_processed_packages.find_all do |pkg|
+                        pkg.autobuild.updated?
+                    end
+                    updated_packages.concat(all_updated_packages.map(&:name))
                 end
             end
             
@@ -258,8 +314,9 @@ module Autoproj
 
                     next if manifest.ignored?(pkg_name) || manifest.excluded?(pkg_name)
 
-                    pkg = manifest.find_autobuild_package(pkg_name)
-                    if !processed_packages.include?(pkg) && File.directory?(pkg.srcdir)
+                    pkg_definition = manifest.find_package_definition(pkg_name)
+                    pkg = pkg_definition.autobuild
+                    if !processed_packages.include?(pkg_definition) && File.directory?(pkg.srcdir)
                         manifest.load_package_manifest(pkg.name)
                         Autoproj.each_post_import_block(pkg) do |block|
                             block.call(pkg)
@@ -288,37 +345,43 @@ module Autoproj
                 all
             end
 
-            def import_packages(selection, options = Hash.new)
+            def import_packages(selection,
+                                warn_about_ignored_packages: true,
+                                warn_about_excluded_packages: true,
+                                recursive: true,
+                                ignore_errors: false,
+                                install_vcs_packages: Hash.new,
+                                **import_options)
+
                 # Used in the ensure block, initialize as soon as possible
                 updated_packages = Array.new
-
-                options, import_options = Kernel.filter_options options,
-                    warn_about_ignored_packages: true,
-                    warn_about_excluded_packages: true,
-                    recursive: true
 
                 manifest = ws.manifest
 
                 all_processed_packages = import_selected_packages(
-                    selection, updated_packages, import_options.merge(recursive: options[:recursive]))
+                    selection, updated_packages,
+                    ignore_errors: ignore_errors,
+                    recursive: recursive,
+                    install_vcs_packages: install_vcs_packages,
+                    **import_options)
                 finalize_package_load(all_processed_packages)
 
                 all_enabled_osdeps = selection.each_osdep_package_name.to_set
                 all_enabled_sources = all_processed_packages.map(&:name)
-                if options[:recursive]
+                if recursive
                     all_processed_packages.each do |pkg|
-                        all_enabled_osdeps.merge(pkg.os_packages)
+                        all_enabled_osdeps.merge(pkg.autobuild.os_packages)
                     end
                 end
 
-                if options[:warn_about_excluded_packages]
+                if warn_about_excluded_packages
                     selection.exclusions.each do |sel, pkg_names|
                         pkg_names.sort.each do |pkg_name|
                             Autoproj.warn "#{pkg_name}, which was selected for #{sel}, cannot be built: #{manifest.exclusion_reason(pkg_name)}", :bold
                         end
                     end
                 end
-                if options[:warn_about_ignored_packages]
+                if warn_about_ignored_packages
                     selection.ignores.each do |sel, pkg_names|
                         pkg_names.sort.each do |pkg_name|
                             Autoproj.warn "#{pkg_name}, which was selected for #{sel}, is ignored", :bold

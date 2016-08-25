@@ -109,23 +109,6 @@ module Autoproj
                     osdeps_options[:osdeps_mode] = options[:osdeps_mode]
                 end
 
-                if options[:osdeps]
-                    # Install the osdeps for the version control
-                    vcs_to_install = Set.new
-                    selected_packages.each_source_package_name do |pkg_name|
-                        if pkg = ws.manifest.find_package_definition(pkg_name)
-                            if pkg.vcs
-                                vcs_to_install << pkg.vcs.type
-                            end
-                        else
-                            raise "cannot find package #{pkg_name}"
-                        end
-                    end
-                    # This assumes that the VCS packages do not depend on a
-                    # 'strict' package mangers such as e.g. BundlerManager
-                    ws.install_os_packages(vcs_to_install, all: nil, **osdeps_options)
-                end
-
                 ops = Autoproj::Ops::Import.new(ws)
                 source_packages, osdep_packages = 
                     ops.import_packages(selected_packages,
@@ -135,7 +118,8 @@ module Autoproj
                                     recursive: options[:deps],
                                     ignore_errors: options[:keep_going],
                                     parallel: parallel,
-                                    retry_count: options[:retry_count])
+                                    retry_count: options[:retry_count],
+                                    install_vcs_packages: (osdeps_options if options[:osdeps]))
 
                 ws.finalize_setup
                 ws.export_installation_manifest
