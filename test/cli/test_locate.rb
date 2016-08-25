@@ -142,7 +142,7 @@ module Autoproj
                 it "expands a relative path to an absolute and appends a slash before matching" do
                     absolute_dir = make_tmpdir
                     dir = Pathname.new(absolute_dir).relative_path_from(Pathname.pwd).to_s
-                    flexmock(cli).should_receive(:location_of).with("#{absolute_dir}/", build: false).
+                    flexmock(cli).should_receive(:location_of).with("#{absolute_dir}/", build: false, prefix: false).
                         once
                     capture_subprocess_io do
                         cli.run(dir)
@@ -150,15 +150,23 @@ module Autoproj
                 end
                 it "passes the build flag to #location_of" do
                     flexmock(cli).should_receive(:location_of).
-                        with("a/package/name", build: true).
+                        with("a/package/name", build: true, prefix: false).
                         once
                     capture_subprocess_io do
-                        cli.run("a/package/name", build: true)
+                        cli.run("a/package/name", build: true, prefix: false)
+                    end
+                end
+                it "passes the prefix flag to #location_of" do
+                    flexmock(cli).should_receive(:location_of).
+                        with("a/package/name", build: false, prefix: true).
+                        once
+                    capture_subprocess_io do
+                        cli.run("a/package/name", build: false, prefix: true)
                     end
                 end
                 it "displays the found path" do
                     flexmock(cli).should_receive(:location_of).
-                        with("a/package/name", build: false).
+                        with("a/package/name", build: false, prefix: false).
                         once.and_return('/path/to/package')
                     out, _ = capture_subprocess_io do
                         cli.run('a/package/name')
@@ -203,6 +211,15 @@ module Autoproj
                             with(selection = flexmock).
                             and_return([flexmock(builddir: 'usr/local/dir')])
                         assert_equal 'usr/local/dir', cli.location_of(selection, build: true)
+                    end
+                    it "raises ArgumentError if build: true and the package does not have a build dir" do
+                        flexmock(cli).should_receive(:find_packages).
+                            with(selection = flexmock).
+                            and_return([flexmock(name: 'pkg', builddir: nil)])
+                        e = assert_raises(ArgumentError) do
+                            cli.location_of(selection, build: true)
+                        end
+                        assert_equal "pkg does not have a build directory", e.message
                     end
                     it "raises AmbiguousSelection if find_packages returns more than one match" do
                         flexmock(cli).should_receive(:find_packages).
@@ -260,15 +277,6 @@ module Autoproj
                         flexmock(File).should_receive(:directory?).and_return { |d| d == '/pkg0' }
                         assert_equal '/pkg0', cli.location_of(selection)
                     end
-                end
-            end
-
-            describe "#return_value" do
-                it "raises ArgumentError if build: true and the package does not have a build dir" do
-                    e = assert_raises(ArgumentError) do
-                        cli.result_value(flexmock(name: 'pkg', builddir: nil), build: true)
-                    end
-                    assert_equal "pkg does not have a build directory", e.message
                 end
             end
         end

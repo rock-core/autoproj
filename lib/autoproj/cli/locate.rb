@@ -38,18 +38,6 @@ module Autoproj
                 return selected.first, options
             end
 
-            def result_value(pkg, build: false)
-                if build
-                    if pkg.builddir
-                        pkg.builddir
-                    else
-                        raise ArgumentError, "#{pkg.name} does not have a build directory"
-                    end
-                else
-                    pkg.srcdir
-                end
-            end
-
             # Find a package set that matches a given selection
             #
             # @param [String] selection a string that is matched against the
@@ -109,16 +97,16 @@ module Autoproj
                 end
             end
 
-            def run(selection, build: false)
+            def run(selection, build: false, prefix: false)
                 if selection && File.directory?(selection)
                     selection = "#{File.expand_path(selection)}/"
                 end
-                puts location_of(selection, build: build)
+                puts location_of(selection, build: build, prefix: prefix)
             end
 
-            def location_of(selection, build: false)
+            def location_of(selection, prefix: false, build: false)
                 if !selection
-                    if build
+                    if prefix || build
                         return ws.prefix_dir
                     else
                         return ws.root_dir
@@ -146,7 +134,18 @@ module Autoproj
                 elsif matching_packages.size > 1
                     raise AmbiguousSelection, "multiple packages match '#{selection}' in the current autoproj installation: #{matching_packages.map(&:name).sort.join(", ")}"
                 else
-                    return result_value(matching_packages.first, build: build)
+                    pkg = matching_packages.first
+                    if prefix
+                        pkg.prefix
+                    elsif build
+                        if pkg.builddir
+                            pkg.builddir
+                        else
+                            raise ArgumentError, "#{pkg.name} does not have a build directory"
+                        end
+                    else
+                        pkg.srcdir
+                    end
                 end
             end
         end
