@@ -76,6 +76,9 @@ module Autoproj
                 desc: "use the VCS information as 'versions --no-local' would detect it instead of the one in the configuration"
             option :parallel, aliases: :p, type: :numeric,
                 desc: 'maximum number of parallel jobs'
+            option :deps, type: :boolean,
+                desc: 'whether only the status of the given packages should be displayed, or of their dependencies as well',
+                default: true
             def status(*packages)
                 run_autoproj_cli(:status, :Status, Hash[], *packages)
             end

@@ -5,8 +5,8 @@ module Autoproj
         class Status < InspectionTool
             def validate_options(packages, options)
                 packages, options = super
-                if options[:dep].nil? && packages.empty?
-                    options[:dep] = true
+                if options[:deps].nil? && packages.empty?
+                    options[:deps] = true
                 end
                 return packages, options
             end
@@ -15,7 +15,7 @@ module Autoproj
                 initialize_and_load(mainline: options[:mainline])
                 packages, *, config_selected = finalize_setup(
                     user_selection,
-                    recursive: options[:dep],
+                    recursive: options[:deps],
                     ignore_non_imported_packages: true)
 
                 if options[:config].nil?
