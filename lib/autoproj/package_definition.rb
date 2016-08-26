@@ -34,6 +34,7 @@ module Autoproj
             @user_blocks = []
             @modes = ['import', 'build']
             @setup = false
+            @vcs = VCSDefinition.none
         end
 
         # The modes in which this package will be used
