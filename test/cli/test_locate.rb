@@ -28,6 +28,33 @@ module Autoproj
                 end
             end
 
+            describe "the 'no cache' mode" do
+                attr_reader :cli
+
+                before do
+                    ws_create
+                    @cli = Locate.new(ws, installation_manifest: nil)
+                    flexmock(cli).should_receive(:initialize_and_load)
+                end
+
+                it "updates the installation manifest and then uses it" do
+                    src    = File.join(ws.root_dir, 'src')
+                    build  = File.join(ws.root_dir, 'build')
+                    prefix = File.join(ws.root_dir, 'prefix')
+                    package = ws_add_package_to_layout :cmake, 'package'
+                    package.autobuild.srcdir = src
+                    package.autobuild.builddir = build
+                    package.autobuild.prefix = prefix
+                    cli.initialize_from_workspace
+
+                    assert_equal src, cli.location_of('package')
+                    assert_equal src, cli.location_of("#{src}/")
+                    assert_equal src, cli.location_of("#{build}/")
+                    assert_equal build, cli.location_of('package', build: true)
+                    assert_equal prefix, cli.location_of('package', prefix: true)
+                end
+            end
+
             describe "#find_package_set" do
                 attr_reader :user_dir, :raw_dir, :pkg_set
                 before do

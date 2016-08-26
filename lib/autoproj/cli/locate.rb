@@ -1,4 +1,4 @@
-require 'autoproj/cli/base'
+require 'autoproj/cli/inspection_tool'
 
 module Autoproj
     module CLI
@@ -8,26 +8,33 @@ module Autoproj
         # It is based on a installation manifest file, a YAML file generated to
         # list that information and thus avoid loading the Autoproj
         # configuration (which takes fairly long).
-        class Locate < Base
+        class Locate < InspectionTool
             class NotFound < RuntimeError; end
             class AmbiguousSelection < RuntimeError; end
 
-            attr_reader :installation_manifest
+            attr_reader :packages
+            attr_reader :package_sets
 
             # Create the locate CLI interface
             #
             # @param [Workspace] ws the workspace we're working on
-            # @param [InstallationManifest] installation_manifest the manifest.
-            def initialize(ws = Workspace.default,
-                           installation_manifest: load_installation_manifest(ws))
+            # @param [InstallationManifest,nil] installation_manifest the
+            #     manifest. If nil, loads the whole autoproj configuration and
+            #     rebuilds the manifest
+            def initialize(ws = Workspace.default, installation_manifest: try_loading_installation_manifest(ws))
                 super(ws)
                 ws.load_config
-                @installation_manifest = installation_manifest
+
+                if installation_manifest
+                    @packages = installation_manifest.each_package.to_a
+                    @package_sets = installation_manifest.each_package_set.to_a
+                end
             end
 
             # Load the installation manifest
-            def load_installation_manifest(ws = self.ws)
+            def try_loading_installation_manifest(ws = self.ws)
                 Autoproj::InstallationManifest.from_workspace_root(ws.root_dir)
+            rescue ConfigError
             end
 
             def validate_options(selected, options)
@@ -45,7 +52,7 @@ module Autoproj
             #   matched against the full path and must end with /
             # @return [PackageSet,nil]
             def find_package_set(selection)
-                installation_manifest.each_package_set.find do |pkg_set|
+                package_sets.find do |pkg_set|
                     name = pkg_set.name
                     name == selection ||
                         selection.start_with?("#{pkg_set.raw_local_dir}/") ||
@@ -56,11 +63,11 @@ module Autoproj
             def find_packages(selection)
                 selection_rx = Regexp.new(Regexp.quote(selection))
                 candidates = []
-                installation_manifest.each_package do |pkg|
+                packages.each do |pkg|
                     name = pkg.name
                     if name == selection || selection.start_with?("#{pkg.srcdir}/")
                         return [pkg]
-                    elsif pkg.builddir && selection.start_with?("#{pkg.builddir}/")
+                    elsif pkg.respond_to?(:builddir) && pkg.builddir && selection.start_with?("#{pkg.builddir}/")
                         return [pkg]
                     elsif name =~ selection_rx
                         candidates << pkg
@@ -80,7 +87,7 @@ module Autoproj
 
                 candidates = []
                 candidates_strict = []
-                installation_manifest.each_package do |pkg|
+                packages.each do |pkg|
                     name = pkg.name
                     if name =~ rx
                         candidates << pkg
@@ -97,7 +104,19 @@ module Autoproj
                 end
             end
 
-            def run(selection, build: false, prefix: false)
+            def initialize_from_workspace
+                initialize_and_load
+                finalize_setup # this exports the manifest
+
+                @packages = ws.manifest.each_autobuild_package.to_a
+                @package_sets = ws.manifest.each_package_set.to_a
+            end
+
+            def run(selection, cache: !!packages, build: false, prefix: false)
+                if !cache
+                    initialize_from_workspace
+                end
+
                 if selection && File.directory?(selection)
                     selection = "#{File.expand_path(selection)}/"
                 end
@@ -138,7 +157,7 @@ module Autoproj
                     if prefix
                         pkg.prefix
                     elsif build
-                        if pkg.builddir
+                        if pkg.respond_to?(:builddir) && pkg.builddir
                             pkg.builddir
                         else
                             raise ArgumentError, "#{pkg.name} does not have a build directory"

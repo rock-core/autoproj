@@ -167,6 +167,8 @@ module Autoproj
             end
 
             desc 'locate [PACKAGE]', 'return the path to the given package, or the path to the root if no packages are given on the command line'
+            option :cache, type: :boolean,
+                desc: 'controls whether the resolution should be done by loading the whole configuration (false, slow) or through a cache file (the default)'
             option :prefix, aliases: :p, type: :boolean,
                 desc: "outputs the package's prefix directory instead of its source directory"
             option :build, aliases: :b, type: :boolean,
