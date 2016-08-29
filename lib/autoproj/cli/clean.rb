@@ -19,8 +19,7 @@ module Autoproj
                 packages, _ = normalize_command_line_package_selection(selection)
                 source_packages, * = resolve_selection(
                     selection,
-                    recursive: false,
-                    ignore_non_imported_packages: true)
+                    recursive: false)
                 if packages.empty?
                     raise ArgumentError, "no packages or OS packages match #{selection.join(" ")}"
                 end

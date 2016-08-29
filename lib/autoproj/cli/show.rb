@@ -4,11 +4,8 @@ require 'autoproj/cli/inspection_tool'
 module Autoproj
     module CLI
         class Show < InspectionTool
-            def run(user_selection, options = Hash.new)
-                options = Kernel.validate_options options,
-                    mainline: false, env: false
-
-                initialize_and_load(mainline: options.delete(:mainline))
+            def run(user_selection, mainline: false, env: false)
+                initialize_and_load(mainline: mainline)
                 default_packages = ws.manifest.default_packages
 
                 # Filter out selections that match package set names
@@ -18,9 +15,7 @@ module Autoproj
 
                 if !user_selection.empty? || package_set_names.empty?
                     source_packages, osdep_packages, * =
-                        finalize_setup(user_selection,
-                                       recursive: false,
-                                       ignore_non_imported_packages: true)
+                        finalize_setup(user_selection, recursive: false, non_imported_packages: :return)
                 else
                     source_packages, osdep_packages = Array.new, Array.new
                 end
@@ -37,7 +32,7 @@ module Autoproj
                     display_package_set(pkg_set_name)
                 end
                 source_packages.each do |pkg_name|
-                    display_source_package(pkg_name, default_packages, revdeps, env: options[:env])
+                    display_source_package(pkg_name, default_packages, revdeps, env: env)
                 end
                 osdep_packages.each do |pkg_name|
                     display_osdep_package(pkg_name, default_packages, revdeps)

@@ -6,8 +6,7 @@ module Autoproj
             def run(user_selection, options = Hash.new)
                 initialize_and_load
                 _, osdep_packages, resolved_selection, _ =
-                    finalize_setup(user_selection,
-                                   ignore_non_imported_packages: true)
+                    finalize_setup(user_selection)
 
                 options = Kernel.validate_options options,
                     update: true,

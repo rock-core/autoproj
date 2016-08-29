@@ -12,7 +12,7 @@ module Autoproj
                     selection, _ = finalize_setup(
                         user_selection,
                         recursive: options[:deps],
-                        ignore_non_imported_packages: true)
+                        non_imported_packages: :return)
                     ws.config.utility_enable('test', *selection)
                 end
                 ws.config.save
@@ -27,7 +27,7 @@ module Autoproj
                     selection, _ = finalize_setup(
                         user_selection,
                         recursive: options[:deps],
-                        ignore_non_imported_packages: true)
+                        non_imported_packages: :return)
                     ws.config.utility_disable('test', *selection)
                 end
                 ws.config.save
@@ -38,7 +38,7 @@ module Autoproj
                 resolved_selection, _ = finalize_setup(
                     user_selection,
                     recursive: options[:dep],
-                    ignore_non_imported_packages: true)
+                    non_imported_packages: :return)
 
                 lines = Array.new
                 resolved_selection.each do |pkg_name|

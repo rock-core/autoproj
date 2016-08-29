@@ -6,8 +6,7 @@ module Autoproj
         class Query < InspectionTool
             def run(query_string, options = Hash.new)
                 initialize_and_load
-                all_selected_packages, * =
-                    finalize_setup([], ignore_non_imported_packages: true)
+                all_selected_packages, * = finalize_setup([])
                 all_selected_packages = all_selected_packages.to_set
 
                 query =

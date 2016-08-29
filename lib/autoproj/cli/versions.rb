@@ -31,8 +31,7 @@ module Autoproj
                 initialize_and_load
                 packages, *, config_selected =
                     finalize_setup(user_selection,
-                                   recursive: options[:deps],
-                                   ignore_non_imported_packages: true)
+                                   recursive: options[:deps])
                 
                 ops = Ops::Snapshot.new(ws.manifest, ignore_errors: options[:keep_going])
                 

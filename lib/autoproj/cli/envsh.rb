@@ -9,8 +9,7 @@ module Autoproj
 
             def run(options = Hash.new)
                 initialize_and_load
-                finalize_setup(Array.new,
-                    ignore_non_imported_packages: true)
+                finalize_setup(Array.new)
 
                 options = Kernel.validate_options options,
                     shell_helpers: ws.config.shell_helpers?

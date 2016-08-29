@@ -15,8 +15,7 @@ module Autoproj
                 initialize_and_load(mainline: options[:mainline])
                 packages, *, config_selected = finalize_setup(
                     user_selection,
-                    recursive: options[:deps],
-                    ignore_non_imported_packages: true)
+                    recursive: options[:deps])
 
                 if options[:config].nil?
                     options[:config] = user_selection.empty? || config_selected

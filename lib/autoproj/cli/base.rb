@@ -118,9 +118,10 @@ module Autoproj
             # @param [Boolean] recursive whether the resolution should be done
             #   recursively (i.e. dependencies of directly selected packages
             #   should be added) or not
-            # @param [Boolean] ignore_non_imported_packages whether packages
-            #   that are not imported should simply be ignored. Setting
-            #   checkout_only to true and ignore_non_imported_packages to true
+            # @param [Symbol] non_imported_packages whether packages
+            #   that are not imported should simply be ignored (:ignore),
+            #   returned (:return) or should be checked out (nil). Setting
+            #   checkout_only to true and this to anything but nil
             #   guarantees in effect that no import operation will take place,
             #   only loading
             # @return [(Array<String>,Array<String>,PackageSelection)] the list
@@ -128,9 +129,9 @@ module Autoproj
             #   the package selection resolution object
             #
             # @see resolve_user_selection
-            def resolve_selection(user_selection, checkout_only: true, only_local: false, recursive: true, ignore_non_imported_packages: false)
+            def resolve_selection(user_selection, checkout_only: true, only_local: false, recursive: true, non_imported_packages: :ignore)
                 resolved_selection, _ = resolve_user_selection(user_selection, filter: false)
-                if ignore_non_imported_packages
+                if (non_imported_packages == :ignore)
                     ws.manifest.each_autobuild_package do |pkg|
                         if !File.directory?(pkg.srcdir)
                             ws.manifest.ignore_package(pkg.name)
@@ -145,7 +146,8 @@ module Autoproj
                     checkout_only: checkout_only,
                     only_local: only_local,
                     recursive: recursive,
-                    warn_about_ignored_packages: false)
+                    warn_about_ignored_packages: false,
+                    pass_non_imported_packages: (non_imported_packages == :return))
 
                 return source_packages, osdep_packages, resolved_selection
             end
