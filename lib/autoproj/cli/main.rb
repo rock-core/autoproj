@@ -173,8 +173,8 @@ module Autoproj
                 desc: "outputs the package's prefix directory instead of its source directory"
             option :build, aliases: :b, type: :boolean,
                 desc: "outputs the package's build directory instead of its source directory"
-            def locate(package = nil)
-                run_autoproj_cli(:locate, :Locate, Hash[], *Array(package))
+            def locate(*packages)
+                run_autoproj_cli(:locate, :Locate, Hash[], *packages)
             end
 
             desc 'reconfigure', 'pass through all configuration questions'

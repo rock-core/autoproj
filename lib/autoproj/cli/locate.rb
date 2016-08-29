@@ -37,14 +37,6 @@ module Autoproj
             rescue ConfigError
             end
 
-            def validate_options(selected, options)
-                if selected.size > 1
-                    raise ArgumentError, "more than one package selection string given"
-                end
-                selected, options = super
-                return selected.first, options
-            end
-
             # Find a package set that matches a given selection
             #
             # @param [String] selection a string that is matched against the
@@ -112,25 +104,29 @@ module Autoproj
                 @package_sets = ws.manifest.each_package_set.to_a
             end
 
-            def run(selection, cache: !!packages, build: false, prefix: false)
+            def run(selections, cache: !!packages, build: false, prefix: false)
                 if !cache
                     initialize_from_workspace
                 end
 
-                if selection && File.directory?(selection)
-                    selection = "#{File.expand_path(selection)}/"
+                if selections.empty?
+                    if prefix || build
+                        puts ws.prefix_dir
+                    else
+                        puts ws.root_dir
+                    end
                 end
-                puts location_of(selection, build: build, prefix: prefix)
+
+                selections.each do |string|
+                    if File.directory?(string)
+                        string = "#{File.expand_path(string)}/"
+                    end
+                    puts location_of(string, build: build, prefix: prefix)
+                end
             end
 
             def location_of(selection, prefix: false, build: false)
-                if !selection
-                    if prefix || build
-                        return ws.prefix_dir
-                    else
-                        return ws.root_dir
-                    end
-                elsif pkg_set = find_package_set(selection)
+                if pkg_set = find_package_set(selection)
                     return pkg_set.user_local_dir
                 end
 
