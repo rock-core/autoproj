@@ -26,9 +26,13 @@ module Autoproj
                 ws.load_config
 
                 if installation_manifest
-                    @packages = installation_manifest.each_package.to_a
-                    @package_sets = installation_manifest.each_package_set.to_a
+                    update_from_installation_manifest(installation_manifest)
                 end
+            end
+
+            def update_from_installation_manifest(installation_manifest)
+                @packages = installation_manifest.each_package.to_a
+                @package_sets = installation_manifest.each_package_set.to_a
             end
 
             # Load the installation manifest

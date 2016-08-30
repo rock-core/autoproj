@@ -13,17 +13,12 @@ module Autoproj
             end
 
             describe "#validate_options" do
-                it "raises if there is more than one non-option argument" do
-                    assert_raises(ArgumentError) do
-                        cli.validate_options(['test', 'test2'], Hash.new)
-                    end
-                end
                 it "returns the only argument" do
-                    assert_equal ['test', Hash[test: 10]],
+                    assert_equal [['test'], Hash[test: 10]],
                         cli.validate_options(['test'], Hash[test: 10])
                 end
                 it "returns nil as selection string if no arguments are given" do
-                    assert_equal [nil, Hash[test: 10]],
+                    assert_equal [[], Hash[test: 10]],
                         cli.validate_options([], Hash[test: 10])
                 end
             end
@@ -63,6 +58,7 @@ module Autoproj
                     @pkg_set = InstallationManifest::PackageSet.new(
                         'rock.core', raw_dir, user_dir)
                     installation_manifest.add_package_set(pkg_set)
+                    cli.update_from_installation_manifest(installation_manifest)
                 end
                 it "returns nil if nothing matches" do
                     assert_nil cli.find_package_set('does.not.exist')
@@ -90,6 +86,7 @@ module Autoproj
                     @pkg = InstallationManifest::Package.new(
                         'pkg', '/srcdir', '/prefix', '/builddir', [])
                     installation_manifest.add_package(pkg)
+                    cli.update_from_installation_manifest(installation_manifest)
                 end
 
                 it "returns an empty array if there are no matches" do
@@ -120,6 +117,7 @@ module Autoproj
                             pkg_name, '/srcdir', '/prefix', '/builddir', [])
                         installation_manifest.add_package(pkg)
                     end
+                    cli.update_from_installation_manifest(installation_manifest)
                     assert_equal expected, cli.find_packages('test')
                 end
                 it "ignores regexp-based matches if there are exact matches" do
@@ -139,11 +137,13 @@ module Autoproj
 
             describe "#find_packages_with_directory_shortnames" do
                 def add_packages(*names)
-                    names.map do |n|
+                    packages = names.map do |n|
                         pkg = InstallationManifest::Package.new(n)
                         installation_manifest.add_package(pkg)
                         pkg
                     end
+                    cli.update_from_installation_manifest(installation_manifest)
+                    packages
                 end
 
                 it "returns an empty array if there are no matches" do
@@ -172,15 +172,27 @@ module Autoproj
                     flexmock(cli).should_receive(:location_of).with("#{absolute_dir}/", build: false, prefix: false).
                         once
                     capture_subprocess_io do
-                        cli.run(dir)
+                        cli.run([dir])
                     end
+                end
+                it "displays the workspace prefix if build is true and there are no selections" do
+                    out, _ = capture_subprocess_io do
+                        cli.run([], build: true)
+                    end
+                    assert_equal ws.prefix_dir, out.chomp
+                end
+                it "returns the workspace root if build is false and there are no selections" do
+                    out, _ = capture_subprocess_io do
+                        cli.run([])
+                    end
+                    assert_equal ws.root_dir, out.chomp
                 end
                 it "passes the build flag to #location_of" do
                     flexmock(cli).should_receive(:location_of).
                         with("a/package/name", build: true, prefix: false).
                         once
                     capture_subprocess_io do
-                        cli.run("a/package/name", build: true, prefix: false)
+                        cli.run(["a/package/name"], build: true, prefix: false)
                     end
                 end
                 it "passes the prefix flag to #location_of" do
@@ -188,7 +200,7 @@ module Autoproj
                         with("a/package/name", build: false, prefix: true).
                         once
                     capture_subprocess_io do
-                        cli.run("a/package/name", build: false, prefix: true)
+                        cli.run(["a/package/name"], build: false, prefix: true)
                     end
                 end
                 it "displays the found path" do
@@ -196,19 +208,13 @@ module Autoproj
                         with("a/package/name", build: false, prefix: false).
                         once.and_return('/path/to/package')
                     out, _ = capture_subprocess_io do
-                        cli.run('a/package/name')
+                        cli.run(['a/package/name'])
                     end
                     assert_equal "/path/to/package\n", out
                 end
             end
 
             describe "#location_of" do
-                it "returns the workspace prefix if build is true and there are no selections" do
-                    assert_equal ws.prefix_dir, cli.location_of(nil, build: true)
-                end
-                it "returns the workspace root if build is true and there are no selections" do
-                    assert_equal ws.root_dir, cli.location_of(nil)
-                end
                 it "returns a package set's user_local_dir" do
                     flexmock(cli).should_receive(:find_package_set).
                         with(selection = flexmock).
