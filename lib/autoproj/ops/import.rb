@@ -188,7 +188,11 @@ module Autoproj
                     package_queue.each do |pkg|
                         # Remove packages that have already been processed
                         next if all_processed_packages.include?(pkg)
-                        if install_vcs_packages && !installed_vcs_packages.include?(pkg.vcs.type)
+                        if pass_non_imported_packages && !File.directory?(pkg.autobuild.srcdir)
+                            all_processed_packages << pkg
+                            completion_queue << [pkg, Time.now, false, nil]
+                            next
+                        elsif install_vcs_packages && !installed_vcs_packages.include?(pkg.vcs.type)
                             missing_vcs << pkg
                             next
                         end
@@ -200,9 +204,6 @@ module Autoproj
                         elsif !importer
                             # The validity of this is checked in
                             # pre_package_import
-                            completion_queue << [pkg, Time.now, false, nil]
-                            next
-                        elsif pass_non_imported_packages && !File.directory?(pkg.autobuild.srcdir)
                             completion_queue << [pkg, Time.now, false, nil]
                             next
                         elsif importer.interactive?

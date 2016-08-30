@@ -60,6 +60,11 @@ module Autoproj
                         and_return(packages.map(&:name))
                     mock
                 end
+                it "skips non-imported packages and returns them if pass_non_imported_packages is true" do
+                    base_cmake.autobuild.srcdir = File.join(ws.root_dir, 'package')
+                    assert_equal Set[base_cmake],
+                        ops.import_selected_packages(mock_selection(base_cmake), [], pass_non_imported_packages: true)
+                end
                 it "imports the given package" do
                     flexmock(base_cmake.autobuild).should_receive(:import).once
                     flexmock(ws.os_package_installer).should_receive(:install)
