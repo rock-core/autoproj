@@ -15,6 +15,7 @@ module Autoproj
                 super
 
                 ws_create
+                ws.env.init_from_env 'PATH'
                 @gem_manager = GemManager.new(ws)
                 @gem_fetcher = flexmock("fake gem fetcher")
                 gem_manager.gem_fetcher = gem_fetcher

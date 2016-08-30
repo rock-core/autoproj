@@ -112,8 +112,8 @@ module Autoproj
         end
     end
     # Run the provided command as root, using sudo to gain root access
-    def self.run_as_root(*args)
-        if !system(Autobuild.tool_in_path('sudo'), *args)
+    def self.run_as_root(*args, env: env)
+        if !system(Autobuild.tool_in_path('sudo', env: env), *args)
             raise "failed to run #{args.join(" ")} as root"
         end
     end

@@ -3,7 +3,7 @@ module Autoproj
         # Base class for all package managers that simply require the call of a
         # shell script to install packages (e.g. yum, apt, ...)
         class ShellScriptManager < Manager
-            def self.execute(command_line, with_locking, with_root)
+            def self.execute(command_line, with_locking, with_root, env: Autobuild.env)
                 if with_locking
                     File.open('/tmp/autoproj_osdeps_lock', 'w') do |lock_io|
                         begin
@@ -11,7 +11,7 @@ module Autoproj
                                 Autoproj.message "  waiting for other autoproj instances to finish their osdeps installation"
                                 sleep 5
                             end
-                            return execute(command_line, false, with_root)
+                            return execute(command_line, false, with_root, env: env)
                         ensure
                             lock_io.flock(File::LOCK_UN)
                         end
@@ -19,7 +19,7 @@ module Autoproj
                 end
                 
                 if with_root
-                    sudo = Autobuild.tool_in_path('sudo')
+                    sudo = Autobuild.tool_in_path('sudo', env: env)
                     command_line = [sudo, *command_line]
                 end
 
@@ -188,7 +188,7 @@ module Autoproj
                         Autoproj.message shell_script
                     end
 
-                    ShellScriptManager.execute([*auto_install_cmd, *packages], needs_locking?, needs_root?)
+                    ShellScriptManager.execute([*auto_install_cmd, *packages], needs_locking?, needs_root?, env: ws.env)
                     return true
                 end
                 false

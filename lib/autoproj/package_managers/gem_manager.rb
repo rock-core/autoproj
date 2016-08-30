@@ -160,7 +160,7 @@ module Autoproj
 
             def pristine(gems)
                 guess_gem_program
-                base_cmdline = [Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('gem')]
+                base_cmdline = [Autobuild.tool_in_path('ruby', env: ws.env), '-S', Autobuild.tool('gem')]
                 cmdlines = [
                     [*base_cmdline, 'clean'],
                 ]
@@ -178,7 +178,7 @@ module Autoproj
             def install(gems)
                 guess_gem_program
 
-                base_cmdline = [Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('gem'), 'install', *GemManager.default_install_options]
+                base_cmdline = [Autobuild.tool_in_path('ruby', env: ws.env), '-S', Autobuild.tool('gem'), 'install', *GemManager.default_install_options]
                 if !GemManager.with_doc
                     base_cmdline << '--no-rdoc' << '--no-ri'
                 end
