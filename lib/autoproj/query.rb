@@ -54,6 +54,14 @@ module Autoproj
         attr_predicate :use_dir_prefix?
         attr_predicate :partial?
 
+        class All
+            def match(pkg); true end
+        end
+
+        def self.all
+            All.new
+        end
+
         def initialize(fields, value, partial)
             @fields = fields
             @value = value
@@ -158,7 +166,11 @@ module Autoproj
                     Query.parse(str)
                 end
             end
-            And.new(query)
+            if query.size == 1
+                query.first
+            else
+                And.new(query)
+            end
         end
 
         # Match object that combines multiple matches using a logical OR

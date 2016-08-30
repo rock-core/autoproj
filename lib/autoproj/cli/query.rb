@@ -4,60 +4,54 @@ require 'autoproj/cli/inspection_tool'
 module Autoproj
     module CLI
         class Query < InspectionTool
-            def run(query_string, options = Hash.new)
-                initialize_and_load
-                all_selected_packages, * = finalize_setup([])
-                all_selected_packages = all_selected_packages.to_set
-
-                query =
-                    if !query_string.empty?
-                        Autoproj::Query.parse_query(query_string.first)
+            def find_all_matches(query, packages)
+                matches = packages.map do |pkg|
+                    if priority = query.match(pkg)
+                        [priority, pkg]
                     end
+                end.compact
+                matches.sort_by { |priority, pkg| [priority, pkg.name] }
+            end
 
-                if options[:search_all]
-                    packages = ws.manifest.packages.to_a
+            def run(query_string, format: '$NAME', search_all: false, only_present: false)
+                initialize_and_load
+                all_selected_packages, * = finalize_setup([], non_imported_packages: :return)
+                if search_all
+                    packages = ws.manifest.each_package_definition.to_a
                 else
                     packages = all_selected_packages.map do |pkg_name|
-                        [pkg_name, ws.manifest.find_package_definition(pkg_name)]
+                        ws.manifest.find_package_definition(pkg_name)
                     end
-                    packages += ws.manifest.all_selected_source_packages.map do |pkg_name|
-                        if !all_selected_packages.include?(pkg_name)
-                            [pkg_name, ws.manifest.find_package_definition(pkg_name)]
-                        end
-                    end.compact
                 end
-
-                if options[:only_present]
-                    packages = packages.find_all do |_, pkg|
+                if only_present
+                    packages = packages.find_all do |pkg|
                         File.directory?(pkg.autobuild.srcdir)
                     end
                 end
 
-                if !query
-                    matches = packages.map { |name, _| [0, name] }
+                if query_string.empty?
+                    query = Autoproj::Query.all
                 else
-                    matches = packages.map do |name, pkg_def|
-                        if priority = query.match(pkg_def)
-                            [priority, name]
-                        end
-                    end.compact
+                    query = Autoproj::Query.parse_query(query_string.first)
                 end
+                matches = find_all_matches(query, packages)
 
+                matches.each do |priority, pkg_def|
+                    puts format_package(format, priority, pkg_def)
+                end
+            end
+
+            def format_package(format, priority, package)
+                autobuild_package = package.autobuild
                 fields = Hash.new
-                matches = matches.sort
-                matches.each do |priority, name|
-                    pkg_def = ws.manifest.find_package_definition(name)
-                    pkg = ws.manifest.find_autobuild_package(name)
-                    fields['SRCDIR'] = pkg.srcdir
-                    fields['PREFIX'] = pkg.prefix
-                    fields['NAME'] = name
-                    fields['PRIORITY'] = priority
-                    fields['URL'] = (pkg_def.vcs.url if pkg_def.vcs)
-                    fields['PRESENT'] = File.directory?(pkg.srcdir)
-
-                    value = Autoproj.expand(options[:format] || "$NAME", fields)
-                    puts value
-                end
+                fields['SRCDIR']   = autobuild_package.srcdir
+                fields['BUILDDIR'] = autobuild_package.builddir
+                fields['PREFIX']   = autobuild_package.prefix
+                fields['NAME']     = package.name
+                fields['PRIORITY'] = priority
+                fields['URL']      = (package.vcs.url if package.vcs)
+                fields['PRESENT']  = File.directory?(autobuild_package.srcdir)
+                Autoproj.expand(format, fields)
             end
         end
     end

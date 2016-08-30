@@ -47,7 +47,8 @@ module Autoproj
                 constant_name = constant_name[2..-1]
             end
 
-            if !(value = definitions[constant_name])
+            value = definitions[constant_name]
+            if value.nil?
                 if !block_given? || !(value = yield(constant_name))
                     raise ArgumentError, "cannot find a definition for $#{constant_name}"
                 end
