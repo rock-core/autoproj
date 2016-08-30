@@ -30,7 +30,7 @@ module Autoproj
                     end
                     it "does display all packages if only a package set is given" do
                         Autoproj.silent = true
-                        pkg_set = ws_define_package_set('rock.core')
+                        ws_define_package_set('rock.core')
                         ws_add_package_to_layout(:cmake, 'pkg')
                         flexmock(cli).should_receive(:display_package_set).with('rock.core').once
                         flexmock(cli).should_receive(:display_source_package).never

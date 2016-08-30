@@ -299,8 +299,8 @@ module Autoproj
                     executor.wait_for_termination
                 end
                 if all_processed_packages
-                    all_updated_packages = all_processed_packages.find_all do |pkg|
-                        pkg.autobuild.updated?
+                    all_updated_packages = all_processed_packages.find_all do |processed_pkg|
+                        processed_pkg.autobuild.updated?
                     end
                     updated_packages.concat(all_updated_packages.map(&:name))
                 end

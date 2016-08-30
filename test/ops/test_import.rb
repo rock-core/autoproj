@@ -186,7 +186,11 @@ module Autoproj
                         with(hsh(allow_interactive: false)).
                         and_raise(Autobuild::InteractionRequired)
                     flexmock(base_cmake.autobuild).should_receive(:import).once.globally.ordered.
-                        with(hsh(allow_interactive: true))
+                        with(hsh(allow_interactive: true)).
+                        and_return do
+                            assert_equal main_thread, Thread.current, "expected interactive imports to be called in the main thread"
+                        end
+
                     flexmock(ops).should_receive(:post_package_import).
                         with(any, any, base_cmake.autobuild, any).
                         once.globally.ordered
@@ -248,7 +252,7 @@ module Autoproj
                 end
 
                 it "loads the information for all packages in the layout that have not been processed" do
-                    not_processed = ws_add_package_to_layout :cmake, 'not_processed'
+                    ws_add_package_to_layout :cmake, 'not_processed'
                     flexmock(ws.manifest).should_receive(:load_package_manifest).
                         with('not_processed').once
                     ops.finalize_package_load([])

@@ -393,7 +393,6 @@ module Autoproj
             end
 
             it "normalizes the overrides list" do
-                source_definitions = Hash.new
                 flexmock(package_set).should_receive(:load_overrides).
                     with(Hash.new).
                     and_return([['file0', raw_list = flexmock]])

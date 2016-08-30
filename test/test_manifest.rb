@@ -654,7 +654,7 @@ module Autoproj
 
             it "raises if the package's defining package set has no definition for it" do
                 pkg_set = ws_define_package_set 'pkg.set'
-                pkg = ws_define_package :cmake, 'test', package_set: pkg_set
+                ws_define_package :cmake, 'test', package_set: pkg_set
                 e = assert_raises(ConfigError) do
                     manifest.load_importers
                 end

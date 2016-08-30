@@ -254,15 +254,15 @@ module Autoproj
                     url = vcs.url
                 end
 
-                value = []
+                fields = []
                 if type
-                    value << ['type', type]
+                    fields << ['type', type]
                 end
                 if url
-                    value << ['url', url]
+                    fields << ['url', url]
                 end
-                value = value.concat(options.to_a.sort_by { |k, _| k.to_s })
-                value.map do |key, value|
+                fields = fields.concat(options.to_a.sort_by { |k, _| k.to_s })
+                fields.map do |key, value|
                     if value.respond_to?(:to_str) && File.file?(value) && value =~ /^\//
                         value = Pathname.new(value).relative_path_from(Pathname.new(Autoproj.root_dir))
                     end

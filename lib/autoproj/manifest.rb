@@ -1147,7 +1147,6 @@ module Autoproj
         # Declare that we should reuse the autoproj installation present at the
         # given path
         def reuse(workspace_root)
-            manifest_path = InstallationManifest.path_for_workspace_root(workspace_root)
             if reused_installations.any? { |mnf| mnf.path == workspace_root }
                 return
             end

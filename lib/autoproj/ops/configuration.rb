@@ -345,7 +345,7 @@ module Autoproj
 
             result = root_pkg_set.imports.to_a.dup
             to_insert = topological.dup.
-                find_all { |pkg_set| !result.include?(pkg_set) }
+                find_all { |p| !result.include?(p) }
             while !to_insert.empty?
                 pkg_set = to_insert.shift
                 dependencies = pkg_set.imports.dup

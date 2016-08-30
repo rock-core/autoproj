@@ -32,7 +32,7 @@ module Autoproj
                     cli.run([])
                 end
                 it "runs against all the selected packages by default" do
-                    base_cmake = ws_define_package:cmake, 'base/cmake'
+                    ws_define_package:cmake, 'base/cmake'
                     base_types = ws_add_package_to_layout :cmake, 'base/types'
                     flexmock(cli).should_receive(:find_all_matches).
                         with(any, [base_types]).
