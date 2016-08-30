@@ -28,7 +28,7 @@ module Autoproj
                 default: TTY::Color.color?
 
             no_commands do
-                def run_autoproj_cli(filename, classname, report_options, *args)
+                def run_autoproj_cli(filename, classname, report_options, *args, **extra_options)
                     require "autoproj/cli/#{filename}"
                     Autoproj.report(Hash[silent: !options[:debug], debug: options[:debug]].merge(report_options)) do
                         options = self.options.dup
@@ -38,7 +38,7 @@ module Autoproj
                             options[:only_local] = options.delete('local')
                         end
                         cli = CLI.const_get(classname).new
-                        run_args = cli.validate_options(args, options)
+                        run_args = cli.validate_options(args, options.merge(extra_options))
                         cli.run(*run_args)
                     end
                 end
@@ -346,6 +346,18 @@ The format is a string in which special values can be expanded using a $VARNAME 
 
             desc 'plugin', 'interface to manage autoproj plugins'
             subcommand 'plugin', MainPlugin
+
+            desc 'patch', 'applies patches necessary for the selected package',
+                hide: true
+            def patch(*packages)
+                run_autoproj_cli(:patcher, :Patcher, Hash[], *packages, patch: true)
+            end
+
+            desc 'unpatch', 'remove any patch applied on the selected package',
+                hide: true
+            def unpatch(*packages)
+                run_autoproj_cli(:patcher, :Patcher, Hash[], *packages, patch: false)
+            end
         end
     end
 end

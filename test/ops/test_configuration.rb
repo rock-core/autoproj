@@ -9,6 +9,7 @@ module Autoproj
             before do
                 ws = ws_create
                 @ops = Autoproj::Ops::Configuration.new(ws)
+                Autobuild.silent = true
             end
 
             describe "#sort_package_sets_by_import_order" do
