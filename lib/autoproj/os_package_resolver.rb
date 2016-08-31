@@ -128,6 +128,8 @@ module Autoproj
         def prefer_indep_over_os_packages?; !!@prefer_indep_over_os_packages end
         # (see prefer_indep_over_os_packages?)
         def prefer_indep_over_os_packages=(flag); @prefer_indep_over_os_packages = flag end
+        # Cached results of {#resolve_package}
+        attr_reader :resolve_package_cache
 
         # Use to override the autodetected OS-specific package handler
         def os_package_manager=(manager_name)
@@ -162,6 +164,7 @@ module Autoproj
                        package_managers: PACKAGE_MANAGERS.dup,
                        os_package_manager: nil)
             @definitions = defs.to_hash
+            @resolve_package_cache = Hash.new
             @all_definitions = Hash.new { |h, k| h[k] = Array.new }
             @package_managers = package_managers
             self.os_package_manager = os_package_manager
@@ -203,10 +206,16 @@ module Autoproj
             merge(self.class.new(entries, file))
         end
 
+        def invalidate_resolve_package_cache
+            @resolve_package_cache.clear
+        end
+
         # Merges the osdeps information of +info+ into +self+. If packages are
         # defined in both OSPackageResolver objects, the information in +info+
         # takes precedence
         def merge(info)
+            invalidate_resolve_package_cache
+
             @definitions = definitions.merge(info.definitions) do |h, v1, v2|
                 if v1 != v2
                     old = source_of(h)
@@ -481,6 +490,10 @@ module Autoproj
         # name and version. The package list might be empty even if status ==
         # FOUND_PACKAGES, for instance if the ignore keyword is used.
         def resolve_package(name)
+            if resolve_package_cache.has_key?(name)
+                return resolve_package_cache[name]
+            end
+
             path = self.class.resolve_name(name)
             name = path.last
 
@@ -494,7 +507,7 @@ module Autoproj
 
             dep_def = definitions[name]
             if !dep_def
-                return nil
+                return (resolve_package_cache[name] = nil)
             end
 
             # Partition the found definition in all entries that are interesting
@@ -532,7 +545,7 @@ module Autoproj
                 end
             end
 
-            result
+            resolve_package_cache[name] = result
         end
 
         # Value returned by #resolve_package and #partition_osdep_entry in
