@@ -182,7 +182,7 @@ module Autoproj
                 pending_packages = Set.new
                 # The set of all packages that are currently selected by +selection+
                 all_processed_packages = Set.new
-                interactive_imports = Array.new
+                main_thread_imports = Array.new
                 package_queue = selected_packages.to_a.sort_by(&:name)
                 failures = Hash.new
                 missing_vcs = Array.new
@@ -211,7 +211,10 @@ module Autoproj
                             completion_queue << [pkg, Time.now, false, nil]
                             next
                         elsif importer.interactive?
-                            interactive_imports << pkg
+                            main_thread_imports << pkg
+                            next
+                        elsif pkg.autobuild.checked_out? && import_options[:checkout_only]
+                            main_thread_imports << pkg
                             next
                         end
 
@@ -240,10 +243,10 @@ module Autoproj
                         # We've nothing to process anymore ... process
                         # interactive imports if there are some. Otherwise,
                         # we're done
-                        if interactive_imports.empty?
+                        if main_thread_imports.empty?
                             break
                         else
-                            interactive_imports.delete_if do |pkg|
+                            main_thread_imports.delete_if do |pkg|
                                 begin
                                     if retry_count
                                         pkg.autobuild.importer.retry_count = retry_count
@@ -262,7 +265,7 @@ module Autoproj
                     pending_packages.delete(pkg)
                     if reason
                         if reason.kind_of?(Autobuild::InteractionRequired)
-                            interactive_imports << pkg
+                            main_thread_imports << pkg
                         else
                             # One importer failed... terminate
                             Autoproj.error "import of #{pkg.name} failed"
