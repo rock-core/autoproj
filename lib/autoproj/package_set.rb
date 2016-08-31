@@ -84,6 +84,9 @@ module Autoproj
         # The version control information defined in this package set
         attr_reader :version_control
 
+        # Cached results of {#importer_definition_for}
+        attr_reader :importer_definitions_cache
+
         # The importer that should be used for packages that have no explicit
         # entry
         #
@@ -145,6 +148,7 @@ module Autoproj
                 operating_system: ws.os_package_resolver.operating_system,
                 package_managers: ws.os_package_resolver.package_managers,
                 os_package_manager: ws.os_package_resolver.os_package_manager)
+            @importer_definitions_cache = Hash.new
             @all_osdeps = []
             @constants_definitions = Hash.new
             @required_autoproj_version = '0'
@@ -381,6 +385,7 @@ module Autoproj
 
         # Add a new entry in the list of version control resolutions
         def add_version_control_entry(matcher, vcs_definition)
+            invalidate_importer_definitions_cache
             version_control << [matcher, vcs_definition]
         end
 
@@ -446,6 +451,7 @@ module Autoproj
             end
 
             if new_version_control = source_definition['version_control']
+                invalidate_importer_definitions_cache
                 @version_control = normalize_vcs_list('version_control', source_file, new_version_control)
 
                 Autoproj.in_file(source_file) do
@@ -611,6 +617,13 @@ module Autoproj
             return vcs_spec, raw
         end
 
+        # @api private
+        #
+        # Invalidate {#importer_definitions_cache}
+        def invalidate_importer_definitions_cache
+            @importer_definitions_cache.clear
+        end
+
         # Returns the VCS definition for +package_name+ as defined in this
         # source, or nil if the source does not have any.
         #
@@ -619,7 +632,7 @@ module Autoproj
         #   could be found
         def importer_definition_for(package, default: default_importer, require_existing: true)
             package_name = manifest.validate_package_name_argument(package, require_existing: require_existing)
-            Autoproj.in_file source_file do
+            importer_definitions_cache[package_name] ||= Autoproj.in_file source_file do
                 vcs_spec, raw = version_control_field(package_name, version_control, file: source_file)
                 if vcs_spec
                     VCSDefinition.from_raw(vcs_spec, raw: raw, from: self)
