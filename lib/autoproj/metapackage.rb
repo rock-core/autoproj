@@ -28,6 +28,12 @@ module Autoproj
             packages_by_name.size
         end
 
+        # Deprecated, use #each_package instead
+        def packages
+            Autoproj.warn_deprecated "use #each_package instead"
+            each_package.to_a
+        end
+
         # Adds a package to this metapackage
         #
         # @param [Autobuild::Package] pkg
