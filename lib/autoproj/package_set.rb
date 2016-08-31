@@ -117,7 +117,7 @@ module Autoproj
         # List of the packages that are built if the package set is selected in
         # the layout
         def default_packages
-            metapackage.packages
+            metapackage.each_package
         end
 
         # Remote sources can be accessed through a hidden directory in

@@ -394,7 +394,7 @@ end
 # Calling this function will make sure that the given metapackage is now empty.
 def clear_metapackage(name)
     meta = Autoproj.workspace.manifest.metapackage(name)
-    meta.packages.clear
+    meta.clear
 end
 
 # Declares a new metapackage, or adds packages to an existing one
@@ -421,8 +421,9 @@ end
 # their dependencies) are.
 def remove_from_default(*names)
     pkg_set = Autoproj.current_package_set
-    Autoproj.workspace.manifest.metapackage(pkg_set.name).packages.delete_if do |pkg|
-        names.include?(pkg.name)
+    metapackage = Autoproj.workspace.manifest.metapackage(pkg_set.name)
+    names.each do |pkg_name|
+        metapackage.remove(pkg_name)
     end
 end
 

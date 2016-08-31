@@ -4,7 +4,7 @@ module Autoproj
         # The metapackage name
         attr_reader :name
         # The packages listed in this metapackage
-        attr_reader :packages
+        attr_reader :packages_by_name
         # The normal dependency handling behaviour is to generate an error if a
         # metapackage is selected for the build but some of its dependencies
         # cannot be built. This modifies the behaviour to simply ignore the
@@ -20,26 +20,34 @@ module Autoproj
 
         def initialize(name)
             @name = name
-            @packages = []
+            @packages_by_name = Hash.new
             @weak_dependencies = false
         end
 
         def size
-            packages.size
+            packages_by_name.size
         end
 
         # Adds a package to this metapackage
         #
         # @param [Autobuild::Package] pkg
         def add(pkg)
-            @packages << pkg
+            packages_by_name[pkg.name] = pkg
+        end
+
+        # Remove a package from this metapackage
+        def remove(pkg)
+            if pkg.respond_to?(:name)
+                pkg = pkg.name
+            end
+            packages_by_name.delete(pkg)
         end
 
         # Lists the packages contained in this metapackage
         #
         # @yieldparam [Autobuild::Package] pkg
         def each_package(&block)
-            @packages.each(&block)
+            packages_by_name.each_value(&block)
         end
 
         # Tests if the given package is included in this metapackage
@@ -49,7 +57,15 @@ module Autoproj
             if !pkg.respond_to?(:to_str)
                 pkg = pkg.name
             end
-            @packages.any? { |p| p.name == pkg }
+            packages_by_name.has_key?(pkg)
+        end
+
+        def clear
+            packages_by_name.clear
+        end
+
+        def delete_if
+            packages_by_name.delete_if { |name, package| yield(package) }
         end
     end
 end
