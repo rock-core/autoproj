@@ -26,7 +26,7 @@ module Autoproj
 
             # (see Manager#call_while_empty?)
             def call_while_empty?
-                true
+                !workspace_configuration_gemfiles.empty?
             end
 
             # (see Manager#strict?)
@@ -280,6 +280,20 @@ module Autoproj
                 contents.join("\n")
             end
 
+            def workspace_configuration_gemfiles
+                gemfiles = []
+                ws.manifest.each_package_set do |source|
+                    if source.local_dir && File.file?(pkg_set_gemfile = File.join(source.local_dir, 'Gemfile'))
+                        gemfiles << pkg_set_gemfile
+                    end
+                end
+                # In addition, look into overrides.d
+                Dir.glob(File.join(ws.overrides_dir, "*.gemfile")) do |overrides_gemfile_path|
+                    gemfiles << overrides_gemfile_path
+                end
+                gemfiles
+            end
+
             def install(gems, filter_uptodate_packages: false, install_only: false)
                 root_dir     = File.join(ws.prefix_dir, 'gems')
                 gemfile_path = File.join(root_dir, 'Gemfile')
@@ -298,16 +312,7 @@ module Autoproj
                     end
                 end
 
-                gemfiles = []
-                ws.manifest.each_package_set do |source|
-                    if source.local_dir && File.file?(pkg_set_gemfile = File.join(source.local_dir, 'Gemfile'))
-                        gemfiles << pkg_set_gemfile
-                    end
-                end
-                # In addition, look into overrides.d
-                Dir.glob(File.join(ws.overrides_dir, "*.gemfile")) do |overrides_gemfile_path|
-                    gemfiles << overrides_gemfile_path
-                end
+                gemfiles = workspace_configuration_gemfiles
                 gemfiles << File.join(ws.dot_autoproj_dir, 'Gemfile')
 
                 # Save the osdeps entries in a temporary gemfile and finally
