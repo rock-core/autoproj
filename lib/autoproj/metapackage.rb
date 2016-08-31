@@ -38,6 +38,14 @@ module Autoproj
             @packages.each(&block)
         end
 
+        # Filter this metapackage by removing some packages
+        def remove(pkg)
+            if !pkg.respond_to?(:to_str)
+                pkg = pkg.name
+            end
+            @packages.delete_if { |p| p.name == pkg }
+        end
+
         # Tests if the given package is included in this metapackage
         #
         # @param [String,#name] pkg the package or package name

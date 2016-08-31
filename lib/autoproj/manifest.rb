@@ -403,6 +403,10 @@ module Autoproj
             end
         end
 
+        def find_package_definition(name)
+            packages[name]
+        end
+
         def find_package(name)
             packages[name]
         end
