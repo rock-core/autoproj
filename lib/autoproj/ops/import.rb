@@ -82,7 +82,9 @@ module Autoproj
 
             def post_package_import(selection, manifest, pkg, reverse_dependencies)
                 Rake::Task["#{pkg.name}-import"].instance_variable_set(:@already_invoked, true)
-                manifest.load_package_manifest(pkg.name)
+                if pkg.checked_out?
+                    manifest.load_package_manifest(pkg.name)
+                end
 
                 # The package setup mechanisms might have added an exclusion
                 # on this package. Handle this.
@@ -95,8 +97,10 @@ module Autoproj
                 elsif manifest.ignored?(pkg.name)
                     false
                 else
-                    Autoproj.each_post_import_block(pkg) do |block|
-                        block.call(pkg)
+                    if pkg.checked_out?
+                        Autoproj.each_post_import_block(pkg) do |block|
+                            block.call(pkg)
+                        end
                     end
                     import_next_step(pkg, reverse_dependencies)
                 end

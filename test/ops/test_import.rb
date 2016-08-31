@@ -61,9 +61,17 @@ module Autoproj
                     mock
                 end
                 it "skips non-imported packages and returns them if pass_non_imported_packages is true" do
-                    base_cmake.autobuild.srcdir = File.join(ws.root_dir, 'package')
+                    ws_setup_package_dirs(base_cmake, create_srcdir: false)
                     assert_equal Set[base_cmake],
                         ops.import_selected_packages(mock_selection(base_cmake), [], pass_non_imported_packages: true)
+                end
+                it "does not load information nor calls post-import blocks for non-imported packages" do
+                    ws_setup_package_dirs(base_cmake, create_srcdir: false)
+                    flexmock(ws.manifest).should_receive(:load_package_manifest).
+                        with('processed').never
+                    flexmock(Autoproj).should_receive(:each_post_import_block).never
+                    ops.import_selected_packages(mock_selection(base_cmake), [], 
+                                                 pass_non_imported_packages: true)
                 end
                 it "imports the given package" do
                     flexmock(base_cmake.autobuild).should_receive(:import).once
@@ -244,11 +252,20 @@ module Autoproj
 
             describe "#finalize_package_load" do
                 it "does not load information nor calls post-import blocks for processed packages" do
-                    processed     = ws_add_package_to_layout :cmake, 'processed'
+                    processed = ws_add_package_to_layout :cmake, 'processed'
+                    ws_setup_package_dirs(processed)
                     flexmock(ws.manifest).should_receive(:load_package_manifest).
                         with('processed').never
                     flexmock(Autoproj).should_receive(:each_post_import_block).never
                     ops.finalize_package_load([processed])
+                end
+                it "does not load information nor calls post-import blocks for packages that are not present on disk" do
+                    package = ws_add_package_to_layout :cmake, 'package'
+                    ws_setup_package_dirs(package, create_srcdir: false)
+                    flexmock(ws.manifest).should_receive(:load_package_manifest).
+                        with('processed').never
+                    flexmock(Autoproj).should_receive(:each_post_import_block).never
+                    ops.finalize_package_load([])
                 end
 
                 it "loads the information for all packages in the layout that have not been processed" do

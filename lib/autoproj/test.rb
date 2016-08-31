@@ -332,6 +332,18 @@ gem 'autobuild', path: '#{autobuild_dir}'
             package_set.add_overrides_entry(package.name, entry)
         end
 
+        def ws_setup_package_dirs(package, create_srcdir: true)
+            package.autobuild.srcdir = srcdir = File.join(ws.root_dir, package.name)
+            if create_srcdir
+                FileUtils.mkdir_p srcdir
+            elsif File.directory?(srcdir)
+                FileUtils.rm_rf srcdir
+            end
+            package.autobuild.builddir = builddir = File.join(ws.root_dir, 'build', package.name)
+            package.autobuild.prefix = prefix = File.join(ws.root_dir, 'prefix', package.name)
+            return srcdir, builddir, prefix
+        end
+
         def ws_create_git_package_set(name, source_data = Hash.new)
             dir = make_tmpdir
             if !system('git', 'init', chdir: dir, out: :close)
