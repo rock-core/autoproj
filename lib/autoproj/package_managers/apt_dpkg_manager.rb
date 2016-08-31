@@ -13,36 +13,39 @@ module Autoproj
                       %w{DEBIAN_FRONTEND=noninteractive apt-get install -y})
             end
 
+            def self.parse_package_status(installed_packages, paragraph)
+                if paragraph =~ /^Status: install ok installed$/
+                    if paragraph =~ /^Package: (.*)$/
+                        installed_packages << $1
+                    end
+                    if paragraph =~ /^Provides: (.*)$/
+                        installed_packages.merge($1.split(',').map(&:strip))
+                    end
+                end
+            end
+
+            def self.parse_dpkg_status(status_file)
+                installed_packages = Set.new
+                dpkg_status = File.read(status_file)
+                dpkg_status << "\n"
+
+                dpkg_status = StringScanner.new(dpkg_status)
+                if !dpkg_status.scan(/Package: /)
+                    raise ArgumentError, "expected #{status_file} to have Package: lines but found none"
+                end
+
+                while paragraph_end = dpkg_status.scan_until(/Package: /)
+                    paragraph = "Package: #{paragraph_end[0..-10]}"
+                    parse_package_status(installed_packages, paragraph)
+                end
+                parse_package_status(installed_packages, "Package: #{dpkg_status.rest}")
+                installed_packages
+            end
+
             # On a dpkg-enabled system, checks if the provided package is installed
             # and returns true if it is the case
             def installed?(package_name, filter_uptodate_packages: false, install_only: false)
-                if !@installed_packages
-                    @installed_packages = Set.new
-                    dpkg_status = File.readlines(status_file)
-                    dpkg_status << ""
-
-                    current_packages = []
-                    is_installed = false
-                    dpkg_status.each do |line|
-                        line = line.chomp
-                        line = line.encode( "UTF-8", "binary", :invalid => :replace, :undef => :replace)
-                        if line == ""
-                            if is_installed
-                                current_packages.each do |pkg|
-                                    @installed_packages << pkg
-                                end
-                                is_installed = false
-                            end
-                            current_packages.clear
-                        elsif line =~ /Package: (.*)$/
-                            current_packages << $1
-                        elsif line =~ /Provides: (.*)$/
-                            current_packages.concat($1.split(',').map(&:strip))
-                        elsif line == "Status: install ok installed"
-                            is_installed = true
-                        end
-                    end
-                end
+                @installed_packages ||= AptDpkgManager.parse_dpkg_status(status_file)
                 
                 if package_name =~ /^(\w[a-z0-9+-.]+)/
                     @installed_packages.include?($1)
