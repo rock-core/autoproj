@@ -562,7 +562,7 @@ module Autoproj
                 end
             end
 
-            manifest.packages.each_value do |pkg_def|
+            manifest.each_package_definition do |pkg_def|
                 pkg = pkg_def.autobuild
                 next if imported_packages.include?(pkg_def.name)
                 setup_package_directories(pkg)
@@ -621,7 +621,7 @@ module Autoproj
             set_as_main_workspace
             # Now call the blocks that the user defined in the autobuild files. We do it
             # now so that the various package directories are properly setup
-            manifest.packages.each_value do |pkg|
+            manifest.each_package_definition do |pkg|
                 pkg.user_blocks.each do |blk|
                     blk[pkg.autobuild]
                 end

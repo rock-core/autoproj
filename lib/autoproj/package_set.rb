@@ -671,8 +671,8 @@ module Autoproj
                 return enum_for(:each_package)
             end
 
-            manifest.packages.each_value do |pkg|
-                if pkg.package_set.name == name
+            manifest.each_package_definition do |pkg|
+                if pkg.package_set == self
                     yield(pkg.autobuild)
                 end
             end

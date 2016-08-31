@@ -137,14 +137,14 @@ module Autoproj
             def load_all_available_package_manifests
                 # Load the manifest for packages that are already present on the
                 # file system
-                ws.manifest.packages.each_value do |pkg|
-                    if File.directory?(pkg.autobuild.srcdir)
+                ws.manifest.each_autobuild_package do |pkg|
+                    if pkg.checked_out?
                         begin
-                            ws.manifest.load_package_manifest(pkg.autobuild.name)
+                            ws.manifest.load_package_manifest(pkg.name)
                         rescue Interrupt
                             raise
                         rescue Exception => e
-                            Autoproj.warn "cannot load package manifest for #{pkg.autobuild.name}: #{e.message}"
+                            Autoproj.warn "cannot load package manifest for #{pkg.name}: #{e.message}"
                         end
                     end
                 end
