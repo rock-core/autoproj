@@ -70,6 +70,7 @@ module Autoproj
             @data = data
             @ignored_packages |= (data['ignored_packages'] || Set.new).to_set
             @ignored_packages |= (data['ignore_packages'] || Set.new).to_set
+            invalidate_ignored_package_names
             @manifest_exclusions |= (data['exclude_packages'] || Set.new).to_set
 
             normalized_layout = Hash.new
@@ -245,6 +246,7 @@ module Autoproj
         # Call this method to ignore a specific package. It must not be used in
         # init.rb, as the manifest is not yet loaded then
         def ignore_package(package)
+            invalidate_ignored_package_names
             @ignored_packages << validate_package_name_argument(package, require_existing: false)
         end
 
@@ -254,17 +256,32 @@ module Autoproj
         # This is useful if the packages are already installed on this system.
         def ignored?(package)
             package_name = validate_package_name_argument(package)
-            source_package = find_package_definition(package_name)
+            cache_ignored_package_names.include?(package_name)
+        end
 
-            ignored_packages.any? do |l|
-                if package_name == l
-                    true
-                elsif source_package && (pkg_set = metapackages[l]) && pkg_set.include?(source_package.autobuild)
-                    true
-                else
-                    false
-                end
+        # @api private
+        #
+        # The list of packages that are ignored
+        #
+        # Do not use directly, use {#ignored?} instead
+        def cache_ignored_package_names
+            if @ignored_package_names
+                return @ignored_package_names
             end
+
+            @ignored_package_names = each_package_definition.find_all do |pkg|
+                ignored_packages.any? do |l|
+                    (pkg.name == l) || 
+                        ((pkg_set = metapackages[l]) && pkg_set.include?(pkg))
+                end
+            end.map(&:name).to_set
+        end
+
+        # @api private
+        #
+        # Invalidate the cache computed by {#cache_ignored_package_names}
+        def invalidate_ignored_package_names
+            @ignored_package_names = nil
         end
 
         # Enumerates the package names of all ignored packages
@@ -272,13 +289,14 @@ module Autoproj
         # @yieldparam [Autobuild::Package]
         def each_ignored_package
             return enum_for(__method__) if !block_given?
-            each_autobuild_package do |pkg|
-                yield(pkg) if ignored?(pkg.name)
+            cache_ignored_package_names.each do |pkg_name|
+                yield(find_autobuild_package(pkg_name))
             end
         end
 
         # Removes all registered ignored packages
         def clear_ignored
+            invalidate_ignored_package_names
             ignored_packages.clear
         end
 
@@ -416,6 +434,7 @@ module Autoproj
         #
         # @param [PackageSet] pkg_set the package set object
         def register_package_set(pkg_set)
+            invalidate_ignored_package_names
             metapackage(pkg_set.name)
             metapackage("#{pkg_set.name}.all")
             @package_sets << pkg_set
@@ -429,6 +448,7 @@ module Autoproj
         # @param [String] file the file in which the package is defined
         # @return [PackageDefinition]
         def register_package(package, block = nil, package_set = main_package_set, file = nil)
+            invalidate_ignored_package_names
             pkg = PackageDefinition.new(package, package_set, file)
             if block
                 pkg.add_setup_block(block)
