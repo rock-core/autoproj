@@ -15,6 +15,8 @@ module Autoproj
     class UnregisteredPackage < ArgumentError
     end
 
+    class InvalidPackageManifest < RuntimeError; end
+
     class InputError < RuntimeError; end
 
     # Exception raised when a caller requires to use an excluded package

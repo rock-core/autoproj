@@ -219,6 +219,16 @@ gem 'autobuild', path: '#{autobuild_dir}'
             @gem_server_pid = nil
         end
 
+        def capture_deprecation_message(&block)
+            level = Autoproj.warn_deprecated_level
+            Autoproj.warn_deprecated_level = -1
+            capture_subprocess_io do
+                yield
+            end
+        ensure
+            Autoproj.warn_deprecated_level = level
+        end
+
         def find_bundled_gem_path(bundler, gem_name, gemfile)
             out_r, out_w = IO.pipe
             result = Bundler.clean_system(

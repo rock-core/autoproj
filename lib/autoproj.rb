@@ -1,3 +1,4 @@
+require 'rexml/streamlistener'
 require "enumerator"
 require 'utilrb/module/attr_predicate'
 require 'pathname'

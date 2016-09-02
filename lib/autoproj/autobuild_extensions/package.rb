@@ -22,7 +22,7 @@ module Autoproj
                 @os_packages = Set.new
                 @added_tags = Set.new
                 @optional_dependencies = Set.new
-                @description = PackageManifest.new(self)
+                @description = PackageManifest.new(self, null: true)
             end
 
             # The set of tags for this package. This is an union of the tags

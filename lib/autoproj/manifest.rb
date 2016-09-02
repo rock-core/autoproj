@@ -2,7 +2,6 @@ require 'yaml'
 require 'csv'
 require 'utilrb/kernel/options'
 require 'set'
-require 'rexml/document'
 
 require 'win32/dir' if RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)! 
 
