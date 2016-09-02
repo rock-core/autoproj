@@ -8,14 +8,13 @@ module Autoproj
         attr_reader :root_dir
 
         def prepare(root_dir)
-            super()
-
             @root_dir = root_dir
             set 'AUTOPROJ_CURRENT_ROOT', root_dir
+            super()
         end
 
         def filter_original_env(name, env)
-            env.find_all { |p| !Workspace.in_autoproj_project?(p) }
+            Autoproj.filter_out_paths_in_workspace(env)
         end
 
         def export_env_sh(subdir = nil, options = Hash.new)

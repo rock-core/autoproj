@@ -25,6 +25,7 @@ module Autoproj
 
             @loader = loader
             @env = Environment.new
+            env.prepare(root_dir)
             env.source_before(File.join(dot_autoproj_dir, 'env.sh'))
 
             @os_package_resolver = os_package_resolver
@@ -33,7 +34,6 @@ module Autoproj
 
             @os_package_installer = OSPackageInstaller.new(
                 self, os_package_resolver, package_managers: package_managers)
-            env.prepare(root_dir)
             super(root_dir)
         end
 
@@ -275,7 +275,6 @@ module Autoproj
             if cache_dir = config.importer_cache_dir
                 Autobuild::Importer.default_cache_dirs = cache_dir
             end
-            env.prepare(root_dir)
             setup_os_package_installer
             install_ruby_shims
         end
