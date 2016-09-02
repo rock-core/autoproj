@@ -37,7 +37,7 @@ module Autoproj
                 initialize_and_load
                 resolved_selection, _ = finalize_setup(
                     user_selection,
-                    recursive: options[:dep],
+                    recursive: options[:deps],
                     non_imported_packages: :return)
 
                 lines = Array.new
@@ -57,7 +57,7 @@ module Autoproj
             def run(user_selection, options = Hash.new)
                 initialize_and_load
                 packages, _ = finalize_setup(user_selection,
-                                             recursive: options[:dep])
+                                             recursive: options[:deps])
 
                 packages.each do |pkg|
                     Autobuild::Package[pkg].disable_phases('import', 'prepare', 'install')
