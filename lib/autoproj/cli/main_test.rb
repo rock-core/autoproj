@@ -54,11 +54,14 @@ module Autoproj
                 desc: 'controls whether to execute the tests of the dependencies of the packages given on the command line (the default is not)'
             option :fail, type: :boolean, default: true,
                 desc: 'return with a nonzero exit code if the test does not pass'
+            option :coverage, type: :boolean, default: false,
+                desc: 'whether code coverage should be generated if possible'
             def exec(*packages)
                 require 'autoproj/cli/test'
                 report do
                     cli = Test.new
                     Autobuild.pass_test_errors = options[:fail]
+                    Autobuild::TestUtility.coverage_enabled = options[:coverage]
                     args = cli.validate_options(packages, options)
                     cli.run(*args)
                 end
