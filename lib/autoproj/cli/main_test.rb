@@ -38,7 +38,7 @@ module Autoproj
             end
 
             desc 'list [PACKAGES]', 'show test enable/disable status for the given packages (or all packages if none are given)'
-            option :deps, type: :boolean, default: false,
+            option :deps, type: :boolean, default: true,
                 desc: 'controls whether the dependencies of the packages given on the command line should be disabled as well (the default is not)'
             def list(*packages)
                 require 'autoproj/cli/test'
