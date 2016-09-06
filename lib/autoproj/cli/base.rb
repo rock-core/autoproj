@@ -120,7 +120,7 @@ module Autoproj
             #   should be added) or not
             # @param [Symbol] non_imported_packages whether packages
             #   that are not imported should simply be ignored (:ignore),
-            #   returned (:return) or should be checked out (nil). Setting
+            #   returned (:return) or should be checked out (:checkout). Setting
             #   checkout_only to true and this to anything but nil
             #   guarantees in effect that no import operation will take place,
             #   only loading
@@ -131,14 +131,6 @@ module Autoproj
             # @see resolve_user_selection
             def resolve_selection(user_selection, checkout_only: true, only_local: false, recursive: true, non_imported_packages: :ignore)
                 resolved_selection, _ = resolve_user_selection(user_selection, filter: false)
-                if (non_imported_packages == :ignore)
-                    ws.manifest.each_autobuild_package do |pkg|
-                        if !File.directory?(pkg.srcdir)
-                            ws.manifest.ignore_package(pkg.name)
-                        end
-                    end
-                end
-                resolved_selection.filter_excluded_and_ignored_packages(ws.manifest)
 
                 ops = Ops::Import.new(ws)
                 source_packages, osdep_packages = ops.import_packages(
@@ -147,7 +139,7 @@ module Autoproj
                     only_local: only_local,
                     recursive: recursive,
                     warn_about_ignored_packages: false,
-                    pass_non_imported_packages: (non_imported_packages == :return))
+                    non_imported_packages: non_imported_packages)
 
                 return source_packages, osdep_packages, resolved_selection
             end

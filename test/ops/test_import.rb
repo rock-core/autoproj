@@ -60,18 +60,43 @@ module Autoproj
                         and_return(packages.map(&:name))
                     mock
                 end
-                it "skips non-imported packages and returns them if pass_non_imported_packages is true" do
-                    ws_setup_package_dirs(base_cmake, create_srcdir: false)
-                    assert_equal Set[base_cmake],
-                        ops.import_selected_packages(mock_selection(base_cmake), [], pass_non_imported_packages: true)
+
+                describe "non_imported_packages: :ignore" do
+                    it "adds non-imported packages to the ignores" do
+                        ws_setup_package_dirs(base_cmake, create_srcdir: false)
+                        ops.import_selected_packages(
+                            mock_selection(base_cmake), [], non_imported_packages: :ignore)
+                        assert ws.manifest.ignored?('base/cmake')
+                    end
+                    it "skips the import of non-imported packages and does not return them" do
+                        ws_setup_package_dirs(base_cmake, create_srcdir: false)
+                        assert_equal Set[],
+                            ops.import_selected_packages(
+                                mock_selection(base_cmake), [], non_imported_packages: :ignore)
+                    end
+                    it "does not load information nor calls post-import blocks for non-imported packages" do
+                        ws_setup_package_dirs(base_cmake, create_srcdir: false)
+                        flexmock(ws.manifest).should_receive(:load_package_manifest).
+                            with('processed').never
+                        flexmock(Autoproj).should_receive(:each_post_import_block).never
+                        ops.import_selected_packages(mock_selection(base_cmake), [], 
+                                                     non_imported_packages: :return)
+                    end
                 end
-                it "does not load information nor calls post-import blocks for non-imported packages" do
-                    ws_setup_package_dirs(base_cmake, create_srcdir: false)
-                    flexmock(ws.manifest).should_receive(:load_package_manifest).
-                        with('processed').never
-                    flexmock(Autoproj).should_receive(:each_post_import_block).never
-                    ops.import_selected_packages(mock_selection(base_cmake), [], 
-                                                 pass_non_imported_packages: true)
+                describe "non_imported_packages: :return" do
+                    it "skips the import of non-imported packages and returns them" do
+                        ws_setup_package_dirs(base_cmake, create_srcdir: false)
+                        assert_equal Set[base_cmake],
+                            ops.import_selected_packages(mock_selection(base_cmake), [], non_imported_packages: :return)
+                    end
+                    it "does not load information nor calls post-import blocks for non-imported packages" do
+                        ws_setup_package_dirs(base_cmake, create_srcdir: false)
+                        flexmock(ws.manifest).should_receive(:load_package_manifest).
+                            with('processed').never
+                        flexmock(Autoproj).should_receive(:each_post_import_block).never
+                        ops.import_selected_packages(mock_selection(base_cmake), [], 
+                                                     non_imported_packages: :return)
+                    end
                 end
                 it "imports the given package" do
                     flexmock(base_cmake.autobuild).should_receive(:import).once
@@ -148,6 +173,16 @@ module Autoproj
                     end
                     assert_equal "base/cmake has no VCS, but is not checked out in #{srcdir}",
                         e.message
+                end
+                it "checks out packages that are not present on disk" do
+                    mock_vcs(base_cmake, type: 'git', url: 'https://github.com')
+                    base_cmake.autobuild.srcdir = File.join(ws.root_dir, 'package')
+                    flexmock(base_cmake.autobuild.importer).should_receive(:import).
+                        with(base_cmake.autobuild, Hash).once
+                    flexmock(ops).should_receive(:post_package_import).
+                        with(any, any, base_cmake.autobuild, any).
+                        once
+                    ops.import_selected_packages(mock_selection(base_cmake), [])
                 end
                 it "passes on packages that have no importers but are present on disk" do
                     mock_vcs(base_cmake, type: 'none')

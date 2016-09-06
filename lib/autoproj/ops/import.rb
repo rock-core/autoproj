@@ -159,8 +159,13 @@ module Autoproj
                                          retry_count: nil,
                                          ignore_errors: false,
                                          install_vcs_packages: Hash.new,
-                                         pass_non_imported_packages: false,
+                                         non_imported_packages: :checkout,
                                          **import_options)
+
+                if ![:checkout, :ignore, :return].include?(non_imported_packages)
+                    raise ArgumentError, "invalid value for 'non_imported_packages'. Expected one of :checkout, :ignore or :return but got #{non_imported_packages}"
+                end
+
                 # This is used in the ensure block, initialize as early as
                 # possible
                 executor = Concurrent::FixedThreadPool.new(parallel, max_length: 0)
@@ -192,10 +197,16 @@ module Autoproj
                     package_queue.each do |pkg|
                         # Remove packages that have already been processed
                         next if all_processed_packages.include?(pkg)
-                        if pass_non_imported_packages && !File.directory?(pkg.autobuild.srcdir)
-                            all_processed_packages << pkg
-                            completion_queue << [pkg, Time.now, false, nil]
-                            next
+                        if (non_imported_packages != :checkout) && !File.directory?(pkg.autobuild.srcdir)
+                            if non_imported_packages == :return
+                                all_processed_packages << pkg
+                                completion_queue << [pkg, Time.now, false, nil]
+                                next
+                            else
+                                all_processed_packages << pkg
+                                ws.manifest.ignore_package(pkg.name)
+                                next
+                            end
                         elsif install_vcs_packages && !installed_vcs_packages.include?(pkg.vcs.type)
                             missing_vcs << pkg
                             next
@@ -358,7 +369,7 @@ module Autoproj
             end
 
             def import_packages(selection,
-                                pass_non_imported_packages: false,
+                                non_imported_packages: :checkout,
                                 warn_about_ignored_packages: true,
                                 warn_about_excluded_packages: true,
                                 recursive: true,
@@ -373,7 +384,7 @@ module Autoproj
 
                 all_processed_packages = import_selected_packages(
                     selection, updated_packages,
-                    pass_non_imported_packages: pass_non_imported_packages,
+                    non_imported_packages: non_imported_packages,
                     ignore_errors: ignore_errors,
                     recursive: recursive,
                     install_vcs_packages: install_vcs_packages,
