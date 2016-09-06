@@ -192,6 +192,9 @@ module Autoproj
                 desc: "compare to the given baseline. if 'true', the comparison will ignore any override, otherwise it will take into account overrides only up to the given package set"
             option :env, type: :boolean,
                 desc: "display the package's own environment", default: false
+            option :short, desc: 'display a package summary with one package line'
+            option :recursive, desc: 'display the package and their dependencies (the default is to only display selected packages)',
+                type: :boolean, default: false
             def show(*packages)
                 run_autoproj_cli(:show, :Show, Hash[], *packages)
             end
