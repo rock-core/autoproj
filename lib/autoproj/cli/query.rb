@@ -49,7 +49,7 @@ module Autoproj
                 fields['PREFIX']   = autobuild_package.prefix
                 fields['NAME']     = package.name
                 fields['PRIORITY'] = priority
-                fields['URL']      = (package.vcs.url if package.vcs)
+                fields['URL']      = (package.vcs.url if !package.vcs.none?)
                 fields['PRESENT']  = File.directory?(autobuild_package.srcdir)
                 Autoproj.expand(format, fields)
             end

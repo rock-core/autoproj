@@ -127,7 +127,7 @@ module Autoproj
 
                 url = VCSDefinition.to_absolute_url(url, ws.root_dir)
 
-                if vcs && (vcs.type == type && vcs.url == url)
+                if vcs.type == type && vcs.url == url
                     vcs = vcs.to_hash
                     options.each do |opt|
                         opt_name, opt_value = opt.split('=')

@@ -174,6 +174,7 @@ module Autoproj
 
         def initialize(ws, os_package_resolver: OSPackageResolver.new)
             @ws = ws
+            @vcs = VCSDefinition.none
             @file = nil
 	    @data = Hash.new
             @has_layout = false
