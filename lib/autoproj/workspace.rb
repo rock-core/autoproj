@@ -705,7 +705,7 @@ module Autoproj
                 _, all_os_packages =
                     ops.import_packages(manifest.default_packages,
                                     checkout_only: true, only_local: true, reset: false,
-                                    recursive: true, ignore_errors: true, parallel: parallel,
+                                    recursive: true, keep_going: true, parallel: parallel,
                                     retry_count: 0)
                 all_os_packages
             else

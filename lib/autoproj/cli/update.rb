@@ -185,11 +185,11 @@ module Autoproj
                                         retry_count: retry_count,
                                         install_vcs_packages: (osdeps_options if osdeps))
                 return source_packages, osdep_packages, nil
-            rescue ImportFailed => import_failure
+            rescue PackageImportFailed => import_failure
                 if !keep_going
                     raise
                 end
-                return [], [], import_failure
+                return import_failure.source_packages, import_failure.osdep_packages, import_failure
             end
 
             def load_all_available_package_manifests

@@ -14,6 +14,20 @@ module Autoproj
         end
     end
 
+    class PackageImportFailed < ImportFailed
+        # The list of the source packages that have been updated
+        attr_reader :source_packages
+        # The list of osdep packages that should be installed because of
+        # {#source_packages}
+        attr_reader :osdep_packages
+
+        def initialize(original_errors, source_packages: [], osdep_packages: [])
+            super(original_errors)
+            @source_packages = source_packages
+            @osdep_packages = osdep_packages
+        end
+    end
+
     # Exception raised when trying to resolve a package name and it failed
     class PackageNotFound < ConfigError
     end

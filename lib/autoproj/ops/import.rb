@@ -151,11 +151,11 @@ module Autoproj
 
             # Import all packages from the given selection, and their
             # dependencies
-            def import_selected_packages(selection, updated_packages,
+            def import_selected_packages(selection,
                                          parallel: ws.config.parallel_import_level,
                                          recursive: true,
                                          retry_count: nil,
-                                         ignore_errors: false,
+                                         keep_going: false,
                                          install_vcs_packages: Hash.new,
                                          non_imported_packages: :checkout,
                                          **import_options)
@@ -187,10 +187,10 @@ module Autoproj
                 all_processed_packages = Set.new
                 main_thread_imports = Array.new
                 package_queue = selected_packages.to_a.sort_by(&:name)
-                failures = Hash.new
+                failures = Array.new
                 missing_vcs = Array.new
                 installed_vcs_packages = Set['none', 'local']
-                while failures.empty? || ignore_errors
+                while failures.empty? || keep_going
                     # Queue work for all packages in the queue
                     package_queue.each do |pkg|
                         # Remove packages that have already been processed
@@ -281,7 +281,7 @@ module Autoproj
                             if !reason.kind_of?(Interrupt)
                                 Autoproj.error "#{reason}"
                             end
-                            failures[pkg] = reason
+                            failures << reason
                         end
                     else
                         if new_packages = post_package_import(selection, manifest, pkg.autobuild, reverse_dependencies)
@@ -297,28 +297,18 @@ module Autoproj
                     end
                 end
 
-                if !failures.empty?
-                    raise ImportFailed.new(failures.values), "import of #{failures.size} packages failed: #{failures.keys.map(&:name).sort.join(", ")}"
-                end
-
                 all_processed_packages.delete_if do |processed_pkg|
                     ws.manifest.excluded?(processed_pkg.name) || ws.manifest.ignored?(processed_pkg.name)
                 end
-                all_processed_packages
+                return all_processed_packages, failures
 
             ensure
-                if failures && !failures.empty? && !ignore_errors
+                if failures && !failures.empty? && !keep_going
                     Autoproj.error "waiting for pending import jobs to finish"
                 end
                 if executor
                     executor.shutdown
                     executor.wait_for_termination
-                end
-                if all_processed_packages
-                    all_updated_packages = all_processed_packages.find_all do |processed_pkg|
-                        processed_pkg.autobuild.updated?
-                    end
-                    updated_packages.concat(all_updated_packages.map(&:name))
                 end
             end
             
@@ -371,22 +361,24 @@ module Autoproj
                                 warn_about_ignored_packages: true,
                                 warn_about_excluded_packages: true,
                                 recursive: true,
-                                ignore_errors: false,
+                                keep_going: false,
                                 install_vcs_packages: Hash.new,
                                 **import_options)
 
-                # Used in the ensure block, initialize as soon as possible
-                updated_packages = Array.new
-
                 manifest = ws.manifest
 
-                all_processed_packages = import_selected_packages(
-                    selection, updated_packages,
+                all_processed_packages, failures = import_selected_packages(
+                    selection,
                     non_imported_packages: non_imported_packages,
-                    ignore_errors: ignore_errors,
+                    keep_going: keep_going,
                     recursive: recursive,
                     install_vcs_packages: install_vcs_packages,
                     **import_options)
+
+                if !keep_going && !failures.empty?
+                    raise failures.first
+                end
+
                 finalize_package_load(all_processed_packages)
 
                 all_enabled_osdeps = selection.each_osdep_package_name.to_set
@@ -412,18 +404,34 @@ module Autoproj
                     end
                 end
 
-                return all_enabled_sources, all_enabled_osdeps
+                if !failures.empty?
+                    raise PackageImportFailed.new(
+                        failures, source_packages: all_enabled_sources,
+                        osdep_packages: all_enabled_osdeps)
+                else
+                    return all_enabled_sources, all_enabled_osdeps
+                end
 
             ensure
-                if ws.config.import_log_enabled? && !updated_packages.empty? && Autoproj::Ops::Snapshot.update_log_available?(manifest)
+                if ws.config.import_log_enabled? && Autoproj::Ops::Snapshot.update_log_available?(manifest)
+                    update_log_for_processed_packages(all_processed_packages || Array.new, $!)
+                end
+            end
+
+            def update_log_for_processed_packages(all_processed_packages, exception)
+                all_updated_packages = all_processed_packages.find_all do |processed_pkg|
+                    processed_pkg.autobuild.updated?
+                end
+
+                if !all_updated_packages.empty?
                     failure_message =
-                        if $!
-                            " (#{$!.message.split("\n").first})"
+                        if exception
+                            " (#{exception.message.split("\n").first})"
                         end
                     ops = Ops::Snapshot.new(ws.manifest, ignore_errors: true)
                     ops.update_package_import_state(
                         "#{$0} #{ARGV.join(" ")}#{failure_message}",
-                        updated_packages)
+                        all_updated_packages.map(&:name))
                 end
             end
         end

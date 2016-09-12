@@ -65,49 +65,49 @@ module Autoproj
                     it "adds non-imported packages to the ignores" do
                         ws_setup_package_dirs(base_cmake, create_srcdir: false)
                         ops.import_selected_packages(
-                            mock_selection(base_cmake), [], non_imported_packages: :ignore)
+                            mock_selection(base_cmake), non_imported_packages: :ignore)
                         assert ws.manifest.ignored?('base/cmake')
                     end
                     it "skips the import of non-imported packages and does not return them" do
                         ws_setup_package_dirs(base_cmake, create_srcdir: false)
-                        assert_equal Set[],
+                        assert_equal [Set[], []],
                             ops.import_selected_packages(
-                                mock_selection(base_cmake), [], non_imported_packages: :ignore)
+                                mock_selection(base_cmake), non_imported_packages: :ignore)
                     end
                     it "does not load information nor calls post-import blocks for non-imported packages" do
                         ws_setup_package_dirs(base_cmake, create_srcdir: false)
                         flexmock(ws.manifest).should_receive(:load_package_manifest).
                             with('processed').never
                         flexmock(Autoproj).should_receive(:each_post_import_block).never
-                        ops.import_selected_packages(mock_selection(base_cmake), [], 
+                        ops.import_selected_packages(mock_selection(base_cmake),
                                                      non_imported_packages: :return)
                     end
                 end
                 describe "non_imported_packages: :return" do
                     it "skips the import of non-imported packages and returns them" do
                         ws_setup_package_dirs(base_cmake, create_srcdir: false)
-                        assert_equal Set[base_cmake],
-                            ops.import_selected_packages(mock_selection(base_cmake), [], non_imported_packages: :return)
+                        assert_equal [Set[base_cmake], []],
+                            ops.import_selected_packages(mock_selection(base_cmake), non_imported_packages: :return)
                     end
                     it "does not load information nor calls post-import blocks for non-imported packages" do
                         ws_setup_package_dirs(base_cmake, create_srcdir: false)
                         flexmock(ws.manifest).should_receive(:load_package_manifest).
                             with('processed').never
                         flexmock(Autoproj).should_receive(:each_post_import_block).never
-                        ops.import_selected_packages(mock_selection(base_cmake), [], 
+                        ops.import_selected_packages(mock_selection(base_cmake),
                                                      non_imported_packages: :return)
                     end
                 end
                 it "imports the given package" do
                     flexmock(base_cmake.autobuild).should_receive(:import).once
                     flexmock(ws.os_package_installer).should_receive(:install)
-                    ops.import_selected_packages(mock_selection(base_cmake), [])
+                    assert_equal [Set[base_cmake], []], ops.import_selected_packages(mock_selection(base_cmake))
                 end
                 it "installs a missing VCS package" do
                     flexmock(base_cmake.autobuild).should_receive(:import).once
                     flexmock(ws.os_package_installer).should_receive(:install).
                         with([:git], Hash).once
-                    ops.import_selected_packages(mock_selection(base_cmake), [])
+                    ops.import_selected_packages(mock_selection(base_cmake))
                 end
                 it "queues the package's dependencies after it loaded the manifest" do
                     base_depends = ws_define_package :cmake, 'base/depends'
@@ -122,25 +122,25 @@ module Autoproj
                     flexmock(ws.manifest).should_receive(:load_package_manifest).
                         with('base/depends').once.globally.ordered
 
-                    ops.import_selected_packages(mock_selection(base_cmake), [])
+                    ops.import_selected_packages(mock_selection(base_cmake))
                 end
                 it "does not attempt to install the 'local' VCS" do
                     mock_vcs(base_cmake, type: 'local', url: '/path/to/dir')
                     base_cmake.autobuild.importer = nil
                     flexmock(ws.os_package_installer).should_receive(:install).never
-                    ops.import_selected_packages(mock_selection(base_cmake), [])
+                    ops.import_selected_packages(mock_selection(base_cmake))
                 end
                 it "does not attempt to install the 'none' VCS" do
                     mock_vcs(base_cmake, type: 'none')
                     base_cmake.autobuild.importer = nil
                     flexmock(ws.os_package_installer).should_receive(:install).never
-                    ops.import_selected_packages(mock_selection(base_cmake), [])
+                    ops.import_selected_packages(mock_selection(base_cmake))
                 end
                 it "does not attempt to install the VCS packages if install_vcs_packages is false" do
                     mock_vcs(base_cmake)
                     flexmock(base_cmake.autobuild).should_receive(:import)
                     flexmock(ws.os_package_installer).should_receive(:install).never
-                    ops.import_selected_packages(mock_selection(base_cmake), [], install_vcs_packages: nil)
+                    ops.import_selected_packages(mock_selection(base_cmake), install_vcs_packages: nil)
                 end
                 it "sets the retry_count on the non-interactive packages before it calls #import on them" do
                     mock_vcs(base_cmake)
@@ -149,7 +149,7 @@ module Autoproj
                         once.globally.ordered
                     flexmock(base_cmake.autobuild.importer).should_receive(:import).
                         once.globally.ordered
-                    ops.import_selected_packages(mock_selection(base_cmake), [], retry_count: retry_count)
+                    ops.import_selected_packages(mock_selection(base_cmake), retry_count: retry_count)
 
                 end
                 it "sets the retry_count on the interactive packages before it calls #import on them" do
@@ -159,7 +159,7 @@ module Autoproj
                         once.globally.ordered
                     flexmock(base_cmake.autobuild.importer).should_receive(:import).
                         once.globally.ordered
-                    ops.import_selected_packages(mock_selection(base_cmake), [], retry_count: retry_count)
+                    ops.import_selected_packages(mock_selection(base_cmake), retry_count: retry_count)
                 end
 
                 it "fails if a package has no importer and is not present on disk" do
@@ -168,11 +168,11 @@ module Autoproj
                     base_cmake.autobuild.srcdir = srcdir
                     base_cmake.autobuild.importer = nil
                     flexmock(ws.os_package_installer).should_receive(:install).never
-                    e = assert_raises(ConfigError) do
-                        ops.import_selected_packages(mock_selection(base_cmake), [])
+                    failure = assert_raises(ConfigError) do
+                        ops.import_selected_packages(mock_selection(base_cmake))
                     end
                     assert_equal "base/cmake has no VCS, but is not checked out in #{srcdir}",
-                        e.message
+                        failure.message
                 end
                 it "checks out packages that are not present on disk" do
                     mock_vcs(base_cmake, type: 'git', url: 'https://github.com')
@@ -182,7 +182,7 @@ module Autoproj
                     flexmock(ops).should_receive(:post_package_import).
                         with(any, any, base_cmake.autobuild, any).
                         once
-                    ops.import_selected_packages(mock_selection(base_cmake), [])
+                    ops.import_selected_packages(mock_selection(base_cmake))
                 end
                 it "passes on packages that have no importers but are present on disk" do
                     mock_vcs(base_cmake, type: 'none')
@@ -191,7 +191,7 @@ module Autoproj
                     flexmock(ops).should_receive(:post_package_import).
                         with(any, any, base_cmake.autobuild, any).
                         once
-                    ops.import_selected_packages(mock_selection(base_cmake), [])
+                    ops.import_selected_packages(mock_selection(base_cmake))
                 end
                 it "processes all non-interactive importers in parallel and then the interactive ones in the main thread" do
                     mock_vcs(base_cmake, interactive: true)
@@ -219,7 +219,7 @@ module Autoproj
                         with(any, any, base_cmake.autobuild, any).
                         once.globally.ordered
 
-                    ops.import_selected_packages(mock_selection(non_interactive, base_cmake), [])
+                    ops.import_selected_packages(mock_selection(non_interactive, base_cmake))
                 end
 
                 it "retries importers that raise InteractionRequired in the non-interactive section within the interactive one" do
@@ -237,31 +237,36 @@ module Autoproj
                     flexmock(ops).should_receive(:post_package_import).
                         with(any, any, base_cmake.autobuild, any).
                         once.globally.ordered
-                    ops.import_selected_packages(mock_selection(base_cmake), [])
+                    ops.import_selected_packages(mock_selection(base_cmake))
                 end
 
-                it "terminates the import if an import failed and ignore_errors is false" do
+                it "terminates the import if an import failed and keep_going is false" do
                     mock_vcs(base_cmake)
                     base_types = ws_define_package :cmake, 'base/types'
                     mock_vcs(base_types)
                     flexmock(base_cmake.autobuild).should_receive(:import).once.
-                        and_raise(ArgumentError)
+                        and_raise(error_t = Class.new(Exception))
                     flexmock(base_types.autobuild).should_receive(:import).never
-                    assert_raises(Import::ImportFailed) do
-                        ops.import_selected_packages(mock_selection(base_cmake, base_types), [], ignore_errors: false, parallel_import_level: 1)
-                    end
+                    _, failure =
+                        ops.import_selected_packages(mock_selection(base_cmake, base_types),
+                                                     keep_going: false, parallel_import_level: 1)
+                    assert_equal 1, failure.size
+                    assert_kind_of error_t, failure.first
                 end
 
-                it "does attempt to import the other packages if an import failed and ignore_errors is true" do
+                it "does attempt to import the other packages if an import failed and keep_going is true" do
                     mock_vcs(base_cmake)
                     base_types = ws_define_package :cmake, 'base/types'
                     mock_vcs(base_types)
                     flexmock(base_cmake.autobuild).should_receive(:import).once.
-                        and_raise(ArgumentError)
+                        and_raise(error_t = Class.new(Exception))
                     flexmock(base_types.autobuild).should_receive(:import).once
-                    assert_raises(Import::ImportFailed) do
-                        ops.import_selected_packages(mock_selection(base_cmake, base_types), [], ignore_errors: true, parallel_import_level: 1)
-                    end
+                    processed_packages, failure =
+                        ops.import_selected_packages(mock_selection(base_cmake, base_types),
+                                                     keep_going: true, parallel_import_level: 1)
+                    assert_equal Set[base_cmake, base_types], processed_packages
+                    assert_equal 1, failure.size
+                    assert_kind_of error_t, failure.first
                 end
 
                 it "does not post-processes a package that failed to import" do
@@ -271,16 +276,14 @@ module Autoproj
                     flexmock(base_cmake.autobuild).should_receive(:import).once.
                         and_raise(ArgumentError)
                     flexmock(ops).should_receive(:post_package_import).never
-                    assert_raises(Import::ImportFailed) do
-                        ops.import_selected_packages(mock_selection(base_cmake), [])
-                    end
+                    ops.import_selected_packages(mock_selection(base_cmake))
                 end
 
                 it "does not wait on a package for which it failed to queue the work" do
                     mock_vcs(base_cmake)
                     flexmock(ops).should_receive(:queue_import_work).and_raise(ArgumentError)
                     assert_raises(ArgumentError) do
-                        ops.import_selected_packages(mock_selection(base_cmake), [])
+                        ops.import_selected_packages(mock_selection(base_cmake))
                     end
                 end
             end

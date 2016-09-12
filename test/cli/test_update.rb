@@ -188,7 +188,7 @@ module Autoproj
                     end
 
                     it "passes exceptions from package updates" do
-                        import_failure = Class.new(ImportFailed)
+                        import_failure = Class.new(PackageImportFailed)
                         flexmock(Ops::Import).new_instances.should_receive(:import_packages).
                             and_raise(import_failure.new([]))
                         assert_raises(import_failure) do
@@ -201,15 +201,15 @@ module Autoproj
                     attr_reader :pkg_set_failure, :pkg_failure
                     before do
                         @pkg_set_failure = Class.new(ImportFailed)
-                        @pkg_failure = Class.new(ImportFailed)
+                        @pkg_failure = Class.new(PackageImportFailed)
                     end
                     def mock_package_set_failure(*errors)
                         flexmock(ws).should_receive(:load_package_sets).
                             once.and_raise(pkg_set_failure.new(errors))
                     end
-                    def mock_package_failure(*errors)
+                    def mock_package_failure(*errors, **options)
                         flexmock(Ops::Import).new_instances.should_receive(:import_packages).
-                            once.and_raise(pkg_failure.new(errors))
+                            once.and_raise(pkg_failure.new(errors, **options))
                     end
 
                     it "passes exceptions from package set updates if no packages would be updated" do
@@ -261,6 +261,15 @@ module Autoproj
                         flexmock(ws).should_receive(:install_os_packages).once.
                             with(['test'], Hash)
                         assert_raises(pkg_set_failure) do
+                            cli.run([], keep_going: true, packages: true, osdeps: true)
+                        end
+                    end
+
+                    it "performs osdep import based on the value encoded in the import failure exception if the package import failed" do
+                        mock_package_failure(osdep_packages: ['test'])
+                        flexmock(ws).should_receive(:install_os_packages).once.
+                            with(['test'], Hash)
+                        assert_raises(pkg_failure) do
                             cli.run([], keep_going: true, packages: true, osdeps: true)
                         end
                     end
