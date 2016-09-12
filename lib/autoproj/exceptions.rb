@@ -8,6 +8,12 @@ module Autoproj
     end
     class InternalError < RuntimeError; end
 
+    class ImportFailed < Autobuild::CompositeException
+        def empty?
+            original_errors.empty?
+        end
+    end
+
     # Exception raised when trying to resolve a package name and it failed
     class PackageNotFound < ConfigError
     end

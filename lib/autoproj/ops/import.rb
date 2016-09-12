@@ -149,8 +149,6 @@ module Autoproj
                 import_future.execute
             end
 
-            class ImportFailed < RuntimeError; end
-
             # Import all packages from the given selection, and their
             # dependencies
             def import_selected_packages(selection, updated_packages,
@@ -300,7 +298,7 @@ module Autoproj
                 end
 
                 if !failures.empty?
-                    raise ImportFailed, "import of #{failures.size} packages failed: #{failures.keys.map(&:name).sort.join(", ")}"
+                    raise ImportFailed.new(failures.values), "import of #{failures.size} packages failed: #{failures.keys.map(&:name).sort.join(", ")}"
                 end
 
                 all_processed_packages.delete_if do |processed_pkg|

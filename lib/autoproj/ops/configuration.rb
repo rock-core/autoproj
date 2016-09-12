@@ -50,13 +50,10 @@ module Autoproj
         # Imports or updates a source (remote or otherwise).
         #
         # See create_autobuild_package for informations about the arguments.
-        def update_configuration_repository(vcs, name, into, options = Hash.new)
-            options = Kernel.validate_options options,
+        def update_configuration_repository(vcs, name, into,
                 only_local: false,
-                checkout_only: !Autobuild.do_update,
-                ignore_errors: false,
                 reset: false,
-                retry_count: nil
+                retry_count: nil)
 
             fake_package = Tools.create_autobuild_package(vcs, name, into)
             if update_from
@@ -79,10 +76,10 @@ module Autoproj
                     fake_package.update = false
                 end
             end
-            if retry_count = options.delete(:retry_count)
+            if retry_count
                 fake_package.importer.retry_count = retry_count
             end
-            fake_package.import(options)
+            fake_package.import(only_local: only_local, reset: reset)
 
         rescue Autobuild::ConfigException => e
             raise ConfigError.new, "cannot import #{name}: #{e.message}", e.backtrace
@@ -92,22 +89,24 @@ module Autoproj
         #
         # @return [Boolean] true if something got updated or checked out,
         #   and false otherwise
-        def update_main_configuration(options = Hash.new)
-            if !options.kind_of?(Hash)
-                options = Hash[only_local: options]
+        def update_main_configuration(ignore_errors: false, checkout_only: !Autobuild.do_update, only_local: false, reset: false, retry_count: nil)
+            if checkout_only && File.exist?(ws.config_dir)
+                return []
             end
-            options = validate_options options,
-                only_local: false,
-                checkout_only: !Autobuild.do_update,
-                ignore_errors: false,
-                reset: false,
-                retry_count: nil
 
             update_configuration_repository(
-                ws.manifest.vcs,
-                "autoproj main configuration",
-                ws.config_dir,
-                options)
+                ws.manifest.vcs, "autoproj main configuration", ws.config_dir,
+                only_local: only_local, reset: reset, retry_count: retry_count
+            )
+            []
+        rescue Interrupt
+            raise
+        rescue Exception => e
+            if ignore_errors
+                [e]
+            else
+                raise e
+            end
         end
 
         # Update or checkout a remote package set, based on its VCS definition
@@ -115,22 +114,18 @@ module Autoproj
         # @param [VCSDefinition] vcs the package set VCS
         # @return [Boolean] true if something got updated or checked out,
         #   and false otherwise
-        def update_remote_package_set(vcs, options = Hash.new)
-            # BACKWARD
-            if !options.kind_of?(Hash)
-                options = Hash[only_local: options]
-            end
-            options = validate_options options,
-                only_local: false,
+        def update_remote_package_set(vcs,
                 checkout_only: !Autobuild.do_update,
-                ignore_errors: false,
+                only_local: false,
                 reset: false,
-                retry_count: nil
+                retry_count: nil)
 
             name = PackageSet.name_of(ws, vcs)
             raw_local_dir = PackageSet.raw_local_dir_of(ws, vcs)
 
-            return if options[:checkout_only] && File.exist?(raw_local_dir)
+            if checkout_only && File.exist?(raw_local_dir)
+                return
+            end
 
             # YUK. I am stopping there in the refactoring
             # TODO: figure out a better way
@@ -140,7 +135,10 @@ module Autoproj
             end
             ws.install_os_packages([vcs.type], all: nil)
             update_configuration_repository(
-                vcs, name, raw_local_dir, options)
+                vcs, name, raw_local_dir,
+                only_local: only_local,
+                reset: reset,
+                retry_count: retry_count)
         end
 
         # Create the user-visible directory for a remote package set
@@ -200,20 +198,16 @@ module Autoproj
         #
         # @yieldparam [String] osdep the name of an osdep required to import the
         #   package sets
-        def load_and_update_package_sets(root_pkg_set, options = Hash.new)
-            if !options.kind_of?(Hash)
-                options = Hash[only_local: options]
-            end
-            options = validate_options options,
-                only_local: false,
-                checkout_only: !Autobuild.do_update,
-                ignore_errors: false,
-                reset: false,
-                retry_count: nil
-
+        def load_and_update_package_sets(root_pkg_set,
+                                         only_local: false,
+                                         checkout_only: !Autobuild.do_update,
+                                         ignore_errors: false,
+                                         reset: false,
+                                         retry_count: nil)
             package_sets = [root_pkg_set]
             by_repository_id = Hash.new
             by_name = Hash.new
+            failures = Array.new
 
             required_remotes_dirs = Array.new
 
@@ -238,8 +232,21 @@ module Autoproj
                 # Make sure the package set has been already checked out to
                 # retrieve the actual name of the package set
                 if !vcs.local?
-                    update_remote_package_set(vcs, options)
-                    required_remotes_dirs << PackageSet.raw_local_dir_of(ws, vcs)
+                    failed = handle_ignore_errors(ignore_errors, vcs, failures) do
+                        update_remote_package_set(
+                            vcs, checkout_only: checkout_only,
+                            only_local: only_local, reset: reset,
+                            retry_count: retry_count)
+                    end
+                    raw_local_dir = PackageSet.raw_local_dir_of(ws, vcs)
+
+                    # We really can't continue if the VCS was being checked out
+                    # and that failed
+                    if failed && !File.directory?(raw_local_dir)
+                        raise failures.last
+                    end
+
+                    required_remotes_dirs << raw_local_dir
                 end
 
                 name = PackageSet.name_of(ws, vcs)
@@ -277,7 +284,7 @@ module Autoproj
                 by_repository_id[repository_id][2] = pkg_set
                 package_sets << pkg_set
 
-                by_name[pkg_set.name] = [pkg_set, vcs, options, imported_from]
+                by_name[pkg_set.name] = [pkg_set, vcs, import_options, imported_from]
 
                 # Finally, queue the imports
                 queue_auto_imports_if_needed(queue, pkg_set, root_pkg_set)
@@ -286,7 +293,8 @@ module Autoproj
             required_user_dirs = by_name.collect { |k,v| k }
             cleanup_remotes_dir(package_sets, required_remotes_dirs)
             cleanup_remotes_user_dir(package_sets, required_user_dirs)
-            package_sets
+
+            return package_sets, failures
         end
 
         # Removes from {remotes_dir} the directories that do not match a package
@@ -369,14 +377,40 @@ module Autoproj
             result
         end
 
-        def load_package_sets(options = Hash.new)
-            options = validate_options options,
+        def load_package_sets(
                 only_local: false,
                 checkout_only: true,
                 ignore_errors: false,
                 reset: false,
-                retry_count: nil
-            update_configuration(options)
+                retry_count: nil)
+            update_configuration(
+                only_local: only_local,
+                checkout_only: checkout_only,
+                ignore_errors: ignore_errors,
+                reset: reset,
+                retry_count: retry_count)
+        end
+
+        def report_import_failure(what, reason)
+            if !reason.kind_of?(Interrupt)
+                Autoproj.error "import of #{what} failed"
+                Autoproj.error "#{reason}"
+            end
+        end
+
+        def handle_ignore_errors(ignore_errors, vcs, failures)
+            yield
+            false
+        rescue Interrupt
+            raise
+        rescue Exception => failure_reason
+            if ignore_errors
+                report_import_failure(vcs, failure_reason)
+                failures << failure_reason
+                true
+            else
+                raise
+            end
         end
 
         def update_configuration(
@@ -386,27 +420,53 @@ module Autoproj
                 reset: false,
                 retry_count: nil)
 
-            update_options = Hash[
-                only_local: only_local,
-                checkout_only: checkout_only,
-                ignore_errors: ignore_errors,
-                reset: reset,
-                retry_count: retry_count]
+            if ws.manifest.vcs.needs_import?
+                main_configuration_failure = update_main_configuration(
+                    ignore_errors: ignore_errors,
+                    checkout_only: checkout_only,
+                    only_local: only_local,
+                    reset: reset,
+                    retry_count: retry_count)
 
-            if ws.manifest.vcs && !ws.manifest.vcs.local?
-                update_main_configuration(**update_options)
+                report_import_failure("main configuration", main_configuration_failure)
+            else
+                main_configuration_failure = []
             end
             ws.load_main_initrb
             ws.manifest.load(manifest_path)
             root_pkg_set = ws.manifest.main_package_set
             root_pkg_set.load_description_file
             root_pkg_set.explicit = true
-            update_package_sets(**update_options)
+
+            package_sets_failure = update_package_sets(
+                only_local: only_local,
+                checkout_only: checkout_only,
+                ignore_errors: ignore_errors,
+                reset: reset,
+                retry_count: retry_count)
+
+            if !main_configuration_failure.empty? && !package_sets_failure.empty?
+                raise ImportFailed.new(main_configuration_failure + package_sets_failure)
+            elsif !main_configuration_failure.empty?
+                raise ImportFailed.new(main_configuration_failure)
+            elsif !package_sets_failure.empty?
+                raise ImportFailed.new(package_sets_failure)
+            end
         end
 
-        def update_package_sets(**update_options)
+        def update_package_sets(only_local: false,
+                                checkout_only: !Autobuild.do_update,
+                                ignore_errors: false,
+                                reset: false,
+                                retry_count: nil)
             root_pkg_set = ws.manifest.main_package_set
-            package_sets = load_and_update_package_sets(root_pkg_set, **update_options)
+            package_sets, failures = load_and_update_package_sets(
+                root_pkg_set,
+                only_local: only_local,
+                checkout_only: checkout_only,
+                ignore_errors: ignore_errors,
+                reset: reset,
+                retry_count: retry_count)
             root_pkg_set.imports.each do |pkg_set|
                 pkg_set.explicit = true
             end
@@ -420,6 +480,8 @@ module Autoproj
             if @remote_update_message_displayed
                 Autoproj.message
             end
+
+            failures
         end
     end
     end

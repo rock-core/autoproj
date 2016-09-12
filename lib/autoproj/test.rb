@@ -20,6 +20,7 @@ require 'minitest/autorun'
 require 'autoproj'
 require 'flexmock/minitest'
 FlexMock.partials_are_based = true
+FlexMock.partials_verify_signatures = true
 require 'minitest/spec'
 
 if ENV['TEST_ENABLE_PRY'] != '0'
