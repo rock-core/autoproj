@@ -268,6 +268,25 @@ module Autoproj
                         and_return(true)
                     flexmock(ops).should_receive(:update_main_configuration).once.
                         and_return([])
+                    flexmock(ops).should_receive(:report_import_failure).never
+                    ops.update_configuration
+                end
+                it "reports the import failures" do
+                    flexmock(ws.manifest.vcs).should_receive(:needs_import?).
+                        and_return(true)
+                    flexmock(ops).should_receive(:update_main_configuration).once.
+                        and_return([e = flexmock])
+                    flexmock(ops).should_receive(:report_import_failure).
+                        with('main configuration', e).once
+                    assert_raises(ImportFailed) do
+                        ops.update_configuration
+                    end
+                end
+                it "imports the main configuration if it needs it" do
+                    flexmock(ws.manifest.vcs).should_receive(:needs_import?).
+                        and_return(true)
+                    flexmock(ops).should_receive(:update_main_configuration).once.
+                        and_return([])
                     ops.update_configuration
                 end
                 it "passes an import failure if ignore_errors is false" do

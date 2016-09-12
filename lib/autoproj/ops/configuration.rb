@@ -428,7 +428,9 @@ module Autoproj
                     reset: reset,
                     retry_count: retry_count)
 
-                report_import_failure("main configuration", main_configuration_failure)
+                main_configuration_failure.each do |e|
+                    report_import_failure("main configuration", e)
+                end
             else
                 main_configuration_failure = []
             end
