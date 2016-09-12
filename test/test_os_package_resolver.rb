@@ -528,6 +528,12 @@ module Autoproj
             flexmock(Autoproj).should_receive(:warn).never
             osdeps0.merge(osdeps1)
         end
+        def test_merge_updates_existing_entries
+            osdeps0 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem0']], 'bla/bla')
+            osdeps1 = create_osdep(Hash['test' => ['osdep1'], 'gem' => ['gem1']], 'bla/blo')
+            osdeps0.merge(osdeps1)
+            assert_equal [["apt-dpkg", 0, ["osdep1"]], ["gem", 0, ["gem1"]]], osdeps0.resolve_package('pkg')
+        end
 
         describe "prefer_indep_over_os_packages is set" do
             def create_osdep(*)

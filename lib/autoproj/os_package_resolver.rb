@@ -214,8 +214,6 @@ module Autoproj
         # defined in both OSPackageResolver objects, the information in +info+
         # takes precedence
         def merge(info)
-            invalidate_resolve_package_cache
-
             @definitions = definitions.merge(info.definitions) do |h, v1, v2|
                 if v1 != v2
                     old = source_of(h)
@@ -237,6 +235,8 @@ module Autoproj
                 end
                 v2
             end
+            invalidate_resolve_package_cache
+
             @sources = sources.merge(info.sources)
             @all_definitions = all_definitions.merge(info.all_definitions) do |package_name, all_defs, new_all_defs|
                 all_defs = all_defs.dup
