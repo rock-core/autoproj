@@ -251,13 +251,13 @@ module Autoproj
                 flexmock(manifest.os_package_resolver).should_receive(:availability_of).with('test').
                     and_return(OSPackageResolver::WRONG_OS)
                 e = assert_raises(PackageNotFound) { manifest.resolve_package_name('test') }
-                assert_match(/test is an osdep, but it is not available for this operating system and it cannot be resolved as a source package/, e.message)
+                assert_match(/#{Regexp.quote("test is an osdep, but it is not available for this operating system ([[\"test_os_family\"], [\"test_os_version\"]]) and it cannot be resolved as a source package")}/, e.message)
             end
             it "raises if a package is defined as an osdep but it is explicitely marked as non existent" do
                 flexmock(manifest.os_package_resolver).should_receive(:availability_of).with('test').
                     and_return(OSPackageResolver::NONEXISTENT)
                 e = assert_raises(PackageNotFound) { manifest.resolve_package_name('test') }
-                assert_match(/test is an osdep, but it is explicitely marked as 'nonexistent' for this operating system and it cannot be resolved as a source package/, e.message)
+                assert_match(/#{Regexp.quote("test is an osdep, but it is explicitely marked as 'nonexistent' for this operating system ([[\"test_os_family\"], [\"test_os_version\"]]) and it cannot be resolved as a source package")}/, e.message)
             end
         end
 
@@ -609,8 +609,8 @@ module Autoproj
                 assert manifest.load_package_manifest(pkg).null?
             end
             it "applies the dependencies from the manifest to the package" do
-                xml = REXML::Document.new("<package><depend package=\"dependency\" /></package>")
-                package_manifest = PackageManifest.new(pkg.autobuild, xml)
+                xml = "<package><depend package=\"dependency\" /></package>"
+                package_manifest = PackageManifest.parse(pkg.autobuild, xml)
                 flexmock(File).should_receive(:file?).and_return(true)
                 flexmock(PackageManifest).should_receive(:load).and_return(package_manifest)
                 ws_define_package :cmake, 'dependency'
@@ -619,8 +619,8 @@ module Autoproj
                 manifest.load_package_manifest(pkg)
             end
             it "applies the optional dependencies from the manifest to the package" do
-                xml = REXML::Document.new("<package><depend_optional package=\"dependency\" /></package>")
-                package_manifest = PackageManifest.new(pkg.autobuild, xml)
+                xml = "<package><depend_optional package=\"dependency\" /></package>"
+                package_manifest = PackageManifest.parse(pkg.autobuild, xml)
                 flexmock(File).should_receive(:file?).and_return(true)
                 flexmock(PackageManifest).should_receive(:load).and_return(package_manifest)
                 ws_define_package :cmake, 'dependency'
@@ -629,8 +629,7 @@ module Autoproj
                 manifest.load_package_manifest(pkg)
             end
             it "adds a reference to the manifest file in the error message if it refers to a package that does not exist" do
-                xml = REXML::Document.new("<package><depend package=\"dependency\" /></package>")
-                package_manifest = PackageManifest.new(pkg.autobuild, xml)
+                package_manifest = PackageManifest.parse(pkg.autobuild, "<package><depend package=\"dependency\" /></package>")
                 flexmock(File).should_receive(:file?).and_return(true)
                 flexmock(PackageManifest).should_receive(:load).and_return(package_manifest)
                 e = assert_raises(ConfigError) do

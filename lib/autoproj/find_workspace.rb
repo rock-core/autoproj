@@ -67,7 +67,7 @@ module Autoproj
         resolved = find_v2_root_dir(result, config_field_name)
 
         if !resolved || (resolved != result)
-            raise ArgumentError, "found #{path} as possible workspace root for #{base_dir}, but it contains a configuration file in #{config_path} that points to #{result} and #{result} is not an autoproj workspace root"
+            raise ArgumentError, "found #{path} as possible workspace root for #{base_dir}, but it contains a configuration file that points to #{result} and #{result} is not an autoproj workspace root"
         end
         resolved
     end
