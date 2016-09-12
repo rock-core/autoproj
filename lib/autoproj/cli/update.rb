@@ -54,7 +54,6 @@ module Autoproj
                 options[:autoproj] = update_autoproj
                 options[:config]   = update_config
                 options[:packages] = update_packages
-                options[:parallel] ||= ws.config.parallel_import_level
                 return selection, options
             end
 
@@ -106,7 +105,7 @@ module Autoproj
                         reset: options[:reset],
                         deps: options[:deps],
                         keep_going: options[:keep_going],
-                        parallel: options[:parallel],
+                        parallel: options[:parallel] || ws.config.parallel_import_level,
                         retry_count: options[:retry_count])
 
                 ws.finalize_setup
