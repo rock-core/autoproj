@@ -224,11 +224,11 @@ module Autoproj
                     # Warn if the new osdep definition resolves to a different
                     # set of packages than the old one
                     old_resolved = resolve_package(h).inject(Hash.new) do |osdep_h, (handler, status, list)|
-                        osdep_h[handler] = [status, list]
+                        osdep_h[handler] = [status, list.dup]
                         osdep_h
                     end
                     new_resolved = info.resolve_package(h).inject(Hash.new) do |osdep_h, (handler, status, list)|
-                        osdep_h[handler] = [status, list]
+                        osdep_h[handler] = [status, list.dup]
                         osdep_h
                     end
                     if old_resolved != new_resolved
@@ -545,6 +545,10 @@ module Autoproj
                 end
             end
 
+            result.each do |args|
+                args.last.freeze
+            end
+            result.freeze
             resolve_package_cache[name] = result
         end
 
@@ -724,7 +728,7 @@ module Autoproj
                     if entry = all_packages.find { |h, _| h == handler }
                         entry[1].concat(packages)
                     else
-                        all_packages << [handler, packages]
+                        all_packages << [handler, packages.dup]
                     end
                 end
             end
@@ -790,7 +794,7 @@ module Autoproj
                 end
             end
 
-            resolved = resolved.delete_if { |_, status, list| status == FOUND_PACKAGES && list.empty? }
+            resolved = resolved.find_all { |_, status, list| status != FOUND_PACKAGES || !list.empty? }
             failed = resolved.find_all do |_, status, _|
                 status == FOUND_NONEXISTENT
             end
