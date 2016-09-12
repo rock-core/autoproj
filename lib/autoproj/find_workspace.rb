@@ -74,7 +74,6 @@ module Autoproj
 
     # Filters in the given list of paths the paths that are within a workspace
     def self.filter_out_paths_in_workspace(paths)
-        known_valid_dirs = Set.new
         known_workspace_dirs = Array.new
         paths.find_all do |p|
             if !File.directory?(p)

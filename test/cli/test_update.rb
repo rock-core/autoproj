@@ -17,7 +17,7 @@ module Autoproj
                         and_return([normalized_selection = flexmock(:empty? => false),
                                     false])
 
-                    selection, options = cli.validate_options(selection, Hash.new)
+                    selection, _options = cli.validate_options(selection, Hash.new)
                     assert_equal normalized_selection, selection
                 end
 
@@ -66,82 +66,82 @@ module Autoproj
 
                 describe "what is going to be updated" do
                     it "updates everything if is selected on the command line" do
-                        selection, options = cli.validate_options([], Hash.new)
+                        _, options = cli.validate_options([], Hash.new)
                         assert_equal [true, true, true], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "does not attempt to update autoproj if --checkout-only is given" do
-                        selection, options = cli.validate_options([], checkout_only: true)
+                        _, options = cli.validate_options([], checkout_only: true)
                         assert_equal [false, true, true], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "only updates autoproj if nothing has been selected explicitely and --autoproj was given" do
-                        selection, options = cli.validate_options([], autoproj: true)
+                        _, options = cli.validate_options([], autoproj: true)
                         assert_equal [true, false, false], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "updates autoproj and packages if nothing has been selected explicitely and both --autoproj and --all were given" do
-                        selection, options = cli.validate_options([], autoproj: true, all: true)
+                        _, options = cli.validate_options([], autoproj: true, all: true)
                         assert_equal [true, false, true], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "only updates the configuration if nothing has been selected explicitely and --config was given" do
-                        selection, options = cli.validate_options([], config: true)
+                        _, options = cli.validate_options([], config: true)
                         assert_equal [false, true, false], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "updates config and packages if nothing has been selected explicitely and both --config and --all were given" do
-                        selection, options = cli.validate_options([], config: true, all: true)
+                        _, options = cli.validate_options([], config: true, all: true)
                         assert_equal [false, true, true], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "updates autoproj and the configuration if nothing has been selected explicitely and both --autoproj and --config were given" do
-                        selection, options = cli.validate_options([], autoproj: true, config: true)
+                        _, options = cli.validate_options([], autoproj: true, config: true)
                         assert_equal [true, true, false], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "updates autoproj, the configuration and the packages if nothing has been selected explicitely and --autoproj, --config and --all were given" do
-                        selection, options = cli.validate_options([], autoproj: true, config: true, all: true)
+                        _, options = cli.validate_options([], autoproj: true, config: true, all: true)
                         assert_equal [true, true, true], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "only updates the configuration if its path is selected an nothing else was selected explicitely" do
-                        selection, options = cli.validate_options([ws.config_dir], Hash.new)
+                        _, options = cli.validate_options([ws.config_dir], Hash.new)
                         assert_equal [false, true, false], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "updates autoproj and the configuration if the configuration path is selected and --autoproj was given" do
-                        selection, options = cli.validate_options([ws.config_dir], autoproj: true)
+                        _, options = cli.validate_options([ws.config_dir], autoproj: true)
                         assert_equal [true, true, false], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "updates configuration and packages if a configuration path and a non-configuration path is selected" do
-                        selection, options = cli.validate_options([ws.config_dir, '/a/path'], Hash.new)
+                        _, options = cli.validate_options([ws.config_dir, '/a/path'], Hash.new)
                         assert_equal [false, true, true], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "only updates packages if a non-configuration path is selected an nothing else was selected explicitely" do
-                        selection, options = cli.validate_options(['/a/path'], Hash.new)
+                        _, options = cli.validate_options(['/a/path'], Hash.new)
                         assert_equal [false, false, true], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "updates configuration and packages if a non-configuration path is selected and --config was given" do
-                        selection, options = cli.validate_options(['/a/path'], config: true)
+                        _, options = cli.validate_options(['/a/path'], config: true)
                         assert_equal [false, true, true], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "updates autoproj and packages if a non-configuration path is selected and --config was given" do
-                        selection, options = cli.validate_options(['/a/path'], autoproj: true)
+                        _, options = cli.validate_options(['/a/path'], autoproj: true)
                         assert_equal [true, false, true], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "updates autoproj, configuration and packages if a non-configuration path is selected and both --autoproj and --config were given" do
-                        selection, options = cli.validate_options(['/a/path'], autoproj: true, config: true)
+                        _, options = cli.validate_options(['/a/path'], autoproj: true, config: true)
                         assert_equal [true, true, true], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "updates autoproj, the configuration and the packages if both configuration and package paths were selected and --autoproj was given" do
-                        selection, options = cli.validate_options([ws.config_dir, '/a/path'], autoproj: true)
+                        _, options = cli.validate_options([ws.config_dir, '/a/path'], autoproj: true)
                         assert_equal [true, true, true], options.values_at(:autoproj, :config, :packages)
                     end
                 end

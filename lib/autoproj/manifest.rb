@@ -182,6 +182,8 @@ module Autoproj
             @packages = Hash.new
             @package_sets = []
             @os_package_resolver = os_package_resolver
+            # Cache for #ignored?
+            @ignored_package_names = nil
 
             @automatic_exclusions = Hash.new
             @constants_definitions = Hash.new

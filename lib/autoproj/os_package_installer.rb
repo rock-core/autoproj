@@ -50,6 +50,7 @@ module Autoproj
             @installed_resolved_packages = Hash.new { |h, k| h[k] = Set.new }
             @silent = true
             @filter_uptodate_packages = true
+            @osdeps_mode = nil
 
             @package_managers = Hash.new
             package_managers.each do |name, klass|
