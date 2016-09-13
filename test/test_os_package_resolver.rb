@@ -583,6 +583,41 @@ module Autoproj
                 end
             end
         end
+
+        describe "#known_operating_system?" do
+            attr_reader :resolver
+            before do
+                @resolver = ws_create_os_package_resolver
+                flexmock(resolver)
+            end
+            it "returns true if operating_system is not empty" do
+                assert resolver.known_operating_system?
+            end
+            it "returns false if the operating_system is empty" do
+                resolver.should_receive(:operating_system).
+                    and_return([[], []])
+                refute resolver.known_operating_system?
+            end
+        end
+
+        describe "#availability_of" do
+            attr_reader :resolver
+            before do
+                @resolver = ws_create_os_package_resolver
+                flexmock(resolver)
+            end
+            it "returns WRONG_OS if the OS is known but the package was resolved to empty" do
+                resolver.should_receive(:resolve_package).with(name = flexmock).
+                    and_return([])
+                assert_equal OSPackageResolver::WRONG_OS, resolver.availability_of(name)
+            end
+            it "returns UNKNOWN_OS if the OS is unknown and the package was resolved to empty" do
+                resolver.operating_system = [[], []]
+                resolver.should_receive(:resolve_package).with(name = flexmock).
+                    and_return([])
+                assert_equal OSPackageResolver::UNKNOWN_OS, resolver.availability_of(name)
+            end
+        end
     end
 end
 

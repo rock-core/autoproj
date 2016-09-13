@@ -134,7 +134,7 @@ module Autoproj
         # Use to override the autodetected OS-specific package handler
         def os_package_manager=(manager_name)
             if manager_name && !package_managers.include?(manager_name)
-                raise ArgumentError, "#{manager_name} is not a known package manager"
+                raise ArgumentError, "#{manager_name} is not a known package manager, known managers are #{package_managers.to_a.sort.join(", ")}"
             end
             @os_package_manager = manager_name
         end
@@ -268,6 +268,12 @@ module Autoproj
                     end
                 end
             end
+        end
+
+        # Whether the operating system could be autodetected successfully
+        def known_operating_system?
+            os_names, _ = operating_system
+            !os_names.empty?
         end
 
         # Returns true if it is possible to install packages for the operating
@@ -497,26 +503,27 @@ module Autoproj
             path = self.class.resolve_name(name)
             name = path.last
 
-            os_names, os_versions = operating_system
-            os_names = os_names.dup
-            if prefer_indep_over_os_packages?
-                os_names.unshift 'default'
-            else
-                os_names.push 'default'
-            end
-
             dep_def = definitions[name]
             if !dep_def
                 return (resolve_package_cache[name] = nil)
             end
 
+            os_names, os_versions = operating_system
+
             # Partition the found definition in all entries that are interesting
             # for us: toplevel os-independent package managers, os-dependent
             # package managers and os-independent package managers selected by
             # OS or version
-            if !os_names
+            if os_names.empty?
                 os_names = ['default']
                 os_versions = ['default']
+            else
+                os_names = os_names.dup
+                if prefer_indep_over_os_packages?
+                    os_names.unshift 'default'
+                else
+                    os_names.push 'default'
+                end
             end
 
             result = []
@@ -718,7 +725,11 @@ module Autoproj
 
                 if result.empty?
                     os_names, os_versions = operating_system
-                    raise MissingOSDep.new, "there is an osdeps definition for #{name}, but not for this operating system and version (resp. #{os_names.join(", ")} and #{os_versions.join(", ")})"
+                    if os_names.empty?
+                        raise MissingOSDep.new, "there is an osdeps definition for #{name}, but autoproj cannot detect the local operation system"
+                    else
+                        raise MissingOSDep.new, "there is an osdeps definition for #{name}, but not for this operating system and version (resp. #{os_names.join(", ")} and #{os_versions.join(", ")})"
+                    end
                 end
 
                 result.each do |handler, status, packages|
@@ -788,9 +799,10 @@ module Autoproj
             end
 
             if resolved.empty?
-                if !operating_system
+                if known_operating_system?
+                    return WRONG_OS
+                else
                     return UNKNOWN_OS
-                else return WRONG_OS
                 end
             end
 
