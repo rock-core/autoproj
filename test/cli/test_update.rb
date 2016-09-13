@@ -34,6 +34,18 @@ module Autoproj
                         selection, _ = cli.validate_options([], aup: true, all: true)
                         assert_equal [], selection
                     end
+                    it "sets the 'all' flag automatically if given no explicit arguments and the working directory is the workspace's root" do
+                        Dir.chdir(ws.root_dir) do
+                            args, options = cli.validate_options([], aup: true)
+                            assert options[:all]
+                        end
+                    end
+                    it "does not set the 'all' flag automatically if given explicit arguments even if the working directory is the workspace's root" do
+                        Dir.chdir(ws.root_dir) do
+                            args, options = cli.validate_options(['arg'], aup: true)
+                            refute options[:all]
+                        end
+                    end
                 end
 
                 it "normalizes --force-reset into reset: :force" do

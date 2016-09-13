@@ -13,7 +13,11 @@ module Autoproj
                 end
 
                 if options[:aup] && !options[:all] && selection.empty?
-                    selection = [Dir.pwd]
+                    if Dir.pwd == ws.root_dir
+                        options[:all] = true
+                    else
+                        selection = [Dir.pwd]
+                    end
                 end
 
                 if options.delete(:force_reset)
