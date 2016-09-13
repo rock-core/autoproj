@@ -20,4 +20,4 @@ install:
     - bundler install --path vendor/bundle
 script:
     - bundler exec rake
-    - bundler exec rake test
+    - AUTOPROJ_SKIP_LONG_TESTS=1 bundler exec rake test
