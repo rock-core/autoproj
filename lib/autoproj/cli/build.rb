@@ -5,11 +5,9 @@ module Autoproj
     module CLI
         class Build < Update
             def validate_options(selected_packages, options)
-                selected_packages, options = super
-                if options[:amake] && selected_packages.empty? && !options[:all]
-                    selected_packages = ['.']
-                end
-
+                selected_packages, options =
+                    super(selected_packages, options.merge(
+                        checkout_only: true, aup: options[:amake]))
                 if options[:deps].nil?
                     options[:deps] = 
                         !(options[:rebuild] || options[:force])
