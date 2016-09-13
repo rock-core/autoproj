@@ -138,17 +138,9 @@ module Autoproj
             File.join(dot_autoproj_dir, 'config.yml')
         end
 
-        # The path to a workspace's manifest file given its root dir
-        #
-        # @param [String] root_dir the workspace root directory
-        # @return [String]
-        def self.manifest_file_path_for(root_dir)
-            File.join(root_dir, 'autoproj', 'manifest')
-        end
-
         # The path to the workspace's manifest file
         def manifest_file_path
-            self.class.manifest_file_path_for(root_dir)
+            File.join(root_dir, 'autoproj', config.get('manifest_name', 'manifest'))
         end
 
         # Return the directory in which remote package set definition should be
@@ -210,12 +202,6 @@ module Autoproj
             config.save(config_file_path)
         end
 
-        def load_manifest
-            if File.exist?(manifest_file_path)
-                manifest.load(manifest_file_path)
-            end
-        end
-
         def autodetect_operating_system(force: false)
             if force || !os_package_resolver.operating_system
                 begin
@@ -262,7 +248,9 @@ module Autoproj
             config.each_reused_autoproj_installation do |p|
                 manifest.reuse(p)
             end
-            load_manifest
+            if File.exist?(manifest_file_path)
+                manifest.load(manifest_file_path)
+            end
 
             Autobuild.prefix = prefix_dir
             FileUtils.mkdir_p File.join(prefix_dir, '.autoproj')

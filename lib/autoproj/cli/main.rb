@@ -361,6 +361,11 @@ The format is a string in which special values can be expanded using a $VARNAME 
             def unpatch(*packages)
                 run_autoproj_cli(:patcher, :Patcher, Hash[], *packages, patch: false)
             end
+
+            desc 'manifest', 'select or displays the active manifest'
+            def manifest(*name)
+                run_autoproj_cli(:manifest, :Manifest, Hash[silent: true], *name)
+            end
         end
     end
 end

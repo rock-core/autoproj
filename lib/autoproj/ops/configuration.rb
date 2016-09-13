@@ -33,7 +33,7 @@ module Autoproj
         #
         # @return [String]
         def manifest_path
-            File.join(ws.config_dir, 'manifest')
+            ws.manifest_file_path
         end
 
         # @param [Manifest] manifest
