@@ -13,6 +13,8 @@ matrix:
 cache: bundler
 
 install:
+    - git config --global user.name "Autoproj on Travis CI"
+    - git config --global user.email "autoproj@travis"
     - gem install bundler
     # Some tests expect gems to be present in vendor/bundle
     - bundler install --path vendor/bundle
