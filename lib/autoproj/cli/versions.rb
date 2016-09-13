@@ -33,7 +33,7 @@ module Autoproj
                     finalize_setup(user_selection,
                                    recursive: options[:deps])
                 
-                ops = Ops::Snapshot.new(ws.manifest, ignore_errors: options[:keep_going])
+                ops = Ops::Snapshot.new(ws.manifest, keep_going: options[:keep_going])
                 
                 if user_selection.empty?
                     snapshot_package_sets = (options[:config] != false)

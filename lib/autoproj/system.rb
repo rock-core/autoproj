@@ -32,6 +32,9 @@ module Autoproj
     def self.root_dir(dir = Dir.pwd)
         if @root_dir
             return @root_dir
+        elsif !dir
+            @root_dir = ni
+            return
         end
         path = Autoproj.find_workspace_dir(dir)
         if !path

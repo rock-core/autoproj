@@ -77,7 +77,7 @@ module Autoproj
                         only_local: options[:only_local],
                         checkout_only: !options[:config] || options[:checkout_only],
                         reset: options[:reset],
-                        ignore_errors: options[:keep_going],
+                        keep_going: options[:keep_going],
                         retry_count: options[:retry_count])
                 rescue ImportFailed => configuration_import_failure
                     if !options[:keep_going] || !options[:packages]

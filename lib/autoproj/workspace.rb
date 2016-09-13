@@ -386,6 +386,20 @@ module Autoproj
             Autoproj.workspace = self
             Autoproj.root_dir = root_dir
             Autobuild.env = env
+
+            if block_given?
+                begin
+                    yield
+                ensure 
+                    clear_main_workspace
+                end
+            end
+        end
+
+        def clear_main_workspace
+            Autoproj.workspace = nil
+            Autoproj.root_dir = nil
+            Autobuild.env = nil
         end
 
         # Loads autoproj/init.rb
@@ -418,127 +432,29 @@ module Autoproj
             end
         end
 
-        # Load OS dependency information contained in our registered package
-        # sets into the provided osdep object
-        #
-        # This is included in {load_package_sets}
-        #
-        # @return [void]
-        def load_osdeps_from_package_sets
-            manifest.each_package_set do |pkg_set|
-                pkg_set.each_osdeps_file do |file|
-                    file_osdeps = pkg_set.load_osdeps(file, operating_system: os_package_resolver.operating_system)
-                    os_package_resolver.merge(file_osdeps)
-                end
-            end
-        end
-
-        def load_package_sets(options = Hash.new)
+        def load_package_sets(only_local: false,
+                              checkout_only: true,
+                              reconfigure: false,
+                              keep_going: false,
+                              mainline: nil,
+                              reset: false,
+                              retry_count: nil)
             if !File.file?(manifest_file_path) # empty install, just return
                 return
             end
 
-            options = validate_options options,
-                only_local: false,
-                checkout_only: true,
-                silent: false, # NOTE: this is ignored, enclose call with Autoproj.silent { }
-                reconfigure: false,
-                ignore_errors: false,
-                mainline: nil,
-                reset: false,
-                retry_count: nil
-
-            Ops::Configuration.new(self).
-                load_package_sets(only_local: options[:only_local],
-                                  checkout_only: options[:checkout_only],
-                                  ignore_errors: options[:ignore_errors],
-                                  reset: options[:reset],
-                                  retry_count: options[:retry_count])
-
-            manifest.each_package_set do |pkg_set|
-                if Gem::Version.new(pkg_set.required_autoproj_version) > Gem::Version.new(Autoproj::VERSION)
-                    raise ConfigError.new(pkg_set.source_file), "the #{pkg_set.name} package set requires autoproj v#{pkg_set.required_autoproj_version} but this is v#{Autoproj::VERSION}"
-                end
-            end
-
-            # Loads OS package definitions once and for all
-            load_osdeps_from_package_sets
-
-            # Load the required autobuild definitions
-            Autoproj.message("autoproj: loading ...", :bold)
-            if !options[:reconfigure]
+            if !reconfigure
                 Autoproj.message("run 'autoproj reconfigure' to change configuration options", :bold)
                 Autoproj.message("and use 'autoproj switch-config' to change the remote source for", :bold)
                 Autoproj.message("autoproj's main build configuration", :bold)
             end
-            manifest.each_package_set do |pkg_set|
-                pkg_set.each_autobuild_file do |path|
-                    import_autobuild_file pkg_set, path
-                end
-            end
-
-            # Now, load the package's importer configurations (from the various
-            # source.yml files)
-            mainline = options[:mainline]
-            if mainline.respond_to?(:to_str)
-                mainline = manifest.package_set(mainline)
-            end
-            manifest.load_importers(mainline: mainline)
-
-            # Auto-add packages that are
-            #  * present on disk
-            #  * listed in the layout part of the manifest
-            #  * but have no definition
-            explicit = manifest.normalized_layout
-            explicit.each do |pkg_or_set, layout_level|
-                next if manifest.find_autobuild_package(pkg_or_set)
-                next if manifest.has_package_set?(pkg_or_set)
-
-                # This is not known. Check if we can auto-add it
-                full_path = File.expand_path(File.join(root_dir, layout_level, pkg_or_set))
-                next if !File.directory?(full_path)
-
-                handler, _srcdir = Autoproj.package_handler_for(full_path)
-                if handler
-                    Autoproj.message "  auto-adding #{pkg_or_set} #{"in #{layout_level} " if layout_level != "/"}using the #{handler.gsub(/_package/, '')} package handler"
-                    in_package_set(manifest.main_package_set, manifest.file) do
-                        send(handler, pkg_or_set)
-                    end
-                else
-                    Autoproj.warn "cannot auto-add #{pkg_or_set}: unknown package type"
-                end
-            end
-
-            manifest.each_autobuild_package do |pkg|
-                Autobuild.each_utility do |uname, _|
-                    pkg.utility(uname).enabled =
-                        config.utility_enabled_for?(uname, pkg.name)
-                end
-            end
-
-            # And exclude any package that is not available on this particular
-            # configuration
-            mark_unavailable_osdeps_as_excluded
-        end
-
-        def mark_unavailable_osdeps_as_excluded
-            os_package_resolver.all_package_names.each do |osdep_name|
-                # If the osdep can be replaced by source packages, there's
-                # nothing to do really. The exclusions of the source packages
-                # will work as expected
-                if manifest.osdeps_overrides[osdep_name] || manifest.find_autobuild_package(osdep_name)
-                    next
-                end
-
-                case os_package_resolver.availability_of(osdep_name)
-                when OSPackageResolver::UNKNOWN_OS
-                    manifest.exclude_package(osdep_name, "this operating system is unknown to autoproj")
-                when OSPackageResolver::WRONG_OS
-                    manifest.exclude_package(osdep_name, "there are definitions for it, but not for this operating system")
-                when OSPackageResolver::NONEXISTENT
-                    manifest.exclude_package(osdep_name, "it is marked as unavailable for this operating system")
-                end
-            end
+            Ops::Configuration.new(self).
+                load_package_sets(only_local: only_local,
+                                  checkout_only: checkout_only,
+                                  keep_going: keep_going,
+                                  reset: reset,
+                                  retry_count: retry_count,
+                                  mainline: mainline)
         end
 
         def load_packages(selection = manifest.default_packages(false), options = Hash.new)
@@ -761,7 +677,9 @@ module Autoproj
 
     def self.workspace=(ws)
         @workspace = ws
-        self.root_dir = ws.root_dir
+        if ws
+            self.root_dir = ws.root_dir
+        end
     end
 
     def self.env

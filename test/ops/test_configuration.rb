@@ -33,6 +33,7 @@ module Autoproj
             before do
                 ws = ws_create
                 @ops = Autoproj::Ops::Configuration.new(ws)
+                flexmock(@ops)
                 Autobuild.silent = true
             end
 
@@ -62,7 +63,7 @@ module Autoproj
                 it "passes a failure to update" do
                     test_vcs, _ = mock_package_set 'test', type: 'git', url: '/test',
                         create: true
-                    flexmock(ops).should_receive(:update_remote_package_set).
+                    ops.should_receive(:update_remote_package_set).
                         with(test_vcs, Hash).once.and_raise(e_klass = Class.new(RuntimeError))
                     root_package_set = make_root_package_set(test_vcs)
 
@@ -73,7 +74,7 @@ module Autoproj
 
                 it "passes a failure to checkout" do
                     test_vcs, _ = mock_package_set 'test', type: 'git', url: '/test'
-                    flexmock(ops).should_receive(:update_remote_package_set).
+                    ops.should_receive(:update_remote_package_set).
                         with(test_vcs, Hash).once.and_raise(e_klass = Class.new(RuntimeError))
                     root_package_set = make_root_package_set(test_vcs)
 
@@ -82,32 +83,32 @@ module Autoproj
                     end
                 end
 
-                describe "ignore_errors: true" do
+                describe "keep_going: true" do
                     it "does pass an interrupt" do
                         test_vcs, _ = mock_package_set 'test', type: 'git', url: '/test'
                         test0_vcs, _ = mock_package_set 'test0', type: 'git', url: '/test0',
                             create: true
                         test1_vcs, _ = mock_package_set 'test1', type: 'git', url: '/test1',
                             create: true
-                        flexmock(ops).should_receive(:update_remote_package_set).
+                        ops.should_receive(:update_remote_package_set).
                             with(test0_vcs, Hash).once.
                             and_raise(Interrupt)
-                        flexmock(ops).should_receive(:update_remote_package_set).
+                        ops.should_receive(:update_remote_package_set).
                             with(test1_vcs, Hash).never
                         root_package_set = make_root_package_set(test0_vcs, test1_vcs)
 
                         assert_raises(Interrupt) do
-                            ops.load_and_update_package_sets(root_package_set, ignore_errors: true)
+                            ops.load_and_update_package_sets(root_package_set, keep_going: true)
                         end
                     end
                     it "still raises if a checkout failed" do
                         test_vcs, _ = mock_package_set 'test', type: 'git', url: '/test'
-                        flexmock(ops).should_receive(:update_remote_package_set).
+                        ops.should_receive(:update_remote_package_set).
                             with(test_vcs, Hash).once.and_raise(e_klass = Class.new(RuntimeError))
                         root_package_set = make_root_package_set(test_vcs)
 
                         assert_raises(e_klass) do
-                            ops.load_and_update_package_sets(root_package_set, ignore_errors: true)
+                            ops.load_and_update_package_sets(root_package_set, keep_going: true)
                         end
                     end
                     it "collects the errors and raises an ImportFailed at the end of import" do
@@ -115,15 +116,15 @@ module Autoproj
                             create: true
                         test1_vcs, _ = mock_package_set 'test1', type: 'git', url: '/test1',
                             create: true
-                        flexmock(ops).should_receive(:update_remote_package_set).
+                        ops.should_receive(:update_remote_package_set).
                             with(test0_vcs, Hash).once.
                             and_raise(error0 = Class.new(RuntimeError))
-                        flexmock(ops).should_receive(:update_remote_package_set).
+                        ops.should_receive(:update_remote_package_set).
                             with(test1_vcs, Hash).once.
                             and_raise(error1 = Class.new(RuntimeError))
                         root_package_set = make_root_package_set(test0_vcs, test1_vcs)
 
-                        _, e = ops.load_and_update_package_sets(root_package_set, ignore_errors: true)
+                        _, e = ops.load_and_update_package_sets(root_package_set, keep_going: true)
                         assert_equal 2, e.size
                         assert_kind_of error0, e[0]
                         assert_kind_of error1, e[1]
@@ -213,13 +214,13 @@ module Autoproj
                     vcs, raw_local_dir = mock_package_set('test', type: 'git', url: '/whatever')
                     flexmock(ws.os_package_installer).should_receive(:install).once.
                         with(['git'], all: nil)
-                    flexmock(ops).should_receive(:update_configuration_repository).once
+                    ops.should_receive(:update_configuration_repository).once
                     ops.update_remote_package_set(vcs, checkout_only: false)
                 end
 
                 it "does call the import if checkout_only is set but the package set is not present" do
                     vcs, raw_local_dir = mock_package_set('test', type: 'git', url: '/whatever')
-                    flexmock(ops).should_receive(:update_configuration_repository).once.
+                    ops.should_receive(:update_configuration_repository).once.
                         with(vcs, 'test', raw_local_dir, Hash)
                     ops.update_remote_package_set(vcs, checkout_only: false)
                 end
@@ -227,14 +228,14 @@ module Autoproj
                 it "does call the import if checkout_only is not set and the package set is present" do
                     vcs, raw_local_dir = mock_package_set('test', type: 'git', url: '/whatever')
                     FileUtils.mkdir_p(raw_local_dir)
-                    flexmock(ops).should_receive(:update_configuration_repository).once
+                    ops.should_receive(:update_configuration_repository).once
                     ops.update_remote_package_set(vcs, checkout_only: false)
                 end
 
                 it "returns right away if checkout_only is set and the remote is checked out" do
                     vcs, raw_local_dir = mock_package_set('test', type: 'git', url: '/whatever')
                     FileUtils.mkdir_p raw_local_dir
-                    e = flexmock(ops).should_receive(:update_configuration_repository).never
+                    ops.should_receive(:update_configuration_repository).never
                     ops.update_remote_package_set(vcs, checkout_only: true)
                 end
             end
@@ -256,27 +257,66 @@ module Autoproj
                 end
             end
 
+            describe "#update_main_configuration" do
+                it "updates the manifest's repository" do
+                    manifest_vcs, only_local, reset, retry_count = flexmock, flexmock, flexmock, flexmock
+                    ws.manifest.vcs = manifest_vcs
+                    ops.should_receive(:update_configuration_repository).
+                        once.with(manifest_vcs, 'autoproj main configuration', ws.config_dir,
+                                  only_local: only_local, reset: reset, retry_count: retry_count)
+                    assert_equal [], ops.update_main_configuration(only_local: only_local, reset: reset, retry_count: retry_count)
+                end
+                it "does nothing if checkout_only is true and the config dir is already present" do
+                    ops.should_receive(:update_configuration_repository).never
+                    assert_equal [], ops.update_main_configuration(checkout_only: true)
+                end
+                it "does update if checkout_only is true but the config dir is not yet present" do
+                    FileUtils.rm_rf ws.config_dir
+                    ops.should_receive(:update_configuration_repository).once
+                    assert_equal [], ops.update_main_configuration(checkout_only: true)
+                end
+                it "returns the list of update errors if keep_going is true" do
+                    ops.should_receive(:update_configuration_repository).
+                        and_raise(error = Class.new(Exception).new)
+                    assert_equal [error], ops.update_main_configuration(keep_going: true)
+                end
+                it "passes Interrupt even if keep_going is true" do
+                    ops.should_receive(:update_configuration_repository).
+                        and_raise(Interrupt)
+                    assert_raises(Interrupt) do
+                        ops.update_main_configuration(keep_going: true)
+                    end
+                end
+                it "passes exceptions if keep_going is false" do
+                    ops.should_receive(:update_configuration_repository).
+                        and_raise(error = Class.new(Exception).new)
+                    assert_raises(error.class) do
+                        ops.update_main_configuration
+                    end
+                end
+            end
+
             describe "#update_configuration" do
                 it "does not import the main configuration if it does not need to" do
                     flexmock(ws.manifest.vcs).should_receive(:needs_import?).
                         and_return(false)
-                    flexmock(ops).should_receive(:update_main_configuration).never
+                    ops.should_receive(:update_main_configuration).never
                     ops.update_configuration
                 end
                 it "imports the main configuration if it needs it" do
                     flexmock(ws.manifest.vcs).should_receive(:needs_import?).
                         and_return(true)
-                    flexmock(ops).should_receive(:update_main_configuration).once.
+                    ops.should_receive(:update_main_configuration).once.
                         and_return([])
-                    flexmock(ops).should_receive(:report_import_failure).never
+                    ops.should_receive(:report_import_failure).never
                     ops.update_configuration
                 end
                 it "reports the import failures" do
                     flexmock(ws.manifest.vcs).should_receive(:needs_import?).
                         and_return(true)
-                    flexmock(ops).should_receive(:update_main_configuration).once.
+                    ops.should_receive(:update_main_configuration).once.
                         and_return([e = flexmock])
-                    flexmock(ops).should_receive(:report_import_failure).
+                    ops.should_receive(:report_import_failure).
                         with('main configuration', e).once
                     assert_raises(ImportFailed) do
                         ops.update_configuration
@@ -285,44 +325,211 @@ module Autoproj
                 it "imports the main configuration if it needs it" do
                     flexmock(ws.manifest.vcs).should_receive(:needs_import?).
                         and_return(true)
-                    flexmock(ops).should_receive(:update_main_configuration).once.
+                    ops.should_receive(:update_main_configuration).once.
                         and_return([])
                     ops.update_configuration
                 end
-                it "passes an import failure if ignore_errors is false" do
+                it "passes an import failure if keep_going is false" do
                     flexmock(ws.manifest.vcs).should_receive(:needs_import?).
                         and_return(true)
-                    flexmock(ops).should_receive(:update_configuration_repository).once.
+                    ops.should_receive(:update_configuration_repository).once.
                         and_raise(e_klass = Class.new(RuntimeError))
-                    flexmock(ops).should_receive(:update_package_sets).never
+                    ops.should_receive(:update_package_sets).never
                     assert_raises(e_klass) do
-                        ops.update_configuration(ignore_errors: false)
+                        ops.update_configuration(keep_going: false)
                     end
                 end
-                it "attempts to load the configuration if ignore_errors is true" do
-                    flexmock(ws.manifest.vcs).should_receive(:needs_import?).
-                        and_return(true)
-                    flexmock(ops).should_receive(:update_configuration_repository).once.
-                        and_raise(e_klass = Class.new(RuntimeError))
-                    flexmock(ops).should_receive(:update_package_sets).once.
-                        and_return([])
-                    assert_raises(ImportFailed) do
-                        ops.update_configuration(ignore_errors: true)
+
+                describe "keep_going: true" do
+                    before do
+                        flexmock(ws.manifest.vcs).should_receive(:needs_import?).
+                            and_return(true)
+                    end
+                    it "attempts to update and load the package sets after a main configuration import failure" do
+                        ops.should_receive(:update_main_configuration).once.
+                            with(hsh(keep_going: true)).and_return([flexmock])
+                        ops.should_receive(:update_package_sets).once.
+                            pass_thru
+                        ops.should_receive(:load_package_set_information).once
+                        assert_raises(ImportFailed) do
+                            ops.update_configuration(keep_going: true)
+                        end
+                    end
+                    it "reports main configuration errors" do
+                        ops.should_receive(:update_main_configuration).once.
+                            and_return([main_import_failure = flexmock])
+                        e = assert_raises(ImportFailed) do
+                            ops.update_configuration(keep_going: true)
+                        end
+                        assert_equal [main_import_failure], e.original_errors
+                    end
+                    it "reports package set update errors" do
+                        ops.should_receive(:update_main_configuration).once.and_return([])
+                        ops.should_receive(:update_package_sets).once.
+                            with(hsh(keep_going: true)).and_return([failure = flexmock])
+                        e = assert_raises(ImportFailed) do
+                            ops.update_configuration(keep_going: true)
+                        end
+                        assert_equal [failure], e.original_errors
+                    end
+                    it "aggregates the package set errors with the main configuration errors" do
+                        ops.should_receive(:update_configuration_repository).once.
+                            and_raise(e_klass = Class.new(RuntimeError))
+                        ops.should_receive(:update_package_sets).once.
+                            and_return([package_set_error = flexmock])
+                        e = assert_raises(ImportFailed) do
+                            ops.update_configuration(keep_going: true)
+                        end
+                        assert_equal 2, e.original_errors.size
+                        assert_kind_of e_klass, e.original_errors[0]
+                        assert_equal package_set_error, e.original_errors[1]
                     end
                 end
-                it "aggregates the package set errors with the main configuration errors" do
-                    flexmock(ws.manifest.vcs).should_receive(:needs_import?).
-                        and_return(true)
-                    flexmock(ops).should_receive(:update_configuration_repository).once.
-                        and_raise(e_klass = Class.new(RuntimeError))
-                    flexmock(ops).should_receive(:update_package_sets).once.
-                        and_return([package_set_error = flexmock])
-                    e = assert_raises(ImportFailed) do
-                        ops.update_configuration(ignore_errors: true)
+            end
+
+            describe "#load_package_set_information" do
+                before do
+                    FileUtils.mkdir_p ws.config_dir
+                    FileUtils.touch(manifest_path = File.join(ws.config_dir, 'manifest'))
+                    ws.manifest.load manifest_path
+                    FileUtils.touch File.join(ws.config_dir, 'test.autobuild')
+                    File.open(File.join(ws.config_dir, 'test.osdeps'), 'w') do |io|
+                        YAML.dump(Hash.new, io)
                     end
-                    assert_equal 2, e.original_errors.size
-                    assert_kind_of e_klass, e.original_errors[0]
-                    assert_equal package_set_error, e.original_errors[1]
+                    File.open(File.join(ws.config_dir, 'overrides.yml'), 'w') do |io|
+                        YAML.dump(Hash['version_control' => Array.new, 'overrides' => Array.new], io)
+                    end
+                    ws.load_config
+                end
+
+                def add_in_osdeps(entry)
+                    test_osdeps = File.join(ws.config_dir, 'test.osdeps')
+                    current = YAML.load(File.read(test_osdeps))
+                    File.open(test_osdeps, 'w') do |io|
+                        YAML.dump(current.merge!(entry), io)
+                    end
+                end
+
+                def add_in_packages(lines)
+                    File.open(File.join(ws.config_dir, 'test.autobuild'), 'a') do |io|
+                        io.puts lines
+                    end
+                end
+
+                def add_version_control(package_name, type: 'local', url: package_name, **vcs)
+                    overrides_yml = YAML.load(File.read(File.join(ws.config_dir, 'overrides.yml')))
+                    overrides_yml['version_control'] << Hash[
+                        package_name =>
+                            vcs.merge(type: type, url: url)
+                    ]
+                    File.open(File.join(ws.config_dir, 'overrides.yml'), 'w') do |io|
+                        io.write YAML.dump(overrides_yml)
+                    end
+                    ws.manifest.main_package_set.load_description_file
+                end
+
+                it "loads the osdep files" do
+                    flexmock(ws.manifest.each_package_set.first).
+                        should_receive(:load_osdeps).
+                        with(File.join(ws.config_dir, 'test.osdeps'), Hash).
+                        at_least.once.and_return(osdep = flexmock)
+                    flexmock(ws.os_package_resolver).
+                        should_receive(:merge).with(osdep).at_least.once
+
+                    ops.load_package_set_information
+                end
+                it "excludes osdeps that are not available locally" do
+                    add_in_osdeps Hash['test' => 'nonexistent']
+                    ops.load_package_set_information
+                    assert ws.manifest.excluded?('test')
+                end
+                it "excludes osdeps that are not available locally" do
+                    add_in_osdeps Hash['test' => Hash['another_os' => 'test']]
+                    ops.load_package_set_information
+                    assert ws.manifest.excluded?('test')
+                end
+                it "does not exclude osdeps that have a definition" do
+                    add_in_osdeps Hash['test' => Hash['test_os_family' => 'test']]
+                    ops.load_package_set_information
+                    refute ws.manifest.excluded?('test')
+                end
+                it "excludes osdeps if the local OS is not known" do
+                    add_in_osdeps Hash['test' => Hash['test_os_family' => 'test']]
+                    ws.os_package_resolver.operating_system = [[], []]
+                    ops.load_package_set_information
+                    assert ws.manifest.excluded?('test')
+                end
+                it "does not exclude osdeps for which a source package with the same name exists" do
+                    add_in_osdeps Hash['test' => 'nonexistent']
+                    add_in_packages 'cmake_package "test"'
+                    add_version_control 'test'
+                    ops.load_package_set_information
+                    refute ws.manifest.excluded?('test')
+                end
+                it "does not exclude osdeps for which an osdep override exists" do
+                    add_in_osdeps Hash['test' => 'nonexistent']
+                    add_in_packages 'cmake_package "mapping_test"'
+                    add_version_control 'mapping_test'
+                    add_in_packages 'Autoproj.add_osdeps_overrides "test", package: "mapping_test"'
+                    ops.load_package_set_information
+                    refute ws.manifest.excluded?('test')
+                end
+
+                it "resolves a mainline argument given as string" do
+                    pkg_set = ws_create_local_package_set('pkg_set', make_tmpdir)
+                    flexmock(ws.manifest).should_receive(:load_importers).with(mainline: pkg_set).once
+                    ops.load_package_set_information(mainline: 'pkg_set')
+                end
+
+                it "passes on a mainline argument given as object" do
+                    pkg_set = ws_create_local_package_set('pkg_set', make_tmpdir)
+                    flexmock(ws.manifest).should_receive(:load_importers).with(mainline: pkg_set).once
+                    ops.load_package_set_information(mainline: pkg_set)
+                end
+            end
+
+            describe "#auto_add_packages_from_layout" do
+                it "ignores the names of existing packages" do
+                    ws_add_package_to_layout :cmake, 'pkg'
+                    ops.should_receive(:auto_add_package).never
+                    ops.auto_add_packages_from_layout
+                end
+                it "ignores the names of existing metapackages" do
+                    pkg = ws_define_package :cmake, 'pkg'
+                    ws_add_metapackage_to_layout 'metapkg', pkg
+                    ops.should_receive(:auto_add_package).never
+                    ops.auto_add_packages_from_layout
+                end
+                it "ignores non-checked-out 'packages'" do
+                    ws.manifest.clear_layout # to make sure that the manifest uses a layout
+                    ws.manifest.normalized_layout['tools/test'] = '/'
+                    ops.should_receive(:auto_add_package).never
+                    ops.auto_add_packages_from_layout
+                end
+                it "attempts to auto-load checked out packages" do
+                    ws.manifest.clear_layout # to make sure that the manifest uses a layout
+                    ws.manifest.normalized_layout['tools/test'] = '/'
+                    pkg_dir = File.join(ws.root_dir, 'tools', 'test')
+                    FileUtils.mkdir_p pkg_dir
+                    flexmock(Autoproj).should_receive(:package_handler_for).once.
+                        with(pkg_dir).
+                        and_return('cmake_package')
+                    flexmock(Autoproj).should_receive(:message).once.
+                        with("  auto-added tools\/test using the cmake package handler")
+                    ops.auto_add_packages_from_layout
+                    assert_kind_of Autobuild::CMake, ws.manifest.package_definition_by_name('tools/test').autobuild
+                end
+                it "warns if a package cannot be auto-added" do
+                    ws.manifest.clear_layout # to make sure that the manifest uses a layout
+                    ws.manifest.normalized_layout['tools/test'] = '/'
+                    pkg_dir = File.join(ws.root_dir, 'tools', 'test')
+                    FileUtils.mkdir_p pkg_dir
+                    flexmock(Autoproj).should_receive(:package_handler_for).once.
+                        with(pkg_dir).and_return(nil)
+                    flexmock(Autoproj).should_receive(:warn).once.
+                        with("cannot auto-add tools/test: unknown package type")
+                    ops.auto_add_packages_from_layout
+                    assert_nil ws.manifest.find_package_definition('tools/test')
                 end
             end
         end

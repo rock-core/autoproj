@@ -43,12 +43,9 @@ module Autoproj
                 pkgs.sort_by { |vcs| vcs.keys.first }
         end
 
-        def save_versions( versions, versions_file, options = Hash.new )
-            options = Kernel.validate_options options,
-                replace: false
-
+        def save_versions( versions, versions_file, replace: false)
             existing_versions = Array.new
-            if !options[:replace] && File.exist?(versions_file)
+            if !replace && File.exist?(versions_file)
                 existing_versions = YAML.load( File.read( versions_file ) ) ||
                     Array.new
             end
@@ -80,25 +77,20 @@ module Autoproj
         #
         # @return [Boolean]
         # @see initialize error_or_warn
-        def ignore_errors?; !!@ignore_errors end
+        def keep_going?; !!@keep_going end
 
-        def initialize(manifest, options = Hash.new)
+        def initialize(manifest, keep_going: false)
             @manifest = manifest
-            options = Kernel.validate_options options,
-                ignore_errors: false
-            @ignore_errors = options[:ignore_errors]
+            @keep_going = keep_going
         end
 
-        def snapshot_package_sets(target_dir = nil, options = Hash.new)
-            options = Kernel.validate_options options,
-                only_local: true
-
+        def snapshot_package_sets(target_dir = nil, only_local: true)
             result = Array.new
             manifest.each_package_set do |pkg_set|
                 next if pkg_set.local?
 
                 vcs_info =
-                    begin pkg_set.snapshot(target_dir, only_local: options[:only_local])
+                    begin pkg_set.snapshot(target_dir, only_local: only_local)
                     rescue Exception => e
                         error_or_warn(pkg_set, e)
                         next
@@ -116,7 +108,7 @@ module Autoproj
         def error_or_warn(package, error)
             if error.kind_of?(Interrupt)
                 raise
-            elsif ignore_errors?
+            elsif keep_going?
                 if !error.respond_to?(:to_str)
                     error = error.message
                 end
@@ -128,10 +120,7 @@ module Autoproj
             end
         end
 
-        def snapshot_packages(packages, target_dir = nil, options = Hash.new)
-            options = Kernel.validate_options options,
-                only_local: true
-
+        def snapshot_packages(packages, target_dir = nil, only_local: true)
             result = Array.new
             packages.each do |package_name|
                 package  = manifest.find_package_definition(package_name)
@@ -148,7 +137,7 @@ module Autoproj
                 end
 
                 vcs_info =
-                    begin importer.snapshot(package.autobuild, target_dir, only_local: options[:only_local])
+                    begin importer.snapshot(package.autobuild, target_dir, only_local: only_local)
                     rescue Exception => e
                         error_or_warn(package, e)
                         next

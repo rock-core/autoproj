@@ -293,10 +293,27 @@ gem 'autobuild', path: '#{autobuild_dir}'
             package_set
         end
 
+        def ws_create_local_package_set(name, path, source_data: Hash.new, **options)
+            vcs = VCSDefinition.from_raw(type: 'local', url: path)
+            package_set = PackageSet.new(ws, vcs, name: name, **options)
+            FileUtils.mkdir_p(path)
+            File.open(File.join(path, 'source.yml'), 'w') do |io|
+                YAML.dump(Hash['name' => name].merge(source_data), io)
+            end
+            ws.manifest.register_package_set(package_set)
+            package_set
+        end
+
         def ws_add_package_set_to_layout(name, vcs = VCSDefinition.from_raw(type: 'none'), **options)
             package_set = ws_define_package_set(name, vcs, **options)
             ws.manifest.add_package_set_to_layout(package_set)
             package_set
+        end
+
+        def ws_add_metapackage_to_layout(name, *packages)
+            meta = ws.manifest.metapackage(name, *packages)
+            ws.manifest.add_metapackage_to_layout(meta)
+            meta
         end
 
         def ws_define_osdep_entries(entries)

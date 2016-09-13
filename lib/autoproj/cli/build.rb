@@ -23,8 +23,6 @@ module Autoproj
                     rebuild: false,
                     parallel: nil
 
-                Autobuild.ignore_errors = options[:keep_going]
-
                 command_line_selection, source_packages, osdep_packages =
                     super(selected_packages, options.merge(checkout_only: true))
 
@@ -37,6 +35,8 @@ module Autoproj
                     next if source_packages.include?(pkg.name)
                     pkg.disable
                 end
+
+                Autobuild.ignore_errors = options[:keep_going]
 
                 ops = Ops::Build.new(ws.manifest)
                 if build_options[:rebuild] || build_options[:force]

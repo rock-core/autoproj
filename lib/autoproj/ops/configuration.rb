@@ -60,7 +60,7 @@ module Autoproj
                 # Define a package in the installation manifest that points to
                 # the desired folder in other_root
                 relative_path = Pathname.new(into).
-                    relative_path_from(Pathname.new(root_dir)).to_s
+                    relative_path_from(Pathname.new(ws.root_dir)).to_s
                 other_dir = File.join(update_from.path, relative_path)
                 if File.directory?(other_dir)
                     update_from.packages.unshift(
@@ -89,7 +89,7 @@ module Autoproj
         #
         # @return [Boolean] true if something got updated or checked out,
         #   and false otherwise
-        def update_main_configuration(ignore_errors: false, checkout_only: !Autobuild.do_update, only_local: false, reset: false, retry_count: nil)
+        def update_main_configuration(keep_going: false, checkout_only: !Autobuild.do_update, only_local: false, reset: false, retry_count: nil)
             if checkout_only && File.exist?(ws.config_dir)
                 return []
             end
@@ -102,7 +102,7 @@ module Autoproj
         rescue Interrupt
             raise
         rescue Exception => e
-            if ignore_errors
+            if keep_going
                 [e]
             else
                 raise e
@@ -201,7 +201,7 @@ module Autoproj
         def load_and_update_package_sets(root_pkg_set,
                                          only_local: false,
                                          checkout_only: !Autobuild.do_update,
-                                         ignore_errors: false,
+                                         keep_going: false,
                                          reset: false,
                                          retry_count: nil)
             package_sets = [root_pkg_set]
@@ -232,7 +232,7 @@ module Autoproj
                 # Make sure the package set has been already checked out to
                 # retrieve the actual name of the package set
                 if !vcs.local?
-                    failed = handle_ignore_errors(ignore_errors, vcs, failures) do
+                    failed = handle_keep_going(keep_going, vcs, failures) do
                         update_remote_package_set(
                             vcs, checkout_only: checkout_only,
                             only_local: only_local, reset: reset,
@@ -380,31 +380,33 @@ module Autoproj
         def load_package_sets(
                 only_local: false,
                 checkout_only: true,
-                ignore_errors: false,
+                keep_going: false,
                 reset: false,
-                retry_count: nil)
+                retry_count: nil,
+                mainline: nil)
             update_configuration(
                 only_local: only_local,
                 checkout_only: checkout_only,
-                ignore_errors: ignore_errors,
+                keep_going: keep_going,
                 reset: reset,
-                retry_count: retry_count)
+                retry_count: retry_count,
+                mainline: nil)
         end
 
         def report_import_failure(what, reason)
             if !reason.kind_of?(Interrupt)
-                Autoproj.error "import of #{what} failed"
-                Autoproj.error "#{reason}"
+                Autoproj.message "import of #{what} failed", :red
+                Autoproj.message reason.to_s, :red
             end
         end
 
-        def handle_ignore_errors(ignore_errors, vcs, failures)
+        def handle_keep_going(keep_going, vcs, failures)
             yield
             false
         rescue Interrupt
             raise
         rescue Exception => failure_reason
-            if ignore_errors
+            if keep_going
                 report_import_failure(vcs, failure_reason)
                 failures << failure_reason
                 true
@@ -416,13 +418,14 @@ module Autoproj
         def update_configuration(
                 only_local: false,
                 checkout_only: !Autobuild.do_update,
-                ignore_errors: false,
+                keep_going: false,
                 reset: false,
-                retry_count: nil)
+                retry_count: nil,
+                mainline: nil)
 
             if ws.manifest.vcs.needs_import?
                 main_configuration_failure = update_main_configuration(
-                    ignore_errors: ignore_errors,
+                    keep_going: keep_going,
                     checkout_only: checkout_only,
                     only_local: only_local,
                     reset: reset,
@@ -443,9 +446,11 @@ module Autoproj
             package_sets_failure = update_package_sets(
                 only_local: only_local,
                 checkout_only: checkout_only,
-                ignore_errors: ignore_errors,
+                keep_going: keep_going,
                 reset: reset,
                 retry_count: retry_count)
+
+            load_package_set_information(mainline: mainline)
 
             if !main_configuration_failure.empty? && !package_sets_failure.empty?
                 raise ImportFailed.new(main_configuration_failure + package_sets_failure)
@@ -456,9 +461,134 @@ module Autoproj
             end
         end
 
+        def load_package_set_information(mainline: nil)
+            manifest = ws.manifest
+            manifest.each_package_set do |pkg_set|
+                if Gem::Version.new(pkg_set.required_autoproj_version) > Gem::Version.new(Autoproj::VERSION)
+                    raise ConfigError.new(pkg_set.source_file), "the #{pkg_set.name} package set requires autoproj v#{pkg_set.required_autoproj_version} but this is v#{Autoproj::VERSION}"
+                end
+            end
+
+            # Loads OS package definitions once and for all
+            load_osdeps_from_package_sets
+
+            # Load the required autobuild definitions
+            Autoproj.message("autoproj: loading ...", :bold)
+            manifest.each_package_set do |pkg_set|
+                pkg_set.each_autobuild_file do |path|
+                    ws.import_autobuild_file pkg_set, path
+                end
+            end
+
+            # Now, load the package's importer configurations (from the various
+            # source.yml files)
+            if mainline.respond_to?(:to_str)
+                mainline = manifest.package_set(mainline)
+            end
+            manifest.load_importers(mainline: mainline)
+
+            auto_add_packages_from_layout
+
+            manifest.each_autobuild_package do |pkg|
+                Autobuild.each_utility do |uname, _|
+                    pkg.utility(uname).enabled =
+                        ws.config.utility_enabled_for?(uname, pkg.name)
+                end
+            end
+
+            mark_unavailable_osdeps_as_excluded
+        end
+
+        # @api private
+        #
+        # Attempts to find packages mentioned in the layout but that are not
+        # defined, and auto-define them if they can be found on disk
+        #
+        # It only warns about packages that can't be defined that way are on
+        def auto_add_packages_from_layout
+            manifest = ws.manifest
+
+            # Auto-add packages that are
+            #  * present on disk
+            #  * listed in the layout part of the manifest
+            #  * but have no definition
+            explicit = manifest.normalized_layout
+            explicit.each do |pkg_or_set, layout_level|
+                next if manifest.find_autobuild_package(pkg_or_set)
+                next if manifest.has_package_set?(pkg_or_set)
+                full_path = File.expand_path(File.join(ws.root_dir, layout_level, pkg_or_set))
+                next if !File.directory?(full_path)
+
+                if handler = auto_add_package(pkg_or_set, full_path)
+                    Autoproj.message "  auto-added #{pkg_or_set} #{"in #{layout_level} " if layout_level != "/"}using the #{handler.gsub(/_package/, '')} package handler"
+                else
+                    Autoproj.warn "cannot auto-add #{pkg_or_set}: unknown package type"
+                end
+
+            end
+        end
+
+        # @api private
+        #
+        # Attempts to auto-add the package checked out at the given path
+        #
+        # @param [String] full_path
+        # @return [String,nil] either the name of the package handler used to
+        #   define the package, or nil if no handler could be found
+        def auto_add_package(name, full_path)
+            manifest = ws.manifest
+            handler, _srcdir = Autoproj.package_handler_for(full_path)
+            if handler
+                ws.set_as_main_workspace do
+                    ws.in_package_set(manifest.main_package_set, manifest.file) do
+                        send(handler, name)
+                    end
+                end
+                handler
+            end
+        end
+
+        def mark_unavailable_osdeps_as_excluded
+            os_package_resolver = ws.os_package_resolver
+            manifest = ws.manifest
+            os_package_resolver.all_package_names.each do |osdep_name|
+                # If the osdep can be replaced by source packages, there's
+                # nothing to do really. The exclusions of the source packages
+                # will work as expected
+                if manifest.osdeps_overrides[osdep_name] || manifest.find_autobuild_package(osdep_name)
+                    next
+                end
+
+                case os_package_resolver.availability_of(osdep_name)
+                when OSPackageResolver::UNKNOWN_OS
+                    manifest.exclude_package(osdep_name, "this operating system is unknown to autoproj")
+                when OSPackageResolver::WRONG_OS
+                    manifest.exclude_package(osdep_name, "there are definitions for it, but not for this operating system")
+                when OSPackageResolver::NONEXISTENT
+                    manifest.exclude_package(osdep_name, "it is marked as unavailable for this operating system")
+                end
+            end
+        end
+
+        # Load OS dependency information contained in our registered package
+        # sets into the provided osdep object
+        #
+        # This is included in {load_package_sets}
+        #
+        # @return [void]
+        def load_osdeps_from_package_sets
+            ws.manifest.each_package_set do |pkg_set|
+                pkg_set.each_osdeps_file do |file|
+                    file_osdeps = pkg_set.load_osdeps(
+                        file, operating_system: ws.operating_system)
+                    ws.os_package_resolver.merge(file_osdeps)
+                end
+            end
+        end
+
         def update_package_sets(only_local: false,
                                 checkout_only: !Autobuild.do_update,
-                                ignore_errors: false,
+                                keep_going: false,
                                 reset: false,
                                 retry_count: nil)
             root_pkg_set = ws.manifest.main_package_set
@@ -466,7 +596,7 @@ module Autoproj
                 root_pkg_set,
                 only_local: only_local,
                 checkout_only: checkout_only,
-                ignore_errors: ignore_errors,
+                keep_going: keep_going,
                 reset: reset,
                 retry_count: retry_count)
             root_pkg_set.imports.each do |pkg_set|
