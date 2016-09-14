@@ -17,8 +17,8 @@ module Autoproj
                     assert_equal [['test'], Hash[test: 10]],
                         cli.validate_options(['test'], Hash[test: 10])
                 end
-                it "returns nil as selection string if no arguments are given" do
-                    assert_equal [[], Hash[test: 10]],
+                it "'selects' the workspace root dir if no arguments are given" do
+                    assert_equal [[ws.root_dir], Hash[test: 10]],
                         cli.validate_options([], Hash[test: 10])
                 end
             end
@@ -177,13 +177,13 @@ module Autoproj
                 end
                 it "displays the workspace prefix if build is true and there are no selections" do
                     out, _ = capture_subprocess_io do
-                        cli.run([], build: true)
+                        cli.run([ws.root_dir], build: true)
                     end
                     assert_equal ws.prefix_dir, out.chomp
                 end
                 it "returns the workspace root if build is false and there are no selections" do
                     out, _ = capture_subprocess_io do
-                        cli.run([])
+                        cli.run([ws.root_dir])
                     end
                     assert_equal ws.root_dir, out.chomp
                 end
@@ -215,6 +215,23 @@ module Autoproj
             end
 
             describe "#location_of" do
+                describe "when given a workspace directory" do
+                    before do
+                        FileUtils.mkdir_p ws.prefix_dir
+                    end
+                    it "returns the workspace's root" do
+                        assert_equal ws.root_dir, cli.location_of("#{ws.root_dir}/")
+                        assert_equal ws.root_dir, cli.location_of("#{ws.prefix_dir}/")
+                    end
+                    it "returns the workspace's prefix with prefix: true" do
+                        assert_equal ws.prefix_dir, cli.location_of("#{ws.root_dir}/", prefix: true)
+                        assert_equal ws.prefix_dir, cli.location_of("#{ws.prefix_dir}/", prefix: true)
+                    end
+                    it "returns the workspace's prefix with build: true" do
+                        assert_equal ws.prefix_dir, cli.location_of("#{ws.root_dir}/", build: true)
+                        assert_equal ws.prefix_dir, cli.location_of("#{ws.prefix_dir}/", build: true)
+                    end
+                end
                 it "returns a package set's user_local_dir" do
                     flexmock(cli).should_receive(:find_package_set).
                         with(selection = flexmock).

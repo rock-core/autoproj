@@ -108,17 +108,17 @@ module Autoproj
                 @package_sets = ws.manifest.each_package_set.to_a
             end
 
+            def validate_options(selections, options = Hash.new)
+                selections, options = super
+                if selections.empty?
+                    selections << ws.root_dir
+                end
+                return selections, options
+            end
+
             def run(selections, cache: !!packages, build: false, prefix: false)
                 if !cache
                     initialize_from_workspace
-                end
-
-                if selections.empty?
-                    if prefix || build
-                        puts ws.prefix_dir
-                    else
-                        puts ws.root_dir
-                    end
                 end
 
                 selections.each do |string|
@@ -130,7 +130,13 @@ module Autoproj
             end
 
             def location_of(selection, prefix: false, build: false)
-                if pkg_set = find_package_set(selection)
+                if selection == "#{ws.root_dir}/" || selection == "#{ws.prefix_dir}/"
+                    if prefix || build
+                        return ws.prefix_dir
+                    else
+                        return ws.root_dir
+                    end
+                elsif pkg_set = find_package_set(selection)
                     return pkg_set.user_local_dir
                 end
 
