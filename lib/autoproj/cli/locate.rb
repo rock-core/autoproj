@@ -110,14 +110,31 @@ module Autoproj
 
             def validate_options(selections, options = Hash.new)
                 selections, options = super
+                mode = if options.delete(:build)
+                           :build_dir
+                       elsif options.delete(:prefix)
+                           :prefix_dir
+                       elsif log_type = options[:log]
+                           if log_type == 'log'
+                               options.delete(:log)
+                           end
+                           :log
+                       else
+                           :source_dir
+                       end
+                options[:mode] ||= mode
                 if selections.empty?
                     selections << ws.root_dir
                 end
                 return selections, options
             end
 
-            def run(selections, cache: !!packages, build: false, prefix: false)
-                if !cache
+            RESOLUTION_MODES = [:source_dir, :build_dir, :prefix_dir, :log]
+
+            def run(selections, cache: !!packages, mode: :source_dir, log: nil)
+                if !RESOLUTION_MODES.include?(mode)
+                    raise ArgumentError, "'#{mode}' was expected to be one of #{RESOLUTION_MODES}"
+                elsif !cache
                     initialize_from_workspace
                 end
 
@@ -125,21 +142,34 @@ module Autoproj
                     if File.directory?(string)
                         string = "#{File.expand_path(string)}/"
                     end
-                    puts location_of(string, build: build, prefix: prefix)
+                    if mode == :source_dir
+                        puts source_dir_of(string)
+                    elsif mode == :build_dir
+                        puts build_dir_of(string)
+                    elsif mode == :prefix_dir
+                        puts prefix_dir_of(string)
+                    elsif mode == :log
+                        if all_logs = (log == 'all')
+                            log = nil
+                        end
+                        result = logs_of(string, log: log)
+                        if (result.size == 1) || all_logs
+                            result.each { |p| puts p }
+                        elsif result.size > 1
+                            puts select_log_file(result)
+                        elsif result.empty?
+                            raise NotFound, "no logs found for #{string}"
+                        end
+                    end
                 end
             end
 
-            def location_of(selection, prefix: false, build: false)
-                if selection == "#{ws.root_dir}/" || selection == "#{ws.prefix_dir}/"
-                    if prefix || build
-                        return ws.prefix_dir
-                    else
-                        return ws.root_dir
-                    end
-                elsif pkg_set = find_package_set(selection)
-                    return pkg_set.user_local_dir
-                end
-
+            # Resolve the package that matches a given selection
+            #
+            # @return [PackageDefinition]
+            # @raise [NotFound] if nothing matches
+            # @raise [AmbiguousSelection] if the selection is ambiguous
+            def resolve_package(selection)
                 matching_packages = find_packages(selection)
                 if matching_packages.empty?
                     matching_packages = find_packages_with_directory_shortnames(selection)
@@ -159,19 +189,103 @@ module Autoproj
                 elsif matching_packages.size > 1
                     raise AmbiguousSelection, "multiple packages match '#{selection}' in the current autoproj installation: #{matching_packages.map(&:name).sort.join(", ")}"
                 else
-                    pkg = matching_packages.first
-                    if prefix
-                        pkg.prefix
-                    elsif build
-                        if pkg.respond_to?(:builddir) && pkg.builddir
-                            pkg.builddir
-                        else
-                            raise ArgumentError, "#{pkg.name} does not have a build directory"
-                        end
+                    return matching_packages.first
+                end
+            end
+
+            # Tests whether 'selection' points to one of the workspace's root
+            # directories
+            def workspace_dir?(selection)
+                selection == "#{ws.root_dir}/" || selection == "#{ws.prefix_dir}/"
+            end
+
+            # Returns the source directory for a given selection
+            def source_dir_of(selection)
+                if workspace_dir?(selection)
+                    ws.root_dir
+                elsif pkg_set = find_package_set(selection)
+                    pkg_set.user_local_dir
+                else
+                    resolve_package(selection).srcdir
+                end
+            end
+
+            # Returns the prefix directory for a given selection
+            #
+            # @raise [ArgumentError] if the selection points to a package set
+            def prefix_dir_of(selection)
+                if workspace_dir?(selection)
+                    ws.prefix_dir
+                elsif find_package_set(selection)
+                    raise ArgumentError, "#{selection} is a package set, and package sets do not have prefixes"
+                else
+                    resolve_package(selection).prefix
+                end
+            end
+
+            # Returns the build directory for a given selection
+            #
+            # @raise [ArgumentError] if the selection points to a package set,
+            #   or to a package that has no build directory
+            def build_dir_of(selection)
+                if workspace_dir?(selection)
+                    raise ArgumentError, "#{selection} points to the workspace itself, which has no build dir"
+                elsif find_package_set(selection)
+                    raise ArgumentError, "#{selection} is a package set, and package sets do not have build directories"
+                else
+                    pkg = resolve_package(selection)
+                    if pkg.respond_to?(:builddir) && pkg.builddir
+                        pkg.builddir
                     else
-                        pkg.srcdir
+                        raise ArgumentError, "#{selection} resolves to the package #{pkg.name}, which does not have a build directory"
                     end
                 end
+            end
+
+            # Resolve logs available for what points to the given selection
+            #
+            # The workspace is resolved as the main configuration
+            #
+            # If 'log' is nil and multiple logs are available, 
+            def logs_of(selection, log: nil)
+                if workspace_dir?(selection) || (pkg_set = find_package_set(selection))
+                    if log && log != 'import'
+                        return []
+                    end
+                    name = if pkg_set then pkg_set.name
+                           else "autoproj main configuration"
+                           end
+
+                    import_log = File.join(ws.log_dir, "#{name}-import.log")
+                    if File.file?(import_log)
+                        return [import_log]
+                    else return []
+                    end
+                else
+                    pkg = resolve_package(selection)
+                    Dir.enum_for(:glob, File.join(pkg.prefix, "log", "#{pkg.name}-#{log || '*'}.log")).to_a
+                end
+            end
+
+            # Interactively select a log file among a list
+            def select_log_file(log_files)
+                require 'tty/prompt'
+
+                log_files = log_files.map do |path|
+                    [path, File.stat(path).mtime]
+                end.sort_by(&:last).reverse
+
+                choices = Hash.new
+                log_files.each do |path, mtime|
+                    if path =~ /-(\w+)\.log/
+                        choices["(#{mtime}) #{$1}"] = path
+                    else
+                        choices["(#{mtime}) #{path}"] = path
+                    end
+                end
+
+                prompt = TTY::Prompt.new
+                prompt.select("Select the log file", choices)
             end
         end
     end

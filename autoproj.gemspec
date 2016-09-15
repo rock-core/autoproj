@@ -28,6 +28,7 @@ Gem::Specification.new do |s|
     s.add_runtime_dependency "thor", '~> 0.19.0', '>= 0.19.1'
     s.add_runtime_dependency 'concurrent-ruby'
     s.add_runtime_dependency 'tty-color', '~> 0.3.0', '>= 0.3.0'
+    s.add_runtime_dependency 'tty-prompt'
     s.add_development_dependency "flexmock", ">= 2.0.0"
     s.add_development_dependency "minitest", ">= 5.0", "~> 5.0"
     s.add_development_dependency "fakefs"

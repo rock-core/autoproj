@@ -10,26 +10,59 @@ module Autoproj
                 @installation_manifest = InstallationManifest.new(
                     ws.installation_manifest_path)
                 @cli = Locate.new(ws, installation_manifest: installation_manifest)
+                flexmock(cli)
             end
 
             describe "#validate_options" do
+                it "transforms the prefix: true CLI option into a run mode" do
+                    assert_equal [['test'], Hash[test: 10, mode: :prefix_dir]],
+                        cli.validate_options(['test'], Hash[test: 10, prefix: true])
+                end
+                it "transforms the build: true CLI option into a run mode" do
+                    assert_equal [['test'], Hash[test: 10, mode: :build_dir]],
+                        cli.validate_options(['test'], Hash[test: 10, build: true])
+                end
+                it "removes prefix: false from the options" do
+                    assert_equal [['test'], Hash[test: 10, mode: :source_dir]],
+                        cli.validate_options(['test'], Hash[test: 10, prefix: false])
+                end
+                it "removes build: false from the options" do
+                    assert_equal [['test'], Hash[test: 10, mode: :source_dir]],
+                        cli.validate_options(['test'], Hash[test: 10, build: false])
+                end
+                it "removes both prefix: false and build: false from the options" do
+                    assert_equal [['test'], Hash[test: 10, mode: :source_dir]],
+                        cli.validate_options(['test'], Hash[test: 10, prefix: false, build: false])
+                end
                 it "returns the only argument" do
-                    assert_equal [['test'], Hash[test: 10]],
+                    assert_equal [['test'], Hash[test: 10, mode: :source_dir]],
                         cli.validate_options(['test'], Hash[test: 10])
                 end
                 it "'selects' the workspace root dir if no arguments are given" do
-                    assert_equal [[ws.root_dir], Hash[test: 10]],
+                    assert_equal [[ws.root_dir], Hash[test: 10, mode: :source_dir]],
                         cli.validate_options([], Hash[test: 10])
                 end
             end
 
-            describe "the 'no cache' mode" do
+            describe "#try_loading_installation_manifest" do
+                it "returns nil if no manifest exists" do
+                    assert_nil cli.try_loading_installation_manifest(ws)
+                end
+                it "returns the manifest object if a manifest exists" do
+                    ws.export_installation_manifest
+                    manifest = cli.try_loading_installation_manifest(ws)
+                    assert_kind_of InstallationManifest, manifest
+                end
+            end
+
+            describe "#initialize_from_workspace" do
                 attr_reader :cli
 
                 before do
                     ws_create
                     @cli = Locate.new(ws, installation_manifest: nil)
-                    flexmock(cli).should_receive(:initialize_and_load)
+                    flexmock(cli)
+                    cli.should_receive(:initialize_and_load)
                 end
 
                 it "updates the installation manifest and then uses it" do
@@ -42,11 +75,11 @@ module Autoproj
                     package.autobuild.prefix = prefix
                     cli.initialize_from_workspace
 
-                    assert_equal src, cli.location_of('package')
-                    assert_equal src, cli.location_of("#{src}/")
-                    assert_equal src, cli.location_of("#{build}/")
-                    assert_equal build, cli.location_of('package', build: true)
-                    assert_equal prefix, cli.location_of('package', prefix: true)
+                    assert_equal src, cli.source_dir_of('package')
+                    assert_equal src, cli.source_dir_of("#{src}/")
+                    assert_equal src, cli.source_dir_of("#{build}/")
+                    assert_equal build, cli.build_dir_of('package')
+                    assert_equal prefix, cli.prefix_dir_of('package')
                 end
             end
 
@@ -166,166 +199,364 @@ module Autoproj
             end
 
             describe "#run" do
+                it "raises if given an invalid mode" do
+                    e = assert_raises(ArgumentError) do
+                        cli.run([ws.root_dir], mode: :invalid)
+                    end
+                    assert_match /'#{:invalid}' was expected to be one of/, e.message
+                end
+
+                it "does not load the configuration if initialized with an installation manifest" do
+                    cli.should_receive(:initialize_from_workspace).never
+                    capture_subprocess_io do
+                        cli.run([ws.root_dir])
+                    end
+                end
+                it "loads the configuration and updates the manifest if cache: false" do
+                    cli.should_receive(:initialize_from_workspace).once
+                    capture_subprocess_io do
+                        cli.run([ws.root_dir], cache: false)
+                    end
+                end
+
                 it "expands a relative path to an absolute and appends a slash before matching" do
                     absolute_dir = make_tmpdir
                     dir = Pathname.new(absolute_dir).relative_path_from(Pathname.pwd).to_s
-                    flexmock(cli).should_receive(:location_of).with("#{absolute_dir}/", build: false, prefix: false).
+                    cli.should_receive(:source_dir_of).with("#{absolute_dir}/").
                         once
                     capture_subprocess_io do
                         cli.run([dir])
                     end
                 end
-                it "displays the workspace prefix if build is true and there are no selections" do
+                it "displays the result of source_dir_of if mode: :source_dir" do
+                    cli.should_receive(:source_dir_of).with('selection').
+                        and_return('test')
                     out, _ = capture_subprocess_io do
-                        cli.run([ws.root_dir], build: true)
+                        cli.run(['selection'], mode: :source_dir)
                     end
-                    assert_equal ws.prefix_dir, out.chomp
+                    assert_equal 'test', out.chomp
                 end
-                it "returns the workspace root if build is false and there are no selections" do
+                it "displays the result of build_dir_of if mode: :build_dir" do
+                    cli.should_receive(:build_dir_of).with('selection').
+                        and_return('test')
                     out, _ = capture_subprocess_io do
-                        cli.run([ws.root_dir])
+                        cli.run(['selection'], mode: :build_dir)
                     end
-                    assert_equal ws.root_dir, out.chomp
+                    assert_equal 'test', out.chomp
                 end
-                it "passes the build flag to #location_of" do
-                    flexmock(cli).should_receive(:location_of).
-                        with("a/package/name", build: true, prefix: false).
-                        once
-                    capture_subprocess_io do
-                        cli.run(["a/package/name"], build: true, prefix: false)
-                    end
-                end
-                it "passes the prefix flag to #location_of" do
-                    flexmock(cli).should_receive(:location_of).
-                        with("a/package/name", build: false, prefix: true).
-                        once
-                    capture_subprocess_io do
-                        cli.run(["a/package/name"], build: false, prefix: true)
-                    end
-                end
-                it "displays the found path" do
-                    flexmock(cli).should_receive(:location_of).
-                        with("a/package/name", build: false, prefix: false).
-                        once.and_return('/path/to/package')
+                it "displays the result of prefix_dir_of if mode: :prefix_dir" do
+                    cli.should_receive(:prefix_dir_of).with('selection').
+                        and_return('test')
                     out, _ = capture_subprocess_io do
-                        cli.run(['a/package/name'])
+                        cli.run(['selection'], mode: :prefix_dir)
                     end
-                    assert_equal "/path/to/package\n", out
+                    assert_equal 'test', out.chomp
+                end
+                it "displays the result of log_of if mode: :log" do
+                    cli.should_receive(:logs_of).with('selection', log: nil).
+                        and_return(['test'])
+                    out, _ = capture_subprocess_io do
+                        cli.run(['selection'], mode: :log)
+                    end
+                    assert_equal 'test', out.chomp
+                end
+                it "selects one log file if logs_of returns more than one" do
+                    cli.should_receive(:logs_of).with('selection', log: nil).
+                        and_return(candidates = [flexmock, flexmock])
+                    cli.should_receive(:select_log_file).with(candidates).
+                        and_return('test')
+                    out, _ = capture_subprocess_io do
+                        cli.run(['selection'], mode: :log)
+                    end
+                    assert_equal 'test', out.chomp
+                end
+                it "interprets log: 'all' as 'show all the log files'" do
+                    cli.should_receive(:logs_of).with('selection', log: nil).
+                        and_return(['two', 'files'])
+                    out, _ = capture_subprocess_io do
+                        cli.run(['selection'], mode: :log, log: 'all')
+                    end
+                    assert_equal "two\nfiles\n", out
+                end
+                it "passes the 'log' option to log_of" do
+                    cli.should_receive(:logs_of).with('selection', log: 'install').
+                        and_return(['test'])
+                    out, _ = capture_subprocess_io do
+                        cli.run(['selection'], mode: :log, log: 'install')
+                    end
+                    assert_equal 'test', out.chomp
+                end
+                it "raises if there are no log files and log is not 'all'" do
+                    cli.should_receive(:logs_of).and_return([])
+                    e = assert_raises(Locate::NotFound) do
+                        cli.run(['selection'], mode: :log)
+                    end
+                    assert_equal 'no logs found for selection', e.message
                 end
             end
 
-            describe "#location_of" do
-                describe "when given a workspace directory" do
-                    before do
-                        FileUtils.mkdir_p ws.prefix_dir
-                    end
-                    it "returns the workspace's root" do
-                        assert_equal ws.root_dir, cli.location_of("#{ws.root_dir}/")
-                        assert_equal ws.root_dir, cli.location_of("#{ws.prefix_dir}/")
-                    end
-                    it "returns the workspace's prefix with prefix: true" do
-                        assert_equal ws.prefix_dir, cli.location_of("#{ws.root_dir}/", prefix: true)
-                        assert_equal ws.prefix_dir, cli.location_of("#{ws.prefix_dir}/", prefix: true)
-                    end
-                    it "returns the workspace's prefix with build: true" do
-                        assert_equal ws.prefix_dir, cli.location_of("#{ws.root_dir}/", build: true)
-                        assert_equal ws.prefix_dir, cli.location_of("#{ws.prefix_dir}/", build: true)
-                    end
+            describe "#source_dir_of" do
+                it "returns the workspace's root" do
+                    FileUtils.mkdir_p ws.prefix_dir
+                    assert_equal ws.root_dir, cli.source_dir_of("#{ws.root_dir}/")
+                    assert_equal ws.root_dir, cli.source_dir_of("#{ws.prefix_dir}/")
                 end
                 it "returns a package set's user_local_dir" do
-                    flexmock(cli).should_receive(:find_package_set).
+                    cli.should_receive(:find_package_set).
                         with(selection = flexmock).
                         and_return(flexmock(user_local_dir: 'usr/local/dir'))
-                    assert_equal 'usr/local/dir', cli.location_of(selection)
+                    assert_equal 'usr/local/dir', cli.source_dir_of(selection)
                 end
+                it "returns a package's source directory" do
+                    dir = flexmock
+                    cli.should_receive(:resolve_package).
+                        with(selection = flexmock).
+                        and_return(flexmock(srcdir: dir))
+                    assert_equal dir, cli.source_dir_of(selection)
+                end
+            end
+
+            describe "#logs_of" do
+                attr_reader :pkg, :logdir
+                before do
+                    @pkg = ws_define_package :cmake, 'test/pkg'
+                    pkg.autobuild.logdir = (@logdir = make_tmpdir)
+                    FileUtils.mkdir_p File.join(logdir, 'test')
+                    FileUtils.touch File.join(logdir, 'test', 'pkg-install.log')
+                    FileUtils.touch File.join(logdir, 'test', 'pkg-build.log')
+                    cli.should_receive(:initialize_and_load)
+                    cli.initialize_from_workspace
+                end
+
+                describe "handling of the workspace" do
+                    it "returns an empty array if the workspace's main configuration import log does not exist" do
+                        assert_equal [], cli.logs_of("#{ws.root_dir}/")
+                    end
+
+                    it "returns the workspace's main configuration import log does not exist" do
+                        flexmock(ws, log_dir: make_tmpdir)
+                        logfile = File.join(ws.log_dir, 'autoproj main configuration-import.log')
+                        FileUtils.touch logfile
+                        assert_equal [logfile], cli.logs_of("#{ws.root_dir}/")
+                        assert_equal [logfile], cli.logs_of("#{ws.root_dir}/", log: 'import')
+                    end
+
+                    it "returns an empty array if 'log' is anything but nil or 'import'" do
+                        flexmock(ws, log_dir: make_tmpdir)
+                        logfile = File.join(ws.log_dir, 'autoproj main configuration-import.log')
+                        FileUtils.touch logfile
+                        assert_equal [], cli.logs_of("#{ws.root_dir}/", log: 'build')
+                    end
+                end
+
+                describe "handling of package sets" do
+                    it "returns an empty array if the package set's import log does not exist" do
+                        cli.should_receive(:find_package_set).
+                            and_return(flexmock(name: 'test'))
+                        assert_equal [], cli.logs_of(flexmock)
+                    end
+
+                    it "returns the package set's import log if it exists" do
+                        flexmock(ws, log_dir: make_tmpdir)
+                        cli.should_receive(:find_package_set).
+                            and_return(flexmock(name: 'test'))
+                        logfile = File.join(ws.log_dir, 'test-import.log')
+                        FileUtils.touch logfile
+                        assert_equal [logfile], cli.logs_of(flexmock)
+                    end
+
+                    it "returns an empty array if 'log' is anything but nil or 'import'" do
+                        flexmock(ws, log_dir: make_tmpdir)
+                        cli.should_receive(:find_package_set).
+                            and_return(flexmock(name: 'test'))
+                        logfile = File.join(ws.log_dir, 'autoproj main configuration-import.log')
+                        FileUtils.touch logfile
+                        assert_equal [], cli.logs_of(flexmock, log: 'build')
+                    end
+                end
+
+                describe "handling of packages" do
+                    it "returns an empty array if the package has no logs" do
+                        pkg.autobuild.logdir = (logdir = make_tmpdir)
+                        assert_equal [], cli.logs_of('test/pkg')
+                    end
+
+                    it "lists a package's log files" do
+                        expected = Set[
+                            File.join(logdir, 'test', 'pkg-build.log'),
+                            File.join(logdir, 'test', 'pkg-install.log')
+                        ]
+                        assert_equal expected, cli.logs_of('test/pkg').to_set
+                    end
+                end
+            end
+
+            describe "#prefix_dir_of" do
+                it "returns the workspace's prefix" do
+                    FileUtils.mkdir_p ws.prefix_dir
+                    assert_equal ws.prefix_dir, cli.prefix_dir_of("#{ws.root_dir}/")
+                    assert_equal ws.prefix_dir, cli.prefix_dir_of("#{ws.prefix_dir}/")
+                end
+                it "raises ArgumentError if given a package set" do
+                    cli.should_receive(:find_package_set).with(selection = flexmock).and_return(flexmock)
+                    e = assert_raises(ArgumentError) do
+                        cli.prefix_dir_of(selection)
+                    end
+                    assert_equal "#{selection} is a package set, and package sets do not have prefixes",
+                        e.message
+                end
+                it "returns a package's prefix directory" do
+                    dir = flexmock
+                    cli.should_receive(:resolve_package).
+                        with(selection = flexmock).
+                        and_return(flexmock(prefix: dir))
+                    assert_equal dir, cli.prefix_dir_of(selection)
+                end
+            end
+
+            describe "#build_dir_of" do
+                it "raises ArgumentError if selecting the workspace" do
+                    FileUtils.mkdir_p ws.prefix_dir
+                    e = assert_raises(ArgumentError) do
+                        cli.build_dir_of("#{ws.root_dir}/")
+                    end
+                    assert_equal "#{ws.root_dir}/ points to the workspace itself, which has no build dir",
+                        e.message
+                    e = assert_raises(ArgumentError) do
+                        cli.build_dir_of("#{ws.prefix_dir}/")
+                    end
+                    assert_equal "#{ws.prefix_dir}/ points to the workspace itself, which has no build dir",
+                        e.message
+                end
+                it "raises ArgumentError if given a package set" do
+                    cli.should_receive(:find_package_set).with(selection = flexmock).and_return(flexmock)
+                    e = assert_raises(ArgumentError) do
+                        cli.build_dir_of(selection)
+                    end
+                    assert_equal "#{selection} is a package set, and package sets do not have build directories",
+                        e.message
+                end
+                it "returns a package's prefix directory" do
+                    dir = flexmock
+                    cli.should_receive(:resolve_package).
+                        with(selection = flexmock).
+                        and_return(flexmock(builddir: dir))
+                    assert_equal dir, cli.build_dir_of(selection)
+                end
+                it "raises ArgumentError if the matching package has no build directory" do
+                    dir = flexmock
+                    cli.should_receive(:resolve_package).
+                        with(selection = flexmock).
+                        and_return(flexmock(name: 'test'))
+                    e = assert_raises(ArgumentError) do
+                        cli.build_dir_of(selection)
+                    end
+                    assert_equal "#{selection} resolves to the package test, which does not have a build directory", e.message
+                end
+                it "raises ArgumentError if the package has a nil build directory" do
+                    dir = flexmock
+                    cli.should_receive(:resolve_package).
+                        with(selection = flexmock).
+                        and_return(flexmock(name: 'test', builddir: nil))
+                    e = assert_raises(ArgumentError) do
+                        cli.build_dir_of(selection)
+                    end
+                    assert_equal "#{selection} resolves to the package test, which does not have a build directory", e.message
+                end
+            end
+
+            describe "#select_log_file" do
+                it "attempts to select a log file and return it" do
+                    choices = Hash['install' => '/path/to/package-install.log',
+                                   'build' => '/path/to/package-build.log']
+                    flexmock(TTY::Prompt).new_instances.
+                        should_receive(:select).with(choices).
+                        and_return('result')
+                    assert_equal 'result', cli.select_log_file(
+                        ['/path/to/package-install.log',
+                         '/path/to/package-build.log'])
+                end
+
+                it "prompts with the full path if it does not match the expected pattern" do
+                    choices = Hash['/path/to/package.log' => '/path/to/package.log',
+                                   'build' => '/path/to/package-build.log']
+                    flexmock(TTY::Prompt).new_instances.
+                        should_receive(:select).with(choices).
+                        and_return('result')
+                    assert_equal 'result', cli.select_log_file(
+                        ['/path/to/package.log',
+                         '/path/to/package-build.log'])
+                end
+            end
+
+            describe "#resolve_package" do
                 it "raises NotFound if there are no matches" do
-                    flexmock(cli).should_receive(:find_packages).and_return([])
-                    flexmock(cli).should_receive(:find_packages_with_directory_shortnames).
+                    cli.should_receive(:find_packages).and_return([])
+                    cli.should_receive(:find_packages_with_directory_shortnames).
                         and_return([])
                     e = assert_raises(Locate::NotFound) do
-                        cli.location_of('does/not/match')
+                        cli.resolve_package('does/not/match')
                     end
                     assert_equal "cannot find 'does/not/match' in the current autoproj installation",
                         e.message
                 end
                 describe "exact package resolution" do
                     it "returns a exactly resolved packages" do
-                        flexmock(cli).should_receive(:find_packages).
+                        cli.should_receive(:find_packages).
                             with(selection = flexmock).
-                            and_return([flexmock(srcdir: 'usr/local/dir')])
-                        flexmock(cli).should_receive(:find_packages_with_directory_shortnames).never
-                        assert_equal 'usr/local/dir', cli.location_of(selection)
-                    end
-                    it "returns the package's build directory if build is set" do
-                        flexmock(cli).should_receive(:find_packages).
-                            with(selection = flexmock).
-                            and_return([flexmock(builddir: 'usr/local/dir')])
-                        assert_equal 'usr/local/dir', cli.location_of(selection, build: true)
-                    end
-                    it "raises ArgumentError if build: true and the package does not have a build dir" do
-                        flexmock(cli).should_receive(:find_packages).
-                            with(selection = flexmock).
-                            and_return([flexmock(name: 'pkg', builddir: nil)])
-                        e = assert_raises(ArgumentError) do
-                            cli.location_of(selection, build: true)
-                        end
-                        assert_equal "pkg does not have a build directory", e.message
+                            and_return([pkg = flexmock(srcdir: 'usr/local/dir')])
+                        cli.should_receive(:find_packages_with_directory_shortnames).never
+                        assert_equal pkg, cli.resolve_package(selection)
                     end
                     it "raises AmbiguousSelection if find_packages returns more than one match" do
-                        flexmock(cli).should_receive(:find_packages).
+                        cli.should_receive(:find_packages).
                             with(selection = flexmock).
                             and_return([flexmock(name: 'pkg0', srcdir: ''), flexmock(name: 'pkg1', srcdir: '')])
                         e = assert_raises(Locate::AmbiguousSelection) do
-                            cli.location_of(selection)
+                            cli.resolve_package(selection)
                         end
                         assert_equal "multiple packages match '#{selection}' in the current autoproj installation: pkg0, pkg1", e.message
                     end
                     it "disambiguates the result by filtering on the source presence" do
-                        flexmock(cli).should_receive(:find_packages).
+                        cli.should_receive(:find_packages).
                             with(selection = flexmock).
                             and_return([
-                                flexmock(name: 'pkg0', srcdir: '/pkg0'),
+                                pkg = flexmock(name: 'pkg0', srcdir: '/pkg0'),
                                 flexmock(name: 'pkg1', srcdir: '/pkg1')
                             ])
                         flexmock(File).should_receive(:directory?).and_return { |d| d == '/pkg0' }
-                        assert_equal '/pkg0', cli.location_of(selection)
+                        assert_equal pkg, cli.resolve_package(selection)
                     end
-                end
 
-                describe "package resolution by category prefix" do
-                    before do
-                        flexmock(cli).should_receive(:find_packages).and_return([])
-                    end
-                    it "attempts to resolve by category prefix if the exact match returns nothing" do
-                        flexmock(cli).should_receive(:find_packages_with_directory_shortnames).
-                            with(selection = flexmock).
-                            once.and_return([flexmock(srcdir: 'usr/local/dir')])
-                        assert_equal 'usr/local/dir', cli.location_of(selection)
-                    end
-                    it "returns the package's build directory if build is set" do
-                        flexmock(cli).should_receive(:find_packages_with_directory_shortnames).
-                            with(selection = flexmock).
-                            once.and_return([flexmock(builddir: 'usr/local/dir')])
-                        assert_equal 'usr/local/dir', cli.location_of(selection, build: true)
-                    end
-                    it "raises AmbiguousSelection if it returns more than one match" do
-                        flexmock(cli).should_receive(:find_packages_with_directory_shortnames).
-                            with(selection = flexmock).
-                            and_return([flexmock(name: 'pkg0', srcdir: ''), flexmock(name: 'pkg1', srcdir: '')])
-                        e = assert_raises(Locate::AmbiguousSelection) do
-                            cli.location_of(selection)
+                    describe "package resolution by category prefix" do
+                        before do
+                            cli.should_receive(:find_packages).and_return([])
                         end
-                        assert_equal "multiple packages match '#{selection}' in the current autoproj installation: pkg0, pkg1", e.message
-                    end
-                    it "disambiguates the result by filtering on the source presence" do
-                        flexmock(cli).should_receive(:find_packages_with_directory_shortnames).
-                            with(selection = flexmock).
-                            and_return([
-                                flexmock(name: 'pkg0', srcdir: '/pkg0'),
-                                flexmock(name: 'pkg1', srcdir: '/pkg1')
-                            ])
-                        flexmock(File).should_receive(:directory?).and_return { |d| d == '/pkg0' }
-                        assert_equal '/pkg0', cli.location_of(selection)
+                        it "attempts to resolve by category prefix if the exact match returns nothing" do
+                            cli.should_receive(:find_packages_with_directory_shortnames).
+                                with(selection = flexmock).
+                                once.and_return([pkg = flexmock(srcdir: 'usr/local/dir')])
+                            assert_equal pkg, cli.resolve_package(selection)
+                        end
+                        it "raises AmbiguousSelection if it returns more than one match" do
+                            cli.should_receive(:find_packages_with_directory_shortnames).
+                                with(selection = flexmock).
+                                and_return([flexmock(name: 'pkg0', srcdir: ''), flexmock(name: 'pkg1', srcdir: '')])
+                            e = assert_raises(Locate::AmbiguousSelection) do
+                                cli.resolve_package(selection)
+                            end
+                            assert_equal "multiple packages match '#{selection}' in the current autoproj installation: pkg0, pkg1", e.message
+                        end
+                        it "disambiguates the result by filtering on the source presence" do
+                            cli.should_receive(:find_packages_with_directory_shortnames).
+                                with(selection = flexmock).
+                                and_return([
+                                    pkg = flexmock(name: 'pkg0', srcdir: '/pkg0'),
+                                    flexmock(name: 'pkg1', srcdir: '/pkg1')
+                                ])
+                            flexmock(File).should_receive(:directory?).and_return { |d| d == '/pkg0' }
+                            assert_equal pkg, cli.resolve_package(selection)
+                        end
                     end
                 end
             end
