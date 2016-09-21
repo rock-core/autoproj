@@ -46,7 +46,7 @@ module Autoproj
                         FileUtils.cp seed_config, File.join(ws.config_dir, 'config.yml')
                     end
 
-                    STDERR.puts <<-EOTEXT
+                    STDOUT.puts <<-EOTEXT
 
 
 #{Autoproj.color('autoproj bootstrap successfully finished', :green, :bold)}
