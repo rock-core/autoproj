@@ -950,10 +950,12 @@ fi
         end
 
         def self.autodetect_ruby
-            self.alias(ruby_version_keyword, "ruby")
+            if !aliases.has_key?("ruby")
+                self.alias(ruby_version_keyword, "ruby")
+            end
         end
-	self.suffixes << ruby_version_keyword
         autodetect_ruby
+        self.suffixes << aliases["ruby"]
 
         AUTOPROJ_OSDEPS = File.join(File.expand_path(File.dirname(__FILE__)), 'default.osdeps')
         def self.load_default
