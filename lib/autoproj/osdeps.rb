@@ -32,6 +32,10 @@ module Autoproj
                 @silent = true
             end
 
+            def parse_package_entry(entry)
+                entry
+            end
+
             # The primary name for this package manager
             def name
                 names.first
@@ -1441,11 +1445,15 @@ fi
             end
 
             result.map do |handler, status, entries|
-                if handler.respond_to?(:parse_package_entry)
-                    [handler, status, entries.map { |s| handler.parse_package_entry(s) }]
-                else
-                    [handler, status, entries]
+                entries = entries.map do |e|
+                    if e.respond_to?(:to_str)
+                        handler.parse_package_entry(e)
+                    else
+                        e
+                    end
                 end
+
+                [handler, status, entries]
             end
         end
 
