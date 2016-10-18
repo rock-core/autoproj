@@ -4,20 +4,7 @@ require 'json'
 module Autoproj
     # Manager for packages provided by external package managers
     class OSPackageResolver
-	class << self
-	    # When requested to load a file called '$FILE', the osdeps code will
-	    # also look for files called '$FILE-suffix', where 'suffix' is an
-	    # element in +suffixes+
-	    #
-	    # A usage of this functionality is to make loading conditional to
-	    # the available version of certain tools, namely Ruby. Autoproj for
-	    # instance adds ruby18 when started on Ruby 1.8 and ruby19 when
-	    # started on Ruby 1.9
-	    attr_reader :suffixes
-	end
-	@suffixes = []
-
-        def self.load(file, **options)
+        def self.load(file, suffixes: [], **options)
 	    if !File.file?(file)
 		raise ArgumentError, "no such file or directory #{file}"
 	    end
@@ -45,21 +32,8 @@ module Autoproj
 	    result
         end
 
-        class << self
-            attr_reader :aliases
-        end
-        @aliases = Hash.new
-
         # The underlying workspace
         attr_reader :ws
-
-        def self.alias(old_name, new_name)
-            @aliases[new_name] = old_name
-        end
-
-	def self.ruby_version_keyword
-            "ruby#{RUBY_VERSION.split('.')[0, 2].join("")}"
-        end
 
         def self.autodetect_ruby_program
             ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
@@ -68,12 +42,6 @@ module Autoproj
             Autobuild.programs['ruby'] = ruby_executable
             ruby_executable
         end
-
-        def self.autodetect_ruby
-            self.alias(ruby_version_keyword, "ruby")
-        end
-	self.suffixes << ruby_version_keyword
-        autodetect_ruby
 
         AUTOPROJ_OSDEPS = File.join(File.expand_path(File.dirname(__FILE__)), 'default.osdeps')
         def self.load_default
@@ -157,6 +125,9 @@ module Autoproj
         # @return [Array<String>]
         attr_reader :package_managers
 
+        # Aliases for osdep packages
+        attr_reader :aliases
+
         # The Gem::SpecFetcher object that should be used to query RubyGems, and
         # install RubyGems packages
         def initialize(defs = Hash.new, file = nil,
@@ -170,6 +141,7 @@ module Autoproj
             self.os_package_manager = os_package_manager
 
             @prefer_indep_over_os_packages = false
+            @aliases = Hash.new
 
             @sources     = Hash.new
             @installed_packages = Set.new
@@ -186,6 +158,14 @@ module Autoproj
                     all_definitions[package_name] << [[], defs[package_name]]
                 end
             end
+        end
+
+        # Register new aliases
+        #
+        # @param [String=>String] new_aliases mapping of the alias to the exact
+        #   name
+        def add_aliases(new_aliases)
+            aliases.merge!(new_aliases)
         end
 
         # Returns the name of all known OS packages
@@ -469,7 +449,7 @@ module Autoproj
         #
         # returns an array contain the path starting with name and
         # ending at the resolved name
-        def self.resolve_name(name)
+        def resolve_name(name)
             path = [ name ]
             while aliases.has_key?(name)
                 name = aliases[name]
@@ -500,7 +480,7 @@ module Autoproj
                 return resolve_package_cache[name]
             end
 
-            path = self.class.resolve_name(name)
+            path = resolve_name(name)
             name = path.last
 
             dep_def = definitions[name]
@@ -719,7 +699,7 @@ module Autoproj
             dependencies.each do |name|
                 result = resolve_package(name)
                 if !result
-                    path = self.class.resolve_name(name)
+                    path = resolve_name(name)
                     raise MissingOSDep.new, "there is no osdeps definition for #{path.last} (search tree: #{path.join("->")})"
                 end
 

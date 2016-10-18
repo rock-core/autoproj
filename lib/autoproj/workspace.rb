@@ -18,10 +18,35 @@ module Autoproj
         attr_reader :os_package_resolver
         attr_reader :os_package_installer
 
+        # The keyword used to represent the current ruby version.
+        #
+        # It is e.g. ruby21 for ruby 2.1.
+        #
+        # It is initialized to the local ruby version in {#initialize}. If one
+        # intends to override it, one must do it before {#setup} gets called
+        #
+        # This is aliased to 'ruby' in the osdep system, so one that depends on
+        # ruby should only refer to 'ruby' unless a specific version is
+        # requested.
+        #
+        # It is also used as an osdep suffix when loading osdep files (i.e. the
+        # osdep system will attempt to load `.osdep-ruby21` files on ruby 2.1 in
+        # addition to the plain .osdep files.
+        #
+        # @return [String]
+        attr_accessor :ruby_version_keyword
+
+        # Suffixes that should be considered when loading osdep files
+        #
+        # {#ruby_version_keyword} is automatically added there in {#setup}
+        attr_reader :osdep_suffixes
+
         def initialize(root_dir,
                        os_package_resolver: OSPackageResolver.new,
                        package_managers: OSPackageInstaller::PACKAGE_MANAGERS)
             @root_dir = root_dir
+            @ruby_version_keyword = "ruby#{RUBY_VERSION.split('.')[0, 2].join("")}"
+            @osdep_suffixes = Array.new
 
             @loader = loader
             @env = Environment.new
@@ -236,7 +261,13 @@ module Autoproj
             os_package_installer.osdeps_mode
         end
 
+        def setup_ruby_version_handling
+            os_package_resolver.add_aliases('ruby' => ruby_version_keyword)
+            osdep_suffixes << ruby_version_keyword
+        end
+
         def setup
+            setup_ruby_version_handling
             migrate_bundler_and_autoproj_gem_layout
             load_config
             rewrite_shims

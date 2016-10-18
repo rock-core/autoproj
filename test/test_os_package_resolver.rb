@@ -62,8 +62,8 @@ module Autoproj
                         'default' => 'pkgdef'
                      }
             }
-            OSPackageResolver.alias('pkg', 'bla')
             osdeps = create_osdep(data)
+            osdeps.add_aliases 'bla' => 'pkg'
             expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkg1.0']]]
             assert_equal expected, osdeps.resolve_package('bla')
         end

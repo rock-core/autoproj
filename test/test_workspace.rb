@@ -40,9 +40,10 @@ module Autoproj
                 workspace.load_config
             end
 
-            def add_in_osdeps(entry)
-                test_osdeps = File.join(test_autoproj_dir, 'test.osdeps')
-                current = YAML.load(File.read(test_osdeps))
+            def add_in_osdeps(entry, suffix: '')
+                test_osdeps = File.join(test_autoproj_dir, "test.osdeps#{suffix}")
+                FileUtils.touch test_osdeps
+                current = YAML.load(File.read(test_osdeps)) || Hash.new
                 File.open(test_osdeps, 'w') do |io|
                     YAML.dump(current.merge!(entry), io)
                 end
@@ -93,6 +94,33 @@ module Autoproj
                 add_in_packages 'Autoproj.add_osdeps_overrides "test", package: "mapping_test"'
                 workspace.load_package_sets
                 refute workspace.manifest.excluded?('test')
+            end
+            it "injects Workspace#osdep_suffixes when loading osdep files" do
+                add_in_osdeps Hash['test' => 'gem'], suffix: '-test'
+                workspace.osdep_suffixes << 'test'
+                workspace.load_package_sets
+                assert workspace.os_package_resolver.has?('test')
+            end
+        end
+
+        describe "#setup" do
+            attr_reader :ws
+            before do
+                @ws = ws_create
+                flexmock(ws)
+            end
+            it "injects the ruby version keyword into Workspace#osdep_suffixes" do
+                ws.ruby_version_keyword = mock = flexmock
+                ws.setup
+                assert_equal [mock], ws.osdep_suffixes
+            end
+
+            it "loads .autoprojrc and init.rb after having injected the ruby version keyword" do
+                # This is to allow fine-tuning in the two configuration files
+                ws.should_receive(:setup_ruby_version_handling).once.globally.ordered
+                ws.should_receive(:load_autoprojrc).once.globally.ordered
+                ws.should_receive(:load_main_initrb).once.globally.ordered
+                ws.setup
             end
         end
 
