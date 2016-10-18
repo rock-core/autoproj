@@ -127,12 +127,6 @@ module Autoproj
                 return
             end
 
-            # YUK. I am stopping there in the refactoring
-            # TODO: figure out a better way
-            if !@remote_update_message_displayed
-                Autoproj.message("autoproj: updating remote definitions of package sets", :bold)
-                @remote_update_message_displayed = true
-            end
             ws.install_os_packages([vcs.type], all: nil)
             update_configuration_repository(
                 vcs, name, raw_local_dir,
@@ -473,7 +467,6 @@ module Autoproj
             load_osdeps_from_package_sets
 
             # Load the required autobuild definitions
-            Autoproj.message("autoproj: loading ...", :bold)
             manifest.each_package_set do |pkg_set|
                 pkg_set.each_autobuild_file do |path|
                     ws.import_autobuild_file pkg_set, path
@@ -607,12 +600,6 @@ module Autoproj
             package_sets.each do |pkg_set|
                 ws.manifest.register_package_set(pkg_set)
             end
-            # YUK. I am stopping there in the refactoring
-            # TODO: figure out a better way
-            if @remote_update_message_displayed
-                Autoproj.message
-            end
-
             failures
         end
     end

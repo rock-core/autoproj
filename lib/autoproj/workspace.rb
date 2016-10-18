@@ -318,6 +318,7 @@ module Autoproj
                     self, 'autoproj', gemfile: gemfile)
             end
             begin
+                Autoproj.message "  updating autoproj"
                 PackageManagers::BundlerManager.run_bundler_install(
                     self, gemfile, binstubs: binstubs)
             ensure
@@ -431,11 +432,6 @@ module Autoproj
                 return
             end
 
-            if !reconfigure
-                Autoproj.message("run 'autoproj reconfigure' to change configuration options", :bold)
-                Autoproj.message("and use 'autoproj switch-config' to change the remote source for", :bold)
-                Autoproj.message("autoproj's main build configuration", :bold)
-            end
             Ops::Configuration.new(self).
                 load_package_sets(only_local: only_local,
                                   checkout_only: checkout_only,

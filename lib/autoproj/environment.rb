@@ -32,8 +32,6 @@ module Autoproj
 
             shell_dir = File.expand_path(File.join("..", "..", "shell"), File.dirname(__FILE__))
             if options[:shell_helpers]
-                Autoproj.message "sourcing autoproj shell helpers"
-                Autoproj.message "add \"Autoproj.config.shell_helpers = false\" in autoproj/init.rb to disable"
                 source_after(File.join(shell_dir, "autoproj_sh"))
             end
 
