@@ -263,7 +263,7 @@ module Autoproj
                     end
                 else
                     pkg = resolve_package(selection)
-                    Dir.enum_for(:glob, File.join(pkg.prefix, "log", "#{pkg.name}-#{log || '*'}.log")).to_a
+                    Dir.enum_for(:glob, File.join(pkg.logdir, "#{pkg.name}-#{log || '*'}.log")).to_a
                 end
             end
 

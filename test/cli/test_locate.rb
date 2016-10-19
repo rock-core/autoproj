@@ -466,26 +466,38 @@ module Autoproj
             end
 
             describe "#select_log_file" do
+                attr_reader :base_dir
+                before do
+                    @base_dir = make_tmpdir
+                    FileUtils.touch File.join(base_dir, 'package-install.log')
+                    FileUtils.touch File.join(base_dir, 'package-build.log')
+                    FileUtils.touch File.join(base_dir, 'package.log')
+                end
+
+                def selection_choice(name, path)
+                    return "(#{File.stat(path).mtime}) #{name}", path
+                end
+
                 it "attempts to select a log file and return it" do
-                    choices = Hash['install' => '/path/to/package-install.log',
-                                   'build' => '/path/to/package-build.log']
+                    choices = Hash[*selection_choice('install', "#{base_dir}/package-install.log"),
+                                   *selection_choice('build', "#{base_dir}/package-build.log")]
                     flexmock(TTY::Prompt).new_instances.
-                        should_receive(:select).with(choices).
+                        should_receive(:select).with('Select the log file', choices).
                         and_return('result')
                     assert_equal 'result', cli.select_log_file(
-                        ['/path/to/package-install.log',
-                         '/path/to/package-build.log'])
+                        ["#{base_dir}/package-install.log",
+                         "#{base_dir}/package-build.log"])
                 end
 
                 it "prompts with the full path if it does not match the expected pattern" do
-                    choices = Hash['/path/to/package.log' => '/path/to/package.log',
-                                   'build' => '/path/to/package-build.log']
+                    choices = Hash[*selection_choice("#{base_dir}/package.log", "#{base_dir}/package.log"),
+                                   *selection_choice('build', "#{base_dir}/package-build.log")]
                     flexmock(TTY::Prompt).new_instances.
-                        should_receive(:select).with(choices).
+                        should_receive(:select).with('Select the log file', choices).
                         and_return('result')
                     assert_equal 'result', cli.select_log_file(
-                        ['/path/to/package.log',
-                         '/path/to/package-build.log'])
+                        ["#{base_dir}/package.log",
+                         "#{base_dir}/package-build.log"])
                 end
             end
 
