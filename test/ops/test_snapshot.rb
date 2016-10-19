@@ -4,8 +4,8 @@ module Autoproj
     module Ops
         describe Snapshot do
             before do
-                @ws = create_bootstrap
-                ws.load_manifest
+                @ws = ws_create
+                ws.setup
                 ws.manifest.vcs =
                     VCSDefinition.from_raw('type' => 'local', 'url' => ws.config_dir)
             end
