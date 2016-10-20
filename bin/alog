@@ -1,0 +1,25 @@
+#! /usr/bin/env ruby
+
+require 'autoproj/cli/main'
+require 'autoproj/cli/locate'
+
+Autoproj::CLI.basic_setup
+Autoproj.report(silent: true) do
+    cli = Autoproj::CLI::Locate.new
+
+    arg = ARGV.first || Dir.pwd
+    if File.directory?(arg)
+        arg = "#{File.expand_path(arg)}/"
+    end
+    log_files = cli.logs_of(arg, log: nil)
+
+    if log_files.size == 1
+        logfile = log_files.first
+    elsif log_files.size > 1
+        logfile = cli.select_log_file(log_files)
+    elsif log_files.empty?
+        raise "no logs found for #{string}"
+    end
+
+    puts File.read(logfile)
+end

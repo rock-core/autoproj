@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
 
     s.required_ruby_version = ">= 2.0.0"
     s.bindir = 'bin'
-    s.executables = ['autoproj', 'aup', 'amake', 'alocate']
+    s.executables = ['autoproj', 'aup', 'amake', 'alocate', 'alog']
     s.require_paths = ["lib"]
     s.extensions = []
     s.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
