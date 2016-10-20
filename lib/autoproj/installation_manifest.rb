@@ -1,7 +1,7 @@
 module Autoproj
     # Manifest of installed packages imported from another autoproj installation
     class InstallationManifest
-        Package = Struct.new :name, :srcdir, :prefix, :builddir, :dependencies
+        Package = Struct.new :name, :srcdir, :prefix, :builddir, :logdir, :dependencies
         PackageSet = Struct.new :name, :raw_local_dir, :user_local_dir
 
         attr_reader :path
@@ -52,7 +52,7 @@ module Autoproj
                     else
                         pkg = Package.new(
                             entry['name'], entry['srcdir'], entry['prefix'],
-                            entry['builddir'], entry['dependencies'])
+                            entry['builddir'], entry['logdir'], entry['dependencies'])
                         packages[pkg.name] = pkg
                     end
                 end
@@ -72,6 +72,7 @@ module Autoproj
                     Hash['name' => v.name,
                          'srcdir' => v.srcdir,
                          'builddir' => (v.builddir if v.respond_to?(:builddir)),
+                         'logdir' => v.logdir,
                          'prefix' => v.prefix,
                          'dependencies' => v.dependencies]
                 end
