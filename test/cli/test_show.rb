@@ -221,6 +221,17 @@ module Autoproj
                     ws_define_osdep_entries 'test' => 'gem'
                     assert_displays 'test', false, "  is present, but won't be used by autoproj for 'test'"
                 end
+
+                it "displays the osdeps' raw entries" do
+                    ws_define_osdep_entries Hash['test' => 'gem'], file: 'first'
+                    ws_define_osdep_entries Hash['test' => Hash['test_os_family' => 'apt_test']], file: 'second'
+                    assert_displays 'test', true,
+                        "  2 matching entries:",
+                        "    in first:",
+                        "        gem",
+                        "    in second:",
+                        "        test_os_family: apt_test"
+                end
             end
         end
     end

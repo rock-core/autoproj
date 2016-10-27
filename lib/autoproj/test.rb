@@ -315,8 +315,8 @@ gem 'autobuild', path: '#{autobuild_dir}'
             meta
         end
 
-        def ws_define_osdep_entries(entries)
-            ws_os_package_resolver.add_entries(entries)
+        def ws_define_osdep_entries(entries, file: nil)
+            ws_os_package_resolver.add_entries(entries, file: file)
         end
 
         def ws_add_osdep_entries_to_layout(entries)

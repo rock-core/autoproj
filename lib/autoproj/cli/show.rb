@@ -181,6 +181,17 @@ module Autoproj
                     puts "  is present, but won't be used by autoproj for '#{pkg_name}'"
                 end
 
+                entries = ws.os_package_resolver.all_definitions[pkg_name]
+                puts "  #{entries.inject(0) { |c, (files, _)| c + files.size }} matching entries:"
+                entries.each do |files, entry|
+                    puts "    in #{files.join(", ")}:"
+                    lines = YAML.dump(entry).split("\n")
+                    lines[0] = lines[0].gsub(/---\s*/, '')
+                    if lines[0].empty?
+                        lines.shift
+                    end
+                    puts "        " + lines.join("\n      ")
+                end
                 display_common_information(pkg_name, default_packages, revdeps)
             end
 
