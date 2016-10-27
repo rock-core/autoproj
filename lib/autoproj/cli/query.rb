@@ -45,7 +45,9 @@ module Autoproj
                 autobuild_package = package.autobuild
                 fields = Hash.new
                 fields['SRCDIR']   = autobuild_package.srcdir
-                fields['BUILDDIR'] = autobuild_package.builddir
+                fields['BUILDDIR'] = if autobuild_package.respond_to?(:builddir)
+                                         autobuild_package.builddir
+                                     end
                 fields['PREFIX']   = autobuild_package.prefix
                 fields['NAME']     = package.name
                 fields['PRIORITY'] = priority
