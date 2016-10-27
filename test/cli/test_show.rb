@@ -73,7 +73,28 @@ module Autoproj
                     it "displays the package information" do
                         ws_define_osdep_entries('base/cmake' => 'gem')
                         flexmock(cli).should_receive(:display_osdep_package).
-                            with('base/cmake', PackageSelection, Hash).once
+                            with('base/cmake', PackageSelection, Hash, true).once
+                        cli.run(['base/cmake'])
+                    end
+                    it "displays both the source and the osdep if there is a souce override" do
+                        Autoproj.silent = true
+                        ws_add_package_to_layout :cmake, 'base/cmake'
+                        ws.manifest.add_osdeps_overrides 'base/cmake', force: true
+                        ws_define_osdep_entries('base/cmake' => 'gem')
+                        flexmock(cli).should_receive(:display_source_package).
+                            with('base/cmake', PackageSelection, Hash, env: false).once
+                        flexmock(cli).should_receive(:display_osdep_package).
+                            with('base/cmake', PackageSelection, Hash, false).once
+                        cli.run(['base/cmake'])
+                    end
+                    it "displays both the source and the osdep if the osdep is marked as nonexistent and there is a source package" do
+                        Autoproj.silent = true
+                        ws_add_package_to_layout :cmake, 'base/cmake'
+                        ws_define_osdep_entries('base/cmake' => 'nonexistent')
+                        flexmock(cli).should_receive(:display_source_package).
+                            with('base/cmake', PackageSelection, Hash, env: false).once
+                        flexmock(cli).should_receive(:display_osdep_package).
+                            with('base/cmake', PackageSelection, Hash, false).once
                         cli.run(['base/cmake'])
                     end
                     it "passes the set of default packages to the display method" do
@@ -82,7 +103,7 @@ module Autoproj
                         flexmock(cli).should_receive(:display_osdep_package).
                             with('base/cmake',
                                  ->(sel) { sel.each_source_package_name.find('base/types') },
-                                 Hash).once
+                                 Hash, true).once
                         cli.run(['base/cmake'])
                     end
                     it "passes the reverse dependencies to the display method" do
@@ -90,7 +111,7 @@ module Autoproj
                         flexmock(ws.manifest).should_receive(:compute_revdeps).
                             once.and_return(revdeps = flexmock)
                         flexmock(cli).should_receive(:display_osdep_package).
-                            with('base/cmake', any, revdeps).once
+                            with('base/cmake', any, revdeps, true).once
                         cli.run(['base/cmake'])
                     end
                 end
@@ -159,6 +180,46 @@ module Autoproj
                     ws_define_package :cmake, 'aaa', package_set: pkg_set
                     assert_displays 'rock.core', '  refers to 2 packages', '    aaa,', '    bbb',
                         package_per_line: 1
+                end
+            end
+
+            describe "#display_osdep_package" do
+                attr_reader :pkg_set
+                before do
+                    Autobuild.color = false
+                end
+                after do
+                    Autobuild.color = nil
+                end
+
+                def assert_displays(name, selected, *messages)
+                    flexmock(cli).should_receive(:display_common_information).
+                        with(name, default_packages = flexmock, revdeps = flexmock).
+                        once
+
+                    out, _ = capture_subprocess_io do
+                        cli.display_osdep_package(name, default_packages, revdeps, selected)
+                    end
+                    out = out.split("\n")
+                    messages.each do |msg|
+                        assert_equal 1, out.count(msg), "expected output to contain '#{msg}', output is:\n\n#{out.join("\n")}"
+                    end
+                    out
+                end
+
+                it "displays per-manager packages" do
+                    ws_define_osdep_entries 'test' => 'gem'
+                    assert_displays 'test', true, "  os: gem"
+                end
+
+                it "handles a non-resolvable package" do
+                    ws_define_osdep_entries 'test' => 'nonexistent'
+                    assert_displays 'test', false, "  there is an osdep definition for test, and it explicitely states that this package does not exist on your OS"
+                end
+
+                it "indicates if the osdep would not be used by autoproj" do
+                    ws_define_osdep_entries 'test' => 'gem'
+                    assert_displays 'test', false, "  is present, but won't be used by autoproj for 'test'"
                 end
             end
         end

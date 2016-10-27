@@ -20,17 +20,24 @@ module Autoproj
                     source_packages, osdep_packages = Array.new, Array.new
                 end
 
-                if package_set_names.empty? && source_packages.empty? && osdep_packages.empty?
+                all_matching_osdeps = osdep_packages.map { |pkg| [pkg, true] }
+                user_selection.each do |sel|
+                    if !osdep_packages.include?(sel) && ws.os_package_resolver.all_definitions.has_key?(sel)
+                        all_matching_osdeps << [sel, false]
+                    end
+                end
+
+                if package_set_names.empty? && source_packages.empty? && all_matching_osdeps.empty?
                     Autoproj.error "no package set, packages or OS packages match #{user_selection.join(" ")}"
                     return
-                elsif !source_packages.empty? || !osdep_packages.empty?
+                elsif !source_packages.empty? || !all_matching_osdeps.empty?
                     load_all_available_package_manifests
                     revdeps = ws.manifest.compute_revdeps
                 end
 
                 package_set_names = package_set_names.sort
                 source_packages   = source_packages.sort
-                osdep_packages    = osdep_packages.sort
+                all_matching_osdeps = all_matching_osdeps.sort_by { |name, _| name }
 
                 if short
                     package_set_names.each do |name|
@@ -39,8 +46,8 @@ module Autoproj
                     source_packages.each do |name|
                         puts "pkg     #{name}"
                     end
-                    osdep_packages.each do |name|
-                        puts "osdep   #{name}"
+                    all_matching_osdeps.each do |name, sel|
+                        puts "osdep   #{name} (#{sel ? "not selected" : "selected"})"
                     end
                 else
                     package_set_names.each do |pkg_set_name|
@@ -49,8 +56,8 @@ module Autoproj
                     source_packages.each do |pkg_name|
                         display_source_package(pkg_name, default_packages, revdeps, env: env)
                     end
-                    osdep_packages.each do |pkg_name|
-                        display_osdep_package(pkg_name, default_packages, revdeps)
+                    all_matching_osdeps.each do |pkg_name, selected|
+                        display_osdep_package(pkg_name, default_packages, revdeps, selected)
                     end
                 end
             end
@@ -160,10 +167,18 @@ module Autoproj
                 end
             end
 
-            def display_osdep_package(pkg_name, default_packages, revdeps)
+            def display_osdep_package(pkg_name, default_packages, revdeps, selected)
                 puts Autoproj.color("the osdep '#{pkg_name}'", :bold)
-                ws.os_package_resolver.resolve_os_packages([pkg_name]).each do |manager_name, packages|
-                    puts "  #{manager_name}: #{packages.map { |*subnames| subnames.join(" ") }.join(", ")}"
+                begin
+                    ws.os_package_resolver.resolve_os_packages([pkg_name]).each do |manager_name, packages|
+                        puts "  #{manager_name}: #{packages.map { |*subnames| subnames.join(" ") }.join(", ")}"
+                    end
+                rescue MissingOSDep => e
+                    puts "  #{e.message}"
+                end
+
+                if !selected
+                    puts "  is present, but won't be used by autoproj for '#{pkg_name}'"
                 end
 
                 display_common_information(pkg_name, default_packages, revdeps)
