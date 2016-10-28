@@ -43,199 +43,231 @@ module Autoproj
             flexmock(osdeps)
         end
 
-        def test_resolve_package_calls_specific_formatting
-            data = { 'test' => {
-                        'v1.0' => 'pkg1.0 blabla',
-                        'v1.1' => 'pkg1.1 bloblo',
-                        'default' => 'pkgdef'
-                     }
-            }
-            osdeps = create_osdep(data)
-            expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkg1.0 blabla']]]
-            assert_equal expected, osdeps.resolve_package('pkg')
-        end
-
-        def test_resolve_package_applies_aliases
-            data = { 'test' => {
-                        'v1.0' => 'pkg1.0',
-                        'v1.1' => 'pkg1.1',
-                        'default' => 'pkgdef'
-                     }
-            }
-            osdeps = create_osdep(data)
-            osdeps.add_aliases 'bla' => 'pkg'
-            expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkg1.0']]]
-            assert_equal expected, osdeps.resolve_package('bla')
-        end
-
-        def test_resolve_specific_os_name_and_version_single_package
-            data = { 'test' => {
-                        'v1.0' => 'pkg1.0',
-                        'v1.1' => 'pkg1.1',
-                        'default' => 'pkgdef'
-                     }
-            }
-            osdeps = create_osdep(data)
-
-            expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkg1.0']]]
-            assert_equal expected, osdeps.resolve_package('pkg')
-        end
-
-        def test_resolve_specific_os_name_and_version_package_list
-            data = { 'test' => {
-                        'v1.0' => ['pkg1.0', 'other_pkg'],
-                        'v1.1' => 'pkg1.1',
-                        'default' => 'pkgdef'
-                     }
-            }
-            osdeps = create_osdep(data)
-
-            expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkg1.0', 'other_pkg']]]
-            assert_equal expected, osdeps.resolve_package('pkg')
-        end
-
-        def test_resolve_specific_os_name_and_version_ignore
-            data = { 'test' => {
-                        'v1.0' => 'ignore',
-                        'v1.1' => 'pkg1.1',
-                        'default' => 'pkgdef'
-                     }
-            }
-            osdeps = create_osdep(data)
-
-            expected = [[osdeps.os_package_manager, FOUND_PACKAGES, []]]
-            assert_equal expected, osdeps.resolve_package('pkg')
-        end
-
-        def test_resolve_specific_os_name_and_version_fallback
-            data = { 'test' => 
-                     { 'v1.1' => 'pkg1.1',
-                       'default' => 'pkgdef'
-                     }
-                   }
-            osdeps = create_osdep(data)
-
-            expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkgdef']]]
-            assert_equal expected, osdeps.resolve_package('pkg')
-        end
-
-        def test_resolve_specific_os_name_and_version_nonexistent
-            data = { 'test' => {
-                        'v1.0' => 'nonexistent',
-                        'v1.1' => 'pkg1.1',
-                        'default' => 'pkgdef'
-                     }
-            }
-            osdeps = create_osdep(data)
-
-            expected = [[osdeps.os_package_manager, FOUND_NONEXISTENT, []]]
-            assert_equal expected, osdeps.resolve_package('pkg')
-        end
-
-        def test_resolve_specific_os_name_and_version_not_found
-            data = { 'test' => { 'v1.1' => 'pkg1.1', } }
-            osdeps = create_osdep(data)
-            assert_equal [], osdeps.resolve_package('pkg')
-        end
-
-        def test_resolve_specific_os_name_single_package
-            data = { 'test' => 'pkg1.0', 'other_test' => 'pkg1.1', 'default' => 'pkgdef' }
-            osdeps = create_osdep(data)
-
-            expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkg1.0']]]
-            assert_equal expected, osdeps.resolve_package('pkg')
-        end
-
-        def test_resolve_specific_os_name_package_list
-            data = { 'test' => ['pkg1.0', 'other_pkg'], 'other_test' => 'pkg1.1', 'default' => 'pkgdef' }
-            osdeps = create_osdep(data)
-
-            expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkg1.0', 'other_pkg']]]
-            assert_equal expected, osdeps.resolve_package('pkg')
-        end
-
-        def test_resolve_specific_os_name_ignore
-            data = { 'test' => 'ignore', 'other_test' => 'pkg1.1', 'default' => 'pkgdef' }
-            osdeps = create_osdep(data)
-
-            expected = [[osdeps.os_package_manager, FOUND_PACKAGES, []]]
-            assert_equal expected, osdeps.resolve_package('pkg')
-        end
-
-        def test_resolve_specific_os_name_fallback
-            data = { 'other_test' => 'pkg1.1', 'default' => 'pkgdef' }
-            osdeps = create_osdep(data)
-
-            expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkgdef']]]
-            assert_equal expected, osdeps.resolve_package('pkg')
-        end
-
-        def test_resolve_nonexistent
-            data = { 'test' => 'nonexistent', 'other_test' => 'pkg1.1' }
-            osdeps = create_osdep(data)
-
-            expected = [[osdeps.os_package_manager, FOUND_NONEXISTENT, []]]
-            assert_equal expected, osdeps.resolve_package('pkg')
-        end
-
-        def test_resolve_not_found
-            data = { 'other_test' => 'pkg1.1' }
-            osdeps = create_osdep(data)
-
-            assert_equal [], osdeps.resolve_package('pkg')
-        end
-
-        def test_resolve_os_name_global_and_specific_packages
-            data = [
-                'global_pkg1', 'global_pkg2',
-                { 'test' => 'pkg1.1',
-                  'other_test' => 'pkg1.1',
-                  'default' => 'nonexistent'
+        describe "#resolve_package" do
+            it "handles bad formatting produced by parsing invalid YAML with old YAML Ruby versions" do
+                data = { 'test' => {
+                            'v1.0' => 'pkg1.0 blabla',
+                            'v1.1' => 'pkg1.1 bloblo',
+                            'default' => 'pkgdef'
+                         }
                 }
-            ]
-            osdeps = create_osdep(data)
+                osdeps = create_osdep(data)
+                expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkg1.0 blabla']]]
+                assert_equal expected, osdeps.resolve_package('pkg')
+            end
 
-            expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['global_pkg1', 'global_pkg2', 'pkg1.1']]]
-            assert_equal expected, osdeps.resolve_package('pkg')
+            it "applies aliases" do
+                data = { 'test' => {
+                            'v1.0' => 'pkg1.0',
+                            'v1.1' => 'pkg1.1',
+                            'default' => 'pkgdef'
+                         }
+                }
+                osdeps = create_osdep(data)
+                osdeps.add_aliases 'bla' => 'pkg'
+                expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkg1.0']]]
+                assert_equal expected, osdeps.resolve_package('bla')
+            end
+
+            describe "recursive resolution" do
+                attr_reader :data, :osdeps
+                before do
+                    @data = { 'osdep' => 'pkg1.0' }
+                    @osdeps = create_osdep(data)
+                end
+
+                it "resolves the 'osdep' keyword by recursively resolving the package" do
+                    flexmock(osdeps).should_receive(:resolve_package).
+                        with('pkg').pass_thru
+                    flexmock(osdeps).should_receive(:resolve_package).
+                        with('pkg1.0').and_return([[osdeps.os_package_manager, FOUND_PACKAGES, ['pkg1.1']]])
+                    assert_equal [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkg1.1']]],
+                        osdeps.resolve_package('pkg')
+                end
+
+                it "raises if a recursive resolution does not match an existing package" do
+                    exception = assert_raises(OSPackageResolver::InvalidRecursiveStatement) do
+                        osdeps.resolve_package('pkg')
+                    end
+                    assert_equal "the 'pkg' osdep refers to another osdep, 'pkg1.0', which does not seem to exist: Autoproj::OSPackageResolver::InvalidRecursiveStatement",
+                        exception.message
+                end
+
+                it "replaces recursive resolution by a fake package manager if resolve_recursive: is false" do
+                    resolved = osdeps.resolve_package('pkg', resolve_recursive: false)
+                    assert_equal [[OSPackageResolver::OSDepRecursiveResolver, OSPackageResolver::FOUND_PACKAGES, ['pkg1.0']]], resolved
+                end
+            end
+
+            describe "handling of a specific OS name and version entry" do
+                attr_reader :data
+
+                before do
+                    @data = { 'test' => {
+                                'v1.0' => nil,
+                                'v1.1' => 'pkg1.1',
+                                'default' => 'pkgdef'
+                             }
+                    }
+                end
+
+                it "resolves a single package name" do
+                    data['test']['v1.0'] = 'pkg1.0'
+                    osdeps = create_osdep(data)
+
+                    expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkg1.0']]]
+                    assert_equal expected, osdeps.resolve_package('pkg')
+                end
+
+                it "resolves a list of packages" do
+                    data['test']['v1.0'] = ['pkg1.0', 'other_pkg']
+                    osdeps = create_osdep(data)
+
+                    expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkg1.0', 'other_pkg']]]
+                    assert_equal expected, osdeps.resolve_package('pkg')
+                end
+
+                it "resolves the ignore keyword" do
+                    data['test']['v1.0'] = 'ignore'
+                    osdeps = create_osdep(data)
+
+                    expected = [[osdeps.os_package_manager, FOUND_PACKAGES, []]]
+                    assert_equal expected, osdeps.resolve_package('pkg')
+                end
+
+                it "resolves the nonexistent keyword" do
+                    data['test']['v1.0'] = 'nonexistent'
+                    osdeps = create_osdep(data)
+
+                    expected = [[osdeps.os_package_manager, FOUND_NONEXISTENT, []]]
+                    assert_equal expected, osdeps.resolve_package('pkg')
+                end
+
+                it "falls back to the default entry under the OS name if the OS version does not match" do
+                    data['test'].delete('v1.0')
+                    osdeps = create_osdep(data)
+
+                    expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkgdef']]]
+                    assert_equal expected, osdeps.resolve_package('pkg')
+                end
+
+                it "returns an empty array if the OS matches but not the version" do
+                    data['test'].delete('v1.0')
+                    data['test'].delete('default')
+                    osdeps = create_osdep(data)
+                    assert_equal [], osdeps.resolve_package('pkg')
+                end
+            end
+
+            describe "handling of a specific OS name but no version" do
+                attr_reader :data
+
+                before do
+                    @data = { 'test' => nil, 'other_test' => 'pkg1.1', 'default' => 'pkgdef' }
+                end
+
+                it "resolves a single package name" do
+                    data['test'] = 'pkg1.0'
+                    osdeps = create_osdep(data)
+
+                    expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkg1.0']]]
+                    assert_equal expected, osdeps.resolve_package('pkg')
+                end
+
+                it "resolves a list of packages" do
+                    data['test'] = ['pkg1.0', 'other_pkg']
+                    osdeps = create_osdep(data)
+
+                    expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkg1.0', 'other_pkg']]]
+                    assert_equal expected, osdeps.resolve_package('pkg')
+                end
+
+                it "resolves the ignore keyword" do
+                    data['test'] = 'ignore'
+                    osdeps = create_osdep(data)
+
+                    expected = [[osdeps.os_package_manager, FOUND_PACKAGES, []]]
+                    assert_equal expected, osdeps.resolve_package('pkg')
+                end
+
+                it "resolves the nonexistent keyword" do
+                    data['test'] = 'nonexistent'
+                    osdeps = create_osdep(data)
+
+                    expected = [[osdeps.os_package_manager, FOUND_NONEXISTENT, []]]
+                    assert_equal expected, osdeps.resolve_package('pkg')
+                end
+
+                it "falls back to the default entry under the OS name if the OS version does not match" do
+                    data.delete('test')
+                    osdeps = create_osdep(data)
+
+                    expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['pkgdef']]]
+                    assert_equal expected, osdeps.resolve_package('pkg')
+                end
+
+                it "returns an empty array if the OS matches but not the version" do
+                    data.delete('test')
+                    data.delete('default')
+                    osdeps = create_osdep(data)
+                    assert_equal [], osdeps.resolve_package('pkg')
+                end
+            end
         end
 
-        def test_resolve_os_name_global_and_specific_does_not_exist
-            data = [
-                'global_pkg1', 'global_pkg2',
-                {
-                  'other_test' => 'pkg1.1',
+        describe "handling of global entries" do
+            it "adds the global entries to OS-specific ones" do
+                data = [
+                    'global_pkg1', 'global_pkg2',
+                    { 'test' => 'pkg1.1',
+                      'other_test' => 'pkg1.1',
+                      'default' => 'nonexistent'
                 }
-            ]
-            osdeps = create_osdep(data)
+                ]
+                osdeps = create_osdep(data)
 
-            expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['global_pkg1', 'global_pkg2']]]
-            assert_equal expected, osdeps.resolve_package('pkg')
-        end
+                expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['global_pkg1', 'global_pkg2', 'pkg1.1']]]
+                assert_equal expected, osdeps.resolve_package('pkg')
+            end
 
-        def test_resolve_os_name_global_and_nonexistent
-            data = [
-                'global_pkg1', 'global_pkg2',
-                { 'test' => 'nonexistent',
-                  'other_test' => 'pkg1.1'
+            it "returns the global entries even if there are no OS-specific ones" do
+                data = [
+                    'global_pkg1', 'global_pkg2',
+                    {
+                      'other_test' => 'pkg1.1',
+                    }
+                ]
+                osdeps = create_osdep(data)
+
+                expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['global_pkg1', 'global_pkg2']]]
+                assert_equal expected, osdeps.resolve_package('pkg')
+            end
+
+            it "marks the package as nonexistent if an OS-specific version entry marks it explicitely so" do
+                data = [
+                    'global_pkg1', 'global_pkg2',
+                    { 'test' => 'nonexistent',
+                      'other_test' => 'pkg1.1'
+                    }
+                ]
+                osdeps = create_osdep(data)
+
+                expected = [[osdeps.os_package_manager, FOUND_NONEXISTENT, ['global_pkg1', 'global_pkg2']]]
+                assert_equal expected, osdeps.resolve_package('pkg')
+            end
+
+            it "returns the global packages even if an OS-specific entry marks it as ignore" do
+                data = [
+                    'global_pkg1', 'global_pkg2',
+                    { 'test' => 'ignore',
+                      'other_test' => 'pkg1.1'
                 }
-            ]
-            osdeps = create_osdep(data)
+                ]
+                osdeps = create_osdep(data)
 
-            expected = [[osdeps.os_package_manager, FOUND_NONEXISTENT, ['global_pkg1', 'global_pkg2']]]
-            assert_equal expected, osdeps.resolve_package('pkg')
-        end
-
-        def test_resolve_os_name_global_and_ignore
-            data = [
-                'global_pkg1', 'global_pkg2',
-                { 'test' => 'ignore',
-                  'other_test' => 'pkg1.1'
-                }
-            ]
-            osdeps = create_osdep(data)
-
-            expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['global_pkg1', 'global_pkg2']]]
-            assert_equal expected, osdeps.resolve_package('pkg')
+                expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ['global_pkg1', 'global_pkg2']]]
+                assert_equal expected, osdeps.resolve_package('pkg')
+            end
         end
 
         def test_resolve_os_version_global_and_specific_packages
@@ -508,31 +540,69 @@ module Autoproj
             assert !OSPackageResolver.os_from_lsb
         end
 
-        def test_merge_issues_a_warning_if_two_definitions_differ_by_the_operating_system_packages
-            osdeps0 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem0']], 'bla/bla')
-            osdeps1 = create_osdep(Hash['test' => ['osdep1'], 'gem' => ['gem0']], 'bla/blo')
-            flexmock(Autoproj).should_receive(:warn).once.
-                with(->(msg) { msg =~ /bla\/bla/ && msg =~ /bla\/blo/ })
-            osdeps0.merge(osdeps1)
-        end
-        def test_merge_issues_a_warning_if_two_definitions_differ_by_an_os_independent_package
-            osdeps0 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem0']], 'bla/bla')
-            osdeps1 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem1']], 'bla/blo')
-            flexmock(Autoproj).should_receive(:warn).once.
-                with(->(msg) { msg =~ /bla\/bla/ && msg =~ /bla\/blo/ })
-            osdeps0.merge(osdeps1)
-        end
-        def test_merge_does_not_issue_a_warning_if_two_definitions_are_identical_for_the_local_operating_system
-            osdeps0 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem0'], 'os1' => ['osdep0']], 'bla/bla')
-            osdeps1 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem0'], 'os1' => ['osdep1']], 'bla/blo')
-            flexmock(Autoproj).should_receive(:warn).never
-            osdeps0.merge(osdeps1)
-        end
-        def test_merge_updates_existing_entries
-            osdeps0 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem0']], 'bla/bla')
-            osdeps1 = create_osdep(Hash['test' => ['osdep1'], 'gem' => ['gem1']], 'bla/blo')
-            osdeps0.merge(osdeps1)
-            assert_equal [["apt-dpkg", 0, ["osdep1"]], ["gem", 0, ["gem1"]]], osdeps0.resolve_package('pkg')
+        describe "#merge" do
+            def capture_warn
+                messages = Array.new
+                FlexMock.use(Autoproj) do |mock|
+                    mock.should_receive(:warn).and_return do |message|
+                        messages << message
+                    end
+                    yield
+                end
+                messages
+            end
+
+            it "updates an existing entry" do
+                osdeps0 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem0']], 'bla/bla')
+                osdeps1 = create_osdep(Hash['test' => ['osdep1'], 'gem' => ['gem1']], 'bla/blo')
+                capture_warn { osdeps0.merge(osdeps1) }
+                assert_equal [["apt-dpkg", 0, ["osdep1"]], ["gem", 0, ["gem1"]]],
+                    osdeps0.resolve_package('pkg')
+            end
+
+            it "issues a warning if two definitions differ only by the operating system packages" do
+                osdeps0 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem0']], 'bla/bla')
+                osdeps1 = create_osdep(Hash['test' => ['osdep1'], 'gem' => ['gem0']], 'bla/blo')
+                messages = capture_warn { osdeps0.merge(osdeps1) }
+                assert_equal <<-EOD.chomp, messages.join("\n")
+osdeps definition for pkg, previously defined in bla/bla overridden by bla/blo:
+  resp. apt-dpkg: osdep0
+        gem: gem0
+  and   apt-dpkg: osdep1
+        gem: gem0
+                EOD
+            end
+
+            it "issues a warning if two definitions differ only by an os independent package" do
+                osdeps0 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem0']], 'bla/bla')
+                osdeps1 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem1']], 'bla/blo')
+                messages = capture_warn { osdeps0.merge(osdeps1) }
+                assert_equal <<-EOD.chomp, messages.join("\n")
+osdeps definition for pkg, previously defined in bla/bla overridden by bla/blo:
+  resp. apt-dpkg: osdep0
+        gem: gem0
+  and   apt-dpkg: osdep0
+        gem: gem1
+                EOD
+            end
+
+            it "does not issue a warning if two definitions differ only by an os independent package" do
+                osdeps0 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem0'], 'os1' => ['osdep0']], 'bla/bla')
+                osdeps1 = create_osdep(Hash['test' => ['osdep0'], 'gem' => ['gem0'], 'os1' => ['osdep1']], 'bla/blo')
+                messages = capture_warn { osdeps0.merge(osdeps1) }
+                assert messages.empty?
+            end
+
+            it "does not resolve entries recursively" do
+                osdeps0 = create_osdep(Hash['osdep' => ['osdep0']], 'bla/bla')
+                osdeps1 = create_osdep(Hash['osdep' => ['osdep1']], 'bla/blo')
+                messages = capture_warn { osdeps0.merge(osdeps1) }
+                assert_equal <<-EOD.chomp, messages.join("\n")
+osdeps definition for pkg, previously defined in bla/bla overridden by bla/blo:
+  resp. osdep: osdep0
+  and   osdep: osdep1
+                EOD
+            end
         end
 
         describe "prefer_indep_over_os_packages is set" do

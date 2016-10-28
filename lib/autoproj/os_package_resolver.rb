@@ -201,16 +201,26 @@ module Autoproj
 
                     # Warn if the new osdep definition resolves to a different
                     # set of packages than the old one
-                    old_resolved = resolve_package(h).inject(Hash.new) do |osdep_h, (handler, status, list)|
+                    old_resolved = resolve_package(h, resolve_recursive: false).inject(Hash.new) do |osdep_h, (handler, status, list)|
                         osdep_h[handler] = [status, list.dup]
                         osdep_h
                     end
-                    new_resolved = info.resolve_package(h).inject(Hash.new) do |osdep_h, (handler, status, list)|
+                    new_resolved = info.resolve_package(h, resolve_recursive: false).inject(Hash.new) do |osdep_h, (handler, status, list)|
                         osdep_h[handler] = [status, list.dup]
                         osdep_h
                     end
                     if old_resolved != new_resolved
-                        Autoproj.warn("osdeps definition for #{h}, previously defined in #{old} overridden by #{new}: resp. #{old_resolved} and #{new_resolved}")
+                        Autoproj.warn "osdeps definition for #{h}, previously defined in #{old} overridden by #{new}:"
+                        first = true
+                        old_resolved.each do |handler, (_, packages)|
+                            Autoproj.warn "  #{first ? 'resp. ' : '      '}#{handler}: #{packages.map(&:to_s).join(", ")}"
+                            first = false
+                        end
+                        first = true
+                        new_resolved.each do |handler, (_, packages)|
+                            Autoproj.warn "  #{first ? 'and   ' : '      '}#{handler}: #{packages.map(&:to_s).join(", ")}"
+                            first = false
+                        end
                     end
                 end
                 v2
@@ -458,6 +468,12 @@ module Autoproj
             path
         end
 
+        # Null object class that is used to mark recursive resolution when
+        # calling {#resolve_package} with resolve_recursive set to false
+        class OSDepRecursiveResolver
+            def self.to_s; 'osdep' end
+        end
+
         # Return the list of packages that should be installed for +name+
         #
         # The following two simple return values are possible:
@@ -475,7 +491,7 @@ module Autoproj
         # and FOUND_NONEXISTENT if the nonexistent keyword is used for this OS
         # name and version. The package list might be empty even if status ==
         # FOUND_PACKAGES, for instance if the ignore keyword is used.
-        def resolve_package(name)
+        def resolve_package(name, resolve_recursive: true)
             if resolve_package_cache.has_key?(name)
                 return resolve_package_cache[name]
             end
@@ -523,12 +539,16 @@ module Autoproj
             # Recursive resolutions
             found, pkg = partition_osdep_entry(name, dep_def, ['osdep'], [], os_names, os_versions)
             if found
-                pkg.each do |pkg_name|
-                    resolved = resolve_package(pkg_name)
-                    if !resolved
-                        raise InvalidRecursiveStatement, "osdep #{pkg_name} does not exist. It is referred to by #{name}."
+                if resolve_recursive
+                    pkg.each do |pkg_name|
+                        resolved = resolve_package(pkg_name)
+                        if !resolved
+                            raise InvalidRecursiveStatement, "the '#{name}' osdep refers to another osdep, '#{pkg_name}', which does not seem to exist"
+                        end
+                        result.concat(resolved)
                     end
-                    result.concat(resolved)
+                else
+                    result << [OSDepRecursiveResolver, found, pkg]
                 end
             end
 
@@ -536,7 +556,11 @@ module Autoproj
                 args.last.freeze
             end
             result.freeze
-            resolve_package_cache[name] = result
+            if resolve_recursive
+                resolve_package_cache[name] = result
+            else
+                result
+            end
         end
 
         # Value returned by #resolve_package and #partition_osdep_entry in
