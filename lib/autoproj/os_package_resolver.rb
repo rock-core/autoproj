@@ -193,35 +193,10 @@ module Autoproj
         # Merges the osdeps information of +info+ into +self+. If packages are
         # defined in both OSPackageResolver objects, the information in +info+
         # takes precedence
-        def merge(info)
+        def merge(info, suffixes: [])
             @definitions = definitions.merge(info.definitions) do |h, v1, v2|
                 if v1 != v2
-                    old = source_of(h)
-                    new = info.source_of(h)
-
-                    # Warn if the new osdep definition resolves to a different
-                    # set of packages than the old one
-                    old_resolved = resolve_package(h, resolve_recursive: false).inject(Hash.new) do |osdep_h, (handler, status, list)|
-                        osdep_h[handler] = [status, list.dup]
-                        osdep_h
-                    end
-                    new_resolved = info.resolve_package(h, resolve_recursive: false).inject(Hash.new) do |osdep_h, (handler, status, list)|
-                        osdep_h[handler] = [status, list.dup]
-                        osdep_h
-                    end
-                    if old_resolved != new_resolved
-                        Autoproj.warn "osdeps definition for #{h}, previously defined in #{old} overridden by #{new}:"
-                        first = true
-                        old_resolved.each do |handler, (_, packages)|
-                            Autoproj.warn "  #{first ? 'resp. ' : '      '}#{handler}: #{packages.map(&:to_s).join(", ")}"
-                            first = false
-                        end
-                        first = true
-                        new_resolved.each do |handler, (_, packages)|
-                            Autoproj.warn "  #{first ? 'and   ' : '      '}#{handler}: #{packages.map(&:to_s).join(", ")}"
-                            first = false
-                        end
-                    end
+                    warn_about_merge_collisions(info, suffixes, h, v1, v2)
                 end
                 v2
             end
@@ -237,6 +212,42 @@ module Autoproj
                     end
                 end
                 all_defs.concat(new_all_defs)
+            end
+        end
+
+        # @api private
+        #
+        # Warn about a collision (override) detected during #merge
+        def warn_about_merge_collisions(merged_info, suffixes, key, old_value, new_value)
+            old = source_of(key)
+            new = merged_info.source_of(key)
+
+            if suffixes.any? { |s| "#{old}#{s}" == new }
+                return
+            end
+
+            # Warn if the new osdep definition resolves to a different
+            # set of packages than the old one
+            old_resolved = resolve_package(key, resolve_recursive: false).inject(Hash.new) do |osdep_h, (handler, status, list)|
+                osdep_h[handler] = [status, list.dup]
+                osdep_h
+            end
+            new_resolved = merged_info.resolve_package(key, resolve_recursive: false).inject(Hash.new) do |osdep_h, (handler, status, list)|
+                osdep_h[handler] = [status, list.dup]
+                osdep_h
+            end
+            if old_resolved != new_resolved
+                Autoproj.warn "osdeps definition for #{key}, previously defined in #{old} overridden by #{new}:"
+                first = true
+                old_resolved.each do |handler, (_, packages)|
+                    Autoproj.warn "  #{first ? 'resp. ' : '      '}#{handler}: #{packages.map(&:to_s).join(", ")}"
+                    first = false
+                end
+                first = true
+                new_resolved.each do |handler, (_, packages)|
+                    Autoproj.warn "  #{first ? 'and   ' : '      '}#{handler}: #{packages.map(&:to_s).join(", ")}"
+                    first = false
+                end
             end
         end
 
