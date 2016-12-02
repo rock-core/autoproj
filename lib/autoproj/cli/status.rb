@@ -68,17 +68,17 @@ module Autoproj
                     package_status.msg << Autoproj.color("  is not imported yet", :magenta)
                 else
                     if importer.respond_to?(:snapshot)
-                        snapshot =
+                        snapshot_version =
                             begin importer.snapshot(pkg, nil, exact_state: false, only_local: only_local)
                             rescue Autobuild::PackageException
                                 Hash.new
                             end
-                        if snapshot_overrides_vcs?(importer, package_description.vcs, snapshot)
-                            non_nil_values = snapshot.delete_if { |k, v| !v }
+                        if snapshot_overrides_vcs?(importer, package_description.vcs, snapshot_version)
+                            non_nil_values = snapshot_version.delete_if { |k, v| !v }
                             package_status.msg << Autoproj.color("  found configuration that contains all local changes: #{non_nil_values.sort_by(&:first).map { |k, v| "#{k}: #{v}" }.join(", ")}", :bright_green)
                             package_status.msg << Autoproj.color("  consider adding this to your overrides, or use autoproj versions to do it for you", :bright_green)
                             if snapshot
-                                importer.relocate(importer.repository, snapshot)
+                                importer.relocate(importer.repository, snapshot_version)
                             end
                         end
                     end
