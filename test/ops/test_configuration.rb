@@ -85,7 +85,7 @@ module Autoproj
 
                 describe "keep_going: true" do
                     it "does pass an interrupt" do
-                        test_vcs, _ = mock_package_set 'test', type: 'git', url: '/test'
+                        mock_package_set 'test', type: 'git', url: '/test'
                         test0_vcs, _ = mock_package_set 'test0', type: 'git', url: '/test0',
                             create: true
                         test1_vcs, _ = mock_package_set 'test1', type: 'git', url: '/test1',
@@ -211,7 +211,7 @@ module Autoproj
                 end
 
                 it "installs the vcs' osdep" do
-                    vcs, raw_local_dir = mock_package_set('test', type: 'git', url: '/whatever')
+                    vcs, _raw_local_dir = mock_package_set('test', type: 'git', url: '/whatever')
                     flexmock(ws.os_package_installer).should_receive(:install).once.
                         with(['git'], all: nil)
                     ops.should_receive(:update_configuration_repository).once

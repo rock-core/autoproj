@@ -278,9 +278,9 @@ module Autoproj
                 manifest = InstallationManifest.from_workspace_root(ws.root_dir)
 
                 test_dep = InstallationManifest::Package.new(
-                    'test_dep', "#{srcdir}/test_dep", '/prefix/test_dep', '/builddir/test_dep', [])
+                    'test_dep', "#{srcdir}/test_dep", '/prefix/test_dep', '/builddir/test_dep', test_dep.autobuild.logdir, [])
                 pkg      = InstallationManifest::Package.new(
-                    'pkg', "#{srcdir}/pkg", '/prefix/pkg', '/builddir/pkg', ['test_dep'])
+                    'pkg', "#{srcdir}/pkg", '/prefix/pkg', '/builddir/pkg', pkg.autobuild.logdir, ['test_dep'])
                 packages = manifest.each_package.to_a
                 assert_equal 2, packages.size
                 assert packages.include?(test_dep)

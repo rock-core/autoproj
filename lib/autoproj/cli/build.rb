@@ -21,7 +21,7 @@ module Autoproj
                     rebuild: false,
                     parallel: nil
 
-                command_line_selection, source_packages, osdep_packages =
+                command_line_selection, source_packages, _osdep_packages =
                     super(selected_packages, options.merge(checkout_only: true))
 
                 parallel = build_options[:parallel] || ws.config.parallel_build_level

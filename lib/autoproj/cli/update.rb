@@ -9,7 +9,7 @@ module Autoproj
                 selection, options = super
 
                 if from = options[:from]
-                    options[:from] = Autoproj::InstallationManifest.from_workspace_root(options[:from])
+                    options[:from] = Autoproj::InstallationManifest.from_workspace_root(from)
                 end
 
                 if options[:aup] && !options[:all] && selection.empty?

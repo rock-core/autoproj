@@ -39,7 +39,7 @@ module Autoproj
                 _, err = capture_deprecation_message do
                     manifest.each_package_dependency(modes, &block)
                 end
-                assert_match /WARN: Autoproj::PackageManifest#each_package_dependency is deprecated, call #each_dependency instead/, err
+                assert_match(/WARN: Autoproj::PackageManifest#each_package_dependency is deprecated, call #each_dependency instead/, err)
             end
             it "calls #each_dependency from #each_os_dependency" do
                 block = Proc.new {}
@@ -48,7 +48,7 @@ module Autoproj
                 _, err = capture_deprecation_message do
                     manifest.each_os_dependency(modes, &block)
                 end
-                assert_match /WARN: Autoproj::PackageManifest#each_os_dependency is deprecated, call #each_dependency instead/, err
+                assert_match(/WARN: Autoproj::PackageManifest#each_os_dependency is deprecated, call #each_dependency instead/, err)
             end
         end
 

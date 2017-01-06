@@ -110,10 +110,10 @@ module Autoproj
 
                 it "raises if BUILDDIR is used on packages that don't have it" do
                     package = ws_define_package :cmake, 'base/cmake'
-                    package.autobuild.srcdir = srcdir = File.join(ws.root_dir, 'src')
-                    package.autobuild.builddir = builddir = File.join(ws.root_dir, 'build')
+                    package.autobuild.srcdir = File.join(ws.root_dir, 'src')
+                    package.autobuild.builddir = File.join(ws.root_dir, 'build')
                     flexmock(package.autobuild).should_receive(:respond_to?).with(:builddir).and_return(false)
-                    package.autobuild.prefix = prefix = File.join(ws.root_dir, 'prefix')
+                    package.autobuild.prefix = File.join(ws.root_dir, 'prefix')
                     package.vcs = VCSDefinition.from_raw(type: 'local', url: '/test')
                     exception = assert_raises(ArgumentError) do
                         cli.format_package("$NAME $SRCDIR $BUILDDIR $PREFIX $PRIORITY $URL $PRESENT",

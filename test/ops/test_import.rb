@@ -289,7 +289,7 @@ module Autoproj
 
                 it "raises if a package that is explicitely selected in the manifest depends on excluded packages" do
                     parent_pkg = ws_define_package :cmake, "parent"
-                    child_pkg  = ws_define_package :cmake, "child"
+                    ws_define_package :cmake, "child"
                     parent_pkg.autobuild.depends_on "child"
 
                     ws.manifest.initialize_from_hash(
@@ -306,7 +306,7 @@ module Autoproj
 
                 it "raises if an already-imported package depends on an excluded package" do
                     parent_pkg = ws_define_package :cmake, "parent"
-                    child_pkg  = ws_define_package :cmake, "child"
+                    ws_define_package :cmake, "child"
                     parent_pkg.autobuild.depends_on "child"
 
                     selection = PackageSelection.new
@@ -320,7 +320,7 @@ module Autoproj
 
                 it "raises if a package depends on an already-imported excluded package" do
                     parent_pkg = ws_define_package :cmake, "parent"
-                    child_pkg  = ws_define_package :cmake, "child"
+                    ws_define_package :cmake, "child"
                     parent_pkg.autobuild.depends_on "child"
 
                     selection = PackageSelection.new

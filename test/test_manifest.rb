@@ -141,7 +141,7 @@ module Autoproj
             end
             it "returns an explanation if a metapackage that include the package is excluded in the manifest" do
                 pkg_set = ws_define_package_set "base" 
-                package = ws_define_package :cmake, 'test', package_set: pkg_set
+                ws_define_package :cmake, 'test', package_set: pkg_set
                 manifest.initialize_from_hash('layout' => [], 'exclude_packages' => ['base'])
                 assert_equal "base is a metapackage listed in the exclude_packages section of the manifest, and it includes test", manifest.exclusion_reason('test')
             end

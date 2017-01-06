@@ -203,7 +203,7 @@ module Autoproj
                     e = assert_raises(ArgumentError) do
                         cli.run([ws.root_dir], mode: :invalid)
                     end
-                    assert_match /'#{:invalid}' was expected to be one of/, e.message
+                    assert_match(/'#{:invalid}' was expected to be one of/, e.message)
                 end
 
                 it "does not load the configuration if initialized with an installation manifest" do
@@ -377,7 +377,7 @@ module Autoproj
 
                 describe "handling of packages" do
                     it "returns an empty array if the package has no logs" do
-                        pkg.autobuild.logdir = (logdir = make_tmpdir)
+                        pkg.autobuild.logdir = make_tmpdir
                         assert_equal [], cli.logs_of('test/pkg')
                     end
 
@@ -444,7 +444,6 @@ module Autoproj
                     assert_equal dir, cli.build_dir_of(selection)
                 end
                 it "raises ArgumentError if the matching package has no build directory" do
-                    dir = flexmock
                     cli.should_receive(:resolve_package).
                         with(selection = flexmock).
                         and_return(flexmock(name: 'test'))
@@ -454,7 +453,6 @@ module Autoproj
                     assert_equal "#{selection} resolves to the package test, which does not have a build directory", e.message
                 end
                 it "raises ArgumentError if the package has a nil build directory" do
-                    dir = flexmock
                     cli.should_receive(:resolve_package).
                         with(selection = flexmock).
                         and_return(flexmock(name: 'test', builddir: nil))
