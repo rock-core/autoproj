@@ -128,6 +128,28 @@ module Autoproj
                 refute manifest.excluded_in_manifest?('test')
                 assert_equal "for testing", manifest.exclusion_reason('test')
             end
+            it "returns an automatic exclusion before the manifest-related reasons" do
+                ws.define_package :cmake, 'test'
+                manifest.initialize_from_hash('layout' => [], 'exclude_packages' => ['test'])
+                manifest.exclude_package 'test', "for testing"
+                assert_equal "for testing", manifest.exclusion_reason('test')
+            end
+            it "returns nil if the package is excluded but explicitely selected in the manifest" do
+                ws.define_package :cmake, 'test'
+                manifest.initialize_from_hash('layout' => ['test'], 'exclude_packages' => ['test'])
+                assert_nil manifest.exclusion_reason('test')
+            end
+            it "returns an explanation if a metapackage that include the package is excluded in the manifest" do
+                pkg_set = ws_define_package_set "base" 
+                package = ws_define_package :cmake, 'test', package_set: pkg_set
+                manifest.initialize_from_hash('layout' => [], 'exclude_packages' => ['base'])
+                assert_equal "base is a metapackage listed in the exclude_packages section of the manifest, and it includes test", manifest.exclusion_reason('test')
+            end
+            it "returns an explanation if the package set excluded in the manifest" do
+                ws.define_package :cmake, 'test'
+                manifest.initialize_from_hash('layout' => [], 'exclude_packages' => ['test'])
+                assert_equal "test is listed in the exclude_packages section of the manifest", manifest.exclusion_reason('test')
+            end
             it "raises if the package is not part of self" do
                 package = ws.define_package :cmake, 'test'
                 assert_raises(UnregisteredPackage) do
@@ -153,6 +175,23 @@ module Autoproj
                 manifest.exclude_package 'pkg', "for testing"
                 ws.define_package :cmake, 'test'
                 assert !manifest.excluded?('test')
+            end
+            it "returns false for a package that matches an exclusion entry but is also listed in the layout" do
+                ws.define_package :cmake, 'package'
+                ws.define_package :cmake, 'packtest'
+                manifest.initialize_from_hash(
+                    'layout' => ['package'],
+                    'exclude_packages' => ["pack.*"])
+                refute manifest.excluded?('package')
+                assert manifest.excluded?('packtest')
+            end
+            it "returns true for a package that has an automatic exclusion and is also listed in the layout" do
+                ws.define_package :cmake, 'package'
+                ws.define_package :cmake, 'packtest'
+                manifest.initialize_from_hash(
+                    'layout' => ['package'])
+                manifest.add_exclusion('package', 'failed because of missed dependencies')
+                assert manifest.excluded?('package')
             end
             it "enumerates the autobuild packages that are excluded" do
                 manifest.exclude_package 'pkg', "for testing"

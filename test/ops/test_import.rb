@@ -286,6 +286,51 @@ module Autoproj
                         ops.import_selected_packages(mock_selection(base_cmake))
                     end
                 end
+
+                it "raises if a package that is explicitely selected in the manifest depends on excluded packages" do
+                    parent_pkg = ws_define_package :cmake, "parent"
+                    child_pkg  = ws_define_package :cmake, "child"
+                    parent_pkg.autobuild.depends_on "child"
+
+                    ws.manifest.initialize_from_hash(
+                        'layout' => ['parent'],
+                        'exclude_packages' => ['.*'])
+
+                    selection = PackageSelection.new
+                    selection.select("test", ['parent', 'child'], weak: true)
+                    e = assert_raises(ExcludedSelection) do
+                        ops.import_selected_packages(selection)
+                    end
+                    assert_equal "test is selected in the manifest or on the command line, but it expands to parent, which is excluded from the build: child is listed in the exclude_packages section of the manifest (dependency chain: parent>child)", e.message
+                end
+
+                it "raises if an already-imported package depends on an excluded package" do
+                    parent_pkg = ws_define_package :cmake, "parent"
+                    child_pkg  = ws_define_package :cmake, "child"
+                    parent_pkg.autobuild.depends_on "child"
+
+                    selection = PackageSelection.new
+                    selection.select("test", ['parent', 'child'], weak: true)
+                    ws.manifest.add_exclusion('child', 'test')
+                    e = assert_raises(ExcludedSelection) do
+                        ops.import_selected_packages(selection)
+                    end
+                    assert_equal "test is selected in the manifest or on the command line, but it expands to parent, which is excluded from the build: test (dependency chain: parent>child)", e.message
+                end
+
+                it "raises if a package depends on an already-imported excluded package" do
+                    parent_pkg = ws_define_package :cmake, "parent"
+                    child_pkg  = ws_define_package :cmake, "child"
+                    parent_pkg.autobuild.depends_on "child"
+
+                    selection = PackageSelection.new
+                    selection.select("test", ['child', 'parent'], weak: true)
+                    ws.manifest.add_exclusion('child', 'test')
+                    e = assert_raises(ExcludedSelection) do
+                        ops.import_selected_packages(selection)
+                    end
+                    assert_equal "test is selected in the manifest or on the command line, but it expands to parent, which is excluded from the build: test (dependency chain: parent>child)", e.message
+                end
             end
 
             describe "#finalize_package_load" do

@@ -310,7 +310,7 @@ module Autoproj
         def excluded?(package_name)
             package_name = validate_package_name_argument(package_name)
 
-            if excluded_in_manifest?(package_name)
+            if !explicitely_selected_in_layout?(package_name) && excluded_in_manifest?(package_name)
                 true
             elsif automatic_exclusions.any? { |pkg_name, | pkg_name == package_name }
                 true
@@ -380,14 +380,20 @@ module Autoproj
         # disabled on this particular operating system.
         def exclusion_reason(package_name)
             package_name = validate_package_name_argument(package_name)
-            manifest_exclusions.any? do |matcher|
-                if (pkg_set = metapackages[matcher]) && pkg_set.include?(package_name)
-                    return "#{pkg_set.name} is a metapackage listed in the exclude_packages section of the manifest, and it includes #{package_name}"
-                elsif Regexp.new(matcher) === package_name
-                    return "#{package_name} is listed in the exclude_packages section of the manifest"
+            if message = automatic_exclusions[package_name]
+                return message
+            end
+
+            if !explicitely_selected_in_layout?(package_name)
+                manifest_exclusions.each do |matcher|
+                    if (pkg_set = metapackages[matcher]) && pkg_set.include?(package_name)
+                        return "#{pkg_set.name} is a metapackage listed in the exclude_packages section of the manifest, and it includes #{package_name}"
+                    elsif Regexp.new(matcher) === package_name
+                        return "#{package_name} is listed in the exclude_packages section of the manifest"
+                    end
                 end
             end
-            automatic_exclusions[package_name]
+            nil
         end
 
         # Returns true if the given package name has been explicitely added to
