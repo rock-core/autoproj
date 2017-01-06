@@ -54,13 +54,12 @@ module Autoproj
                 end
             end
 
-            def run(user_selection, options = Hash.new)
+            def run(user_selection, deps: true)
                 initialize_and_load
-                packages, _ = finalize_setup(user_selection,
-                                             recursive: options[:deps])
-
+                packages, _ =
+                    finalize_setup(user_selection, recursive: deps)
                 packages.each do |pkg|
-                    Autobuild::Package[pkg].disable_phases('import', 'prepare', 'install')
+                    ws.manifest.find_autobuild_package(pkg).disable_phases('import', 'prepare', 'install')
                 end
                 Autobuild.apply(packages, "autoproj-test", ['test'])
             end

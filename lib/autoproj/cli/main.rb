@@ -84,7 +84,8 @@ module Autoproj
             end
 
             desc 'doc [PACKAGES]', 'generate API documentation for packages that support it'
-            option :without_deps, desc: 'generate documentation for the packages given on the command line, and not for their dependencies'
+            option :deps, desc: 'control whether documentation should be generated only for the packages given on the command line, or also for their dependencies',
+                type: :boolean, default: true
             def doc(*packages)
                 run_autoproj_cli(:doc, :Doc, Hash[], *packages)
             end

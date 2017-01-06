@@ -62,7 +62,7 @@ module Autoproj
                     cli = Test.new
                     Autobuild.pass_test_errors = options[:fail]
                     Autobuild::TestUtility.coverage_enabled = options[:coverage]
-                    args = cli.validate_options(packages, options)
+                    args = cli.validate_options(packages, deps: options[:deps])
                     cli.run(*args)
                 end
             end
