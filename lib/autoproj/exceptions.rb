@@ -29,8 +29,9 @@ module Autoproj
     end
 
     # Exception raised when trying to resolve a package name and it failed
-    class PackageNotFound < ConfigError
-    end
+    class PackageNotFound < ConfigError; end
+
+    class PackageUnavailable < PackageNotFound; end
 
     class UnregisteredPackage < ArgumentError
     end

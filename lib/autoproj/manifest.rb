@@ -661,7 +661,7 @@ module Autoproj
         #   defined by {#os_package_resolver}), and there has been no source
         #   fallback defined with {#add_osdeps_overrides}. If true, it will
         #   return such a package as an osdep.
-        def resolve_package_name(name)
+        def resolve_package_name(name, include_unavailable: false)
             if pkg_set = find_metapackage(name)
                 pkg_names = pkg_set.each_package.map(&:name)
             else
@@ -672,8 +672,14 @@ module Autoproj
             pkg_names.each do |pkg|
                 begin
                     result.concat(resolve_single_package_name(pkg))
+                rescue PackageUnavailable => e
+                    if include_unavailable
+                        result.concat([[:osdeps, pkg]])
+                    else
+                        raise e, "cannot resolve #{pkg}: #{e}", e.backtrace
+                    end
                 rescue PackageNotFound => e
-                    raise PackageNotFound, "cannot resolve #{pkg}: #{e}", e.backtrace
+                    raise e, "cannot resolve #{pkg}: #{e}", e.backtrace
                 end
             end
             result
@@ -696,7 +702,7 @@ module Autoproj
             begin
                 resolve_package_name_as_source_package(name)
             rescue PackageNotFound
-                raise PackageNotFound, "#{osdep_error} and it cannot be resolved as a source package"
+                raise osdep_error, "#{osdep_error} and it cannot be resolved as a source package"
             end
         end
 
@@ -754,11 +760,11 @@ module Autoproj
             elsif osdeps_available || accept_unavailable_osdeps?
                 return [[:osdeps, name]]
             elsif osdeps_availability == OSPackageResolver::WRONG_OS
-                raise PackageNotFound, "#{name} is an osdep, but it is not available for this operating system (#{os_package_resolver.operating_system})"
+                raise PackageUnavailable, "#{name} is an osdep, but it is not available for this operating system (#{os_package_resolver.operating_system})"
             elsif osdeps_availability == OSPackageResolver::UNKNOWN_OS
-                raise PackageNotFound, "#{name} is an osdep, but the local operating system is unavailable"
+                raise PackageUnavailable, "#{name} is an osdep, but the local operating system is unavailable"
             elsif osdeps_availability == OSPackageResolver::NONEXISTENT
-                raise PackageNotFound, "#{name} is an osdep, but it is explicitely marked as 'nonexistent' for this operating system (#{os_package_resolver.operating_system})"
+                raise PackageUnavailable, "#{name} is an osdep, but it is explicitely marked as 'nonexistent' for this operating system (#{os_package_resolver.operating_system})"
             end
         end
 

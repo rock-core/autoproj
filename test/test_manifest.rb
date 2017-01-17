@@ -289,14 +289,22 @@ module Autoproj
             it "raises if a package is defined as an osdep but it is not available on the local operating system" do
                 flexmock(manifest.os_package_resolver).should_receive(:availability_of).with('test').
                     and_return(OSPackageResolver::WRONG_OS)
-                e = assert_raises(PackageNotFound) { manifest.resolve_package_name('test') }
+                e = assert_raises(PackageUnavailable) { manifest.resolve_package_name('test') }
                 assert_match(/#{Regexp.quote("test is an osdep, but it is not available for this operating system ([[\"test_os_family\"], [\"test_os_version\"]]) and it cannot be resolved as a source package")}/, e.message)
             end
             it "raises if a package is defined as an osdep but it is explicitely marked as non existent" do
                 flexmock(manifest.os_package_resolver).should_receive(:availability_of).with('test').
                     and_return(OSPackageResolver::NONEXISTENT)
-                e = assert_raises(PackageNotFound) { manifest.resolve_package_name('test') }
+                e = assert_raises(PackageUnavailable) { manifest.resolve_package_name('test') }
                 assert_match(/#{Regexp.quote("test is an osdep, but it is explicitely marked as 'nonexistent' for this operating system ([[\"test_os_family\"], [\"test_os_version\"]]) and it cannot be resolved as a source package")}/, e.message)
+            end
+
+            describe "include_unavailable: true" do
+                it "returns unavailable packages as osdep entries" do
+                    flexmock(manifest.os_package_resolver).should_receive(:availability_of).with('test').
+                        and_return(OSPackageResolver::WRONG_OS)
+                    assert_equal [[:osdeps, 'test']], manifest.resolve_package_name('test', include_unavailable: true)
+                end
             end
         end
 

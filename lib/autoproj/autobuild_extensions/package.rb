@@ -130,7 +130,7 @@ module Autoproj
 
             def partition_package(pkg_name)
                 pkg_autobuild, pkg_osdeps = [], []
-                ws.manifest.resolve_package_name(pkg_name).each do |type, dep_name|
+                ws.manifest.resolve_package_name(pkg_name, include_unavailable: true).each do |type, dep_name|
                     if type == :osdeps
                         pkg_osdeps << dep_name
                     elsif type == :package
