@@ -14,8 +14,10 @@ module Autoproj
                 # TODO there might be duplicates in packages which should be fixed
                 # somewhere else
                 packages = packages.uniq
-                result = `brew info --json=v1 '#{packages.join("' '")}'`
-                result = begin
+                command_line = "brew info --json=v1 #{packages.join(' ')}"
+                result = Bundler.with_clean_env do
+                    (Autobuild::Subprocess.run 'autoproj', 'osdeps', command_line).first
+                end
                              JSON.parse(result)
                          rescue JSON::ParserError
                              if result && !result.empty?
