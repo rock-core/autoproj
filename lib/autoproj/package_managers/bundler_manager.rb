@@ -254,6 +254,7 @@ module Autoproj
                     end
                     contents << "source '#{g.to_s}'"
                 end
+                valid_keys = %w{group groups git path glob name branch ref tag require submodules platform platforms type source install_if}
                 dependencies.each do |group_name, by_platform|
                     contents << "group :#{group_name} do"
                     by_platform.each do |platform_name, deps|
@@ -265,8 +266,7 @@ module Autoproj
                         deps.each do |d|
                             if d.source
                                 options = d.source.options.dup
-                                options.delete 'root_path'
-                                options.delete 'uri'
+                                options.delete_if { |k, _| !valid_keys.include?(k) }
                                 options = options.map { |k, v| "#{k}: \"#{v}\"" }
                             end
                             contents << ["  #{platform_indent}gem \"#{d.name}\", \"#{d.requirement}\"", *options].join(", ")
