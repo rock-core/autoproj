@@ -18,16 +18,19 @@ module Autoproj
                 result = Bundler.with_clean_env do
                     (Autobuild::Subprocess.run 'autoproj', 'osdeps', command_line).first
                 end
-                             JSON.parse(result)
-                         rescue JSON::ParserError
-                             if result && !result.empty?
-                                 Autoproj.warn "Error while parsing result of brew info --json=v1"
-                             else
-                                 # one of the packages is unknown fallback to install all
-                                 # packaes which will complain about it
-                             end
-                             return packages
-                         end
+
+                begin
+                    JSON.parse(result)
+                rescue JSON::ParserError
+                    if result && !result.empty?
+                        Autoproj.warn "Error while parsing result of brew info --json=v1"
+                    else
+                        # one of the packages is unknown fallback to install all
+                        # packaes which will complain about it
+                    end
+                    return packages
+                end
+                
                 # fall back if something else went wrong
                 if packages.size != result.size
                     Autoproj.warn "brew info returns less or more packages when requested. Falling back to install all packages"
