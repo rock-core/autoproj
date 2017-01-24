@@ -182,6 +182,7 @@ module Autoproj
             # @return [String]
             def default_gemfile_contents(autoproj_version = ">= 2.0.0")
                 ["source \"#{gem_source}\"",
+                 "ruby \"#{RUBY_VERSION}\" if respond_to?(:ruby)",
                  "gem \"autoproj\", \"#{autoproj_version}\"",
                  "gem \"utilrb\", \">= 3.0.1\""].join("\n")
             end

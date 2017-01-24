@@ -332,6 +332,7 @@ module Autoproj
                 FileUtils.mkdir_p root_dir
                 if updated = (!File.exist?(gemfile_path) || File.read(gemfile_path) != gemfile_contents)
                     File.open(gemfile_path, 'w') do |io|
+                        io.puts "ruby \"#{RUBY_VERSION}\" if respond_to?(:ruby)"
                         io.puts gemfile_contents
                     end
                 end
