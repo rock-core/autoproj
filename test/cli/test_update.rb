@@ -30,6 +30,10 @@ module Autoproj
                         selection, _ = cli.validate_options(['/a/path'], aup: true)
                         assert_equal ['/a/path'], selection
                     end
+                    it "leaves an empty selection alone if --config is given" do
+                        selection, _ = cli.validate_options([], aup: true, config: true)
+                        assert_equal [], selection
+                    end
                     it "leaves an empty selection alone if --all is given" do
                         selection, _ = cli.validate_options([], aup: true, all: true)
                         assert_equal [], selection
