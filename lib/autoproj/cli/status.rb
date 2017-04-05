@@ -1,4 +1,5 @@
 require 'autoproj/cli/inspection_tool'
+require 'tty-spinner'
 
 module Autoproj
     module CLI
@@ -28,13 +29,21 @@ module Autoproj
 
                 if !options.has_key?(:parallel) && options[:only_local]
                     options[:parallel] = 1
+                else
+                    options[:parallel] ||= ws.config.parallel_import_level
                 end
 
                 if options[:config]
                     pkg_sets = ws.manifest.each_package_set.to_a
                     if !pkg_sets.empty?
                         Autoproj.message("autoproj: displaying status of configuration", :bold)
-                        display_status(pkg_sets, parallel: options[:parallel], snapshot: options[:snapshot], only_local: options[:only_local])
+                        display_status(
+                            pkg_sets,
+                            parallel: options[:parallel],
+                            snapshot: options[:snapshot],
+                            only_local: options[:only_local],
+                            progress: options[:progress])
+
                         STDERR.puts
                     end
                 end
@@ -43,7 +52,12 @@ module Autoproj
                 packages = packages.sort.map do |pkg_name|
                     ws.manifest.find_package_definition(pkg_name)
                 end
-                display_status(packages, parallel: options[:parallel], snapshot: options[:snapshot], only_local: options[:only_local])
+                display_status(
+                    packages,
+                    parallel: options[:parallel],
+                    snapshot: options[:snapshot],
+                    only_local: options[:only_local],
+                    progress: options[:progress])
             end
 
             def snapshot_overrides_vcs?(importer, vcs, snapshot)
@@ -132,34 +146,85 @@ module Autoproj
                 package_status
             end
 
-            StatusResult = Struct.new :uncommitted, :local, :remote
-            def display_status(packages, options = Hash.new)
+            def each_package_status(packages, parallel: ws.config.parallel_import_level, snapshot: false, only_local: false, progress: nil)
+                return enum_for(__method__) if !block_given?
+
                 result = StatusResult.new
 
-                parallel = options[:parallel] || ws.config.parallel_import_level
                 executor = Concurrent::FixedThreadPool.new(parallel, max_length: 0)
                 interactive, noninteractive = packages.partition do |pkg|
                     pkg.autobuild.importer && pkg.autobuild.importer.interactive?
                 end
                 noninteractive = noninteractive.map do |pkg|
                     future = Concurrent::Future.execute(executor: executor) do
-                        status_of_package(pkg, snapshot: options[:snapshot], only_local: options[:only_local])
+                        status_of_package(pkg, snapshot: snapshot, only_local: only_local)
                     end
                     [pkg, future]
                 end
 
-                sync_packages = ""
                 (noninteractive + interactive).each do |pkg, future|
                     if future 
+                        if progress
+                            wait_timeout = 1
+                            while true
+                                future.wait(wait_timeout)
+                                if future.complete?
+                                    break
+                                else
+                                    wait_timeout = 0.5
+                                    progress.call(pkg)
+                                end
+                            end
+                        end
+
                         if !(status = future.value)
                             raise future.reason
                         end
-                    else status = status_of_package(pkg, snapshot: options[:snapshot], only_local: options[:only_local])
+                    else status = status_of_package(pkg, snapshot: snapshot, only_local: only_local)
                     end
 
                     result.uncommitted ||= status.uncommitted
                     result.local       ||= status.local
                     result.remote      ||= status.remote
+                    yield(pkg, status)
+                end
+                result
+
+            rescue Interrupt
+                Autoproj.warn "Interrupted, waiting for pending jobs to finish"
+                raise
+            rescue Exception => e
+                Autoproj.error "internal error: #{e}, waiting for pending jobs to finish"
+                raise
+            ensure
+                executor.shutdown
+                executor.wait_for_termination
+            end
+
+            StatusResult = Struct.new :uncommitted, :local, :remote
+            def display_status(packages, parallel: ws.config.parallel_import_level, snapshot: false, only_local: false, progress: true)
+                sync_packages = ""
+                spinner = nil
+
+                if progress
+                    progress = lambda do |pkg|
+                        if !spinner
+                            if !sync_packages.empty?
+                                Autoproj.message("#{sync_packages}: #{Autoproj.color("local and remote are in sync", :green)}")
+                                sync_packages = ""
+                            end
+
+                            spinner = TTY::Spinner.new("[:spinner] #{pkg.name}", clear: true)
+                        end
+                        spinner.spin
+                    end
+                end
+
+                result = each_package_status(packages, parallel: parallel, progress: progress) do |pkg, status|
+                    if spinner
+                        spinner.stop
+                        spinner = nil
+                    end
 
                     pkg_name = pkg.name
                     if status.sync && status.msg.empty?
@@ -197,18 +262,7 @@ module Autoproj
                     Autoproj.message("#{sync_packages}: #{Autoproj.color("local and remote are in sync", :green)}")
                 end
                 return result
-
-            rescue Interrupt
-                Autoproj.warn "Interrupted, waiting for pending jobs to finish"
-                raise
-            rescue Exception => e
-                Autoproj.error "internal error: #{e}, waiting for pending jobs to finish"
-                raise
-            ensure
-                executor.shutdown
-                executor.wait_for_termination
             end
-
         end
     end
 end

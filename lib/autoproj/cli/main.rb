@@ -79,6 +79,9 @@ module Autoproj
             option :deps, type: :boolean,
                 desc: 'whether only the status of the given packages should be displayed, or of their dependencies as well',
                 default: true
+            option :progress, type: :boolean,
+                desc: 'show a spinner on long-running packages',
+                default: true
             def status(*packages)
                 run_autoproj_cli(:status, :Status, Hash[], *packages)
             end
