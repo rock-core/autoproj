@@ -602,4 +602,4 @@ if !ops.skip_stage2?
     ops.call_stage2
 end
 ops.run_autoproj 'bootstrap', *bootstrap_options
-
+exit $?.exitstatus
