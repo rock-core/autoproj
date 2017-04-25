@@ -241,7 +241,7 @@ are given, the packages will not be versioned. In other words,
             option :save, type: :string,
                 desc: 'save to the given file instead of displaying it on the standard output'
             def versions(*packages)
-                run_autoproj_cli(:versions, :Versions, Hash[], *packages)
+                run_autoproj_cli(:versions, :Versions, Hash[], *packages, deps: true)
             end
 
             stop_on_unknown_option! :log
@@ -299,7 +299,7 @@ EOD
             option :message, aliases: :m, type: :string,
                 desc: 'the message to use for the new commit (the default is to mention the creation of the tag)'
             def commit(*packages)
-                run_autoproj_cli(:commit, :Commit, Hash[], *packages)
+                run_autoproj_cli(:commit, :Commit, Hash[], *packages, deps: true)
             end
 
             desc 'switch-config VCS URL [OPTIONS]', 'switches the main build configuration'
