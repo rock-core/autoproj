@@ -50,6 +50,9 @@ module Autoproj
             end
 
             desc 'exec [PACKAGES]', 'execute the tests for the given packages, or all if no packages are given on the command line'
+            option :keep_going, aliases: :k, type: :boolean,
+                banner: '',
+                desc: 'do not stop on build or checkout errors'
             option :deps, type: :boolean, default: false,
                 desc: 'controls whether to execute the tests of the dependencies of the packages given on the command line (the default is not)'
             option :fail, type: :boolean, default: true,
@@ -61,6 +64,7 @@ module Autoproj
                 report do
                     cli = Test.new
                     Autobuild.pass_test_errors = options[:fail]
+                    Autobuild.ignore_errors = options[:keep_going]
                     Autobuild::TestUtility.coverage_enabled = options[:coverage]
                     args = cli.validate_options(packages, deps: options[:deps])
                     cli.run(*args)
