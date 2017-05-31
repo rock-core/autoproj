@@ -19,15 +19,12 @@ module Autoproj
         # @param [Array<String=>Hash>] state the current state
         # @param [Hash] the updated information
         def self.merge_packets( overrides, state )
-            result = overrides.dup
             overriden = overrides.map { |entry| entry.keys.first }.to_set
-            state.each do |pkg|
+            filtered_state = state.find_all do |pkg|
                 name, _ = pkg.first
-                if !overriden.include?(name)
-                    result << pkg
-                end
+                !overriden.include?(name)
             end
-            result
+            filtered_state + overrides
         end
 
         def self.update_log_available?(manifest)
@@ -54,7 +51,7 @@ module Autoproj
             FileUtils.mkdir_p(File.dirname( versions_file ))
 
             # augment the versions file with the updated versions
-            Snapshot.merge_packets( versions, existing_versions )
+            versions = Snapshot.merge_packets( versions, existing_versions )
 
             versions = sort_versions(versions)
 
