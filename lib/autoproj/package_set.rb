@@ -311,6 +311,34 @@ module Autoproj
 
         # @api private
         #
+        # Validate and normalizes a raw source file
+        def self.validate_and_normalize_source_file(yaml_path, yaml)
+            yaml = yaml.dup
+            %w{imports version_control}.each do |entry_name|
+                yaml[entry_name] ||= Array.new
+                if !yaml[entry_name].respond_to?(:to_ary)
+                    raise ConfigError.new(yaml_path), "expected the '#{entry_name}' entry to be an array"
+                end
+            end
+
+            %w{constants}.each do |entry_name|
+                yaml[entry_name] ||= Hash.new
+                if !yaml[entry_name].respond_to?(:to_h)
+                    raise ConfigError.new(yaml_path), "expected the '#{entry_name}' entry to be a map"
+                end
+            end
+
+            if yaml.has_key?('overrides')
+                yaml['overrides'] ||= Array.new
+                if !yaml['overrides'].respond_to?(:to_ary)
+                    raise ConfigError.new(yaml_path), "expected the 'overrides' entry to be an array"
+                end
+            end
+            yaml
+        end
+
+        # @api private
+        #
         # Read the description information for a package set in a given
         # directory
         #
@@ -330,7 +358,8 @@ module Autoproj
                 newdefs = Autoproj.in_file(source_file, Autoproj::YAML_LOAD_ERROR) do
                     YAML.load(File.read(source_file))
                 end
-                source_definition.merge!(newdefs || Hash.new) do |k, old, new|
+                newdefs = validate_and_normalize_source_file(source_file, newdefs || Hash.new)
+                source_definition.merge!(newdefs) do |k, old, new|
                     if old.respond_to?(:to_ary)
                         old + new
                     else new
@@ -340,6 +369,7 @@ module Autoproj
             if !source_definition['name']
                 raise ConfigError.new(master_source_file), "#{master_source_file} does not have a 'name' field"
             end
+
             source_definition
         end
 

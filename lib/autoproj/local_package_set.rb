@@ -71,6 +71,8 @@ module Autoproj
                 overrides_data = Autoproj.in_file(overrides_file_path, Autoproj::YAML_LOAD_ERROR) do
                     YAML.load(File.read(overrides_file_path)) || Hash.new
                 end
+                overrides_data = PackageSet.validate_and_normalize_source_file(
+                    overrides_file_path, overrides_data)
                 description = description.merge(overrides_data)
             end
 
