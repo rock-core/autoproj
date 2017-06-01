@@ -6,6 +6,7 @@ module Autoproj
         class Status < InspectionTool
             def validate_options(packages, options)
                 packages, options = super
+                options[:progress] = Autobuild.progress_display_enabled?
                 if options[:no_deps_shortcut]
                     options[:deps] = false
                 end
@@ -174,7 +175,7 @@ module Autoproj
                                 if future.complete?
                                     break
                                 else
-                                    wait_timeout = 0.5
+                                    wait_timeout = 0.2
                                     progress.call(pkg)
                                 end
                             end

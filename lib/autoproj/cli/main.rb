@@ -73,8 +73,6 @@ module Autoproj
                 desc: 'whether only the status of the given packages should be displayed, or of their dependencies as well. -n is a shortcut for --no-deps'
             option :no_deps_shortcut, hide: true, aliases: '-n', type: :boolean,
                 desc: 'provide -n for --no-deps'
-            option :progress, type: :boolean, default: true,
-                desc: 'show a spinner on long-running packages'
             def status(*packages)
                 run_autoproj_cli(:status, :Status, Hash[], *packages)
             end
