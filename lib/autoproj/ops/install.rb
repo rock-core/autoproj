@@ -251,14 +251,19 @@ module Autoproj
                 end
             end
 
-            def install_bundler(gem_program)
+            def install_bundler(gem_program, silent: false)
                 local = ['--local'] if local?
+
+                redirection = Hash.new
+                if silent
+                    redirection = Hash[out: :close]
+                end
 
                 result = system(
                     env_for_child,
                     Gem.ruby, gem_program, 'install', '--env-shebang', '--no-document', '--no-format-executable', '--clear-sources', '--source', gem_source,
                         *local,
-                        "--bindir=#{File.join(gems_gem_home, 'bin')}", 'bundler')
+                        "--bindir=#{File.join(gems_gem_home, 'bin')}", 'bundler', **redirection)
 
                 if !result
                     STDERR.puts "FATAL: failed to install bundler in #{gems_gem_home}"

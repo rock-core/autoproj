@@ -333,6 +333,14 @@ module Autoproj
             Ops::Install.rewrite_shims(binstubs, config.ruby_executable, gemfile, config.gems_gem_home)
         end
 
+        def update_bundler
+            require 'autoproj/ops/install'
+            gem_program = Ops::Install.guess_gem_program
+            install = Ops::Install.new(root_dir)
+            Autoproj.message "  updating bundler"
+            install.install_bundler(gem_program, silent: true)
+        end
+
         def update_autoproj(restart_on_update: true)
             config.validate_ruby_executable
 

@@ -59,6 +59,7 @@ module Autoproj
                     (has_explicit_selection && !selection.empty?) ||
                     (!has_explicit_selection && !options[:config] && !options[:autoproj])
 
+                options[:bundler] = update_autoproj
                 options[:autoproj] = update_autoproj
                 options[:config]   = update_config
                 options[:packages] = update_packages
@@ -71,6 +72,9 @@ module Autoproj
                 ws.setup
                 ws.autodetect_operating_system(force: true)
 
+                if options[:bundler]
+                    ws.update_bundler
+                end
                 if options[:autoproj]
                     ws.update_autoproj
                 end

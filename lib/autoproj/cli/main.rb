@@ -97,6 +97,8 @@ module Autoproj
                 desc: 'do not stop on build or checkout errors'
             option :config, type: :boolean,
                 desc: "(do not) update configuration. The default is to update configuration if explicitely selected or if no additional arguments are given on the command line, and to not do it if packages are explicitely selected on the command line"
+            option :bundler, type: :boolean,
+                desc: "(do not) update bundler. This is automatically enabled only if no arguments are given on the command line"
             option :autoproj, type: :boolean,
                 desc: "(do not) update autoproj. This is automatically enabled only if no arguments are given on the command line"
             option :osdeps, type: :boolean, default: true,
