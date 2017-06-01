@@ -258,7 +258,7 @@ module Autoproj
             spec = VCSDefinition.normalize_vcs_hash(raw_spec, base_dir: ws.config_dir)
             options, vcs_spec = Kernel.filter_options spec, auto_imports: true
 
-            vcs_spec = Autoproj.expand(vcs_spec, ws.manifest.constant_definitions)
+            vcs_spec = Autoproj.expand(vcs_spec, ws.config.to_hash.merge(ws.manifest.constant_definitions))
             return VCSDefinition.from_raw(vcs_spec, from: from, raw: raw), options
         end
 
