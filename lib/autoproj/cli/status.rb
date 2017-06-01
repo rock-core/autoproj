@@ -6,6 +6,9 @@ module Autoproj
         class Status < InspectionTool
             def validate_options(packages, options)
                 packages, options = super
+                if options[:no_deps_shortcut]
+                    options[:deps] = false
+                end
                 if options[:deps].nil? && packages.empty?
                     options[:deps] = true
                 end

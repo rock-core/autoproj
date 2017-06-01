@@ -12,6 +12,10 @@ module Autoproj
                     options[:from] = Autoproj::InstallationManifest.from_workspace_root(from)
                 end
 
+                if options[:no_deps_shortcut]
+                    options[:deps] = false
+                end
+
                 if options[:aup] && !options[:config] && !options[:all] && selection.empty?
                     if Dir.pwd == ws.root_dir
                         options[:all] = true

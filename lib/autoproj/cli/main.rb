@@ -76,8 +76,10 @@ module Autoproj
                 desc: "use the VCS information as 'versions --no-local' would detect it instead of the one in the configuration"
             option :parallel, aliases: :p, type: :numeric,
                 desc: 'maximum number of parallel jobs'
-            option :deps, type: :boolean,
-                desc: 'whether only the status of the given packages should be displayed, or of their dependencies as well',
+            option :deps, type: :boolean, default: true,
+                desc: 'whether only the status of the given packages should be displayed, or of their dependencies as well. -n is a shortcut for --no-deps'
+            option :no_deps_shortcut, hide: true, aliases: '-n', type: :boolean,
+                desc: 'provide -n for --no-deps'
                 default: true
             option :progress, type: :boolean,
                 desc: 'show a spinner on long-running packages',
@@ -87,8 +89,10 @@ module Autoproj
             end
 
             desc 'doc [PACKAGES]', 'generate API documentation for packages that support it'
-            option :deps, desc: 'control whether documentation should be generated only for the packages given on the command line, or also for their dependencies',
-                type: :boolean, default: true
+            option :deps, type: :boolean, default: true,
+                desc: 'control whether documentation should be generated only for the packages given on the command line, or also for their dependencies. -n is a shortcut for --no-deps'
+            option :no_deps_shortcut, hide: true, aliases: '-n', type: :boolean,
+                desc: 'provide -n for --no-deps'
             def doc(*packages)
                 run_autoproj_cli(:doc, :Doc, Hash[], *packages)
             end
@@ -117,7 +121,9 @@ module Autoproj
             option :osdeps_filter_uptodate, default: true, type: :boolean,
                 desc: 'controls whether the osdeps subsystem should filter up-to-date packages or not'
             option :deps, default: true, type: :boolean,
-                desc: 'whether the package dependencies should be recursively updated (the default) or not'
+                desc: 'whether the package dependencies should be recursively updated (the default) or not. -n is a shortcut for --no-deps'
+            option :no_deps_shortcut, hide: true, aliases: '-n', type: :boolean,
+                desc: 'provide -n for --no-deps'
             option :reset, default: false, type: :boolean,
                 desc: "forcefully resets the repository to the state expected by autoproj's configuration",
                 long_desc: "The default is to update the repository if possible, and leave it alone otherwise. With --reset, autoproj update might come back to an older commit than the repository's current state"
@@ -147,9 +153,18 @@ module Autoproj
             option :osdeps, type: :boolean,
                 desc: 'controls whether missing osdeps should be installed. In rebuild mode, also controls whether the osdeps should be reinstalled or not (the default is to reinstall them)' 
             option :deps, type: :boolean,
-                desc: 'in force or rebuild modes, control whether the force/rebuild action should apply only on the packages given on the command line, or on their dependencies as well (the default is --no-deps)'
+                desc: "controls whether the operation should apply to the package's dependencies as well. -n is a shortcut for --no-deps",
+                long_desc: <<-EOD
+Without --force or --rebuild, the default is true (the build will apply to all packages).
+With --force or --rebuild, control whether the force/rebuild action should apply
+only on the packages given on the command line, or on their dependencies as well.
+In this case, the default is false
+                EOD
+            option :no_deps_shortcut, hide: true, aliases: '-n', type: :boolean,
+                desc: 'provide -n for --no-deps'
             option :parallel, aliases: :p, type: :numeric,
                 desc: 'maximum number of parallel jobs'
+
             def build(*packages)
                 run_autoproj_cli(:build, :Build, Hash[silent: false], *packages)
             end
@@ -233,8 +248,7 @@ are given, the packages will not be versioned. In other words,
             option :replace, type: :boolean,
                 default: false,
                 desc: 'in combination with --save, controls whether an existing file should be updated or replaced'
-            option :deps, type: :boolean,
-                default: false,
+            option :deps, type: :boolean, default: false,
                 desc: 'whether both packages and their dependencies should be versioned, or only the selected packages (the latter is the default)'
             option :local, type: :boolean, default: false,
                 desc: 'whether we should access the remote server to verify that the snapshotted state is present'

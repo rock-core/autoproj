@@ -8,6 +8,10 @@ module Autoproj
                 selected_packages, options =
                     super(selected_packages, options.merge(
                         checkout_only: true, aup: options[:amake]))
+
+                if options[:no_deps_shortcut]
+                    options[:deps] = false
+                end
                 if options[:deps].nil?
                     options[:deps] = 
                         !(options[:rebuild] || options[:force])
