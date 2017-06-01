@@ -11,21 +11,16 @@ module Autoproj
         end
 
         class Main < Thor
-            class_option :verbose, type: :boolean,
-                desc: 'turns verbose output',
-                default: false
-            class_option :debug, type: :boolean,
-                desc: 'turns debugging output',
-                default: false
-            class_option :silent, type: :boolean,
-                desc: 'tell autoproj to not display anything',
-                default: false
-            class_option :color, type: :boolean,
-                desc: 'enables or disables colored display (enabled by default if the terminal supports it)',
-                default: TTY::Color.color?
-            class_option :progress, type: :boolean,
-                desc: 'enables or disables progress display (enabled by default if the terminal supports it)',
-                default: TTY::Color.color?
+            class_option :verbose, type: :boolean, default: false,
+                desc: 'turns verbose output'
+            class_option :debug, type: :boolean, default: false,
+                desc: 'turns debugging output'
+            class_option :silent, type: :boolean, default: false,
+                desc: 'tell autoproj to not display anything'
+            class_option :color, type: :boolean, default: TTY::Color.color?,
+                desc: 'enables or disables colored display (enabled by default if the terminal supports it)'
+            class_option :progress, type: :boolean, default: TTY::Color.color?,
+                desc: 'enables or disables progress display (enabled by default if the terminal supports it)'
 
             no_commands do
                 def run_autoproj_cli(filename, classname, report_options, *args, **extra_options)
@@ -45,11 +40,9 @@ module Autoproj
             end
 
             desc 'bootstrap VCS_TYPE VCS_URL VCS_OPTIONS', 'bootstraps a new autoproj installation. This is usually not called directly, but called from the autoproj_bootstrap standalone script'
-            option :reuse,
-                banner: 'DIR',
+            option :reuse, banner: 'DIR',
                 desc: 'reuse packages already built within the DIR autoproj workspace in this installation, if DIR is not given, reuses the installation whose env.sh is currently sourced'
-            option :seed_config,
-                banner: 'SEED_CONFIG',
+            option :seed_config, banner: 'SEED_CONFIG',
                 desc: "a configuration file used to seed the bootstrap's configuration"
             def bootstrap(*args)
                 if !File.directory?(File.join(Dir.pwd, '.autoproj'))
@@ -80,10 +73,8 @@ module Autoproj
                 desc: 'whether only the status of the given packages should be displayed, or of their dependencies as well. -n is a shortcut for --no-deps'
             option :no_deps_shortcut, hide: true, aliases: '-n', type: :boolean,
                 desc: 'provide -n for --no-deps'
-                default: true
-            option :progress, type: :boolean,
-                desc: 'show a spinner on long-running packages',
-                default: true
+            option :progress, type: :boolean, default: true,
+                desc: 'show a spinner on long-running packages'
             def status(*packages)
                 run_autoproj_cli(:status, :Status, Hash[], *packages)
             end
@@ -102,15 +93,13 @@ module Autoproj
                 desc: 'behave like aup'
             option :all, default: false, hide: true, type: :boolean,
                 desc: 'when in aup mode, update all packages instead of only the local one'
-            option :keep_going, aliases: :k, type: :boolean,
-                banner: '',
+            option :keep_going, aliases: :k, type: :boolean, banner: '',
                 desc: 'do not stop on build or checkout errors'
             option :config, type: :boolean,
                 desc: "(do not) update configuration. The default is to update configuration if explicitely selected or if no additional arguments are given on the command line, and to not do it if packages are explicitely selected on the command line"
             option :autoproj, type: :boolean,
                 desc: "(do not) update autoproj. This is automatically enabled only if no arguments are given on the command line"
-            option :osdeps, type: :boolean,
-                default: true,
+            option :osdeps, type: :boolean, default: true,
                 desc: "enable or disable osdeps handling"
             option :from, type: :string,
                 desc: 'use this existing autoproj installation to check out the packages (for importers that support this)'
@@ -213,9 +202,10 @@ In this case, the default is false
                 desc: "compare to the given baseline. if 'true', the comparison will ignore any override, otherwise it will take into account overrides only up to the given package set"
             option :env, type: :boolean,
                 desc: "display the package's own environment", default: false
-            option :short, desc: 'display a package summary with one package line'
-            option :recursive, desc: 'display the package and their dependencies (the default is to only display selected packages)',
-                type: :boolean, default: false
+            option :short,
+                desc: 'display a package summary with one package line'
+            option :recursive, type: :boolean, default: false,
+                desc: 'display the package and their dependencies (the default is to only display selected packages)'
             def show(*packages)
                 run_autoproj_cli(:show, :Show, Hash[], *packages)
             end
@@ -228,9 +218,7 @@ In this case, the default is false
             end
 
             desc 'versions [PACKAGES]', 'generate a version file for the given packages, or all packages if none are given'
-            option :config, type: :boolean,
-                default: nil,
-                banner: '',
+            option :config, type: :boolean, default: nil, banner: '',
                 desc: "controls whether the package sets should be versioned as well",
                 long_desc: <<-EOD
 This is the default if no packages are given on the command line, or if the
@@ -241,12 +229,9 @@ are given, the packages will not be versioned. In other words,
    autoproj versions autoproj/ # versions only the configuration
    autoproj versions autoproj a/package # versions the configuration and the specified package(s)
                 EOD
-            option :keep_going, aliases: :k, type: :boolean,
-                default: false,
-                banner: '',
+            option :keep_going, aliases: :k, type: :boolean, default: false, banner: '',
                 desc: 'do not stop if some package cannot be versioned'
-            option :replace, type: :boolean,
-                default: false,
+            option :replace, type: :boolean, default: false,
                 desc: 'in combination with --save, controls whether an existing file should be updated or replaced'
             option :deps, type: :boolean, default: false,
                 desc: 'whether both packages and their dependencies should be versioned, or only the selected packages (the latter is the default)'
@@ -287,8 +272,7 @@ If given no arguments, will list the existing tags
 EOD
             option :package_sets, type: :boolean,
                 desc: 'commit the package set state as well (enabled by default)'
-            option :keep_going, aliases: :k, type: :boolean,
-                banner: '',
+            option :keep_going, aliases: :k, type: :boolean, banner: '',
                 desc: 'do not stop on build or checkout errors'
             option :message, aliases: :m, type: :string,
                 desc: 'the message to use for the new commit (the default is to mention the creation of the tag)'
@@ -307,8 +291,7 @@ If given no arguments, will list the existing tags
 EOD
             option :package_sets, type: :boolean,
                 desc: 'commit the package set state as well (enabled by default)'
-            option :keep_going, aliases: :k, type: :boolean,
-                banner: '',
+            option :keep_going, aliases: :k, type: :boolean, banner: '',
                 desc: 'do not stop on build or checkout errors'
             option :message, aliases: :m, type: :string,
                 desc: 'the message to use for the new commit (the default is to mention the creation of the tag)'
