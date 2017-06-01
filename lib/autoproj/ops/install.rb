@@ -38,6 +38,7 @@ module Autoproj
                 @autoproj_options = Array.new
 
                 @env = Hash.new
+                env['RUBYOPT'] = []
                 env['RUBYLIB'] = []
                 env['GEM_PATH'] = []
                 env['GEM_HOME'] = []
@@ -260,7 +261,7 @@ module Autoproj
                 end
 
                 result = system(
-                    env_for_child,
+                    env_for_child.merge('GEM_HOME' => gems_gem_home),
                     Gem.ruby, gem_program, 'install', '--env-shebang', '--no-document', '--no-format-executable', '--clear-sources', '--source', gem_source,
                         *local,
                         "--bindir=#{File.join(gems_gem_home, 'bin')}", 'bundler', **redirection)
