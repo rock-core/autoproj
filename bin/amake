@@ -2,5 +2,16 @@
 
 require 'autoproj/cli/main'
 Autoproj::CLI.basic_setup
-Autoproj::CLI::Main.start(['build', '--amake', *ARGV])
+
+class Amake < Autoproj::CLI::Main
+    def self.banner(*)
+        "amake [options]"
+    end
+end
+
+if ARGV.include?('--help') || ARGV.include?('help')
+    Amake.start(['help', 'build'])
+else
+    Amake.start(['build', '--amake', *ARGV])
+end
 

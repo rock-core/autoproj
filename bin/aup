@@ -2,4 +2,15 @@
 
 require 'autoproj/cli/main'
 Autoproj::CLI.basic_setup
-Autoproj::CLI::Main.start(['update', '--aup', *ARGV])
+
+class Aup < Autoproj::CLI::Main
+    def self.banner(*)
+        "aup [options]"
+    end
+end
+
+if ARGV.include?('--help') || ARGV.include?('help')
+    Aup.start(['help', 'update'])
+else
+    Aup.start(['update', '--aup', *ARGV])
+end

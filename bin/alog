@@ -3,6 +3,14 @@
 require 'autoproj/cli/main'
 require 'autoproj/cli/locate'
 
+if ARGV.include?('--help') || ARGV.include?('help')
+    puts "Usage:"
+    puts "  alog [package]"
+    puts
+    puts "Shows log available for the given package and allows to select and display one"
+    exit 0
+end
+
 Autoproj::CLI.basic_setup
 Autoproj.report(silent: true) do
     cli = Autoproj::CLI::Locate.new
