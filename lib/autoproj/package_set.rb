@@ -225,12 +225,15 @@ module Autoproj
         # checked out, and the vcs (as a string) otherwise
         #
         # @return [String]
-        def self.name_of(ws, vcs, raw_local_dir: raw_local_dir_of(ws, vcs))
+        def self.name_of(ws, vcs, raw_local_dir: raw_local_dir_of(ws, vcs), ignore_load_errors: false)
             if File.directory?(raw_local_dir)
-                raw_description_file(raw_local_dir, package_set_name: "#{vcs.type}:#{vcs.url}")['name']
-            else
-                vcs.to_s
+                begin
+                    return raw_description_file(raw_local_dir, package_set_name: "#{vcs.type}:#{vcs.url}")['name']
+                rescue ConfigError
+                    raise if !ignore_load_errors
+                end
             end
+            vcs.to_s
         end
 
         # Returns the local directory in which the given package set should be

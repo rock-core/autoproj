@@ -6,13 +6,13 @@ module Autoproj
         describe Configuration do
             attr_reader :ops
 
-            def mock_package_set(name, create: false, **vcs)
+            def mock_package_set(name, create: false, exclude: [], **vcs)
                 vcs = VCSDefinition.from_raw(**vcs)
                 raw_local_dir = File.join(make_tmpdir, 'package_set')
-                flexmock(PackageSet).should_receive(:name_of).with(any, vcs).
-                    and_return(name)
+                flexmock(PackageSet).should_receive(:name_of).with(any, vcs, any).
+                    and_return(name).by_default
                 flexmock(PackageSet).should_receive(:raw_local_dir_of).with(any, vcs).
-                    and_return(raw_local_dir)
+                    and_return(raw_local_dir).by_default
                 if create
                     FileUtils.mkdir_p raw_local_dir
                     File.open(File.join(raw_local_dir, 'source.yml'), 'w') do |io|
@@ -237,6 +237,18 @@ module Autoproj
                     FileUtils.mkdir_p raw_local_dir
                     ops.should_receive(:update_configuration_repository).never
                     ops.update_remote_package_set(vcs, checkout_only: true)
+                end
+
+                it "successfully updates an invalid but already-checked-out package whose update fixes the issue" do
+                    vcs, raw_local_dir = mock_package_set('test', type: 'git', url: '/whatever')
+                    FileUtils.mkdir_p(raw_local_dir)
+                    FileUtils.touch File.join(raw_local_dir, 'source.yml')
+                    ops.should_receive(:update_configuration_repository).once.and_return do
+                        File.open(File.join(raw_local_dir, 'source.yml'), 'w') do |io|
+                            YAML.dump(Hash['name' => 'test'], io)
+                        end
+                    end
+                    ops.update_remote_package_set(vcs, checkout_only: false)
                 end
             end
 
