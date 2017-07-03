@@ -14,6 +14,7 @@ module Autoproj
 
             def initialize(ws = Workspace.default)
                 @ws = ws
+                @env_sh_updated = nil
             end
 
             # Normalizes the arguments given by the user on the command line
@@ -191,6 +192,22 @@ module Autoproj
                 end
 
                 return args, remaining.to_sym_keys
+            end
+
+            def export_env_sh(shell_helpers: ws.config.shell_helpers?)
+                if ws.export_env_sh(shell_helpers: shell_helpers)
+                    @env_sh_updated = true
+                else
+                    @env_sh_updated = false
+                end
+            end
+
+            def notify_env_sh_updated
+                if @env_sh_updated == true
+                    Autoproj.message "  updated: #{ws.root_dir}/#{Autoproj::ENV_FILENAME}", :green
+                elsif @env_sh_updated == false
+                    Autoproj.message "  left unchanged: #{ws.root_dir}/#{Autoproj::ENV_FILENAME}", :green
+                end
             end
         end
     end

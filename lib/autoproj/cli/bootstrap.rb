@@ -80,6 +80,9 @@ autoproj bootstrap '#{ARGV.join("'")}'
                     raise
                 end
             end
+
+            def notify_env_sh_updated
+            end
         end
     end
 end

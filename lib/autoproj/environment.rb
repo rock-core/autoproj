@@ -35,7 +35,12 @@ module Autoproj
                 source_after(File.join(shell_dir, "autoproj_sh"))
             end
 
-            File.open(filename, "w") do |io|
+            existing_content =
+                begin File.read(filename)
+                rescue SystemCallError
+                end
+
+            StringIO.open(new_content = String.new, 'w') do |io|
                 if inherit?
                     io.write <<-EOF
                     if test -n "$AUTOPROJ_CURRENT_ROOT" && test "$AUTOPROJ_CURRENT_ROOT" != "#{root_dir}"; then
@@ -45,6 +50,11 @@ module Autoproj
                     EOF
                 end
                 super(io)
+            end
+
+            if new_content != existing_content
+                File.open(filename, 'w') { |io| io.write new_content }
+                true
             end
         end
     end

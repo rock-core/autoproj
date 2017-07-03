@@ -82,7 +82,7 @@ module Autoproj
 
                 ws.config.validate_ruby_executable
                 ws.config.set 'reused_autoproj_installations', options[:reuse], true
-                ws.env.export_env_sh(nil, shell_helpers: ws.config.shell_helpers?)
+                ws.env.export_env_sh(shell_helpers: ws.config.shell_helpers?)
 
                 # If we are not getting the installation setup from a VCS, copy the template
                 # files
@@ -110,7 +110,7 @@ module Autoproj
                     url = VCSDefinition.to_absolute_url(url, ws.root_dir)
                     do_switch_config(false, type, url, *options)
                 end
-                ws.env.export_env_sh(nil, shell_helpers: ws.config.shell_helpers?)
+                ws.env.export_env_sh(shell_helpers: ws.config.shell_helpers?)
                 ws.config.save
             end
 

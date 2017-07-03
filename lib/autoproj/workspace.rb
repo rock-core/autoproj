@@ -621,7 +621,7 @@ module Autoproj
         end
 
         # Export the workspace's env.sh file
-        def export_env_sh(package_names = all_present_packages, shell_helpers: true)
+        def export_env_sh(package_names = nil, shell_helpers: true)
             env = self.env.dup
             manifest.all_selected_source_packages.each do |pkg|
                 pkg.autobuild.apply_env(env)

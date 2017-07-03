@@ -127,9 +127,6 @@ module Autoproj
                     ws.install_os_packages(osdep_packages, **osdeps_options)
                 end
 
-                ws.export_env_sh(source_packages)
-                Autoproj.message "  updated #{ws.root_dir}/#{Autoproj::ENV_FILENAME}", :green
-
                 if import_failure && configuration_import_failure
                     raise ImportFailed.new(configuration_import_failure.original_errors + import_failure.original_errors)
                 elsif import_failure
@@ -139,6 +136,9 @@ module Autoproj
                 end
 
                 return command_line_selection, source_packages, osdep_packages
+
+            ensure
+                export_env_sh
             end
 
             def finish_loading_configuration(selected_packages)
