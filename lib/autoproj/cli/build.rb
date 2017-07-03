@@ -74,6 +74,8 @@ module Autoproj
                 Autobuild.do_build = true
                 ops.build_packages(source_packages, parallel: parallel)
                 Autobuild.apply(source_packages, "autoproj-build", ['install'])
+            ensure
+                export_env_sh
             end
         end
     end
