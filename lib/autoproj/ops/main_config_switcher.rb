@@ -14,7 +14,7 @@ module Autoproj
             #
             # @see check_root_dir_empty
             EXPECTED_ROOT_ENTRIES = [".", "..", "autoproj_bootstrap",
-                                     ".gems", "bootstrap.sh", ENV_FILENAME].to_set
+                                     ".autoproj", "bootstrap.sh", ENV_FILENAME].to_set
 
             # Verifies that {#root_dir} contains only expected entries, to make
             # sure that the user bootstraps into a new directory
