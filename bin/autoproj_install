@@ -48,6 +48,7 @@ module Autoproj
                 @autoproj_options = Array.new
 
                 @env = Hash.new
+                env['RUBYOPT'] = []
                 env['RUBYLIB'] = []
                 env['GEM_PATH'] = []
                 env['GEM_HOME'] = []
@@ -261,14 +262,19 @@ module Autoproj
                 end
             end
 
-            def install_bundler(gem_program)
+            def install_bundler(gem_program, silent: false)
                 local = ['--local'] if local?
 
+                redirection = Hash.new
+                if silent
+                    redirection = Hash[out: :close]
+                end
+
                 result = system(
-                    env_for_child,
+                    env_for_child.merge('GEM_HOME' => gems_gem_home),
                     Gem.ruby, gem_program, 'install', '--env-shebang', '--no-document', '--no-format-executable', '--clear-sources', '--source', gem_source,
                         *local,
-                        "--bindir=#{File.join(gems_gem_home, 'bin')}", 'bundler')
+                        "--bindir=#{File.join(gems_gem_home, 'bin')}", 'bundler', **redirection)
 
                 if !result
                     STDERR.puts "FATAL: failed to install bundler in #{gems_gem_home}"
@@ -575,7 +581,6 @@ require 'bundler/setup'
             def stage2(*vars)
                 require 'autobuild'
                 puts "saving temporary env.sh and .autoproj/env.sh"
-                puts "saving env.sh and .autoproj/env.sh"
                 save_env_sh(*vars)
                 puts "running 'autoproj envsh' to generate a proper env.sh"
                 if !system(Gem.ruby, autoproj_path, 'envsh', *autoproj_options)
