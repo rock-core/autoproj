@@ -7,8 +7,9 @@ module Autoproj
                 options
             end
 
-            def run(shell_helpers: ws.config.shell_helpers?)
+            def run(**options)
                 initialize_and_load
+                shell_helpers = options.fetch(:shell_helpers, ws.config.shell_helpers?)
                 finalize_setup(Array.new)
                 export_env_sh(shell_helpers: shell_helpers)
             end
