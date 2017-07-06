@@ -486,6 +486,10 @@ module Autoproj
             ops = Ops::Import.new(self)
             ops.import_packages(selection, options)
         end
+
+        def load_all_available_package_manifests
+            manifest.load_all_available_package_manifests
+        end
         
         def setup_all_package_directories
             # Override the package directories from our reused installations

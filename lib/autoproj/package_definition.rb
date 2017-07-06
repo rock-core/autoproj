@@ -69,5 +69,10 @@ module Autoproj
                 block.call(autobuild)
             end
         end
+
+        # Whether this package is already checked out
+        def checked_out?
+            autobuild.checked_out?
+        end
     end
 end

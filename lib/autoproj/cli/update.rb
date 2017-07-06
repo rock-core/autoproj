@@ -203,22 +203,6 @@ module Autoproj
                 return import_failure.source_packages, import_failure.osdep_packages, import_failure
             end
 
-            def load_all_available_package_manifests
-                # Load the manifest for packages that are already present on the
-                # file system
-                ws.manifest.each_autobuild_package do |pkg|
-                    if pkg.checked_out?
-                        begin
-                            ws.manifest.load_package_manifest(pkg.name)
-                        rescue Interrupt
-                            raise
-                        rescue Exception => e
-                            Autoproj.warn "cannot load package manifest for #{pkg.name}: #{e.message}"
-                        end
-                    end
-                end
-            end
-
             def setup_update_from(other_root)
                 manifest.each_autobuild_package do |pkg|
                     if pkg.importer.respond_to?(:pick_from_autoproj_root)

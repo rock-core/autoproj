@@ -44,22 +44,6 @@ module Autoproj
                     return source_packages, osdep_packages, resolved_selection, config_selected
                 end
             end
-
-            def load_all_available_package_manifests
-                # Load the manifest for packages that are already present on the
-                # file system
-                ws.manifest.each_autobuild_package do |pkg|
-                    if pkg.checked_out?
-                        begin
-                            ws.manifest.load_package_manifest(pkg.name)
-                        rescue Interrupt
-                            raise
-                        rescue Exception => e
-                            Autoproj.warn "cannot load package manifest for #{pkg.name}: #{e.message}"
-                        end
-                    end
-                end
-            end
         end
     end
 end

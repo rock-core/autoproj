@@ -31,7 +31,7 @@ module Autoproj
                     Autoproj.error "no package set, packages or OS packages match #{user_selection.join(" ")}"
                     return
                 elsif !source_packages.empty? || !all_matching_osdeps.empty?
-                    load_all_available_package_manifests
+                    ws.load_all_available_package_manifests
                     revdeps = ws.manifest.compute_revdeps
                 end
 
