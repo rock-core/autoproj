@@ -195,17 +195,15 @@ module Autoproj
             end
 
             def export_env_sh(shell_helpers: ws.config.shell_helpers?)
-                if ws.export_env_sh(shell_helpers: shell_helpers)
-                    @env_sh_updated = true
-                else
-                    @env_sh_updated = false
-                end
+                @env_sh_updated = ws.export_env_sh(shell_helpers: shell_helpers)
             end
 
             def notify_env_sh_updated
-                if @env_sh_updated == true
+                return if @env_sh_updated.nil?
+
+                if @env_sh_updated
                     Autoproj.message "  updated: #{ws.root_dir}/#{Autoproj::ENV_FILENAME}", :green
-                elsif @env_sh_updated == false
+                else
                     Autoproj.message "  left unchanged: #{ws.root_dir}/#{Autoproj::ENV_FILENAME}", :green
                 end
             end
