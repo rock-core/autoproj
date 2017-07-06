@@ -68,10 +68,8 @@ module Autoproj
 
             def run(selected_packages, options)
                 ws.manifest.accept_unavailable_osdeps = !options[:osdeps]
-
                 ws.setup
                 ws.autodetect_operating_system(force: true)
-
                 if options[:bundler]
                     ws.update_bundler
                 end
@@ -88,15 +86,18 @@ module Autoproj
                         keep_going: options[:keep_going],
                         retry_count: options[:retry_count])
                 rescue ImportFailed => configuration_import_failure
-                    if !options[:keep_going] || !options[:packages]
+                    if !options[:keep_going]
                         raise
                     end
                 ensure
                     ws.config.save
                 end
 
-                if !options[:packages]
-                    return [], [], []
+                if options[:packages]
+                    command_line_selection, selected_packages =
+                        finish_loading_configuration(selected_packages)
+                else
+                    command_line_selection, selected_packages = [], PackageSelection.new
                 end
 
                 osdeps_options = normalize_osdeps_options(
@@ -105,8 +106,6 @@ module Autoproj
                     osdeps: options[:osdeps],
                     osdeps_filter_uptodate: options[:osdeps_filter_uptodate])
 
-                command_line_selection, selected_packages =
-                    finish_loading_configuration(selected_packages)
                 source_packages, osdep_packages, import_failure = 
                     update_packages(
                         selected_packages,
@@ -127,6 +126,8 @@ module Autoproj
                     ws.install_os_packages(osdep_packages, **osdeps_options)
                 end
 
+                export_env_sh
+
                 if import_failure && configuration_import_failure
                     raise ImportFailed.new(configuration_import_failure.original_errors + import_failure.original_errors)
                 elsif import_failure
@@ -136,9 +137,6 @@ module Autoproj
                 end
 
                 return command_line_selection, source_packages, osdep_packages
-
-            ensure
-                export_env_sh
             end
 
             def finish_loading_configuration(selected_packages)
