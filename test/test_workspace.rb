@@ -136,9 +136,15 @@ module Autoproj
 
                 # First, we need to package autoproj as-is so that we can
                 # install while using the gem server
-                capture_subprocess_io do
+                install_successful = false
+                out, err = capture_subprocess_io do
                     system("rake", "build")
-                    Bundler.clean_system(Hash['GEM_HOME' => fixture_gem_home], Ops::Install.guess_gem_program, 'install', '--no-document', File.join('pkg', "autoproj-#{VERSION}.gem"))
+                    install_successful = Bundler.clean_system(
+                        Hash['GEM_HOME' => fixture_gem_home],
+                        Ops::Install.guess_gem_program, 'install', '--no-document', File.join('pkg', "autoproj-#{VERSION}.gem"))
+                end
+                if !install_successful
+                    flunk("failed to install the autoproj gem in the mock repository:\n#{err}")
                 end
 
                 autobuild_full_path  = find_gem_dir('autobuild').full_gem_path
