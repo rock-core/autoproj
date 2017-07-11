@@ -18,10 +18,17 @@ module Autoproj
             def run(selection, options = Hash.new)
                 initialize_and_load
                 packages, _ = normalize_command_line_package_selection(selection)
+
+                deps = if options.has_key?(:deps)
+                           options[:deps]
+                       else
+                           selection.empty?
+                       end
+
                 source_packages, * = resolve_selection(
-                    selection,
-                    recursive: false)
-                if packages.empty?
+                    packages,
+                    recursive: deps)
+                if source_packages.empty?
                     raise ArgumentError, "no packages or OS packages match #{selection.join(" ")}"
                 end
 

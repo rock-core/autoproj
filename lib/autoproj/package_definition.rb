@@ -74,5 +74,10 @@ module Autoproj
         def checked_out?
             autobuild.checked_out?
         end
+
+        # Add another package as a dependency of this one
+        def depends_on(pkg)
+            autobuild.depends_on(pkg.autobuild)
+        end
     end
 end

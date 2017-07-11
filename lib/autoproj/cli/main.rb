@@ -172,7 +172,22 @@ In this case, the default is false
             end
 
             desc 'clean [PACKAGES]', 'remove build byproducts for the given packages'
-            option :all,
+            long_desc <<-EODESC
+                Remove build byproducts from disk
+
+                To avoid mistakes, 'clean' will ask for confirmation if no packages
+                are provided on the command line. Use --all to bypass this check (e.g.
+                in automated scripts)
+
+                When packages are explicitely provided on the command line, autoproj
+                will by default not clean the package dependencies. However, when
+                no packages are provided on the command line, all the workspace
+                packages will be cleaned. Use --deps=f or --deps=t to override
+                these defaults.
+            EODESC
+            option :deps, type: :boolean,
+                desc: "clean the given packages as well as their dependencies"
+            option :all, type: :boolean,
                 desc: 'bypass the safety question when you mean to clean all packages'
             def clean(*packages)
                 run_autoproj_cli(:clean, :Clean, Hash[], *packages)
