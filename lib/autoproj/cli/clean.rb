@@ -1,4 +1,5 @@
 require 'autoproj/cli/inspection_tool'
+require 'tty/prompt'
 
 module Autoproj
     module CLI
@@ -6,8 +7,8 @@ module Autoproj
             def validate_options(packages, options)
                 packages, options = super
                 if packages.empty? && !options[:all]
-                    opt = BuildOption.new("", "boolean", {:doc => "this is going to clean all packages. Is that really what you want ?"}, nil)
-                    if !opt.ask(false)
+                    prompt = TTY::Prompt.new
+                    if !prompt.yes?("this is going to clean all packages. Is that really what you want ?")
                         raise Interrupt
                     end
                 end
