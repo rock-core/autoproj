@@ -81,7 +81,7 @@ manual. This is going to be a general policy going forward (2.x will
 not upgrade to 3.x and so on). Moreover, it will remain possible to
 bootstrap an autoproj 1.x workspace using this bootstrap script:
 
-   https://raw.githubusercontent.com/rock-core/autoproj/v1.13.3/bin/autoproj_bootstrap
+   https://raw.githubusercontent.com/rock-core/autoproj/v1/bin/autoproj_bootstrap
 
 To bootstrap a new install using autoproj 2.0, just follow the
 standard bootstrap process, which did not change. Note that by using
