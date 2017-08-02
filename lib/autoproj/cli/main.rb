@@ -230,10 +230,12 @@ In this case, the default is false
             end
 
             desc 'osdeps [PACKAGES]', 'install/update OS dependencies that are required by the given package (or for the whole installation if no packages are given'
+            option :system_info, type: :boolean,
+                desc: 'show information about the osdep system and quit'
             option :update, type: :boolean, default: true,
                 desc: 'whether already installed packages should be updated or not'
             def osdeps(*packages)
-                run_autoproj_cli(:osdeps, :OSDeps, Hash[], *packages)
+                run_autoproj_cli(:osdeps, :OSDeps, Hash[silent: options[:system_info]], *packages)
             end
 
             desc 'versions [PACKAGES]', 'generate a version file for the given packages, or all packages if none are given'
