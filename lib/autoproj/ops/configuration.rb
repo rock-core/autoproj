@@ -385,7 +385,7 @@ module Autoproj
                 keep_going: keep_going,
                 reset: reset,
                 retry_count: retry_count,
-                mainline: nil)
+                mainline: mainline)
         end
 
         def report_import_failure(what, reason)
