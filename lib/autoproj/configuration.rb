@@ -470,7 +470,11 @@ module Autoproj
 
         # The configuration as a key => value map
         def to_hash
-            @config.dup
+            result = Hash.new
+            @config.each do |key, (value, _)|
+                result[key] = value
+            end
+            result
         end
     end
 end

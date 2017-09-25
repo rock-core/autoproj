@@ -336,6 +336,17 @@ module Autoproj
                     source_definition: Hash['imports' => Array[Hash['type' => 'local', 'url' => 'path/to/package', 'auto_imports' => false]]]
             end
 
+            it "expands configuration variables in the imports" do
+                package_set.add_raw_imported_set(
+                    VCSDefinition.from_raw(type: 'git', url: 'https://github.com'),
+                    auto_imports: false)
+                ws.config.set 'test', 'path/to/package'
+
+                package_set.parse_source_definition(
+                    'imports' => Array[Hash['type' => 'local', 'url' => '$test', 'auto_imports' => false]])
+                assert_equal 'path/to/package', package_set.imports_vcs[0][0].url
+            end
+
             it "loads the constant definitions" do
                 package_set.add_constant_definition 'VAL', '10'
                 assert_loads_value 'constants_definitions',
@@ -344,7 +355,7 @@ module Autoproj
                     source_definition: Hash['constants' => Hash['VAL' => '20']]
             end
 
-            it "cross-expands the constants the constant definitions" do
+            it "cross-expands the constant definitions" do
                 package_set.parse_source_definition(
                     'constants' => Hash['A' => '10',
                                         'B' => "20$A"])
@@ -464,7 +475,17 @@ module Autoproj
                 assert_equal expected_raw, raw
                 assert_equal Hash[type: 'git', url: 'https://github.com', branch: 'master'], vcs
             end
-            it "expands variables in the VCS entries" do
+            it "expands configuration variables in the VCS entries" do
+                ws.config.set 'test', '/path/to/package'
+                vcs, raw = package_set.version_control_field(
+                    'package', [
+                        [flexmock(:=== => true), Hash['type' => 'local', 'url' => '$test']]
+                    ])
+
+                assert_equal [VCSDefinition::RawEntry.new(package_set, package_set.source_file, Hash['type' => 'local', 'url' => '$test'])], raw
+                assert_equal Hash[type: 'local', url: '/path/to/package'], vcs
+            end
+            it "expands constants in the VCS entries" do
                 vcs, raw = package_set.version_control_field(
                     'package', [
                         [flexmock(:=== => true), Hash['type' => 'local', 'url' => '$AUTOPROJ_ROOT']]
