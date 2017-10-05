@@ -114,9 +114,7 @@ module Autoproj
                     false
                 else
                     if pkg.checked_out?
-                        Autoproj.each_post_import_block(pkg) do |block|
-                            block.call(pkg)
-                        end
+                        process_post_import_blocks(pkg)
                     end
                     import_next_step(pkg, reverse_dependencies)
                 end
@@ -334,7 +332,7 @@ module Autoproj
                 end
             end
             
-            def finalize_package_load(processed_packages)
+            def finalize_package_load(processed_packages, auto_exclude: auto_exclude?)
                 manifest = ws.manifest
 
                 all = Set.new
@@ -349,10 +347,14 @@ module Autoproj
 
                     pkg_definition = manifest.find_package_definition(pkg_name)
                     pkg = pkg_definition.autobuild
-                    if !processed_packages.include?(pkg_definition) && File.directory?(pkg.srcdir)
-                        manifest.load_package_manifest(pkg.name)
-                        Autoproj.each_post_import_block(pkg) do |block|
-                            block.call(pkg)
+                    if !processed_packages.include?(pkg_definition) && pkg.checked_out?
+                        begin
+                            manifest.load_package_manifest(pkg.name)
+                            process_post_import_blocks(pkg)
+                        rescue Exception => e
+                            raise if !auto_exclude
+                            manifest.exclude_package(pkg.name, "#{pkg.name} had an error when being loaded (#{e.message}) and auto_exclude is true")
+                            next
                         end
                     end
 
@@ -403,7 +405,7 @@ module Autoproj
                     raise failures.first
                 end
 
-                finalize_package_load(all_processed_packages)
+                finalize_package_load(all_processed_packages, auto_exclude: auto_exclude)
 
                 all_enabled_osdeps = selection.each_osdep_package_name.to_set
                 all_enabled_sources = all_processed_packages.map(&:name)
@@ -439,6 +441,12 @@ module Autoproj
             ensure
                 if ws.config.import_log_enabled? && Autoproj::Ops::Snapshot.update_log_available?(manifest)
                     update_log_for_processed_packages(all_processed_packages || Array.new, $!)
+                end
+            end
+
+            def process_post_import_blocks(pkg)
+                Autoproj.each_post_import_block(pkg) do |block|
+                    block.call(pkg)
                 end
             end
 
