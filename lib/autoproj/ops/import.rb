@@ -2,8 +2,19 @@ module Autoproj
     module Ops
         class Import
             attr_reader :ws
+
+            # Whether packages are added to exclusions if they error during the
+            # import process
+            #
+            # This is mostly meant for CI operations
+            def auto_exclude?
+                @auto_exclude
+            end
+            attr_writer :auto_exclude
+
             def initialize(ws)
                 @ws = ws
+                @auto_exclude = false
             end
 
             def mark_exclusion_along_revdeps(pkg_name, revdeps, chain = [], reason = nil)
@@ -80,10 +91,15 @@ module Autoproj
                 end
             end
 
-            def post_package_import(selection, manifest, pkg, reverse_dependencies)
+            def post_package_import(selection, manifest, pkg, reverse_dependencies, auto_exclude: auto_exclude?)
                 Rake::Task["#{pkg.name}-import"].instance_variable_set(:@already_invoked, true)
                 if pkg.checked_out?
-                    manifest.load_package_manifest(pkg.name)
+                    begin
+                        manifest.load_package_manifest(pkg.name)
+                    rescue Exception => e
+                        raise if !auto_exclude
+                        manifest.add_exclusion(pkg.name, "#{pkg.name} failed to import with #{e} and auto_exclude was true")
+                    end
                 end
 
                 # The package setup mechanisms might have added an exclusion
@@ -158,6 +174,7 @@ module Autoproj
                                          keep_going: false,
                                          install_vcs_packages: Hash.new,
                                          non_imported_packages: :checkout,
+                                         auto_exclude: auto_exclude?,
                                          **import_options)
 
                 if ![:checkout, :ignore, :return].include?(non_imported_packages)
@@ -275,6 +292,9 @@ module Autoproj
                     if reason
                         if reason.kind_of?(Autobuild::InteractionRequired)
                             main_thread_imports << pkg
+                        elsif auto_exclude
+                            manifest.add_exclusion(pkg.name, "#{pkg.name} failed to import with #{reason} and auto_exclude was true")
+                            selection.filter_excluded_and_ignored_packages(manifest)
                         else
                             # One importer failed... terminate
                             Autoproj.error "import of #{pkg.name} failed"
@@ -284,7 +304,9 @@ module Autoproj
                             failures << reason
                         end
                     else
-                        if new_packages = post_package_import(selection, manifest, pkg.autobuild, reverse_dependencies)
+                        if new_packages = post_package_import(
+                                selection, manifest, pkg.autobuild, reverse_dependencies,
+                                auto_exclude: auto_exclude)
                             # Excluded dependencies might have caused the package to be
                             # excluded as well ... do not add any dependency to the
                             # processing queue if it is the case
@@ -363,6 +385,7 @@ module Autoproj
                                 recursive: true,
                                 keep_going: false,
                                 install_vcs_packages: Hash.new,
+                                auto_exclude: auto_exclude?,
                                 **import_options)
 
                 manifest = ws.manifest
@@ -373,6 +396,7 @@ module Autoproj
                     keep_going: keep_going,
                     recursive: recursive,
                     install_vcs_packages: install_vcs_packages,
+                    auto_exclude: auto_exclude,
                     **import_options)
 
                 if !keep_going && !failures.empty?

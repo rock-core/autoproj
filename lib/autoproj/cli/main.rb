@@ -128,6 +128,8 @@ module Autoproj
                 desc: 'maximum number of parallel jobs'
             option :mainline, type: :string,
                 desc: "compare to the given baseline. if 'true', the comparison will ignore any override, otherwise it will take into account overrides only up to the given package set"
+            option :auto_exclude, type: :boolean,
+                desc: 'if true, packages that fail to import will be excluded from the build'
             def update(*packages)
                 run_autoproj_cli(:update, :Update, Hash[silent: false], *packages)
             end
@@ -157,7 +159,8 @@ In this case, the default is false
                 desc: 'provide -n for --no-deps'
             option :parallel, aliases: :p, type: :numeric,
                 desc: 'maximum number of parallel jobs'
-
+            option :auto_exclude, type: :boolean,
+                desc: 'if true, packages that fail to import will be excluded from the build'
             def build(*packages)
                 run_autoproj_cli(:build, :Build, Hash[silent: false], *packages)
             end

@@ -117,7 +117,8 @@ module Autoproj
                         deps: options[:deps],
                         keep_going: options[:keep_going],
                         parallel: options[:parallel] || ws.config.parallel_import_level,
-                        retry_count: options[:retry_count])
+                        retry_count: options[:retry_count],
+                        auto_exclude: options[:auto_exclude])
 
                 ws.finalize_setup
                 ws.export_installation_manifest
@@ -176,7 +177,7 @@ module Autoproj
             def update_packages(selected_packages,
                 from: nil, checkout_only: false, only_local: false, reset: false,
                 deps: true, keep_going: false, parallel: 1,
-                retry_count: 0, osdeps: true, osdeps_options: Hash.new)
+                retry_count: 0, osdeps: true, auto_exclude: false, osdeps_options: Hash.new)
 
                 if from
                     setup_update_from(from)
@@ -192,7 +193,8 @@ module Autoproj
                                         keep_going: keep_going,
                                         parallel: parallel,
                                         retry_count: retry_count,
-                                        install_vcs_packages: (osdeps_options if osdeps))
+                                        install_vcs_packages: (osdeps_options if osdeps),
+                                        auto_exclude: auto_exclude)
                 return source_packages, osdep_packages, nil
             rescue PackageImportFailed => import_failure
                 if !keep_going
