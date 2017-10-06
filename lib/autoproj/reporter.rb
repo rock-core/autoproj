@@ -52,25 +52,21 @@ module Autoproj
         end
     end
 
-    def self.report(options = Hash.new)
-        options = Kernel.validate_options options,
-            root_dir: nil,
-            silent: false,
-            debug: Autobuild.debug
-
+    def self.report(root_dir: nil, silent: false, debug: Autobuild.debug,
+                    on_package_failures: Autobuild::Reporting.default_report_on_package_failures)
         reporter = Autoproj::Reporter.new
         Autobuild::Reporting << reporter
-        Autobuild::Reporting.report do
+        package_failures = Autobuild::Reporting.report(on_package_failures: on_package_failures) do
             yield
         end
-        if !options[:silent]
+        if !silent && !package_failures.empty?
             Autobuild::Reporting.success
         end
 
     rescue Interrupt
         STDERR.puts
         STDERR.puts Autobuild.color("Interrupted by user", :red, :bold)
-        if Autobuild.debug then raise
+        if on_package_failures == :raise then raise
         else exit 1
         end
     rescue SystemExit
@@ -78,14 +74,14 @@ module Autoproj
     rescue Exception => e
         STDERR.puts
         STDERR.puts Autobuild.color(e.message, :red, :bold)
-        if root_dir = options[:root_dir]
+        if root_dir = root_dir
             root_dir = /#{Regexp.quote(root_dir)}(?!\/\.gems)/
             e.backtrace.find_all { |path| path =~ root_dir }.
                 each do |path|
                     STDERR.puts Autobuild.color("  in #{path}", :red, :bold)
                 end
         end
-        if options[:debug] then raise
+        if on_package_failures == :raise then raise
         else exit 1
         end
     ensure

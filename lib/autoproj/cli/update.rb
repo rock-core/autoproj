@@ -129,12 +129,14 @@ module Autoproj
 
                 export_env_sh
 
-                if import_failure && configuration_import_failure
-                    raise ImportFailed.new(configuration_import_failure.original_errors + import_failure.original_errors)
-                elsif import_failure
-                    raise import_failure
-                elsif configuration_import_failure
-                    raise configuration_import_failure
+                if !options[:auto_exclude]
+                    if import_failure && configuration_import_failure
+                        raise ImportFailed.new(configuration_import_failure.original_errors + import_failure.original_errors)
+                    elsif import_failure
+                        raise import_failure
+                    elsif configuration_import_failure
+                        raise configuration_import_failure
+                    end
                 end
 
                 return command_line_selection, source_packages, osdep_packages

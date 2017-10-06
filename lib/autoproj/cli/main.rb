@@ -25,7 +25,7 @@ module Autoproj
             no_commands do
                 def run_autoproj_cli(filename, classname, report_options, *args, **extra_options)
                     require "autoproj/cli/#{filename}"
-                    Autoproj.report(Hash[silent: !options[:debug], debug: options[:debug]].merge(report_options)) do
+                    Autoproj.report(**Hash[silent: !options[:debug], debug: options[:debug]].merge(report_options)) do
                         options = self.options.dup
                         # We use --local on the CLI but the APIs are expecting
                         # only_local
@@ -131,7 +131,12 @@ module Autoproj
             option :auto_exclude, type: :boolean,
                 desc: 'if true, packages that fail to import will be excluded from the build'
             def update(*packages)
-                run_autoproj_cli(:update, :Update, Hash[silent: false], *packages)
+                report_options = Hash[silent: false, on_package_failures: :raise]
+                if options[:auto_exclude]
+                    report_options[:on_package_failures] = :report
+                end
+
+                run_autoproj_cli(:update, :Update, report_options, *packages)
             end
 
             desc 'build [PACKAGES]', 'build packages'
@@ -162,6 +167,11 @@ In this case, the default is false
             option :auto_exclude, type: :boolean,
                 desc: 'if true, packages that fail to import will be excluded from the build'
             def build(*packages)
+                report_options = Hash[silent: false, on_package_failures: :raise]
+                if options[:auto_exclude]
+                    report_options[:on_package_failures] = :report
+                end
+
                 run_autoproj_cli(:build, :Build, Hash[silent: false], *packages)
             end
 
