@@ -334,6 +334,25 @@ EOD
             end
 
             desc 'switch-config VCS URL [OPTIONS]', 'switches the main build configuration'
+            long_desc <<-EOD
+Changes source of the main configuration that is checked out in autoproj/
+
+For instance,
+  autoproj switch-config git http://github.com/rock-core/buildconf
+
+Options are of the form key=value. To for instance specify a git branch one does
+  autoproj switch-config git http://github.com/rock-core/buildconf branch=test
+
+The VCS types and options match the types and options available in the source.yml
+files.
+
+If the URL is changed, autoproj will delete the existing autoproj folder. Alternatively,
+when using a VCS that supports it (right now, git), it is possible to change a VCS
+option without deleting the folder. Simply omit the VCS type and URL:
+
+  autoproj switch-config branch=master
+            EOD
+
             def switch_config(*args)
                 run_autoproj_cli(:switch_config, :SwitchConfig, Hash[], *args)
             end
