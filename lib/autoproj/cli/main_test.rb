@@ -7,7 +7,12 @@ module Autoproj
 
             no_commands do
                 def report(report_options = Hash.new)
-                    Autoproj.report(Hash[silent: !options[:debug], debug: options[:debug]].merge(report_options)) do
+                    if Autobuild::Subprocess.transparent_mode = options[:tool]
+                        Autobuild.silent = true
+                        Autobuild.color = false
+                        report_options[:silent] = true
+                    end
+                    Autoproj.report(Hash[tool: options[:tool], silent: !options[:debug], debug: options[:debug]].merge(report_options)) do
                         yield
                     end
                 end
@@ -59,6 +64,8 @@ module Autoproj
                 desc: 'return with a nonzero exit code if the test does not pass'
             option :coverage, type: :boolean, default: false,
                 desc: 'whether code coverage should be generated if possible'
+            option :tool, type: :boolean, default: false,
+                desc: "build in tool mode, which do not redirect the subcommand's outputs"
             def exec(*packages)
                 require 'autoproj/cli/test'
                 report do

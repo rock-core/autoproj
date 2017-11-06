@@ -25,7 +25,14 @@ module Autoproj
             no_commands do
                 def run_autoproj_cli(filename, classname, report_options, *args, **extra_options)
                     require "autoproj/cli/#{filename}"
-                    Autoproj.report(**Hash[silent: !options[:debug], debug: options[:debug]].merge(report_options)) do
+                    if Autobuild::Subprocess.transparent_mode = options[:tool]
+                        Autobuild.silent = true
+                        Autobuild.color = false
+                        report_options[:silent] = true
+                        extra_options[:silent] = true
+                    end
+
+                    Autoproj.report(**Hash[tool: options[:tool], silent: !options[:debug], debug: options[:debug]].merge(report_options)) do
                         options = self.options.dup
                         # We use --local on the CLI but the APIs are expecting
                         # only_local
@@ -166,13 +173,15 @@ In this case, the default is false
                 desc: 'maximum number of parallel jobs'
             option :auto_exclude, type: :boolean,
                 desc: 'if true, packages that fail to import will be excluded from the build'
+            option :tool, type: :boolean,
+                desc: "act as a build tool, transparently passing the subcommand's outputs to STDOUT"
             def build(*packages)
                 report_options = Hash[silent: false, on_package_failures: :raise]
                 if options[:auto_exclude]
                     report_options[:on_package_failures] = :report
                 end
 
-                run_autoproj_cli(:build, :Build, Hash[silent: false], *packages)
+                run_autoproj_cli(:build, :Build, Hash[silent: false].merge(report_options), *packages)
             end
 
             desc 'cache CACHE_DIR', 'create or update a cache directory that can be given to AUTOBUILD_CACHE_DIR'
