@@ -1,8 +1,8 @@
 module Autoproj
     # Manifest of installed packages imported from another autoproj installation
     class InstallationManifest
-        Package = Struct.new :name, :srcdir, :prefix, :builddir, :logdir, :dependencies
-        PackageSet = Struct.new :name, :raw_local_dir, :user_local_dir
+        Package = Struct.new :name, :type, :vcs, :srcdir, :prefix, :builddir, :logdir, :dependencies
+        PackageSet = Struct.new :name, :vcs, :raw_local_dir, :user_local_dir
 
         attr_reader :path
         attr_reader :packages
@@ -47,11 +47,11 @@ module Autoproj
                 raw.each do |entry|
                     if entry['package_set']
                         pkg_set = PackageSet.new(
-                            entry['package_set'], entry['raw_local_dir'], entry['user_local_dir'])
+                            entry['package_set'], entry['vcs'], entry['raw_local_dir'], entry['user_local_dir'])
                         package_sets[pkg_set.name] = pkg_set
                     else
                         pkg = Package.new(
-                            entry['name'], entry['srcdir'], entry['prefix'],
+                            entry['name'], entry['type'], entry['vcs'], entry['srcdir'], entry['prefix'],
                             entry['builddir'], entry['logdir'], entry['dependencies'])
                         packages[pkg.name] = pkg
                     end
@@ -64,12 +64,15 @@ module Autoproj
             File.open(path, 'w') do |io|
                 marshalled_package_sets = each_package_set.map do |v|
                     Hash['package_set' => v.name,
+                         'vcs' => v.vcs.to_hash,
                          'raw_local_dir' => v.raw_local_dir,
                          'user_local_dir' => v.user_local_dir]
                 end
-                marshalled_packages = each_package.map do |v|
-                    v = v.autobuild
+                marshalled_packages = each_package.map do |package_def|
+                    v = package_def.autobuild
                     Hash['name' => v.name,
+                         'type' => v.class.name,
+                         'vcs' => package_def.vcs.to_hash,
                          'srcdir' => v.srcdir,
                          'builddir' => (v.builddir if v.respond_to?(:builddir)),
                          'logdir' => v.logdir,
