@@ -52,15 +52,22 @@ module Autoproj
         end
     end
 
-    def self.report(root_dir: nil, silent: false, debug: Autobuild.debug,
+    def self.report(root_dir: nil, tool: false, silent: false, debug: Autobuild.debug,
                     on_package_failures: Autobuild::Reporting.default_report_on_package_failures)
         reporter = Autoproj::Reporter.new
         Autobuild::Reporting << reporter
-        package_failures = Autobuild::Reporting.report(on_package_failures: on_package_failures) do
+        package_failures = Autobuild::Reporting.report(on_package_failures: :report_silent) do
             yield
         end
-        if !silent && !package_failures.empty?
-            Autobuild::Reporting.success
+        if package_failures.empty?
+            if !silent
+                Autobuild::Reporting.success
+            end
+            return []
+        elsif !tool
+            Autobuild::Reporting.report_finish_on_error(
+                package_failures, on_package_failures: on_package_failures)
+        else exit 1
         end
 
     rescue Interrupt
@@ -71,19 +78,6 @@ module Autoproj
         end
     rescue SystemExit
         raise
-    rescue Exception => e
-        STDERR.puts
-        STDERR.puts Autobuild.color(e.message, :red, :bold)
-        if root_dir = root_dir
-            root_dir = /#{Regexp.quote(root_dir)}(?!\/\.gems)/
-            e.backtrace.find_all { |path| path =~ root_dir }.
-                each do |path|
-                    STDERR.puts Autobuild.color("  in #{path}", :red, :bold)
-                end
-        end
-        if on_package_failures == :raise then raise
-        else exit 1
-        end
     ensure
         Autobuild::Reporting.remove(reporter) if reporter
     end
