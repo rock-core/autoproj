@@ -624,13 +624,18 @@ module Autoproj
             install_manifest.save
         end
 
-        # Export the workspace's env.sh file
-        def export_env_sh(package_names = nil, shell_helpers: true)
+        # The environment as initialized by all selected packages
+        def full_env
             env = self.env.dup
             manifest.all_selected_source_packages.each do |pkg|
                 pkg.autobuild.apply_env(env)
             end
-            env.export_env_sh(shell_helpers: shell_helpers)
+            env
+        end
+
+        # Export the workspace's env.sh file
+        def export_env_sh(package_names = nil, shell_helpers: true)
+            full_env.export_env_sh(shell_helpers: shell_helpers)
         end
 
         def pristine_os_packages(packages, options = Hash.new)
