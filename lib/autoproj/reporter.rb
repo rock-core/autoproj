@@ -33,6 +33,11 @@ module Autoproj
         Autobuild.warn(message, *style)
     end
 
+    def self.report_interrupt(io = STDERR)
+        io.puts
+        io.puts color("Interrupted by user", :red, :bold)
+    end
+
     # Subclass of Autobuild::Reporter, used to display a message when the build
     # finishes/fails.
     class Reporter < Autobuild::Reporter
@@ -52,34 +57,44 @@ module Autoproj
         end
     end
 
-    def self.report(root_dir: nil, tool: false, silent: false, debug: Autobuild.debug,
+    def self.report(root_dir: nil, silent: nil, debug: Autobuild.debug,
+                    on_package_success: :report,
                     on_package_failures: Autobuild::Reporting.default_report_on_package_failures)
         reporter = Autoproj::Reporter.new
         Autobuild::Reporting << reporter
+        interrupted = nil
         package_failures = Autobuild::Reporting.report(on_package_failures: :report_silent) do
-            yield
+            begin
+                yield
+            rescue Interrupt => e
+                interrupted = e
+            end
         end
+
+        if !silent.nil?
+            on_package_success = silent ? :silent : :report
+        end
+        silent_errors = [:report_silent, :exit_silent].include?(on_package_failures)
+
         if package_failures.empty?
-            if !silent
+            if interrupted
+                raise interrupted
+            elsif on_package_success == :report
                 Autobuild::Reporting.success
             end
             return []
-        elsif !tool
+        else
             Autobuild::Reporting.report_finish_on_error(
-                package_failures, on_package_failures: on_package_failures)
-        else exit 1
+                package_failures, on_package_failures: on_package_failures, interrupted_by: interrupted)
         end
 
-    rescue Interrupt
-        STDERR.puts
-        STDERR.puts Autobuild.color("Interrupted by user", :red, :bold)
-        if on_package_failures == :raise then raise
-        else exit 1
-        end
     rescue SystemExit
         raise
     ensure
+        if !silent_errors && interrupted
+            report_interrupt
+        end
+
         Autobuild::Reporting.remove(reporter) if reporter
     end
 end
-

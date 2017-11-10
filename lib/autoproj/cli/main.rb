@@ -29,10 +29,11 @@ module Autoproj
                         Autobuild.silent = true
                         Autobuild.color = false
                         report_options[:silent] = true
+                        report_options[:on_package_failures] = :exit_silent
                         extra_options[:silent] = true
                     end
 
-                    Autoproj.report(**Hash[tool: options[:tool], silent: !options[:debug], debug: options[:debug]].merge(report_options)) do
+                    Autoproj.report(**Hash[silent: !options[:debug], debug: options[:debug]].merge(report_options)) do
                         options = self.options.dup
                         # We use --local on the CLI but the APIs are expecting
                         # only_local
@@ -158,7 +159,7 @@ module Autoproj
             option :rebuild, type: :boolean, default: false,
                 desc: 'clean and build the requested packages'
             option :osdeps, type: :boolean,
-                desc: 'controls whether missing osdeps should be installed. In rebuild mode, also controls whether the osdeps should be reinstalled or not (the default is to reinstall them)' 
+                desc: 'controls whether missing osdeps should be installed. In rebuild mode, also controls whether the osdeps should be reinstalled or not (the default is to reinstall them)'
             option :deps, type: :boolean,
                 desc: "controls whether the operation should apply to the package's dependencies as well. -n is a shortcut for --no-deps",
                 long_desc: <<-EOD
@@ -438,4 +439,3 @@ The format is a string in which special values can be expanded using a $VARNAME 
         end
     end
 end
-

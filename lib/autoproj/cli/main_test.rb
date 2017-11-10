@@ -10,14 +10,14 @@ module Autoproj
                     if Autobuild::Subprocess.transparent_mode = options[:tool]
                         Autobuild.silent = true
                         Autobuild.color = false
-                        report_options[:silent] = true
+                        report_options[:on_package_failure] = :exit_silent
                     end
-                    Autoproj.report(Hash[tool: options[:tool], silent: !options[:debug], debug: options[:debug]].merge(report_options)) do
+                    Autoproj.report(**Hash[debug: options[:debug]].merge(report_options)) do
                         yield
                     end
                 end
             end
-            
+
             desc 'enable [PACKAGES]', 'enable tests for the given packages (or for all packages if none are given)'
             option :deps, type: :boolean, default: false,
                 desc: 'controls whether the dependencies of the packages given on the command line should be enabled as well (the default is not)'
@@ -80,5 +80,3 @@ module Autoproj
         end
     end
 end
-
-
