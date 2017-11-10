@@ -287,7 +287,11 @@ are given, the packages will not be versioned. In other words,
             end
 
             stop_on_unknown_option! :log
-            desc 'log', "shows the log of autoproj updates"
+            desc 'log [REF]', "shows the log of autoproj updates"
+            option :since, type: :string, default: nil,
+                desc: 'show what got updated since the given version'
+            option :diff, type: :boolean, default: false,
+                desc: 'show the difference between two stages in the log'
             def log(*args)
                 run_autoproj_cli(:log, :Log, Hash[], *args)
             end
