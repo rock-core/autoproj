@@ -139,7 +139,7 @@ module Autoproj
             option :auto_exclude, type: :boolean,
                 desc: 'if true, packages that fail to import will be excluded from the build'
             def update(*packages)
-                report_options = Hash[silent: false, on_package_failures: :raise]
+                report_options = Hash[silent: false, on_package_failures: :exit]
                 if options[:auto_exclude]
                     report_options[:on_package_failures] = :report
                 end
@@ -177,7 +177,7 @@ In this case, the default is false
             option :tool, type: :boolean,
                 desc: "act as a build tool, transparently passing the subcommand's outputs to STDOUT"
             def build(*packages)
-                report_options = Hash[silent: false, on_package_failures: :raise]
+                report_options = Hash[silent: false, on_package_failures: :exit]
                 if options[:auto_exclude]
                     report_options[:on_package_failures] = :report
                 end
