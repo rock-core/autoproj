@@ -436,6 +436,12 @@ The format is a string in which special values can be expanded using a $VARNAME 
             def manifest(*name)
                 run_autoproj_cli(:manifest, :Manifest, Hash[silent: true], *name)
             end
+
+            desc 'exec', "runs a command, applying the workspace's environment first"
+            def exec(*args)
+                require 'autoproj/cli/exec'
+                CLI::Exec.new.run(*args)
+            end
         end
     end
 end
