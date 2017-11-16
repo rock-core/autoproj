@@ -176,6 +176,8 @@ In this case, the default is false
                 desc: 'if true, packages that fail to import will be excluded from the build'
             option :tool, type: :boolean,
                 desc: "act as a build tool, transparently passing the subcommand's outputs to STDOUT"
+            option :confirm, type: :boolean, default: nil,
+                desc: '--force and --rebuild will ask confirmation if applied to the whole workspace. Use --no-confirm to disable this confirmation'
             def build(*packages)
                 report_options = Hash[silent: false, on_package_failures: :exit]
                 if options[:auto_exclude]
