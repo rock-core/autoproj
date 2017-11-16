@@ -256,7 +256,7 @@ module Autoproj
                 flexmock(pkg_set).should_receive(:user_local_dir).and_return('/user/dir')
                 ws.export_installation_manifest
                 manifest = InstallationManifest.from_workspace_root(ws.root_dir)
-                assert_equal [InstallationManifest::PackageSet.new('rock.core', pkg_set_dir, '/user/dir')],
+                assert_equal [InstallationManifest::PackageSet.new('rock.core', Hash[type: 'none', url: nil], pkg_set_dir, '/user/dir')],
                     manifest.each_package_set.to_a
             end
             it "ignores selected osdeps" do
@@ -284,13 +284,13 @@ module Autoproj
                 manifest = InstallationManifest.from_workspace_root(ws.root_dir)
 
                 test_dep = InstallationManifest::Package.new(
-                    'test_dep', "#{srcdir}/test_dep", '/prefix/test_dep', '/builddir/test_dep', test_dep.autobuild.logdir, [])
+                    'test_dep', 'Autobuild::CMake', Hash[type: 'none', url: nil], "#{srcdir}/test_dep", '/prefix/test_dep', '/builddir/test_dep', test_dep.autobuild.logdir, [])
                 pkg      = InstallationManifest::Package.new(
-                    'pkg', "#{srcdir}/pkg", '/prefix/pkg', '/builddir/pkg', pkg.autobuild.logdir, ['test_dep'])
+                    'pkg', 'Autobuild::CMake', Hash[type: 'none', url: nil], "#{srcdir}/pkg", '/prefix/pkg', '/builddir/pkg', pkg.autobuild.logdir, ['test_dep'])
                 packages = manifest.each_package.to_a
                 assert_equal 2, packages.size
-                assert packages.include?(test_dep)
-                assert packages.include?(pkg)
+                assert packages.include?(test_dep), "expected #{packages} to include #{test_dep}"
+                assert packages.include?(pkg), "expected #{packages} to include #{pkg}"
             end
         end
 
