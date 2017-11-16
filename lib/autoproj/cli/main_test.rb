@@ -7,13 +7,17 @@ module Autoproj
 
             no_commands do
                 def report(report_options = Hash.new)
+                    options = self.options.merge(parent_options)
+                    extra_options = Hash.new
                     if Autobuild::Subprocess.transparent_mode = options[:tool]
                         Autobuild.silent = true
                         Autobuild.color = false
-                        report_options[:on_package_failure] = :exit_silent
+                        report_options[:silent] = true
+                        report_options[:on_package_failures] = :exit_silent
+                        extra_options[:silent] = true
                     end
                     Autoproj.report(**Hash[debug: options[:debug]].merge(report_options)) do
-                        yield
+                        yield(extra_options)
                     end
                 end
             end
@@ -66,14 +70,20 @@ module Autoproj
                 desc: 'whether code coverage should be generated if possible'
             option :tool, type: :boolean, default: false,
                 desc: "build in tool mode, which do not redirect the subcommand's outputs"
+            option :color, type: :boolean, default: TTY::Color.color?,
+                desc: 'enables or disables colored display (enabled by default if the terminal supports it)'
+            option :progress, type: :boolean, default: TTY::Color.color?,
+                desc: 'enables or disables progress display (enabled by default if the terminal supports it)'
             def exec(*packages)
                 require 'autoproj/cli/test'
-                report do
+                options = self.options.merge(parent_options)
+                report do |extra_options|
                     cli = Test.new
-                    Autobuild.pass_test_errors = options[:fail]
-                    Autobuild.ignore_errors = options[:keep_going]
-                    Autobuild::TestUtility.coverage_enabled = options[:coverage]
-                    args = cli.validate_options(packages, deps: options[:deps])
+                    Autobuild.pass_test_errors = options.delete(:fail)
+                    Autobuild.ignore_errors = options.delete(:keep_going)
+                    Autobuild::TestUtility.coverage_enabled = options.delete(:coverage)
+                    options.delete(:tool)
+                    args = cli.validate_options(packages, options.merge(extra_options))
                     cli.run(*args)
                 end
             end
