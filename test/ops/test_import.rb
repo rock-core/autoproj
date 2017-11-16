@@ -6,10 +6,10 @@ module Autoproj
             attr_reader :ops
             before do
                 ws_create
-                ws_define_package :cmake, '0'
-                ws_define_package :cmake, '1'
-                ws_define_package :cmake, '11'
-                ws_define_package :cmake, '12'
+                @pkg0 = ws_define_package :cmake, '0'
+                @pkg1 = ws_define_package :cmake, '1'
+                @pkg11 = ws_define_package :cmake, '11'
+                @pkg12 = ws_define_package :cmake, '12'
                 ws.manifest.exclude_package '0', 'reason0'
                 @ops = Import.new(ws)
             end
@@ -41,24 +41,44 @@ module Autoproj
                 end
             end
 
+            describe "#import_packages" do
+                before do
+                    @selection = PackageSelection.new
+                    flexmock(ws.manifest)
+                end
+
+                it "loads information about non-excluded packages that are present on disk but are not required by the build" do
+                    flexmock(ops).should_receive(:import_selected_packages).
+                        and_return([[@pkg1], []])
+
+                    ws.manifest.should_receive(:load_package_manifest).once.with('11')
+                    ops.should_receive(:process_post_import_blocks).once.with(@pkg11.autobuild)
+                    ws.manifest.should_receive(:load_package_manifest).once.with('12')
+                    ops.should_receive(:process_post_import_blocks).once.with(@pkg12.autobuild)
+                    ops.import_packages(@selection)
+                end
+
+                describe "auto_exclude: true" do
+                    it "excludes packages that have failed to load" do
+                        flexmock(ops).should_receive(:import_selected_packages).
+                            and_return([[@pkg1], []])
+
+                        ws.manifest.should_receive(:load_package_manifest).once.with('11').
+                            and_raise(ArgumentError)
+                        ws.manifest.should_receive(:load_package_manifest).once.with('12')
+                        ops.should_receive(:process_post_import_blocks).once.with(@pkg12.autobuild)
+                        ops.import_packages(@selection, auto_exclude: true)
+                        assert ws.manifest.excluded?('11')
+                    end
+                end
+            end
+
             describe "#import_selected_packages" do
                 attr_reader :base_cmake
                 before do
                     @base_cmake = ws_define_package :cmake, 'base/cmake'
                     mock_vcs(base_cmake)
                     flexmock(ws.os_package_installer).should_receive(:install).by_default
-                end
-
-                def mock_vcs(package, type: :git, url: 'https://github.com', interactive: false)
-                    package.vcs = VCSDefinition.from_raw(type: type, url: url)
-                    package.autobuild.importer = flexmock(interactive?: interactive)
-                end
-
-                def mock_selection(*packages)
-                    mock = flexmock
-                    mock.should_receive(:each_source_package_name).
-                        and_return(packages.map(&:name))
-                    mock
                 end
 
                 describe "non_imported_packages: :ignore" do
@@ -180,7 +200,7 @@ module Autoproj
                     flexmock(base_cmake.autobuild.importer).should_receive(:import).
                         with(base_cmake.autobuild, Hash).once
                     flexmock(ops).should_receive(:post_package_import).
-                        with(any, any, base_cmake.autobuild, any).
+                        with(any, any, base_cmake.autobuild, any, Hash).
                         once
                     ops.import_selected_packages(mock_selection(base_cmake))
                 end
@@ -189,7 +209,7 @@ module Autoproj
                     FileUtils.mkdir_p(base_cmake.autobuild.srcdir = File.join(ws.root_dir, 'package'))
                     base_cmake.autobuild.importer = nil
                     flexmock(ops).should_receive(:post_package_import).
-                        with(any, any, base_cmake.autobuild, any).
+                        with(any, any, base_cmake.autobuild, any, Hash).
                         once
                     ops.import_selected_packages(mock_selection(base_cmake))
                 end
@@ -206,7 +226,7 @@ module Autoproj
                             end
                         end
                     flexmock(ops).should_receive(:post_package_import).
-                        with(any, any, non_interactive.autobuild, any).
+                        with(any, any, non_interactive.autobuild, any, Hash).
                         once.globally.ordered
                     flexmock(base_cmake.autobuild).should_receive(:import).once.globally.ordered.
                         with(hsh(allow_interactive: true)).
@@ -216,7 +236,7 @@ module Autoproj
                             end
                         end
                     flexmock(ops).should_receive(:post_package_import).
-                        with(any, any, base_cmake.autobuild, any).
+                        with(any, any, base_cmake.autobuild, any, Hash).
                         once.globally.ordered
 
                     ops.import_selected_packages(mock_selection(non_interactive, base_cmake))
@@ -235,7 +255,7 @@ module Autoproj
                         end
 
                     flexmock(ops).should_receive(:post_package_import).
-                        with(any, any, base_cmake.autobuild, any).
+                        with(any, any, base_cmake.autobuild, any, Hash).
                         once.globally.ordered
                     ops.import_selected_packages(mock_selection(base_cmake))
                 end
@@ -278,6 +298,7 @@ module Autoproj
                     flexmock(ops).should_receive(:post_package_import).never
                     ops.import_selected_packages(mock_selection(base_cmake))
                 end
+
 
                 it "does not wait on a package for which it failed to queue the work" do
                     mock_vcs(base_cmake)
@@ -331,6 +352,41 @@ module Autoproj
                     end
                     assert_equal "test is selected in the manifest or on the command line, but it expands to parent, which is excluded from the build: test (dependency chain: parent>child)", e.message
                 end
+
+                describe "auto_exclude: true" do
+                    attr_reader :base_types
+                    before do
+                        mock_vcs(base_cmake)
+                        @base_types = ws_define_package :cmake, 'base/types'
+                        mock_vcs(@base_types)
+                        flexmock(@base_types.autobuild).should_receive(:import)
+                        flexmock(ws.manifest).should_receive(:load_package_manifest).with('base/types')
+                    end
+
+                    it "auto-excludes a package that failed to import" do
+                        flexmock(base_cmake.autobuild).should_receive(:import).once.
+                            and_raise(ArgumentError)
+
+                        selection = PackageSelection.new
+                        selection.select 'test', ['base/types', 'base/cmake'], weak: true
+                        ops.import_selected_packages(selection, auto_exclude: true)
+
+                        assert ws.manifest.excluded?('base/cmake')
+                        refute ws.manifest.excluded?('base/types')
+                    end
+                    it "auto-excludes a package whose manifest failed to load" do
+                        flexmock(base_cmake.autobuild).should_receive(:import)
+                        flexmock(ws.manifest).should_receive(:load_package_manifest).with('base/cmake').
+                            and_raise(ArgumentError)
+
+                        selection = PackageSelection.new
+                        selection.select 'test', ['base/types', 'base/cmake'], weak: true
+                        ops.import_selected_packages(selection, auto_exclude: true)
+
+                        assert ws.manifest.excluded?('base/cmake')
+                        refute ws.manifest.excluded?('base/types')
+                    end
+                end
             end
 
             describe "#finalize_package_load" do
@@ -370,6 +426,18 @@ module Autoproj
                         with('not_processed').never
                     ops.finalize_package_load([])
                 end
+            end
+
+            def mock_vcs(package, type: :git, url: 'https://github.com', interactive: false)
+                package.vcs = VCSDefinition.from_raw(type: type, url: url)
+                package.autobuild.importer = flexmock(interactive?: interactive)
+            end
+
+            def mock_selection(*packages)
+                mock = flexmock
+                mock.should_receive(:each_source_package_name).
+                    and_return(packages.map(&:name))
+                mock
             end
         end
     end

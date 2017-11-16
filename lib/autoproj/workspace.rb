@@ -333,6 +333,14 @@ module Autoproj
             Ops::Install.rewrite_shims(binstubs, config.ruby_executable, gemfile, config.gems_gem_home)
         end
 
+        def update_bundler
+            require 'autoproj/ops/install'
+            gem_program = Ops::Install.guess_gem_program
+            install = Ops::Install.new(root_dir)
+            Autoproj.message "  updating bundler"
+            install.install_bundler(gem_program, silent: true)
+        end
+
         def update_autoproj(restart_on_update: true)
             config.validate_ruby_executable
 
@@ -478,6 +486,10 @@ module Autoproj
             ops = Ops::Import.new(self)
             ops.import_packages(selection, options)
         end
+
+        def load_all_available_package_manifests
+            manifest.load_all_available_package_manifests
+        end
         
         def setup_all_package_directories
             # Override the package directories from our reused installations
@@ -612,13 +624,18 @@ module Autoproj
             install_manifest.save
         end
 
-        # Export the workspace's env.sh file
-        def export_env_sh(package_names = all_present_packages, shell_helpers: true)
+        # The environment as initialized by all selected packages
+        def full_env
             env = self.env.dup
             manifest.all_selected_source_packages.each do |pkg|
                 pkg.autobuild.apply_env(env)
             end
-            env.export_env_sh(shell_helpers: shell_helpers)
+            env
+        end
+
+        # Export the workspace's env.sh file
+        def export_env_sh(package_names = nil, shell_helpers: true)
+            full_env.export_env_sh(shell_helpers: shell_helpers)
         end
 
         def pristine_os_packages(packages, options = Hash.new)

@@ -120,13 +120,14 @@ module Autoproj
                 reset: false,
                 retry_count: nil)
 
-            name = PackageSet.name_of(ws, vcs)
             raw_local_dir = PackageSet.raw_local_dir_of(ws, vcs)
-
             if checkout_only && File.exist?(raw_local_dir)
                 return
             end
 
+            # name_of does minimal validation of source.yml, so do it here
+            # even though we don't really need it
+            name = PackageSet.name_of(ws, vcs, ignore_load_errors: true)
             ws.install_os_packages([vcs.type], all: nil)
             update_configuration_repository(
                 vcs, name, raw_local_dir,
@@ -384,7 +385,7 @@ module Autoproj
                 keep_going: keep_going,
                 reset: reset,
                 retry_count: retry_count,
-                mainline: nil)
+                mainline: mainline)
         end
 
         def report_import_failure(what, reason)

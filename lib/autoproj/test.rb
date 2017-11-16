@@ -246,6 +246,12 @@ gem 'autobuild', path: '#{autobuild_dir}'
             stdout.chomp
         end
 
+        def in_ws
+            Dir.chdir(@ws.root_dir) do
+                yield
+            end
+        end
+
         attr_reader :ws_os_package_resolver
 
         def ws_define_package_manager(name, strict: false, call_while_empty: false)
@@ -276,6 +282,8 @@ gem 'autobuild', path: '#{autobuild_dir}'
                 dir, os_package_resolver: ws_os_package_resolver,
                      package_managers: ws_package_managers)
             ws.config.set 'osdeps_mode', 'all'
+            ws.config.set 'GITHUB', 'http,ssh', true
+            ws.config.set 'GITORIOUS', 'http,ssh', true
             ws.config.set 'gems_install_path', File.join(dir, 'gems')
             ws.config.save
             ws.prefix_dir = make_tmpdir

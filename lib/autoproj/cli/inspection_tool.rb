@@ -30,7 +30,7 @@ module Autoproj
             #   selected packages, the PackageSelection representing the
             #   selection resolution itself, and a flag telling whether some of
             #   the arguments were pointing within the configuration area
-            def finalize_setup(packages = [], non_imported_packages: :ignore, recursive: true)
+            def finalize_setup(packages = [], non_imported_packages: :ignore, recursive: true, auto_exclude: false)
                 Autoproj.silent do
                     packages, config_selected = normalize_command_line_package_selection(packages)
                     # Call resolve_user_selection once to auto-add packages, so
@@ -38,26 +38,10 @@ module Autoproj
                     resolve_user_selection(packages)
                     ws.finalize_package_setup
                     source_packages, osdep_packages, resolved_selection =
-                        resolve_selection(packages, recursive: recursive, non_imported_packages: non_imported_packages)
+                        resolve_selection(packages, recursive: recursive, non_imported_packages: non_imported_packages, auto_exclude: auto_exclude)
                     ws.finalize_setup
                     ws.export_installation_manifest
                     return source_packages, osdep_packages, resolved_selection, config_selected
-                end
-            end
-
-            def load_all_available_package_manifests
-                # Load the manifest for packages that are already present on the
-                # file system
-                ws.manifest.each_autobuild_package do |pkg|
-                    if pkg.checked_out?
-                        begin
-                            ws.manifest.load_package_manifest(pkg.name)
-                        rescue Interrupt
-                            raise
-                        rescue Exception => e
-                            Autoproj.warn "cannot load package manifest for #{pkg.name}: #{e.message}"
-                        end
-                    end
                 end
             end
         end

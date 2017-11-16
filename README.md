@@ -81,7 +81,7 @@ manual. This is going to be a general policy going forward (2.x will
 not upgrade to 3.x and so on). Moreover, it will remain possible to
 bootstrap an autoproj 1.x workspace using this bootstrap script:
 
-   https://raw.githubusercontent.com/rock-core/autoproj/v1.13.3/bin/autoproj_bootstrap
+   https://raw.githubusercontent.com/rock-core/autoproj/v1/bin/autoproj_bootstrap
 
 To bootstrap a new install using autoproj 2.0, just follow the
 standard bootstrap process, which did not change. Note that by using
@@ -132,9 +132,6 @@ extension in `autoproj/overrides.d` are also considered
 'autoproj help' is useful (which was definitely NOT the case on 1.x),
 showing details about each subcommand as well as all existing command
 line options.
-
-The `-n` alias to `update` and `build` has been removed. Use the full
-`--osdeps=f` instead.
 
 ### Parallel import
 

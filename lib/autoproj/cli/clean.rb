@@ -1,4 +1,5 @@
 require 'autoproj/cli/inspection_tool'
+require 'tty/prompt'
 
 module Autoproj
     module CLI
@@ -6,8 +7,8 @@ module Autoproj
             def validate_options(packages, options)
                 packages, options = super
                 if packages.empty? && !options[:all]
-                    opt = BuildOption.new("", "boolean", {:doc => "this is going to clean all packages. Is that really what you want ?"}, nil)
-                    if !opt.ask(false)
+                    prompt = TTY::Prompt.new
+                    if !prompt.yes?("this is going to clean all packages. Is that really what you want ?")
                         raise Interrupt
                     end
                 end
@@ -17,10 +18,17 @@ module Autoproj
             def run(selection, options = Hash.new)
                 initialize_and_load
                 packages, _ = normalize_command_line_package_selection(selection)
+
+                deps = if options.has_key?(:deps)
+                           options[:deps]
+                       else
+                           selection.empty?
+                       end
+
                 source_packages, * = resolve_selection(
-                    selection,
-                    recursive: false)
-                if packages.empty?
+                    packages,
+                    recursive: deps)
+                if source_packages.empty?
                     raise ArgumentError, "no packages or OS packages match #{selection.join(" ")}"
                 end
 

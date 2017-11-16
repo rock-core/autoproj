@@ -8,5 +8,9 @@ argv = ARGV.find_all { |arg| arg != "--no-plugins" }
 if argv.size == ARGV.size
     Autoproj::CLI.load_plugins
 end
-Autoproj::CLI::Main.start(argv)
+begin
+    Autoproj::CLI::Main.start(argv)
+rescue Interrupt
+    # Already notified in the reporting infrastructure
+end
 

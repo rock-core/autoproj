@@ -12,7 +12,11 @@ module Autoproj
                     options[:from] = Autoproj::InstallationManifest.from_workspace_root(from)
                 end
 
-                if options[:aup] && !options[:all] && selection.empty?
+                if options[:no_deps_shortcut]
+                    options[:deps] = false
+                end
+
+                if options[:aup] && !options[:config] && !options[:all] && selection.empty?
                     if Dir.pwd == ws.root_dir
                         options[:all] = true
                     else
@@ -55,6 +59,7 @@ module Autoproj
                     (has_explicit_selection && !selection.empty?) ||
                     (!has_explicit_selection && !options[:config] && !options[:autoproj])
 
+                options[:bundler] = update_autoproj
                 options[:autoproj] = update_autoproj
                 options[:config]   = update_config
                 options[:packages] = update_packages
@@ -63,10 +68,11 @@ module Autoproj
 
             def run(selected_packages, options)
                 ws.manifest.accept_unavailable_osdeps = !options[:osdeps]
-
                 ws.setup
                 ws.autodetect_operating_system(force: true)
-
+                if options[:bundler]
+                    ws.update_bundler
+                end
                 if options[:autoproj]
                     ws.update_autoproj
                 end
@@ -80,15 +86,18 @@ module Autoproj
                         keep_going: options[:keep_going],
                         retry_count: options[:retry_count])
                 rescue ImportFailed => configuration_import_failure
-                    if !options[:keep_going] || !options[:packages]
+                    if !options[:keep_going]
                         raise
                     end
                 ensure
                     ws.config.save
                 end
 
-                if !options[:packages]
-                    return [], [], []
+                if options[:packages]
+                    command_line_selection, selected_packages =
+                        finish_loading_configuration(selected_packages)
+                else
+                    command_line_selection, selected_packages = [], PackageSelection.new
                 end
 
                 osdeps_options = normalize_osdeps_options(
@@ -97,8 +106,6 @@ module Autoproj
                     osdeps: options[:osdeps],
                     osdeps_filter_uptodate: options[:osdeps_filter_uptodate])
 
-                command_line_selection, selected_packages =
-                    finish_loading_configuration(selected_packages)
                 source_packages, osdep_packages, import_failure = 
                     update_packages(
                         selected_packages,
@@ -110,7 +117,8 @@ module Autoproj
                         deps: options[:deps],
                         keep_going: options[:keep_going],
                         parallel: options[:parallel] || ws.config.parallel_import_level,
-                        retry_count: options[:retry_count])
+                        retry_count: options[:retry_count],
+                        auto_exclude: options[:auto_exclude])
 
                 ws.finalize_setup
                 ws.export_installation_manifest
@@ -119,15 +127,16 @@ module Autoproj
                     ws.install_os_packages(osdep_packages, **osdeps_options)
                 end
 
-                ws.export_env_sh(source_packages)
-                Autoproj.message "  updated #{ws.root_dir}/#{Autoproj::ENV_FILENAME}", :green
+                export_env_sh
 
-                if import_failure && configuration_import_failure
-                    raise ImportFailed.new(configuration_import_failure.original_errors + import_failure.original_errors)
-                elsif import_failure
-                    raise import_failure
-                elsif configuration_import_failure
-                    raise configuration_import_failure
+                if !options[:auto_exclude]
+                    if import_failure && configuration_import_failure
+                        raise ImportFailed.new(configuration_import_failure.original_errors + import_failure.original_errors)
+                    elsif import_failure
+                        raise import_failure
+                    elsif configuration_import_failure
+                        raise configuration_import_failure
+                    end
                 end
 
                 return command_line_selection, source_packages, osdep_packages
@@ -170,7 +179,7 @@ module Autoproj
             def update_packages(selected_packages,
                 from: nil, checkout_only: false, only_local: false, reset: false,
                 deps: true, keep_going: false, parallel: 1,
-                retry_count: 0, osdeps: true, osdeps_options: Hash.new)
+                retry_count: 0, osdeps: true, auto_exclude: false, osdeps_options: Hash.new)
 
                 if from
                     setup_update_from(from)
@@ -186,29 +195,14 @@ module Autoproj
                                         keep_going: keep_going,
                                         parallel: parallel,
                                         retry_count: retry_count,
-                                        install_vcs_packages: (osdeps_options if osdeps))
+                                        install_vcs_packages: (osdeps_options if osdeps),
+                                        auto_exclude: auto_exclude)
                 return source_packages, osdep_packages, nil
             rescue PackageImportFailed => import_failure
                 if !keep_going
                     raise
                 end
                 return import_failure.source_packages, import_failure.osdep_packages, import_failure
-            end
-
-            def load_all_available_package_manifests
-                # Load the manifest for packages that are already present on the
-                # file system
-                ws.manifest.each_autobuild_package do |pkg|
-                    if pkg.checked_out?
-                        begin
-                            ws.manifest.load_package_manifest(pkg.name)
-                        rescue Interrupt
-                            raise
-                        rescue Exception => e
-                            Autoproj.warn "cannot load package manifest for #{pkg.name}: #{e.message}"
-                        end
-                    end
-                end
             end
 
             def setup_update_from(other_root)

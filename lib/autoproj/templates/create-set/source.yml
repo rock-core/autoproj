@@ -27,8 +27,8 @@ name: <%= new_set_name %>
            pkg_import = render_vcs(pkg.vcs)
        else
            pkg_import = ["type: git",
-                "url: git://gitorious.org/dummy_project/dummy_package.git",
-                "push_to: git@gitorious.org:dummy_project/dummy_package.git"]
+                "url: git://github.com/dummy_project/dummy_package.git",
+                "push_to: git@github.com:dummy_project/dummy_package.git"]
        end
        "  - #{pkg.autobuild.name}\n    #{pkg_import.join("\n    ")}"
    end %>
@@ -37,7 +37,7 @@ name: <%= new_set_name %>
 #
 # Example:
 #   - type: git
-#     url: git://gitorious.org/rock/package_set.git
+#     url: git://github.com/rock-core/package_set.git
 #
 # See http://rock-robotics.org/documentation/autoproj/advanced/cross_set_dependencies.html
 imports:

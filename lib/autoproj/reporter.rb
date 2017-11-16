@@ -33,6 +33,11 @@ module Autoproj
         Autobuild.warn(message, *style)
     end
 
+    def self.report_interrupt(io = STDERR)
+        io.puts
+        io.puts color("Interrupted by user", :red, :bold)
+    end
+
     # Subclass of Autobuild::Reporter, used to display a message when the build
     # finishes/fails.
     class Reporter < Autobuild::Reporter
@@ -52,44 +57,44 @@ module Autoproj
         end
     end
 
-    def self.report(options = Hash.new)
-        options = Kernel.validate_options options,
-            root_dir: nil,
-            silent: false,
-            debug: Autobuild.debug
-
+    def self.report(root_dir: nil, silent: nil, debug: Autobuild.debug,
+                    on_package_success: :report,
+                    on_package_failures: Autobuild::Reporting.default_report_on_package_failures)
         reporter = Autoproj::Reporter.new
         Autobuild::Reporting << reporter
-        Autobuild::Reporting.report do
-            yield
-        end
-        if !options[:silent]
-            Autobuild::Reporting.success
+        interrupted = nil
+        package_failures = Autobuild::Reporting.report(on_package_failures: :report_silent) do
+            begin
+                yield
+            rescue Interrupt => e
+                interrupted = e
+            end
         end
 
-    rescue Interrupt
-        STDERR.puts
-        STDERR.puts Autobuild.color("Interrupted by user", :red, :bold)
-        if Autobuild.debug then raise
-        else exit 1
+        if !silent.nil?
+            on_package_success = silent ? :silent : :report
         end
+        silent_errors = [:report_silent, :exit_silent].include?(on_package_failures)
+
+        if package_failures.empty?
+            if interrupted
+                raise interrupted
+            elsif on_package_success == :report
+                Autobuild::Reporting.success
+            end
+            return []
+        else
+            Autobuild::Reporting.report_finish_on_error(
+                package_failures, on_package_failures: on_package_failures, interrupted_by: interrupted)
+        end
+
     rescue SystemExit
         raise
-    rescue Exception => e
-        STDERR.puts
-        STDERR.puts Autobuild.color(e.message, :red, :bold)
-        if root_dir = options[:root_dir]
-            root_dir = /#{Regexp.quote(root_dir)}(?!\/\.gems)/
-            e.backtrace.find_all { |path| path =~ root_dir }.
-                each do |path|
-                    STDERR.puts Autobuild.color("  in #{path}", :red, :bold)
-                end
-        end
-        if options[:debug] then raise
-        else exit 1
-        end
     ensure
+        if !silent_errors && interrupted
+            report_interrupt
+        end
+
         Autobuild::Reporting.remove(reporter) if reporter
     end
 end
-

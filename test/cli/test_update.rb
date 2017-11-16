@@ -1,4 +1,5 @@
 require 'autoproj/test'
+require 'autoproj/cli/main'
 require 'autoproj/cli/update'
 
 module Autoproj
@@ -8,6 +9,18 @@ module Autoproj
             before do
                 ws_create
                 @cli = Update.new(ws)
+            end
+
+            describe "the main CLI" do
+                describe "-n" do
+                    it "turns dependencies off" do
+                        flexmock(Update).new_instances.
+                            should_receive(:run).with([], hsh(deps: false)).once
+                        in_ws do
+                            Main.start(['update', '-n', '--silent'])
+                        end
+                    end
+                end
             end
 
             describe "#validate_options" do
@@ -29,6 +42,10 @@ module Autoproj
                     it "leaves an explicit selection alone" do
                         selection, _ = cli.validate_options(['/a/path'], aup: true)
                         assert_equal ['/a/path'], selection
+                    end
+                    it "leaves an empty selection alone if --config is given" do
+                        selection, _ = cli.validate_options([], aup: true, config: true)
+                        assert_equal [], selection
                     end
                     it "leaves an empty selection alone if --all is given" do
                         selection, _ = cli.validate_options([], aup: true, all: true)

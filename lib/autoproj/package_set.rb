@@ -225,12 +225,15 @@ module Autoproj
         # checked out, and the vcs (as a string) otherwise
         #
         # @return [String]
-        def self.name_of(ws, vcs, raw_local_dir: raw_local_dir_of(ws, vcs))
+        def self.name_of(ws, vcs, raw_local_dir: raw_local_dir_of(ws, vcs), ignore_load_errors: false)
             if File.directory?(raw_local_dir)
-                raw_description_file(raw_local_dir, package_set_name: "#{vcs.type}:#{vcs.url}")['name']
-            else
-                vcs.to_s
+                begin
+                    return raw_description_file(raw_local_dir, package_set_name: "#{vcs.type}:#{vcs.url}")['name']
+                rescue ConfigError
+                    raise if !ignore_load_errors
+                end
             end
+            vcs.to_s
         end
 
         # Returns the local directory in which the given package set should be
@@ -258,7 +261,7 @@ module Autoproj
             spec = VCSDefinition.normalize_vcs_hash(raw_spec, base_dir: ws.config_dir)
             options, vcs_spec = Kernel.filter_options spec, auto_imports: true
 
-            vcs_spec = Autoproj.expand(vcs_spec, ws.manifest.constant_definitions)
+            vcs_spec = Autoproj.expand(vcs_spec, ws.config.to_hash.merge(ws.manifest.constant_definitions))
             return VCSDefinition.from_raw(vcs_spec, from: from, raw: raw), options
         end
 
@@ -311,6 +314,34 @@ module Autoproj
 
         # @api private
         #
+        # Validate and normalizes a raw source file
+        def self.validate_and_normalize_source_file(yaml_path, yaml)
+            yaml = yaml.dup
+            %w{imports version_control}.each do |entry_name|
+                yaml[entry_name] ||= Array.new
+                if !yaml[entry_name].respond_to?(:to_ary)
+                    raise ConfigError.new(yaml_path), "expected the '#{entry_name}' entry to be an array"
+                end
+            end
+
+            %w{constants}.each do |entry_name|
+                yaml[entry_name] ||= Hash.new
+                if !yaml[entry_name].respond_to?(:to_h)
+                    raise ConfigError.new(yaml_path), "expected the '#{entry_name}' entry to be a map"
+                end
+            end
+
+            if yaml.has_key?('overrides')
+                yaml['overrides'] ||= Array.new
+                if !yaml['overrides'].respond_to?(:to_ary)
+                    raise ConfigError.new(yaml_path), "expected the 'overrides' entry to be an array"
+                end
+            end
+            yaml
+        end
+
+        # @api private
+        #
         # Read the description information for a package set in a given
         # directory
         #
@@ -330,7 +361,8 @@ module Autoproj
                 newdefs = Autoproj.in_file(source_file, Autoproj::YAML_LOAD_ERROR) do
                     YAML.load(File.read(source_file))
                 end
-                source_definition.merge!(newdefs || Hash.new) do |k, old, new|
+                newdefs = validate_and_normalize_source_file(source_file, newdefs || Hash.new)
+                source_definition.merge!(newdefs) do |k, old, new|
                     if old.respond_to?(:to_ary)
                         old + new
                     else new
@@ -340,6 +372,7 @@ module Autoproj
             if !source_definition['name']
                 raise ConfigError.new(master_source_file), "#{master_source_file} does not have a 'name' field"
             end
+
             source_definition
         end
 

@@ -89,7 +89,7 @@ module Autoproj
                     @user_dir = make_tmpdir
                     @raw_dir  = make_tmpdir
                     @pkg_set = InstallationManifest::PackageSet.new(
-                        'rock.core', raw_dir, user_dir)
+                        'rock.core', Hash.new, raw_dir, user_dir)
                     installation_manifest.add_package_set(pkg_set)
                     cli.update_from_installation_manifest(installation_manifest)
                 end
@@ -117,7 +117,7 @@ module Autoproj
                 attr_reader :pkg
                 before do
                     @pkg = InstallationManifest::Package.new(
-                        'pkg', '/srcdir', '/prefix', '/builddir', [])
+                        'pkg', 'Autobuild::CMake', Hash.new, '/srcdir', '/prefix', '/builddir', [])
                     installation_manifest.add_package(pkg)
                     cli.update_from_installation_manifest(installation_manifest)
                 end
@@ -147,7 +147,7 @@ module Autoproj
                 it "returns regexp-based matches on the name if there are no exact matches" do
                     expected = %w{test0 test1}.map do |pkg_name|
                         pkg = InstallationManifest::Package.new(
-                            pkg_name, '/srcdir', '/prefix', '/builddir', [])
+                            pkg_name, 'Autobuild::CMake', Hash.new, '/srcdir', '/prefix', '/builddir', [])
                         installation_manifest.add_package(pkg)
                     end
                     cli.update_from_installation_manifest(installation_manifest)
@@ -155,10 +155,10 @@ module Autoproj
                 end
                 it "ignores regexp-based matches if there are exact matches" do
                     test0 = InstallationManifest::Package.new(
-                        'pkg0', '/srcdir', '/prefix', '/builddir', [])
+                        'pkg0', 'Autobuild::CMake', Hash.new, '/srcdir', '/prefix', '/builddir', [])
                     installation_manifest.add_package(test0)
                     test1 = InstallationManifest::Package.new(
-                        'pkg1', '/srcdir', '/prefix', '/builddir', [])
+                        'pkg1', 'Autobuild::CMake', Hash.new, '/srcdir', '/prefix', '/builddir', [])
                     installation_manifest.add_package(test1)
                     assert_equal [pkg], cli.find_packages('pkg')
                     assert_equal [pkg], cli.find_packages('/srcdir/')

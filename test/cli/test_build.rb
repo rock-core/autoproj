@@ -1,4 +1,5 @@
 require 'autoproj/test'
+require 'autoproj/cli/main'
 require 'autoproj/cli/build'
 
 module Autoproj
@@ -8,6 +9,18 @@ module Autoproj
             before do
                 ws_create
                 @cli = Build.new(ws)
+            end
+
+            describe "the main CLI" do
+                describe "-n" do
+                    it "turns dependencies off" do
+                        flexmock(Update).new_instances.
+                            should_receive(:run).with([], hsh(deps: false)).once
+                        in_ws do
+                            Main.start(['build', '-n', '--silent'])
+                        end
+                    end
+                end
             end
 
             describe "#validate_options" do

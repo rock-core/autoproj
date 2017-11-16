@@ -11,26 +11,29 @@ module Autoproj
         end
 
         class Main < Thor
-            class_option :verbose, type: :boolean,
-                desc: 'turns verbose output',
-                default: false
-            class_option :debug, type: :boolean,
-                desc: 'turns debugging output',
-                default: false
-            class_option :silent, type: :boolean,
-                desc: 'tell autoproj to not display anything',
-                default: false
-            class_option :color, type: :boolean,
-                desc: 'enables or disables colored display (enabled by default if the terminal supports it)',
-                default: TTY::Color.color?
-            class_option :progress, type: :boolean,
-                desc: 'enables or disables progress display (enabled by default if the terminal supports it)',
-                default: TTY::Color.color?
+            class_option :verbose, type: :boolean, default: false,
+                desc: 'turns verbose output'
+            class_option :debug, type: :boolean, default: false,
+                desc: 'turns debugging output'
+            class_option :silent, type: :boolean, default: false,
+                desc: 'tell autoproj to not display anything'
+            class_option :color, type: :boolean, default: TTY::Color.color?,
+                desc: 'enables or disables colored display (enabled by default if the terminal supports it)'
+            class_option :progress, type: :boolean, default: TTY::Color.color?,
+                desc: 'enables or disables progress display (enabled by default if the terminal supports it)'
 
             no_commands do
                 def run_autoproj_cli(filename, classname, report_options, *args, **extra_options)
                     require "autoproj/cli/#{filename}"
-                    Autoproj.report(Hash[silent: !options[:debug], debug: options[:debug]].merge(report_options)) do
+                    if Autobuild::Subprocess.transparent_mode = options[:tool]
+                        Autobuild.silent = true
+                        Autobuild.color = false
+                        report_options[:silent] = true
+                        report_options[:on_package_failures] = :exit_silent
+                        extra_options[:silent] = true
+                    end
+
+                    Autoproj.report(**Hash[silent: !options[:debug], debug: options[:debug]].merge(report_options)) do
                         options = self.options.dup
                         # We use --local on the CLI but the APIs are expecting
                         # only_local
@@ -38,18 +41,20 @@ module Autoproj
                             options[:only_local] = options.delete('local')
                         end
                         cli = CLI.const_get(classname).new
-                        run_args = cli.validate_options(args, options.merge(extra_options))
-                        cli.run(*run_args)
+                        begin
+                            run_args = cli.validate_options(args, options.merge(extra_options))
+                            cli.run(*run_args)
+                        ensure
+                            cli.notify_env_sh_updated
+                        end
                     end
                 end
             end
 
             desc 'bootstrap VCS_TYPE VCS_URL VCS_OPTIONS', 'bootstraps a new autoproj installation. This is usually not called directly, but called from the autoproj_bootstrap standalone script'
-            option :reuse,
-                banner: 'DIR',
+            option :reuse, banner: 'DIR',
                 desc: 'reuse packages already built within the DIR autoproj workspace in this installation, if DIR is not given, reuses the installation whose env.sh is currently sourced'
-            option :seed_config,
-                banner: 'SEED_CONFIG',
+            option :seed_config, banner: 'SEED_CONFIG',
                 desc: "a configuration file used to seed the bootstrap's configuration"
             def bootstrap(*args)
                 if !File.directory?(File.join(Dir.pwd, '.autoproj'))
@@ -76,16 +81,19 @@ module Autoproj
                 desc: "use the VCS information as 'versions --no-local' would detect it instead of the one in the configuration"
             option :parallel, aliases: :p, type: :numeric,
                 desc: 'maximum number of parallel jobs'
-            option :deps, type: :boolean,
-                desc: 'whether only the status of the given packages should be displayed, or of their dependencies as well',
-                default: true
+            option :deps, type: :boolean, default: true,
+                desc: 'whether only the status of the given packages should be displayed, or of their dependencies as well. -n is a shortcut for --no-deps'
+            option :no_deps_shortcut, hide: true, aliases: '-n', type: :boolean,
+                desc: 'provide -n for --no-deps'
             def status(*packages)
                 run_autoproj_cli(:status, :Status, Hash[], *packages)
             end
 
             desc 'doc [PACKAGES]', 'generate API documentation for packages that support it'
-            option :deps, desc: 'control whether documentation should be generated only for the packages given on the command line, or also for their dependencies',
-                type: :boolean, default: true
+            option :deps, type: :boolean, default: true,
+                desc: 'control whether documentation should be generated only for the packages given on the command line, or also for their dependencies. -n is a shortcut for --no-deps'
+            option :no_deps_shortcut, hide: true, aliases: '-n', type: :boolean,
+                desc: 'provide -n for --no-deps'
             def doc(*packages)
                 run_autoproj_cli(:doc, :Doc, Hash[], *packages)
             end
@@ -95,15 +103,15 @@ module Autoproj
                 desc: 'behave like aup'
             option :all, default: false, hide: true, type: :boolean,
                 desc: 'when in aup mode, update all packages instead of only the local one'
-            option :keep_going, aliases: :k, type: :boolean,
-                banner: '',
+            option :keep_going, aliases: :k, type: :boolean, banner: '',
                 desc: 'do not stop on build or checkout errors'
             option :config, type: :boolean,
                 desc: "(do not) update configuration. The default is to update configuration if explicitely selected or if no additional arguments are given on the command line, and to not do it if packages are explicitely selected on the command line"
+            option :bundler, type: :boolean,
+                desc: "(do not) update bundler. This is automatically enabled only if no arguments are given on the command line"
             option :autoproj, type: :boolean,
                 desc: "(do not) update autoproj. This is automatically enabled only if no arguments are given on the command line"
-            option :osdeps, type: :boolean,
-                default: true,
+            option :osdeps, type: :boolean, default: true,
                 desc: "enable or disable osdeps handling"
             option :from, type: :string,
                 desc: 'use this existing autoproj installation to check out the packages (for importers that support this)'
@@ -114,7 +122,9 @@ module Autoproj
             option :osdeps_filter_uptodate, default: true, type: :boolean,
                 desc: 'controls whether the osdeps subsystem should filter up-to-date packages or not'
             option :deps, default: true, type: :boolean,
-                desc: 'whether the package dependencies should be recursively updated (the default) or not'
+                desc: 'whether the package dependencies should be recursively updated (the default) or not. -n is a shortcut for --no-deps'
+            option :no_deps_shortcut, hide: true, aliases: '-n', type: :boolean,
+                desc: 'provide -n for --no-deps'
             option :reset, default: false, type: :boolean,
                 desc: "forcefully resets the repository to the state expected by autoproj's configuration",
                 long_desc: "The default is to update the repository if possible, and leave it alone otherwise. With --reset, autoproj update might come back to an older commit than the repository's current state"
@@ -126,8 +136,15 @@ module Autoproj
                 desc: 'maximum number of parallel jobs'
             option :mainline, type: :string,
                 desc: "compare to the given baseline. if 'true', the comparison will ignore any override, otherwise it will take into account overrides only up to the given package set"
+            option :auto_exclude, type: :boolean,
+                desc: 'if true, packages that fail to import will be excluded from the build'
             def update(*packages)
-                run_autoproj_cli(:update, :Update, Hash[silent: false], *packages)
+                report_options = Hash[silent: false, on_package_failures: :exit]
+                if options[:auto_exclude]
+                    report_options[:on_package_failures] = :report
+                end
+
+                run_autoproj_cli(:update, :Update, report_options, *packages)
             end
 
             desc 'build [PACKAGES]', 'build packages'
@@ -142,13 +159,32 @@ module Autoproj
             option :rebuild, type: :boolean, default: false,
                 desc: 'clean and build the requested packages'
             option :osdeps, type: :boolean,
-                desc: 'controls whether missing osdeps should be installed. In rebuild mode, also controls whether the osdeps should be reinstalled or not (the default is to reinstall them)' 
+                desc: 'controls whether missing osdeps should be installed. In rebuild mode, also controls whether the osdeps should be reinstalled or not (the default is to reinstall them)'
             option :deps, type: :boolean,
-                desc: 'in force or rebuild modes, control whether the force/rebuild action should apply only on the packages given on the command line, or on their dependencies as well (the default is --no-deps)'
+                desc: "controls whether the operation should apply to the package's dependencies as well. -n is a shortcut for --no-deps",
+                long_desc: <<-EOD
+Without --force or --rebuild, the default is true (the build will apply to all packages).
+With --force or --rebuild, control whether the force/rebuild action should apply
+only on the packages given on the command line, or on their dependencies as well.
+In this case, the default is false
+                EOD
+            option :no_deps_shortcut, hide: true, aliases: '-n', type: :boolean,
+                desc: 'provide -n for --no-deps'
             option :parallel, aliases: :p, type: :numeric,
                 desc: 'maximum number of parallel jobs'
+            option :auto_exclude, type: :boolean,
+                desc: 'if true, packages that fail to import will be excluded from the build'
+            option :tool, type: :boolean,
+                desc: "act as a build tool, transparently passing the subcommand's outputs to STDOUT"
+            option :confirm, type: :boolean, default: nil,
+                desc: '--force and --rebuild will ask confirmation if applied to the whole workspace. Use --no-confirm to disable this confirmation'
             def build(*packages)
-                run_autoproj_cli(:build, :Build, Hash[silent: false], *packages)
+                report_options = Hash[silent: false, on_package_failures: :exit]
+                if options[:auto_exclude]
+                    report_options[:on_package_failures] = :report
+                end
+
+                run_autoproj_cli(:build, :Build, Hash[silent: false].merge(report_options), *packages)
             end
 
             desc 'cache CACHE_DIR', 'create or update a cache directory that can be given to AUTOBUILD_CACHE_DIR'
@@ -161,7 +197,22 @@ module Autoproj
             end
 
             desc 'clean [PACKAGES]', 'remove build byproducts for the given packages'
-            option :all,
+            long_desc <<-EODESC
+                Remove build byproducts from disk
+
+                To avoid mistakes, 'clean' will ask for confirmation if no packages
+                are provided on the command line. Use --all to bypass this check (e.g.
+                in automated scripts)
+
+                When packages are explicitely provided on the command line, autoproj
+                will by default not clean the package dependencies. However, when
+                no packages are provided on the command line, all the workspace
+                packages will be cleaned. Use --deps=f or --deps=t to override
+                these defaults.
+            EODESC
+            option :deps, type: :boolean,
+                desc: "clean the given packages as well as their dependencies"
+            option :all, type: :boolean,
                 desc: 'bypass the safety question when you mean to clean all packages'
             def clean(*packages)
                 run_autoproj_cli(:clean, :Clean, Hash[], *packages)
@@ -195,24 +246,25 @@ module Autoproj
                 desc: "compare to the given baseline. if 'true', the comparison will ignore any override, otherwise it will take into account overrides only up to the given package set"
             option :env, type: :boolean,
                 desc: "display the package's own environment", default: false
-            option :short, desc: 'display a package summary with one package line'
-            option :recursive, desc: 'display the package and their dependencies (the default is to only display selected packages)',
-                type: :boolean, default: false
+            option :short,
+                desc: 'display a package summary with one package line'
+            option :recursive, type: :boolean, default: false,
+                desc: 'display the package and their dependencies (the default is to only display selected packages)'
             def show(*packages)
                 run_autoproj_cli(:show, :Show, Hash[], *packages)
             end
 
             desc 'osdeps [PACKAGES]', 'install/update OS dependencies that are required by the given package (or for the whole installation if no packages are given'
+            option :system_info, type: :boolean,
+                desc: 'show information about the osdep system and quit'
             option :update, type: :boolean, default: true,
                 desc: 'whether already installed packages should be updated or not'
             def osdeps(*packages)
-                run_autoproj_cli(:osdeps, :OSDeps, Hash[], *packages)
+                run_autoproj_cli(:osdeps, :OSDeps, Hash[silent: options[:system_info]], *packages)
             end
 
             desc 'versions [PACKAGES]', 'generate a version file for the given packages, or all packages if none are given'
-            option :config, type: :boolean,
-                default: nil,
-                banner: '',
+            option :config, type: :boolean, default: nil, banner: '',
                 desc: "controls whether the package sets should be versioned as well",
                 long_desc: <<-EOD
 This is the default if no packages are given on the command line, or if the
@@ -223,26 +275,26 @@ are given, the packages will not be versioned. In other words,
    autoproj versions autoproj/ # versions only the configuration
    autoproj versions autoproj a/package # versions the configuration and the specified package(s)
                 EOD
-            option :keep_going, aliases: :k, type: :boolean,
-                default: false,
-                banner: '',
+            option :keep_going, aliases: :k, type: :boolean, default: false, banner: '',
                 desc: 'do not stop if some package cannot be versioned'
-            option :replace, type: :boolean,
-                default: false,
+            option :replace, type: :boolean, default: false,
                 desc: 'in combination with --save, controls whether an existing file should be updated or replaced'
-            option :deps, type: :boolean,
-                default: false,
+            option :deps, type: :boolean, default: false,
                 desc: 'whether both packages and their dependencies should be versioned, or only the selected packages (the latter is the default)'
             option :local, type: :boolean, default: false,
                 desc: 'whether we should access the remote server to verify that the snapshotted state is present'
             option :save, type: :string,
                 desc: 'save to the given file instead of displaying it on the standard output'
             def versions(*packages)
-                run_autoproj_cli(:versions, :Versions, Hash[], *packages)
+                run_autoproj_cli(:versions, :Versions, Hash[], *packages, deps: true)
             end
 
             stop_on_unknown_option! :log
-            desc 'log', "shows the log of autoproj updates"
+            desc 'log [REF]', "shows the log of autoproj updates"
+            option :since, type: :string, default: nil,
+                desc: 'show what got updated since the given version'
+            option :diff, type: :boolean, default: false,
+                desc: 'show the difference between two stages in the log'
             def log(*args)
                 run_autoproj_cli(:log, :Log, Hash[], *args)
             end
@@ -270,8 +322,7 @@ If given no arguments, will list the existing tags
 EOD
             option :package_sets, type: :boolean,
                 desc: 'commit the package set state as well (enabled by default)'
-            option :keep_going, aliases: :k, type: :boolean,
-                banner: '',
+            option :keep_going, aliases: :k, type: :boolean, banner: '',
                 desc: 'do not stop on build or checkout errors'
             option :message, aliases: :m, type: :string,
                 desc: 'the message to use for the new commit (the default is to mention the creation of the tag)'
@@ -290,16 +341,34 @@ If given no arguments, will list the existing tags
 EOD
             option :package_sets, type: :boolean,
                 desc: 'commit the package set state as well (enabled by default)'
-            option :keep_going, aliases: :k, type: :boolean,
-                banner: '',
+            option :keep_going, aliases: :k, type: :boolean, banner: '',
                 desc: 'do not stop on build or checkout errors'
             option :message, aliases: :m, type: :string,
                 desc: 'the message to use for the new commit (the default is to mention the creation of the tag)'
             def commit(*packages)
-                run_autoproj_cli(:commit, :Commit, Hash[], *packages)
+                run_autoproj_cli(:commit, :Commit, Hash[], *packages, deps: true)
             end
 
             desc 'switch-config VCS URL [OPTIONS]', 'switches the main build configuration'
+            long_desc <<-EOD
+Changes source of the main configuration that is checked out in autoproj/
+
+For instance,
+  autoproj switch-config git http://github.com/rock-core/buildconf
+
+Options are of the form key=value. To for instance specify a git branch one does
+  autoproj switch-config git http://github.com/rock-core/buildconf branch=test
+
+The VCS types and options match the types and options available in the source.yml
+files.
+
+If the URL is changed, autoproj will delete the existing autoproj folder. Alternatively,
+when using a VCS that supports it (right now, git), it is possible to change a VCS
+option without deleting the folder. Simply omit the VCS type and URL:
+
+  autoproj switch-config branch=master
+            EOD
+
             def switch_config(*args)
                 run_autoproj_cli(:switch_config, :SwitchConfig, Hash[], *args)
             end
@@ -369,7 +438,12 @@ The format is a string in which special values can be expanded using a $VARNAME 
             def manifest(*name)
                 run_autoproj_cli(:manifest, :Manifest, Hash[silent: true], *name)
             end
+
+            desc 'exec', "runs a command, applying the workspace's environment first"
+            def exec(*args)
+                require 'autoproj/cli/exec'
+                CLI::Exec.new.run(*args)
+            end
         end
     end
 end
-

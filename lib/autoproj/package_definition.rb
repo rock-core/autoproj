@@ -69,5 +69,15 @@ module Autoproj
                 block.call(autobuild)
             end
         end
+
+        # Whether this package is already checked out
+        def checked_out?
+            autobuild.checked_out?
+        end
+
+        # Add another package as a dependency of this one
+        def depends_on(pkg)
+            autobuild.depends_on(pkg.autobuild)
+        end
     end
 end

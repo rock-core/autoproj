@@ -1024,6 +1024,22 @@ module Autoproj
             manifest
         end
 
+        def load_all_available_package_manifests
+            # Load the manifest for packages that are already present on the
+            # file system
+            each_package_definition do |pkg|
+                if pkg.checked_out?
+                    begin
+                        load_package_manifest(pkg)
+                    rescue Interrupt
+                        raise
+                    rescue Exception => e
+                        Autoproj.warn "cannot load package manifest for #{pkg.name}: #{e.message}"
+                    end
+                end
+            end
+        end
+
         # The set of overrides added with #add_osdeps_overrides
         attr_reader :osdeps_overrides
 

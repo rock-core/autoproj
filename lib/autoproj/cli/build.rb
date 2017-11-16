@@ -8,6 +8,10 @@ module Autoproj
                 selected_packages, options =
                     super(selected_packages, options.merge(
                         checkout_only: true, aup: options[:amake]))
+
+                if options[:no_deps_shortcut]
+                    options[:deps] = false
+                end
                 if options[:deps].nil?
                     options[:deps] = 
                         !(options[:rebuild] || options[:force])
@@ -19,7 +23,8 @@ module Autoproj
                 build_options, options = filter_options options,
                     force: false,
                     rebuild: false,
-                    parallel: nil
+                    parallel: nil,
+                    confirm: true
 
                 command_line_selection, source_packages, _osdep_packages =
                     super(selected_packages, options.merge(checkout_only: true))
@@ -50,10 +55,13 @@ module Autoproj
                         mode_name = if build_options[:rebuild] then 'rebuild'
                                     else 'force-build'
                                     end
-                        opt = BuildOption.new("", "boolean", {:doc => "this is going to trigger a #{mode_name} of all packages. Is that really what you want ?"}, nil)
-                        if !opt.ask(false)
-                            raise Interrupt
+                        if build_options[:confirm] != false
+                            opt = BuildOption.new("", "boolean", {:doc => "this is going to trigger a #{mode_name} of all packages. Is that really what you want ?"}, nil)
+                            if !opt.ask(false)
+                                raise Interrupt
+                            end
                         end
+
                         if build_options[:rebuild]
                             ops.rebuild_all
                         else
@@ -70,6 +78,8 @@ module Autoproj
                 Autobuild.do_build = true
                 ops.build_packages(source_packages, parallel: parallel)
                 Autobuild.apply(source_packages, "autoproj-build", ['install'])
+            ensure
+                export_env_sh
             end
         end
     end

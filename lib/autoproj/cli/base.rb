@@ -14,6 +14,7 @@ module Autoproj
 
             def initialize(ws = Workspace.default)
                 @ws = ws
+                @env_sh_updated = nil
             end
 
             # Normalizes the arguments given by the user on the command line
@@ -129,7 +130,7 @@ module Autoproj
             #   the package selection resolution object
             #
             # @see resolve_user_selection
-            def resolve_selection(user_selection, checkout_only: true, only_local: false, recursive: true, non_imported_packages: :ignore)
+            def resolve_selection(user_selection, checkout_only: true, only_local: false, recursive: true, non_imported_packages: :ignore, auto_exclude: false)
                 resolved_selection, _ = resolve_user_selection(user_selection, filter: false)
 
                 ops = Ops::Import.new(ws)
@@ -139,7 +140,8 @@ module Autoproj
                     only_local: only_local,
                     recursive: recursive,
                     warn_about_ignored_packages: false,
-                    non_imported_packages: non_imported_packages)
+                    non_imported_packages: non_imported_packages,
+                    auto_exclude: auto_exclude)
 
                 return source_packages, osdep_packages, resolved_selection
             end
@@ -191,6 +193,20 @@ module Autoproj
                 end
 
                 return args, remaining.to_sym_keys
+            end
+
+            def export_env_sh(shell_helpers: ws.config.shell_helpers?)
+                @env_sh_updated = ws.export_env_sh(shell_helpers: shell_helpers)
+            end
+
+            def notify_env_sh_updated
+                return if @env_sh_updated.nil?
+
+                if @env_sh_updated
+                    Autoproj.message "  updated: #{ws.root_dir}/#{Autoproj::ENV_FILENAME}", :green
+                else
+                    Autoproj.message "  left unchanged: #{ws.root_dir}/#{Autoproj::ENV_FILENAME}", :green
+                end
             end
         end
     end

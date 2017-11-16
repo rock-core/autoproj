@@ -467,5 +467,14 @@ module Autoproj
         def prefer_indep_over_os_packages?
             get('prefer_indep_over_os_packages', false)
         end
+
+        # The configuration as a key => value map
+        def to_hash
+            result = Hash.new
+            @config.each do |key, (value, _)|
+                result[key] = value
+            end
+            result
+        end
     end
 end

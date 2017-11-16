@@ -2,8 +2,19 @@ module Autoproj
     module Ops
         class Import
             attr_reader :ws
+
+            # Whether packages are added to exclusions if they error during the
+            # import process
+            #
+            # This is mostly meant for CI operations
+            def auto_exclude?
+                @auto_exclude
+            end
+            attr_writer :auto_exclude
+
             def initialize(ws)
                 @ws = ws
+                @auto_exclude = false
             end
 
             def mark_exclusion_along_revdeps(pkg_name, revdeps, chain = [], reason = nil)
@@ -80,10 +91,15 @@ module Autoproj
                 end
             end
 
-            def post_package_import(selection, manifest, pkg, reverse_dependencies)
+            def post_package_import(selection, manifest, pkg, reverse_dependencies, auto_exclude: auto_exclude?)
                 Rake::Task["#{pkg.name}-import"].instance_variable_set(:@already_invoked, true)
                 if pkg.checked_out?
-                    manifest.load_package_manifest(pkg.name)
+                    begin
+                        manifest.load_package_manifest(pkg.name)
+                    rescue Exception => e
+                        raise if !auto_exclude
+                        manifest.add_exclusion(pkg.name, "#{pkg.name} failed to import with #{e} and auto_exclude was true")
+                    end
                 end
 
                 # The package setup mechanisms might have added an exclusion
@@ -98,9 +114,7 @@ module Autoproj
                     false
                 else
                     if pkg.checked_out?
-                        Autoproj.each_post_import_block(pkg) do |block|
-                            block.call(pkg)
-                        end
+                        process_post_import_blocks(pkg)
                     end
                     import_next_step(pkg, reverse_dependencies)
                 end
@@ -158,6 +172,7 @@ module Autoproj
                                          keep_going: false,
                                          install_vcs_packages: Hash.new,
                                          non_imported_packages: :checkout,
+                                         auto_exclude: auto_exclude?,
                                          **import_options)
 
                 if ![:checkout, :ignore, :return].include?(non_imported_packages)
@@ -275,6 +290,9 @@ module Autoproj
                     if reason
                         if reason.kind_of?(Autobuild::InteractionRequired)
                             main_thread_imports << pkg
+                        elsif auto_exclude
+                            manifest.add_exclusion(pkg.name, "#{pkg.name} failed to import with #{reason} and auto_exclude was true")
+                            selection.filter_excluded_and_ignored_packages(manifest)
                         else
                             # One importer failed... terminate
                             Autoproj.error "import of #{pkg.name} failed"
@@ -284,7 +302,9 @@ module Autoproj
                             failures << reason
                         end
                     else
-                        if new_packages = post_package_import(selection, manifest, pkg.autobuild, reverse_dependencies)
+                        if new_packages = post_package_import(
+                                selection, manifest, pkg.autobuild, reverse_dependencies,
+                                auto_exclude: auto_exclude)
                             # Excluded dependencies might have caused the package to be
                             # excluded as well ... do not add any dependency to the
                             # processing queue if it is the case
@@ -312,7 +332,7 @@ module Autoproj
                 end
             end
             
-            def finalize_package_load(processed_packages)
+            def finalize_package_load(processed_packages, auto_exclude: auto_exclude?)
                 manifest = ws.manifest
 
                 all = Set.new
@@ -327,10 +347,14 @@ module Autoproj
 
                     pkg_definition = manifest.find_package_definition(pkg_name)
                     pkg = pkg_definition.autobuild
-                    if !processed_packages.include?(pkg_definition) && File.directory?(pkg.srcdir)
-                        manifest.load_package_manifest(pkg.name)
-                        Autoproj.each_post_import_block(pkg) do |block|
-                            block.call(pkg)
+                    if !processed_packages.include?(pkg_definition) && pkg.checked_out?
+                        begin
+                            manifest.load_package_manifest(pkg.name)
+                            process_post_import_blocks(pkg)
+                        rescue Exception => e
+                            raise if !auto_exclude
+                            manifest.exclude_package(pkg.name, "#{pkg.name} had an error when being loaded (#{e.message}) and auto_exclude is true")
+                            next
                         end
                     end
 
@@ -363,6 +387,7 @@ module Autoproj
                                 recursive: true,
                                 keep_going: false,
                                 install_vcs_packages: Hash.new,
+                                auto_exclude: auto_exclude?,
                                 **import_options)
 
                 manifest = ws.manifest
@@ -373,13 +398,14 @@ module Autoproj
                     keep_going: keep_going,
                     recursive: recursive,
                     install_vcs_packages: install_vcs_packages,
+                    auto_exclude: auto_exclude,
                     **import_options)
 
                 if !keep_going && !failures.empty?
                     raise failures.first
                 end
 
-                finalize_package_load(all_processed_packages)
+                finalize_package_load(all_processed_packages, auto_exclude: auto_exclude)
 
                 all_enabled_osdeps = selection.each_osdep_package_name.to_set
                 all_enabled_sources = all_processed_packages.map(&:name)
@@ -415,6 +441,12 @@ module Autoproj
             ensure
                 if ws.config.import_log_enabled? && Autoproj::Ops::Snapshot.update_log_available?(manifest)
                     update_log_for_processed_packages(all_processed_packages || Array.new, $!)
+                end
+            end
+
+            def process_post_import_blocks(pkg)
+                Autoproj.each_post_import_block(pkg) do |block|
+                    block.call(pkg)
                 end
             end
 
