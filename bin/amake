@@ -9,9 +9,13 @@ class Amake < Autoproj::CLI::Main
     end
 end
 
-if ARGV.include?('--help') || ARGV.include?('help')
-    Amake.start(['help', 'build'])
-else
-    Amake.start(['build', '--amake', *ARGV])
+begin
+    if ARGV.include?('--help') || ARGV.include?('help')
+        Amake.start(['help', 'build'])
+    else
+        Amake.start(['build', '--amake', *ARGV])
+    end
+rescue Interrupt
+    # Already notified in the reporting infrastructure
 end
 

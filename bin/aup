@@ -9,8 +9,12 @@ class Aup < Autoproj::CLI::Main
     end
 end
 
-if ARGV.include?('--help') || ARGV.include?('help')
-    Aup.start(['help', 'update'])
-else
-    Aup.start(['update', '--aup', *ARGV])
+begin
+    if ARGV.include?('--help') || ARGV.include?('help')
+        Aup.start(['help', 'update'])
+    else
+        Aup.start(['update', '--aup', *ARGV])
+    end
+rescue Interrupt
+    # Already notified in the reporting infrastructure
 end
