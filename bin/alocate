@@ -9,9 +9,14 @@ class Alocate < Autoproj::CLI::Main
     end
 end
 
-if ARGV.include?('--help') || ARGV.include?('help')
-    Alocate.start(['help', 'locate'])
-else
-    Alocate.start(['locate', *ARGV])
+begin
+    if ARGV.include?('--help') || ARGV.include?('help')
+        Alocate.start(['help', 'locate'])
+    else
+        Alocate.start(['locate', *ARGV])
+    end
+rescue Interrupt
+    # Already notified in the reporting infrastructure
 end
+
 
