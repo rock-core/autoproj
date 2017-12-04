@@ -741,6 +741,24 @@ module Autoproj
                 manifest.load_importers(mainline: true)
             end
         end
+
+        describe "validate_package_set_in_self" do
+            it "returns if the package set is defined in self" do
+                pkg_set = ws_define_package_set "pkg_set"
+                @ws.manifest.validate_package_set_in_self(pkg_set)
+            end
+            it "raises if there are no package sets with the given name in self" do
+                assert_raises(UnregisteredPackageSet) do
+                    @ws.manifest.validate_package_set_in_self(flexmock(name: 'test'))
+                end
+            end
+            it "raises if there is a different package set in self with the same name" do
+                pkg_set = ws_define_package_set "pkg_set"
+                assert_raises(UnregisteredPackageSet) do
+                    @ws.manifest.validate_package_set_in_self(flexmock(name: 'test'))
+                end
+            end
+        end
     end
 end
 

@@ -15,7 +15,7 @@ module Autoproj
                     name = name.first
                     if File.file?(full_path = File.expand_path(name))
                         if File.dirname(full_path) != ws.config_dir
-                            raise ArgumentError, "#{full_path} is not part of #{ws.config_dir}"
+                            raise CLIInvalidArguments, "#{full_path} is not part of #{ws.config_dir}"
                         end
                     else
                         full_path = File.join(ws.config_dir, name)
@@ -24,7 +24,7 @@ module Autoproj
                     if !File.file?(full_path)
                         alternative_full_path = File.join(ws.config_dir, "manifest.#{name}")
                         if !File.file?(alternative_full_path)
-                            raise ArgumentError, "neither #{full_path} nor #{alternative_full_path} exist"
+                            raise CLIInvalidArguments, "neither #{full_path} nor #{alternative_full_path} exist"
                         end
                         full_path = alternative_full_path
                     end
@@ -38,8 +38,11 @@ module Autoproj
                     ws.save_config
                     Autoproj.message "set manifest to #{full_path}"
                 else
-                    raise ArgumentError, "expected zero or one argument, but got #{name.size}"
+                    raise CLIInvalidArguments, "expected zero or one argument, but got #{name.size}"
                 end
+            end
+
+            def notify_env_sh_updated
             end
         end
     end

@@ -9,7 +9,7 @@ module Autoproj
                 pkg = manifest.main_package_set.create_autobuild_package
                 importer = pkg.importer
                 if !importer || !importer.kind_of?(Autobuild::Git)
-                    raise ConfigError, "cannot use autoproj tag if the main configuration is not managed by git"
+                    raise CLIInvalidArguments, "cannot use autoproj tag if the main configuration is not managed by git"
                 end
 
                 versions_file = File.join(

@@ -240,7 +240,7 @@ module Autoproj
         #
         # Validate that the given package object is defined in self
         def validate_package_set_in_self(package_set)
-            if find_package_set(package.name) != package_set
+            if find_package_set(package_set.name) != package_set
                 raise UnregisteredPackageSet, "#{package_set.name} is not registered on #{self}"
             end
         end

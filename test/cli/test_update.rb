@@ -204,6 +204,17 @@ module Autoproj
                         and_return([[], []])
                     cli.run([], packages: true, checkout_only: true, osdeps: true)
                 end
+                it "raises CLIInvalidSelection if an excluded package is in the dependency tree" do
+                    pkg0 = ws_add_package_to_layout :cmake, 'pkg0'
+                    pkg1 = ws_define_package :cmake, 'pkg1'
+                    pkg0.depends_on pkg1
+                    selection = PackageSelection.new
+                    selection.select('pkg0', 'pkg0')
+                    @ws.manifest.exclude_package 'pkg1', 'test'
+                    assert_raises(CLIInvalidSelection) do
+                        cli.run(['pkg0'], packages: true, checkout_only: true, osdeps: true)
+                    end
+                end
 
                 describe "keep_going: false" do
                     it "passes exceptions from package set updates" do

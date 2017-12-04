@@ -36,6 +36,9 @@ module Autoproj
     class UnregisteredPackage < ArgumentError
     end
 
+    class UnregisteredPackageSet < ArgumentError
+    end
+
     class InvalidPackageManifest < RuntimeError; end
 
     class InputError < RuntimeError; end

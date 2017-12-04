@@ -9,11 +9,11 @@ module Autoproj
         # list that information and thus avoid loading the Autoproj
         # configuration (which takes fairly long).
         class Locate < InspectionTool
-            class NotFound < RuntimeError; end
-            class AmbiguousSelection < RuntimeError; end
-
             attr_reader :packages
             attr_reader :package_sets
+            
+            class NotFound < CLIException; end
+            class NoSuchDir < CLIException; end
 
             # Create the locate CLI interface
             #
@@ -167,7 +167,7 @@ module Autoproj
             # Resolve the package that matches a given selection
             #
             # @return [PackageDefinition]
-            # @raise [NotFound] if nothing matches
+            # @raise [CLIInvalidArguments] if nothing matches
             # @raise [AmbiguousSelection] if the selection is ambiguous
             def resolve_package(selection)
                 matching_packages = find_packages(selection)
@@ -185,9 +185,9 @@ module Autoproj
                 end
 
                 if matching_packages.empty?
-                    raise NotFound, "cannot find '#{selection}' in the current autoproj installation"
+                    raise CLIInvalidArguments, "cannot find '#{selection}' in the current autoproj installation"
                 elsif matching_packages.size > 1
-                    raise AmbiguousSelection, "multiple packages match '#{selection}' in the current autoproj installation: #{matching_packages.map(&:name).sort.join(", ")}"
+                    raise CLIAmbiguousArguments, "multiple packages match '#{selection}' in the current autoproj installation: #{matching_packages.map(&:name).sort.join(", ")}"
                 else
                     return matching_packages.first
                 end
@@ -212,12 +212,12 @@ module Autoproj
 
             # Returns the prefix directory for a given selection
             #
-            # @raise [ArgumentError] if the selection points to a package set
+            # @raise [NoSuchDir] if the selection points to a package set
             def prefix_dir_of(selection)
                 if workspace_dir?(selection)
                     ws.prefix_dir
                 elsif find_package_set(selection)
-                    raise ArgumentError, "#{selection} is a package set, and package sets do not have prefixes"
+                    raise NoSuchDir, "#{selection} is a package set, and package sets do not have prefixes"
                 else
                     resolve_package(selection).prefix
                 end
@@ -225,19 +225,19 @@ module Autoproj
 
             # Returns the build directory for a given selection
             #
-            # @raise [ArgumentError] if the selection points to a package set,
+            # @raise [NoSuchDir] if the selection points to a package set,
             #   or to a package that has no build directory
             def build_dir_of(selection)
                 if workspace_dir?(selection)
-                    raise ArgumentError, "#{selection} points to the workspace itself, which has no build dir"
+                    raise NoSuchDir, "#{selection} points to the workspace itself, which has no build dir"
                 elsif find_package_set(selection)
-                    raise ArgumentError, "#{selection} is a package set, and package sets do not have build directories"
+                    raise NoSuchDir, "#{selection} is a package set, and package sets do not have build directories"
                 else
                     pkg = resolve_package(selection)
                     if pkg.respond_to?(:builddir) && pkg.builddir
                         pkg.builddir
                     else
-                        raise ArgumentError, "#{selection} resolves to the package #{pkg.name}, which does not have a build directory"
+                        raise NoSuchDir, "#{selection} resolves to the package #{pkg.name}, which does not have a build directory"
                     end
                 end
             end

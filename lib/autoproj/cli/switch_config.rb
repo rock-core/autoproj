@@ -9,9 +9,9 @@ module Autoproj
         class SwitchConfig < Base
             def run(args, options = Hash.new)
                 if !File.directory?(ws.config_dir)
-                    raise ConfigError, "there's no autoproj/ directory in this workspace, use autoproj bootstrap to check out one"
+                    raise CLIInvalidArguments, "there's no autoproj/ directory in this workspace, use autoproj bootstrap to check out one"
                 elsif Dir.pwd.start_with?(ws.remotes_dir) || Dir.pwd.start_with?(ws.config_dir)
-                    raise ConfigError, "you cannot run autoproj switch-config from autoproj's configuration directory or one of its subdirectories"
+                    raise CLIInvalidArguments, "you cannot run autoproj switch-config from autoproj's configuration directory or one of its subdirectories"
                 end
 
                 ws.load_config

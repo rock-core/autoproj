@@ -1,6 +1,15 @@
 module Autoproj
     module CLI
-        class InvalidArguments < Exception
+        class CLIException < RuntimeError
+            def fatal?
+                true
+            end
+        end
+        class CLIInvalidArguments < CLIException
+        end
+        class CLIAmbiguousArguments < CLIException
+        end
+        class CLIInvalidSelection < CLIException
         end
 
         def self.load_plugins

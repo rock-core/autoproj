@@ -29,7 +29,7 @@ module Autoproj
                     packages,
                     recursive: deps)
                 if source_packages.empty?
-                    raise ArgumentError, "no packages or OS packages match #{selection.join(" ")}"
+                    raise CLIInvalidArguments, "no packages or OS packages match #{selection.join(" ")}"
                 end
 
                 source_packages.each do |pkg_name|
