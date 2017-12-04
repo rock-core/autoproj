@@ -57,6 +57,9 @@ module Autoproj
 
                 Autoproj.message "successfully created a snapshot of the current autoproj configuration in #{target_dir}"
             end
+
+            def notify_env_sh_updated
+            end
         end
     end
 end

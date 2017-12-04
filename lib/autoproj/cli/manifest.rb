@@ -1,13 +1,8 @@
 require 'autoproj'
+require 'autoproj/cli/base'
 module Autoproj
     module CLI
-        class Manifest
-            attr_reader :ws
-
-            def initialize(ws = Workspace.default)
-                @ws = ws
-            end
-
+        class Manifest < Base
             def validate_options(args, options)
                 return args, options
             end

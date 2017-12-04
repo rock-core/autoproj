@@ -45,7 +45,7 @@ module Autoproj
                             run_args = cli.validate_options(args, options.merge(extra_options))
                             cli.run(*run_args)
                         ensure
-                            cli.notify_env_sh_updated
+                            cli.notify_env_sh_updated if cli.respond_to?(:notify_env_sh_updated)
                         end
                     end
                 end
