@@ -63,17 +63,18 @@ module Autoproj
                 end
             end
 
-            def create_or_update(options = Hash.new)
-                options = Kernel.validate_options options,
-                    keep_going: false,
-                    checkout_only: false
-                keep_going = options[:keep_going]
-                checkout_only = options[:checkout_only]
-
+            def create_or_update(all: true, keep_going: false, checkout_only: false)
                 FileUtils.mkdir_p cache_dir
 
-                packages = manifest.each_autobuild_package.
-                    sort_by(&:name)
+                packages =
+                    if all
+                        manifest.each_autobuild_package
+                    else
+                        manifest.all_selected_source_packages.map(&:autobuild)
+                    end
+
+                packages = packages.sort_by(&:name)
+
                 total = packages.size
                 Autoproj.message "Handling #{total} packages"
                 packages.each_with_index do |pkg, i|

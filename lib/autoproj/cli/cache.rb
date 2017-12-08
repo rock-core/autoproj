@@ -21,16 +21,12 @@ module Autoproj
                 return File.expand_path(argv.first, ws.root_dir), options
             end
 
-            def run(cache_dir, options = Hash.new)
-                options = Kernel.validate_options options,
-                    keep_going: false,
-                    checkout_only: false
-
+            def run(cache_dir, all: true, keep_going: false, checkout_only: false)
                 initialize_and_load
                 finalize_setup
 
                 cache_op = Autoproj::Ops::Cache.new(cache_dir, ws.manifest)
-                cache_op.create_or_update(options)
+                cache_op.create_or_update(all: all, keep_going: keep_going, checkout_only: checkout_only)
             end
         end
     end
