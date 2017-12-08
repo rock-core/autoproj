@@ -4,7 +4,6 @@ module Autoproj
     module CLI
         class Log < Base
             def run(args, options = Hash.new)
-                ws = Workspace.from_environment
                 ws.load_config
 
                 if !ws.config.import_log_enabled?
