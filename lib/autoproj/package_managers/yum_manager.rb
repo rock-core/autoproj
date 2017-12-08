@@ -42,8 +42,8 @@ module Autoproj
                 result = false
                 if !patterns.empty?
                     result |= super(patterns,
-                                    auto_install_cmd: "yum groupinstall -y '%s'",
-                                    user_install_cmd: "yum groupinstall '%s'")
+                                    auto_install_cmd: %w{yum groupinstall -y},
+                                    user_install_cmd: %w{yum groupinstall})
                 end
                 if !packages.empty?
                     result |= super(packages)
