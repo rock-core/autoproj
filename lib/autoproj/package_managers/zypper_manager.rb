@@ -29,8 +29,8 @@ module Autoproj
                 result = false
                 if !patterns.empty?
                     result |= super(patterns,
-                                    auto_install_cmd: "zypper --non-interactive install --type pattern '%s'",
-                                    user_install_cmd: "zypper install --type pattern '%s'")
+                                    auto_install_cmd: %w{zypper --non-interactive install --type pattern},
+                                    user_install_cmd: %w{zypper install --type pattern})
                 end
                 if !packages.empty?
                     result |= super(packages)
