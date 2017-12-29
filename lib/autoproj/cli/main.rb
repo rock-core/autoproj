@@ -23,6 +23,14 @@ module Autoproj
                 desc: 'enables or disables progress display (enabled by default if the terminal supports it)'
 
             no_commands do
+                def default_report_on_package_failures
+                    if options[:debug]
+                        :raise
+                    else
+                        :exit
+                    end
+                end
+
                 def run_autoproj_cli(filename, classname, report_options, *args, **extra_options)
                     require "autoproj/cli/#{filename}"
                     if Autobuild::Subprocess.transparent_mode = options[:tool]
@@ -139,7 +147,7 @@ module Autoproj
             option :auto_exclude, type: :boolean,
                 desc: 'if true, packages that fail to import will be excluded from the build'
             def update(*packages)
-                report_options = Hash[silent: false, on_package_failures: :exit]
+                report_options = Hash[silent: false, on_package_failures: default_report_on_package_failures]
                 if options[:auto_exclude]
                     report_options[:on_package_failures] = :report
                 end
@@ -179,7 +187,7 @@ In this case, the default is false
             option :confirm, type: :boolean, default: nil,
                 desc: '--force and --rebuild will ask confirmation if applied to the whole workspace. Use --no-confirm to disable this confirmation'
             def build(*packages)
-                report_options = Hash[silent: false, on_package_failures: :exit]
+                report_options = Hash[silent: false, on_package_failures: default_report_on_package_failures]
                 if options[:auto_exclude]
                     report_options[:on_package_failures] = :report
                 end
