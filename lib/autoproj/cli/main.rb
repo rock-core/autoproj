@@ -194,8 +194,8 @@ In this case, the default is false
                 desc: "only checkout packages, do not update already-cached ones"
             option :all, type: :boolean, default: true,
                 desc: "cache all defined packages (the default) or only the selected ones"
-            def cache(*cache_dir)
-                run_autoproj_cli(:cache, :Cache, Hash[], *cache_dir)
+            def cache(*args)
+                run_autoproj_cli(:cache, :Cache, Hash[], *args)
             end
 
             desc 'clean [PACKAGES]', 'remove build byproducts for the given packages'

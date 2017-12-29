@@ -63,15 +63,25 @@ module Autoproj
                 end
             end
 
-            def create_or_update(all: true, keep_going: false, checkout_only: false)
+            def create_or_update(*package_names, all: true, keep_going: false, checkout_only: false)
                 FileUtils.mkdir_p cache_dir
 
-                packages =
-                    if all
-                        manifest.each_autobuild_package
-                    else
-                        manifest.all_selected_source_packages.map(&:autobuild)
+                if package_names.empty?
+                    packages =
+                        if all
+                            manifest.each_autobuild_package
+                        else
+                            manifest.all_selected_source_packages.map(&:autobuild)
+                        end
+                else
+                    packages = package_names.map do |name|
+                        if pkg = manifest.find_autobuild_package(name)
+                            pkg
+                        else
+                            raise PackageNotFound, "no package named #{name}"
+                        end
                     end
+                end
 
                 packages = packages.sort_by(&:name)
 
