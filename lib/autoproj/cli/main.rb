@@ -454,6 +454,12 @@ The format is a string in which special values can be expanded using a $VARNAME 
                 require 'autoproj/cli/exec'
                 CLI::Exec.new.run(*args)
             end
+
+            desc 'which', "resolves the full path to a command within the Autoproj workspace"
+            def which(cmd)
+                require 'autoproj/cli/which'
+                CLI::Which.new.run(cmd)
+            end
         end
     end
 end
