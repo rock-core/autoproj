@@ -10,14 +10,14 @@ module Autoproj
                 pkg = manifest.main_package_set.create_autobuild_package
                 importer = pkg.importer
                 if !importer || !importer.kind_of?(Autobuild::Git)
-                    raise ConfigError, "cannot use autoproj reset if the main configuration is not managed by git"
+                    raise CLIInvalidArguments, "cannot use autoproj reset if the main configuration is not managed by git"
                 end
                 
                 # Check if the reflog entry exists
                 begin
                     importer.rev_parse(pkg, ref_name)
                 rescue Autobuild::PackageException
-                    raise InvalidArguments, "#{ref_name} does not exist, run autoproj log for log entries and autoproj tag without arguments for the tags"
+                    raise CLIInvalidArguments, "#{ref_name} does not exist, run autoproj log for log entries and autoproj tag without arguments for the tags"
                 end
 
                 # Checkout the version file

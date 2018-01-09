@@ -14,7 +14,7 @@ module Autoproj
                 pkg = main_package_set.create_autobuild_package
                 importer = pkg.importer
                 if !importer || !importer.kind_of?(Autobuild::Git)
-                    raise ConfigError, "cannot use autoproj tag if the main configuration is not managed by git"
+                    raise CLIInvalidArguments, "cannot use autoproj tag if the main configuration is not managed by git"
                 end
 
                 versions_file = File.join(
@@ -37,7 +37,7 @@ module Autoproj
                 # Check if the tag already exists
                 begin
                     importer.rev_parse(pkg, "refs/tags/#{tag_name}")
-                    raise InvalidArguments, "tag #{tag_name} already exists"
+                    raise CLIInvalidArguments, "tag #{tag_name} already exists"
                 rescue Autobuild::PackageException
                 end
 

@@ -198,6 +198,8 @@ module Autoproj
                                         install_vcs_packages: (osdeps_options if osdeps),
                                         auto_exclude: auto_exclude)
                 return source_packages, osdep_packages, nil
+            rescue ExcludedSelection => e
+                raise CLIInvalidSelection, e.message, e.backtrace
             rescue PackageImportFailed => import_failure
                 if !keep_going
                     raise

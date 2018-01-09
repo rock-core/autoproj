@@ -12,7 +12,7 @@ module Autoproj
 
             def initialize(root_dir = Dir.pwd)
                 if File.exist?(File.join(root_dir, 'autoproj', "manifest"))
-                    raise ConfigError, "this installation is already bootstrapped. Remove the autoproj directory if it is not the case"
+                    raise CLIException, "this installation is already bootstrapped. Remove the autoproj directory if it is not the case"
                 end
                 @root_dir = root_dir
             end
@@ -26,7 +26,7 @@ module Autoproj
 
                     path = File.expand_path(path)
                     if !File.directory?(path) || !File.directory?(File.join(path, 'autoproj'))
-                        raise ArgumentError, "#{path} does not look like an autoproj installation"
+                        raise CLIInvalidArguments, "#{path} does not look like an autoproj installation"
                     end
                     options[:reuse] = [path]
                 end

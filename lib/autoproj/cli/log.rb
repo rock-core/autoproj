@@ -34,7 +34,7 @@ module Autoproj
                 elsif entry =~ /^\d+$/
                     "autoproj@{#{entry}}"
                 else
-                    raise ArgumentError, "unexpected revision name '#{entry}', expected either autoproj@{ID} or ID ('ID' being a number). Run 'autoproj log' without arguments for a list of known entries"
+                    raise CLIInvalidArguments, "unexpected revision name '#{entry}', expected either autoproj@{ID} or ID ('ID' being a number). Run 'autoproj log' without arguments for a list of known entries"
                 end
             end
         end

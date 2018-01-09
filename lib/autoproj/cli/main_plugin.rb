@@ -37,7 +37,7 @@ module Autoproj
 
                 gem_options = Hash.new
                 if options[:git] && options[:path]
-                    raise ArgumentError, "you can provide only one of --git or --path"
+                    raise CLIInvalidArguments, "you can provide only one of --git or --path"
                 elsif options[:git]
                     gem_options[:git] = options[:git]
                 elsif options[:path]

@@ -397,9 +397,9 @@ module Autoproj
                     assert_equal ws.prefix_dir, cli.prefix_dir_of("#{ws.root_dir}/")
                     assert_equal ws.prefix_dir, cli.prefix_dir_of("#{ws.prefix_dir}/")
                 end
-                it "raises ArgumentError if given a package set" do
+                it "raises NoSuchDir if given a package set" do
                     cli.should_receive(:find_package_set).with(selection = flexmock).and_return(flexmock)
-                    e = assert_raises(ArgumentError) do
+                    e = assert_raises(Locate::NoSuchDir) do
                         cli.prefix_dir_of(selection)
                     end
                     assert_equal "#{selection} is a package set, and package sets do not have prefixes",
@@ -415,22 +415,22 @@ module Autoproj
             end
 
             describe "#build_dir_of" do
-                it "raises ArgumentError if selecting the workspace" do
+                it "raises NoSuchDir if selecting the workspace" do
                     FileUtils.mkdir_p ws.prefix_dir
-                    e = assert_raises(ArgumentError) do
+                    e = assert_raises(Locate::NoSuchDir) do
                         cli.build_dir_of("#{ws.root_dir}/")
                     end
                     assert_equal "#{ws.root_dir}/ points to the workspace itself, which has no build dir",
                         e.message
-                    e = assert_raises(ArgumentError) do
+                    e = assert_raises(Locate::NoSuchDir) do
                         cli.build_dir_of("#{ws.prefix_dir}/")
                     end
                     assert_equal "#{ws.prefix_dir}/ points to the workspace itself, which has no build dir",
                         e.message
                 end
-                it "raises ArgumentError if given a package set" do
+                it "raises NoSuchDir if given a package set" do
                     cli.should_receive(:find_package_set).with(selection = flexmock).and_return(flexmock)
-                    e = assert_raises(ArgumentError) do
+                    e = assert_raises(Locate::NoSuchDir) do
                         cli.build_dir_of(selection)
                     end
                     assert_equal "#{selection} is a package set, and package sets do not have build directories",
@@ -443,20 +443,20 @@ module Autoproj
                         and_return(flexmock(builddir: dir))
                     assert_equal dir, cli.build_dir_of(selection)
                 end
-                it "raises ArgumentError if the matching package has no build directory" do
+                it "raises Locate::NoSuchDir if the matching package has no build directory" do
                     cli.should_receive(:resolve_package).
                         with(selection = flexmock).
                         and_return(flexmock(name: 'test'))
-                    e = assert_raises(ArgumentError) do
+                    e = assert_raises(Locate::NoSuchDir) do
                         cli.build_dir_of(selection)
                     end
                     assert_equal "#{selection} resolves to the package test, which does not have a build directory", e.message
                 end
-                it "raises ArgumentError if the package has a nil build directory" do
+                it "raises NoSuchDir if the package has a nil build directory" do
                     cli.should_receive(:resolve_package).
                         with(selection = flexmock).
                         and_return(flexmock(name: 'test', builddir: nil))
-                    e = assert_raises(ArgumentError) do
+                    e = assert_raises(Locate::NoSuchDir) do
                         cli.build_dir_of(selection)
                     end
                     assert_equal "#{selection} resolves to the package test, which does not have a build directory", e.message
@@ -500,11 +500,11 @@ module Autoproj
             end
 
             describe "#resolve_package" do
-                it "raises NotFound if there are no matches" do
+                it "raises CLIInvalidArguments if there are no matches" do
                     cli.should_receive(:find_packages).and_return([])
                     cli.should_receive(:find_packages_with_directory_shortnames).
                         and_return([])
-                    e = assert_raises(Locate::NotFound) do
+                    e = assert_raises(CLIInvalidArguments) do
                         cli.resolve_package('does/not/match')
                     end
                     assert_equal "cannot find 'does/not/match' in the current autoproj installation",
@@ -518,11 +518,11 @@ module Autoproj
                         cli.should_receive(:find_packages_with_directory_shortnames).never
                         assert_equal pkg, cli.resolve_package(selection)
                     end
-                    it "raises AmbiguousSelection if find_packages returns more than one match" do
+                    it "raises CLIAmbiguousArguments if find_packages returns more than one match" do
                         cli.should_receive(:find_packages).
                             with(selection = flexmock).
                             and_return([flexmock(name: 'pkg0', srcdir: ''), flexmock(name: 'pkg1', srcdir: '')])
-                        e = assert_raises(Locate::AmbiguousSelection) do
+                        e = assert_raises(CLIAmbiguousArguments) do
                             cli.resolve_package(selection)
                         end
                         assert_equal "multiple packages match '#{selection}' in the current autoproj installation: pkg0, pkg1", e.message
@@ -548,11 +548,11 @@ module Autoproj
                                 once.and_return([pkg = flexmock(srcdir: 'usr/local/dir')])
                             assert_equal pkg, cli.resolve_package(selection)
                         end
-                        it "raises AmbiguousSelection if it returns more than one match" do
+                        it "raises CLIAmbiguousArguments if it returns more than one match" do
                             cli.should_receive(:find_packages_with_directory_shortnames).
                                 with(selection = flexmock).
                                 and_return([flexmock(name: 'pkg0', srcdir: ''), flexmock(name: 'pkg1', srcdir: '')])
-                            e = assert_raises(Locate::AmbiguousSelection) do
+                            e = assert_raises(CLIAmbiguousArguments) do
                                 cli.resolve_package(selection)
                             end
                             assert_equal "multiple packages match '#{selection}' in the current autoproj installation: pkg0, pkg1", e.message

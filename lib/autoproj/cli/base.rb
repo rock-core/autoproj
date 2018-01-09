@@ -1,6 +1,7 @@
 require 'tty/color'
 require 'autoproj'
 require 'autoproj/autobuild'
+require 'autoproj/cli'
 
 module Autoproj
     module CLI
@@ -57,7 +58,11 @@ module Autoproj
             #   resolved
             def resolve_user_selection(selected_packages, **options)
                 if selected_packages.empty?
-                    selection = ws.manifest.default_packages
+                    selection =
+                        begin ws.manifest.default_packages
+                        rescue ExcludedSelection => e
+                            raise CLIInvalidSelection, e.message, e.backtrace
+                        end
                     if Autoproj.verbose
                         Autoproj.message "selected packages: #{selection.each_package_name.to_a.sort.join(", ")}"
                     end
@@ -65,8 +70,11 @@ module Autoproj
                 end
                 selected_packages = selected_packages.to_set
 
-                selected_packages, nonresolved = ws.manifest.
-                    expand_package_selection(selected_packages, **options)
+                selected_packages, nonresolved =
+                    begin ws.manifest.expand_package_selection(selected_packages, **options)
+                    rescue ExcludedSelection => e
+                        raise CLIInvalidSelection, e.message, e.backtrace
+                    end
 
                 # Try to auto-add stuff if nonresolved
                 nonresolved.delete_if do |sel|
@@ -144,6 +152,8 @@ module Autoproj
                     auto_exclude: auto_exclude)
 
                 return source_packages, osdep_packages, resolved_selection
+            rescue ExcludedSelection => e
+                raise CLIInvalidSelection, e.message, e.backtrace
             end
 
             def validate_user_selection(user_selection, resolved_selection)
@@ -151,7 +161,7 @@ module Autoproj
                     !resolved_selection.has_match_for?(pkg_name)
                 end
                 if !not_matched.empty?
-                    raise ConfigError.new, "autoproj: wrong package selection on command line, cannot find a match for #{not_matched.to_a.sort.join(", ")}"
+                    raise CLIInvalidArguments, "autoproj: wrong package selection on command line, cannot find a match for #{not_matched.to_a.sort.join(", ")}"
                 end
             end
 

@@ -88,6 +88,18 @@ module Autoproj
                 package_failures, on_package_failures: on_package_failures, interrupted_by: interrupted)
         end
 
+    rescue CLI::CLIException => e
+        if silent_errors
+            return [e]
+        elsif on_package_failures == :raise
+            raise e
+        elsif on_package_failures == :report
+            Autoproj.error e.message
+        elsif on_package_failures == :exit
+            Autoproj.error e.message
+            exit 1
+        end
+
     rescue SystemExit
         raise
     ensure
