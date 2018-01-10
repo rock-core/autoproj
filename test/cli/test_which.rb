@@ -4,48 +4,28 @@ require 'autoproj/cli/which'
 module Autoproj
     module CLI
         describe Which do
-            include Autoproj::SelfTest;
             before do
                 ws_create
                 @cli = Which.new(ws)
                 flexmock(@cli).should_receive(:initialize_and_load)
             end
 
-            it "displays a given full path if it exists, regardless of PATH" do
-                ws.env.clear 'PATH'
-                path = File.join(ws.root_dir, 'test')
-                FileUtils.touch path
+            it "displays the value returned by Workspace#which" do
+                flexmock(ws).should_receive(:which).with("path").
+                    and_return('/resolved/path')
                 out, err = capture_io do
-                    @cli.run path
+                    @cli.run('path')
                 end
-                assert_equal "#{path}\n", out
+                assert_equal "/resolved/path\n", out
             end
 
-            it "displays an error if a given full path does not exist, and exits with error" do
-                path = File.join(ws.root_dir, 'test')
-                flexmock(Autoproj).should_receive(:error).with("given command `#{path}` does not exist").
-                    once
-                assert_raises(SystemExit) do
-                    @cli.run path
+            it "re-raises an ExecutableNotFound exception raied by Workspace#which as CLIInvalidArguments" do
+                flexmock(ws).should_receive(:which).with("path").
+                    and_raise(Workspace::ExecutableNotFound.new("cannot find"))
+                e = assert_raises(CLIInvalidArguments) do
+                    @cli.run('path')
                 end
-            end
-
-            it "displays the resolved full path if found" do
-                ws.env.set 'PATH', ws.root_dir
-                path = File.join(ws.root_dir, 'test')
-                FileUtils.touch path
-                out, err = capture_io do
-                    @cli.run 'test'
-                end
-                assert_equal "#{path}\n", out
-            end
-
-            it "displays an error if the path cannot be resolved, and exits with error" do
-                flexmock(Autoproj).should_receive(:error).with("cannot resolve `test` in the workspace").
-                    once
-                assert_raises(SystemExit) do
-                    @cli.run 'test'
-                end
+                assert_equal "cannot find", e.message
             end
         end
     end

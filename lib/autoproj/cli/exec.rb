@@ -6,12 +6,18 @@ module Autoproj
                 initialize_and_load
                 finalize_setup(Array.new)
 
-                # Resolve the command using the PATH if present
-                env = ws.full_env
-                if !File.file?(cmd)
-                    cmd = env.find_in_path(cmd) || cmd
+                program = 
+                    begin ws.which(cmd)
+                    rescue ::Exception => e
+                        raise CLIInvalidArguments, e.message, e.backtrace
+                    end
+                env = ws.env.resolved_env
+
+                begin
+                    ::Process.exec(env, program, *args)
+                rescue ::Exception => e
+                    raise CLIInvalidArguments, e.message, e.backtrace
                 end
-                exec(env.resolved_env, cmd, *args)
             end
         end
     end
