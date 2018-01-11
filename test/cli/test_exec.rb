@@ -10,10 +10,11 @@ module Autoproj
                 flexmock(@cli).should_receive(:initialize_and_load)
             end
 
-            it "passes the resolved environment, program and the arguments to the exec'd process" do
+            it "passes the full environment, program and the arguments to the exec'd process" do
                 flexmock(ws).should_receive(:which).with("path").
                     and_return('/resolved/path')
-                flexmock(ws.env).should_receive(:resolved_env).and_return(env = flexmock)
+                env = flexmock
+                flexmock(ws).should_receive(:full_env => flexmock(resolved_env: env))
                 flexmock(Process).should_receive(:exec).with(env, "/resolved/path", 'args').once
                 @cli.run('path', 'args')
             end

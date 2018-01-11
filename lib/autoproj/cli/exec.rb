@@ -11,7 +11,7 @@ module Autoproj
                     rescue ::Exception => e
                         raise CLIInvalidArguments, e.message, e.backtrace
                     end
-                env = ws.env.resolved_env
+                env = ws.full_env.resolved_env
 
                 begin
                     ::Process.exec(env, program, *args)
