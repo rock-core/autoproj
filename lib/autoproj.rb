@@ -31,7 +31,9 @@ require 'autoproj/options'
 require 'autoproj/ops/import'
 # Required for auto-saving in import_packages
 require 'autoproj/ops/snapshot'
-require 'autoproj/query'
+require 'autoproj/query_base'
+require 'autoproj/source_package_query'
+require 'autoproj/os_package_query'
 
 require 'autoproj/ops/tools'
 require 'autoproj/ops/loader'

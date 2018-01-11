@@ -14,23 +14,17 @@ module Autoproj
                     end
                     Autoproj.warn "using cache directory #{default_cache_dirs.first} from the autoproj configuration"
                     argv << default_cache_dirs.first
-                elsif argv.size > 1
-                    raise CLIInvalidArguments, "expected only one cache directory as argument"
                 end
 
-                return File.expand_path(argv.first, ws.root_dir), options
+                return File.expand_path(argv.first, ws.root_dir), *argv[1..-1], options
             end
 
-            def run(cache_dir, options = Hash.new)
-                options = Kernel.validate_options options,
-                    keep_going: false,
-                    checkout_only: false
-
+            def run(cache_dir, *package_names, all: true, keep_going: false, checkout_only: false)
                 initialize_and_load
                 finalize_setup
 
                 cache_op = Autoproj::Ops::Cache.new(cache_dir, ws.manifest)
-                cache_op.create_or_update(options)
+                cache_op.create_or_update(*package_names, all: all, keep_going: keep_going, checkout_only: checkout_only)
             end
         end
     end

@@ -5,7 +5,7 @@ module Autoproj
 
             no_commands do
                 def ws
-                    @ws ||= Workspace.from_pwd
+                    @ws ||= Workspace.default
                 end
 
                 def install_plugins

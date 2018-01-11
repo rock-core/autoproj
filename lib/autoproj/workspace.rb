@@ -701,6 +701,44 @@ module Autoproj
             pkg.autobuild.ws = self
             pkg
         end
+
+        class ExecutableNotFound < ArgumentError
+        end
+
+        # Find the given executable file in PATH
+        #
+        # If `cmd` is an absolute path, it will either return it or raise if
+        # `cmd` is not executable. Otherwise, looks for an executable named
+        # `cmd` in PATH and returns it, or raises if it cannot be found. The
+        # exception contains a more detailed reason for failure
+        # 
+        #
+        # @param [String] cmd
+        # @return [String] the resolved program
+        # @raise [ExecutableNotFound] if an executable file named `cmd` cannot
+        #   be found
+        def which(cmd)
+            path = Pathname.new(cmd)
+            if path.absolute?
+                if path.file? && path.executable?
+                    return cmd
+                elsif path.exist?
+                    raise ExecutableNotFound.new(cmd), "given command `#{cmd}` exists but is not an executable file"
+                else
+                    raise ExecutableNotFound.new(cmd), "given command `#{cmd}` does not exist, an executable file was expected"
+                end
+            else
+                env = full_env
+                absolute = env.find_executable_in_path(cmd)
+                if absolute
+                    return absolute
+                elsif file = env.find_in_path(cmd)
+                    raise ExecutableNotFound.new(cmd), "`#{cmd}` resolves to #{file} which is not executable"
+                else
+                    raise ExecutableNotFound.new(cmd), "cannot resolve `#{cmd}` to an executable in the workspace"
+                end
+            end
+        end
     end
 
     def self.workspace

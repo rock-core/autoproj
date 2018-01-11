@@ -47,7 +47,7 @@ module Autoproj
                     Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', pkg.importdir, 'remote', 'update', 'autobuild')
                 end
                 with_retry(10) do
-                    Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', pkg.importdir, 'fetch', '--tags')
+                    Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', pkg.importdir, 'fetch', 'autobuild', '--tags')
                 end
                 Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', pkg.importdir, 'gc', '--prune=all')
             end
@@ -63,17 +63,28 @@ module Autoproj
                 end
             end
 
-            def create_or_update(options = Hash.new)
-                options = Kernel.validate_options options,
-                    keep_going: false,
-                    checkout_only: false
-                keep_going = options[:keep_going]
-                checkout_only = options[:checkout_only]
-
+            def create_or_update(*package_names, all: true, keep_going: false, checkout_only: false)
                 FileUtils.mkdir_p cache_dir
 
-                packages = manifest.each_autobuild_package.
-                    sort_by(&:name)
+                if package_names.empty?
+                    packages =
+                        if all
+                            manifest.each_autobuild_package
+                        else
+                            manifest.all_selected_source_packages.map(&:autobuild)
+                        end
+                else
+                    packages = package_names.map do |name|
+                        if pkg = manifest.find_autobuild_package(name)
+                            pkg
+                        else
+                            raise PackageNotFound, "no package named #{name}"
+                        end
+                    end
+                end
+
+                packages = packages.sort_by(&:name)
+
                 total = packages.size
                 Autoproj.message "Handling #{total} packages"
                 packages.each_with_index do |pkg, i|

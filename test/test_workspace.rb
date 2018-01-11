@@ -313,6 +313,123 @@ module Autoproj
                 assert defined?(LOADED_99)
             end
         end
+        
+        describe "#which" do
+            before do
+                ws_create
+            end
+
+            def target_test_path
+                File.join(ws.root_dir, 'autoproj_which_test')
+            end
+
+            def create_test_directory(path = target_test_path)
+                FileUtils.mkdir_p path
+                FileUtils.chmod 0o755, path
+                return path
+            end
+
+            def create_test_file(path = target_test_path)
+                FileUtils.mkdir_p(File.dirname(path))
+                FileUtils.touch path
+                return path
+            end
+
+            def create_test_executable(path = target_test_path)
+                create_test_file(path)
+                FileUtils.chmod 0o755, path
+                return path
+            end
+
+            describe "when given a full path" do
+                before do
+                    ws.env.clear 'PATH'
+                end
+
+                it "returns it if it exists and is executable, regardless of PATH" do
+                    path = create_test_executable
+                    assert_equal path, ws.which(path)
+                end
+
+                it "raises if the file does not exist" do
+                    path = target_test_path
+                    e = assert_raises(Workspace::ExecutableNotFound) do
+                        ws.which(path)
+                    end
+                    assert_equal "given command `#{path}` does not exist, an executable file was expected",
+                        e.message
+                end
+
+                it "raises if the file exists but does not point to an executable file" do
+                    path = create_test_file
+                    e = assert_raises(Workspace::ExecutableNotFound) do
+                        ws.which(path)
+                    end
+                    assert_equal "given command `#{path}` exists but is not an executable file",
+                        e.message
+                end
+
+                it "raises if the path does not point to a file" do
+                    path = create_test_directory
+                    e = assert_raises(Workspace::ExecutableNotFound) do
+                        ws.which(path)
+                    end
+                    assert_equal "given command `#{path}` exists but is not an executable file",
+                        e.message
+                end
+            end
+
+            describe "when given a relative path" do
+                before do
+                    ws.env.set 'PATH', ws.root_dir
+                end
+
+                it "returns the resolved path if an executable file can be found" do
+                    path = create_test_executable
+                    assert_equal path, ws.which('autoproj_which_test')
+                end
+
+                it "raises if the file exists but is not executable" do
+                    path = create_test_file
+                    e = assert_raises(Workspace::ExecutableNotFound) do
+                        ws.which('autoproj_which_test')
+                    end
+                    assert_equal "`autoproj_which_test` resolves to #{path} which is not executable",
+                        e.message
+                end
+
+                it "raises if the file exists but is not a file" do
+                    path = create_test_directory
+                    e = assert_raises(Workspace::ExecutableNotFound) do
+                        ws.which('autoproj_which_test')
+                    end
+                    assert_equal "cannot resolve `autoproj_which_test` to an executable in the workspace",
+                        e.message
+                end
+
+                it "raises if the file does not exist" do
+                    e = assert_raises(Workspace::ExecutableNotFound) do
+                        ws.which('autoproj_which_test')
+                    end
+                    assert_equal "cannot resolve `autoproj_which_test` to an executable in the workspace",
+                        e.message
+                end
+
+                it "ignores paths that are not executable" do
+                    create_test_file File.join(ws.root_dir, 'dir', 'autoproj_which_test')
+                    ws.env.push_path 'PATH', File.join(ws.root_dir, 'dir')
+                    path = create_test_executable
+                    assert_equal path, ws.which('autoproj_which_test')
+                end
+
+                it "ignores paths that are not files" do
+                    create_test_directory File.join(ws.root_dir, 'dir', 'autoproj_which_test')
+                    ws.env.push_path 'PATH', File.join(ws.root_dir, 'dir')
+                    path = create_test_executable
+                    assert_equal path, ws.which('autoproj_which_test')
+                end
+            end
+        end
     end
 end
 

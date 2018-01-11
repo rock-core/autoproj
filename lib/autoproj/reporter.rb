@@ -88,7 +88,7 @@ module Autoproj
                 package_failures, on_package_failures: on_package_failures, interrupted_by: interrupted)
         end
 
-    rescue CLI::CLIException => e
+    rescue CLI::CLIException, InvalidWorkspace => e
         if silent_errors
             return [e]
         elsif on_package_failures == :raise

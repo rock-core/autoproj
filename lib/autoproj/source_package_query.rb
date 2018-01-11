@@ -27,7 +27,7 @@ module Autoproj
     #   * 'vcs' can be used instead of 'vcs.url'
     #   * 'package_set' can be used instead of 'package_set.name'
     #
-    class Query
+    class SourcePackageQuery < QueryBase
         ALLOWED_FIELDS = [
             'autobuild.name',
             'autobuild.srcdir',
@@ -44,29 +44,13 @@ module Autoproj
         }
 
         # Match priorities
-        EXACT = 4
-        PARTIAL = 3
         DIR_PREFIX_STRONG = 2
         DIR_PREFIX_WEAK = 1
 
-        attr_reader :fields
-        attr_reader :value
         attr_predicate :use_dir_prefix?
-        attr_predicate :partial?
-
-        class All
-            def match(pkg); true end
-        end
-
-        def self.all
-            All.new
-        end
 
         def initialize(fields, value, partial)
-            @fields = fields
-            @value = value
-            @value_rx = Regexp.new(Regexp.quote(value), true)
-            @partial = partial
+            super(fields, value, partial)
 
             directories = value.split('/')
             if !directories.empty?
@@ -119,15 +103,15 @@ module Autoproj
                 return
             end
 
-            if pkg_value =~ @value_rx
+            if @value_rx === pkg_value
                 return PARTIAL
             end
 
             # Special match for directories: match directory prefixes
             if use_dir_prefix?
-                if pkg_value =~ @dir_prefix_strong_rx
+                if @dir_prefix_strong_rx === pkg_value
                     return DIR_PREFIX_STRONG
-                elsif pkg_value =~ @dir_prefix_weak_rx
+                elsif @dir_prefix_weak_rx === pkg_value
                     return DIR_PREFIX_WEAK
                 end
             end
@@ -135,69 +119,19 @@ module Autoproj
 
         # Parse a single field in a query (i.e. a FIELD[=~]VALUE string)
         def self.parse(str)
-            field, value = str.split('=')
-            if !value
-                partial = true
-                field, value = str.split('~')
-            end
-
-            if DEFAULT_FIELDS[field]
-                field = DEFAULT_FIELDS[field]
-            end
-
-            # Validate the query key
-            if !ALLOWED_FIELDS.include?(field)
-                raise ArgumentError, "#{field} is not a known query key"
-            end
-
-            fields = field.split('.')
-            new(fields, value, partial)
-        end
-
-        # Parse a complete query
-        def self.parse_query(query)
-            query = query.split(':')
-            query = query.map do |str|
-                if str !~ /[=~]/
-                    match_name = Query.parse("autobuild.name~#{str}")
-                    match_dir  = Query.parse("autobuild.srcdir~#{str}")
-                    Or.new([match_name, match_dir])
-                else
-                    Query.parse(str)
-                end
-            end
-            if query.size == 1
-                query.first
+            if str !~ /[=~]/
+                match_name = parse("autobuild.name~#{str}")
+                match_dir  = parse("autobuild.srcdir~#{str}")
+                return Or.new([match_name, match_dir])
             else
-                And.new(query)
-            end
-        end
-
-        # Match object that combines multiple matches using a logical OR
-        class Or
-            def initialize(submatches)
-                @submatches = submatches
-            end
-            def match(pkg)
-                @submatches.map { |m| m.match(pkg) }.compact.max
-            end
-        end
-
-        # Match object that combines multiple matches using a logical AND
-        class And
-            def initialize(submatches)
-                @submatches = submatches
-            end
-            def match(pkg)
-                matches = @submatches.map do |m|
-                    if p = m.match(pkg)
-                        p
-                    else return
-                    end
-                end
-                matches.min
+                fields, value, partial =
+                    super(str, default_fields: DEFAULT_FIELDS, allowed_fields: ALLOWED_FIELDS)
+                return new(fields, value, partial)
             end
         end
     end
+
+    # For backward compatibility
+    Query = SourcePackageQuery
 end
 

@@ -23,6 +23,14 @@ module Autoproj
                 desc: 'enables or disables progress display (enabled by default if the terminal supports it)'
 
             no_commands do
+                def default_report_on_package_failures
+                    if options[:debug]
+                        :raise
+                    else
+                        :exit
+                    end
+                end
+
                 def run_autoproj_cli(filename, classname, report_options, *args, **extra_options)
                     require "autoproj/cli/#{filename}"
                     if Autobuild::Subprocess.transparent_mode = options[:tool]
@@ -139,7 +147,7 @@ module Autoproj
             option :auto_exclude, type: :boolean,
                 desc: 'if true, packages that fail to import will be excluded from the build'
             def update(*packages)
-                report_options = Hash[silent: false, on_package_failures: :exit]
+                report_options = Hash[silent: false, on_package_failures: default_report_on_package_failures]
                 if options[:auto_exclude]
                     report_options[:on_package_failures] = :report
                 end
@@ -179,7 +187,7 @@ In this case, the default is false
             option :confirm, type: :boolean, default: nil,
                 desc: '--force and --rebuild will ask confirmation if applied to the whole workspace. Use --no-confirm to disable this confirmation'
             def build(*packages)
-                report_options = Hash[silent: false, on_package_failures: :exit]
+                report_options = Hash[silent: false, on_package_failures: default_report_on_package_failures]
                 if options[:auto_exclude]
                     report_options[:on_package_failures] = :report
                 end
@@ -192,8 +200,10 @@ In this case, the default is false
                 desc: 'do not stop on errors'
             option :checkout_only, aliases: :c, type: :boolean, default: false,
                 desc: "only checkout packages, do not update already-cached ones"
-            def cache(*cache_dir)
-                run_autoproj_cli(:cache, :Cache, Hash[], *cache_dir)
+            option :all, type: :boolean, default: true,
+                desc: "cache all defined packages (the default) or only the selected ones"
+            def cache(*args)
+                run_autoproj_cli(:cache, :Cache, Hash[], *args)
             end
 
             desc 'clean [PACKAGES]', 'remove build byproducts for the given packages'
@@ -443,6 +453,12 @@ The format is a string in which special values can be expanded using a $VARNAME 
             def exec(*args)
                 require 'autoproj/cli/exec'
                 CLI::Exec.new.run(*args)
+            end
+
+            desc 'which', "resolves the full path to a command within the Autoproj workspace"
+            def which(cmd)
+                require 'autoproj/cli/which'
+                CLI::Which.new.run(cmd)
             end
         end
     end

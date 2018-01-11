@@ -1,6 +1,13 @@
 source 'https://rubygems.org'
 
-gem 'pry'
-gem 'pry-byebug'
 gem 'autobuild', github: 'rock-core/autobuild', branch: 'master'
+
+group :vscode do
+    gem 'pry'
+    gem 'pry-byebug'
+    gem 'rubocop', '>= 0.6.0'
+    gem 'ruby-debug-ide', '>= 0.6.0'
+    gem 'debase', '>= 0.2.2.beta10'
+    gem 'solargraph'
+end
 gemspec
