@@ -73,15 +73,12 @@ module Autoproj
 
             MAIN_CONFIGURATION_TEMPLATE = File.expand_path(File.join("..", "..", "..", "samples", 'autoproj'), File.dirname(__FILE__))
 
-            def bootstrap(buildconf_info, options = Hash.new)
-                options = validate_options options,
-                    reuse: Array.new
-
+            def bootstrap(buildconf_info, reuse: Array.new)
                 check_root_dir_empty
-                validate_autoproj_current_root(options[:reuse])
+                validate_autoproj_current_root(reuse)
 
                 ws.config.validate_ruby_executable
-                ws.config.set 'reused_autoproj_installations', options[:reuse], true
+                ws.config.set 'reused_autoproj_installations', reuse, true
                 ws.env.export_env_sh(shell_helpers: ws.config.shell_helpers?)
 
                 # If we are not getting the installation setup from a VCS, copy the template
@@ -106,9 +103,9 @@ module Autoproj
                     end
 
                 elsif buildconf_info.size >= 2 # is a VCS definition for the manifest itself ...
-                    type, url, *options = *buildconf_info
+                    type, url, *vcs_options = *buildconf_info
                     url = VCSDefinition.to_absolute_url(url, ws.root_dir)
-                    do_switch_config(false, type, url, *options)
+                    do_switch_config(false, type, url, *vcs_options)
                 end
                 ws.env.export_env_sh(shell_helpers: ws.config.shell_helpers?)
                 ws.config.save
