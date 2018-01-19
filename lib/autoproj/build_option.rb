@@ -47,10 +47,10 @@ module Autoproj
 
         def ask(current_value, doc = nil)
             default_value =
-		if !current_value.nil? then current_value.to_s
-		elsif options[:default] then options[:default].to_str
-		else ''
-		end
+                if !current_value.nil? then current_value.to_s
+                elsif options[:default] then options[:default].to_str
+                else ''
+                end
 
             STDOUT.print "  #{doc || self.doc} [#{default_value}] "
             STDOUT.flush
