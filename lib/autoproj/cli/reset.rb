@@ -26,13 +26,13 @@ module Autoproj
                     Versions::DEFAULT_VERSIONS_FILE_BASENAME)
                 begin
                     file_data = importer.show(pkg, ref_name, versions_file)
-                    versions_path = File.join(Autoproj.config_dir, versions_file)
+                    versions_path = File.join(ws.config_dir, versions_file)
                     if File.file?(versions_path)
                         old_versions_path = "#{versions_path}.old"
                         FileUtils.rm_f old_versions_path
                         FileUtils.cp versions_path, old_versions_path
                     end
-                    FileUtils.mkdir_p File.join(Autoproj.config_dir, Workspace::OVERRIDES_DIR)
+                    FileUtils.mkdir_p File.join(ws.config_dir, Workspace::OVERRIDES_DIR)
                     File.open(versions_path, 'w') do |io|
                         io.write file_data
                     end

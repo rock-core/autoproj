@@ -98,7 +98,7 @@ module Autoproj
                             raise ConfigError.new, "cannot read file / URL #{manifest_url}, did you mean 'autoproj bootstrap VCSTYPE #{manifest_url}' ?"
                         end
 
-                    File.open(File.join(Autoproj.config_dir, "manifest"), "w") do |io|
+                    File.open(File.join(ws.config_dir, "manifest"), "w") do |io|
                         io.write(manifest_data)
                     end
 
