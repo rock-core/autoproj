@@ -1,7 +1,7 @@
 #! /usr/bin/ruby
 
-if RUBY_VERSION < "2.0.0"
-    STDERR.puts "autoproj requires Ruby >= 2.0.0"
+if RUBY_VERSION < "2.1.0"
+    STDERR.puts "autoproj requires Ruby >= 2.1.0"
     exit 1
 elsif ENV['AUTOPROJ_CURRENT_ROOT'] && (ENV['AUTOPROJ_CURRENT_ROOT'] != Dir.pwd)
     STDERR.puts "it seems that you've already loaded an env.sh script in this console, open a new console and try again"

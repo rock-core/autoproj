@@ -15,7 +15,7 @@ Gem::Specification.new do |s|
     s.homepage = "http://rock-robotics.org"
     s.licenses = ["BSD"]
 
-    s.required_ruby_version = ">= 2.0.0"
+    s.required_ruby_version = '>= 2.1.0'
     s.bindir = 'bin'
     s.executables = ['autoproj', 'aup', 'amake', 'alocate', 'alog']
     s.require_paths = ["lib"]
