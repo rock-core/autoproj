@@ -57,6 +57,9 @@ module Autoproj
         # @api private
         #
         # Parse a single field in a query (i.e. a FIELD[=~]VALUE string)
+        # 
+        # This is NOT meant to be used directly. Subclasses are supposed to
+        # redefine .parse to create the relevant match object.
         def self.parse(str, allowed_fields: [], default_fields: Hash.new)
             if parsed = /[=~]/.match(str)
                 field, value = parsed.pre_match, parsed.post_match

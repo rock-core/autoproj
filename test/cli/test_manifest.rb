@@ -26,7 +26,7 @@ module Autoproj
                 cli.run([])
             end
             it "raises if given more than one argument" do
-                e = assert_raises(ArgumentError) do
+                e = assert_raises(CLIInvalidArguments) do
                     cli.run(['a', 'b'])
                 end
                 assert_equal "expected zero or one argument, but got 2", e.message
@@ -64,7 +64,7 @@ module Autoproj
             it "raises if the file does not exist" do
                 full_path = File.join(ws.config_dir, 'test')
                 alternative_full_path = File.join(ws.config_dir, 'manifest.test')
-                e = assert_raises(ArgumentError) do
+                e = assert_raises(CLIInvalidArguments) do
                     cli.run(['test'])
                 end
                 assert_equal "neither #{full_path} nor #{alternative_full_path} exist",
@@ -87,7 +87,7 @@ module Autoproj
             it "raises if the path to the manifest is outside the workspace config dir" do
                 full_path = File.join(ws.root_dir, 'test.manifest')
                 FileUtils.touch full_path
-                e = assert_raises(ArgumentError) do
+                e = assert_raises(CLIInvalidArguments) do
                     cli.run([full_path])
                 end
                 assert_equal "#{full_path} is not part of #{ws.config_dir}",
