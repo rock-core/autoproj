@@ -231,7 +231,14 @@ module Autoproj
                     end
                 end
                 path.each do |gemfile|
-                    bundler_def = Bundler::Dsl.evaluate(gemfile, nil, [])
+                    bundler_def =
+                        begin Bundler::Dsl.evaluate(gemfile, nil, [])
+                        rescue Exception => e
+                            cleaned_message = e.message.
+                                gsub(/There was an error parsing([^:]+)/, "Error in gem definitions").
+                                gsub(/#  from.*/, '')
+                            raise ConfigError, cleaned_message
+                        end
                     gems_remotes |= bundler_def.send(:sources).rubygems_remotes.to_set
                     bundler_def.dependencies.each do |d|
                         d.groups.each do |group_name|
