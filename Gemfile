@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'autobuild', github: 'rock-core/autobuild', branch: 'master'
+gem 'autobuild', git: 'https://github.com/rock-core/autobuild', branch: 'master'
 
 group :vscode do
     gem 'pry'
