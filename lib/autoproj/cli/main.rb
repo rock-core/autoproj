@@ -79,8 +79,10 @@ module Autoproj
             end
 
             desc 'envsh', 'update the env.sh file'
-            def envsh
-                run_autoproj_cli(:envsh, :Envsh, Hash[])
+            option :watch, type: :boolean, default: false,
+                desc: 'watch workspace file changes'
+            def envsh(*args)
+                run_autoproj_cli(:envsh, :Envsh, Hash[], *args)
             end
 
             desc 'status [PACKAGES]', 'displays synchronization status between this workspace and the package(s) source'
