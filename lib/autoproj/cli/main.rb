@@ -83,7 +83,7 @@ module Autoproj
                 run_autoproj_cli(:envsh, :Envsh, Hash[])
             end
 
-            desc 'watch', 'watch workspace for changes'
+            desc 'watch', 'watch workspace for changes', hide: true
             def watch
                 run_autoproj_cli(:watch, :Watch, Hash[])
             end
