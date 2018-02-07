@@ -7,9 +7,14 @@ module Autoproj
             attr_reader :source_packages
             attr_reader :notifier
             attr_reader :watchers
+            def initialize(*args)
+                super(*args)
+                @watchers = []
+                @options = {}
+            end
+
             def validate_options(unused, options = {})
                 _, options = super(unused, options)
-                @watchers = []
                 @options = options
                 options
             end
