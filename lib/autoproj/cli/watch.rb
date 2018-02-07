@@ -25,7 +25,7 @@ module Autoproj
             def callback
                 puts 'Workspace changed...'
                 stop_watchers
-                exec('autoproj', 'watch')
+                exec($PROGRAM_NAME, 'watch')
             end
 
             def create_file_watcher(file)
