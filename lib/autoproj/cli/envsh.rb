@@ -16,9 +16,7 @@ module Autoproj
                 options
             end
 
-            def update_workspace(restart = false)
-                exec('autoproj', 'envsh', '--watch') if restart
-
+            def update_workspace
                 initialize_and_load
                 shell_helpers = options.fetch(:shell_helpers,
                                               ws.config.shell_helpers?)
@@ -29,7 +27,7 @@ module Autoproj
             def callback
                 puts 'Workspace changed...'
                 stop_watchers
-                update_workspace(true)
+                exec('autoproj', 'envsh', '--watch')
             end
 
             def create_file_watcher(file)
@@ -40,10 +38,10 @@ module Autoproj
             end
 
             def create_dir_watcher(dir, *files, recursive: false)
-                opt_args = %i[move create delete]
+                opt_args = []
                 opt_args << :recursive if recursive
 
-                watchers << notifier.watch(dir, *opt_args) do |e|
+                watchers << notifier.watch(dir, :move, :create, :delete, *opt_args) do |e|
                     delete_watcher(e.watcher) if e.flags.include? :ignored
                     file_name = File.basename(e.absolute_name)
                     next unless files.any? { |regex| file_name =~ regex }
