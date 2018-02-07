@@ -16,12 +16,9 @@ module Autoproj
                 options
             end
 
-            def update_workspace(create = false)
-                if create
-                    new_ws = Autoproj::Workspace.new(ws.root_dir)
-                    new_ws.set_as_main_workspace
-                    @ws = new_ws
-                end
+            def update_workspace(restart = false)
+                exec('autoproj', 'envsh', '--watch') if restart
+
                 initialize_and_load
                 shell_helpers = options.fetch(:shell_helpers,
                                               ws.config.shell_helpers?)
@@ -33,7 +30,6 @@ module Autoproj
                 puts 'Workspace changed...'
                 stop_watchers
                 update_workspace(true)
-                start_watchers
             end
 
             def create_file_watcher(file)
