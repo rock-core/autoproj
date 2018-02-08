@@ -6,10 +6,8 @@ module Autoproj
             attr_reader :options
             attr_reader :source_packages
             attr_reader :notifier
-            attr_reader :watchers
             def initialize(*args)
                 super(*args)
-                @watchers = []
                 @options = {}
             end
 
@@ -28,14 +26,11 @@ module Autoproj
             end
 
             def callback
-                puts 'Workspace changed...'
-                stop_watchers
-                exec($PROGRAM_NAME, 'watch')
+                notifier.stop
             end
 
             def create_file_watcher(file)
-                watchers << notifier.watch(file, :modify) do |e|
-                    delete_watcher(e.watcher) if e.flags.include? :ignored
+                notifier.watch(file, :modify) do |e|
                     callback
                 end
             end
@@ -44,16 +39,11 @@ module Autoproj
                 opt_args = []
                 opt_args << :recursive if recursive
 
-                watchers << notifier.watch(dir, :move, :create, :delete, *opt_args) do |e|
-                    delete_watcher(e.watcher) if e.flags.include? :ignored
+                notifier.watch(dir, :move, :create, :delete, *opt_args) do |e|
                     file_name = File.basename(e.absolute_name)
                     next unless files.any? { |regex| file_name =~ regex }
                     callback
                 end
-            end
-
-            def delete_watcher(watcher)
-                watchers.delete(watcher)
             end
 
             def create_src_pkg_watchers
@@ -112,9 +102,9 @@ module Autoproj
                 create_pkg_set_watchers
             end
 
-            def stop_watchers
-                watchers.each(&:close)
-                watchers.clear
+            def cleanup_notifier
+                notifier.watchers.each_value(&:close)
+                notifier.close
             end
 
             def assert_watchers_available
@@ -130,6 +120,11 @@ module Autoproj
                 @notifier = INotify::Notifier.new
             end
 
+            def restart
+                cleanup_notifier
+                exec($PROGRAM_NAME, 'watch')
+            end
+
             def run(**)
                 update_workspace
                 setup_notifier
@@ -137,10 +132,13 @@ module Autoproj
 
                 puts 'Watching workspace, press ^C to quit...'
                 notifier.run
+
+                puts 'Workspace changed...'
+                restart
             rescue Interrupt
                 puts 'Exiting...'
             ensure
-                stop_watchers
+                cleanup_notifier
             end
         end
     end
