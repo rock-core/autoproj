@@ -237,15 +237,17 @@ bypassing any check. Great for CI environments.
 The best way to use autoproj 2.x from git is to checkout autoproj and
 autobuild manually, and write a Gemfile.autoproj-2.0 containing
 
+```
    source "https://rubygems.org"
    gem "autoproj", path: '/home/doudou/dev/gems/autoproj'
    gem "autobuild", path: '/home/doudou/dev/gems/autobuild'
    gem "utilrb", ">= 3.0.0.a"
-
+```
 Then, pass this gemfile to the --gemfile argument to autoproj_install
 or autoproj_bootstrap. Note that one can re-run autoproj_install in an
 already bootstrapped autoproj workspace, e.g.
 
+```
    wget https://raw.githubusercontent.com/rock-core/autoproj/master/bin/autoproj_install
    ruby autoproj_install --gemfile=../Gemfile.autoproj-2.0
-
+```
