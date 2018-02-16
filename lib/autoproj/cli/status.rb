@@ -90,6 +90,9 @@ module Autoproj
                             begin importer.snapshot(pkg, nil, exact_state: false, only_local: only_local)
                             rescue Autobuild::PackageException
                                 Hash.new
+                            rescue Exception => e
+                                package_status.msg << Autoproj.color("  failed to fetch snapshotting information (#{e})", :red)
+                                return package_status
                             end
                         if snapshot_overrides_vcs?(importer, package_description.vcs, snapshot_version)
                             non_nil_values = snapshot_version.delete_if { |k, v| !v }
@@ -198,7 +201,7 @@ module Autoproj
                 Autoproj.warn "Interrupted, waiting for pending jobs to finish"
                 raise
             rescue Exception => e
-                Autoproj.error "internal error: #{e}, waiting for pending jobs to finish"
+                Autoproj.error "internal error (#{e.class}): #{e}, waiting for pending jobs to finish"
                 raise
             ensure
                 executor.shutdown
