@@ -330,7 +330,7 @@ module Autoproj
         def rewrite_shims
             gemfile  = File.join(dot_autoproj_dir, 'Gemfile')
             binstubs = File.join(dot_autoproj_dir, 'bin')
-            Ops::Install.rewrite_shims(binstubs, config.ruby_executable, gemfile, config.gems_gem_home)
+            Ops::Install.rewrite_shims(binstubs, config.ruby_executable, root_dir, gemfile, config.gems_gem_home)
         end
 
         def update_bundler
@@ -361,7 +361,7 @@ module Autoproj
                 PackageManagers::BundlerManager.run_bundler_install(
                     self, gemfile, binstubs: binstubs)
             ensure
-                Ops::Install.rewrite_shims(binstubs, config.ruby_executable, gemfile, config.gems_gem_home)
+                rewrite_shims
             end
             if restart_on_update
                 new_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(

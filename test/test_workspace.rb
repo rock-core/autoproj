@@ -14,6 +14,7 @@ module Autoproj
                 flexmock(Ops::Install).should_receive(:rewrite_shims).
                     with(File.join(ws.root_dir, ".autoproj", 'bin'),
                          ws.config.ruby_executable,
+                         ws.root_dir,
                          File.join(ws.root_dir, ".autoproj", 'Gemfile'),
                          ws.config.gems_gem_home).
                      once
