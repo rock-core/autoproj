@@ -13,7 +13,7 @@ module Autoproj
         class Install
             class UnexpectedBinstub < RuntimeError; end
 
-            # The directory in which to install autoproj
+            # The created workspace's root directory
             attr_reader :root_dir
             # Content of the Gemfile generated to install autoproj itself
             attr_accessor :gemfile
@@ -306,12 +306,12 @@ module Autoproj
                     exit 1
                 end
             ensure
-                self.class.rewrite_shims(shims_path, ruby_executable, autoproj_gemfile_path, gems_gem_home)
+                self.class.rewrite_shims(shims_path, ruby_executable, root_dir, autoproj_gemfile_path, gems_gem_home)
             end
 
             EXCLUDED_FROM_SHIMS = %w{rake thor}
 
-            def self.rewrite_shims(shim_path, ruby_executable, autoproj_gemfile_path, gems_gem_home)
+            def self.rewrite_shims(shim_path, ruby_executable, root_dir, autoproj_gemfile_path, gems_gem_home)
                 FileUtils.mkdir_p shim_path
                 File.open(File.join(shim_path, 'ruby'), 'w') do |io|
                     io.puts "#! /bin/sh"
@@ -337,7 +337,7 @@ module Autoproj
                             io.puts shim_bundler(ruby_executable, autoproj_gemfile_path, gems_gem_home)
                         else
                             load_line = bin_script_lines.grep(/load Gem.bin_path/).first
-                            io.puts shim_script(ruby_executable, autoproj_gemfile_path, gems_gem_home, load_line)
+                            io.puts shim_script(ruby_executable, root_dir, autoproj_gemfile_path, gems_gem_home, load_line)
                         end
                     end
                     FileUtils.chmod 0755, bin_shim
@@ -361,7 +361,7 @@ Gem.paths = Hash['GEM_HOME' => '#{gems_gem_home}', 'GEM_PATH' => '']
 load Gem.bin_path('bundler', 'bundler')"
             end
             
-            def self.shim_script(ruby_executable, autoproj_gemfile_path, gems_gem_home, load_line)
+            def self.shim_script(ruby_executable, root_dir, autoproj_gemfile_path, gems_gem_home, load_line)
 "#! #{ruby_executable}
 
 if defined?(Bundler)
@@ -373,6 +373,7 @@ elsif ENV['RUBYLIB']
 end
 
 ENV['BUNDLE_GEMFILE'] = '#{autoproj_gemfile_path}'
+ENV['AUTOPROJ_CURRENT_ROOT'] = '#{root_dir}'
 require 'rubygems'
 Gem.paths = Hash['GEM_HOME' => '#{gems_gem_home}', 'GEM_PATH' => '']
 require 'bundler/setup'
@@ -490,6 +491,7 @@ require 'bundler/setup'
                 self.class.rewrite_shims(
                     File.join(dot_autoproj, 'bin'),
                     ruby_executable,
+                    root_dir,
                     autoproj_gemfile_path,
                     gems_gem_home)
                 env['PATH'].unshift File.join(dot_autoproj, 'bin')
