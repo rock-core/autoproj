@@ -46,6 +46,7 @@ module Autoproj
         def reset(name)
             @modified = config.has_key?(name)
             config.delete(name)
+            overrides.delete(name)
         end
 
         # Sets a configuration option
@@ -71,6 +72,16 @@ module Autoproj
             overrides[option_name] = value
         end
 
+        # Remove a specific override
+        def reset_overrides(name)
+            @overrides.delete(name)
+        end
+
+        # Remove all overrides
+        def reset_overrides
+            @overrides.clear
+        end
+
         # Tests whether a value is set for the given option name
         #
         # @return [Boolean]
@@ -84,20 +95,28 @@ module Autoproj
                 return overrides[key]
             end
 
+            has_value = config.has_key?(key)
             value, validated = config[key]
-            if value.nil? && !declared?(key) && !default_value.empty?
-                default_value.first
-            elsif value.nil? || (declared?(key) && !validated)
-                value = configure(key)
+
+            if !declared?(key)
+                if has_value
+                    return value
+                elsif default_value.empty?
+                    raise ConfigError, "undeclared option '#{key}'"
+                else
+                    default_value.first
+                end
             else
-                if declared?(key) && (displayed_options[key] != value)
+                if validated
                     doc = declared_options[key].short_doc
                     if doc[-1, 1] != "?"
                         doc = "#{doc}:"
                     end
                     displayed_options[key] = value
+                    value
+                else
+                    configure(key)
                 end
-                value
             end
         end
 
@@ -496,6 +515,9 @@ module Autoproj
         def to_hash
             result = Hash.new
             @config.each do |key, (value, _)|
+                result[key] = value
+            end
+            overrides.each do |key, value|
                 result[key] = value
             end
             result
