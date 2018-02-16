@@ -9,7 +9,7 @@ module Autoproj
             DEFAULT_VERSIONS_FILE_BASENAME = Ops::Snapshot::DEFAULT_VERSIONS_FILE_BASENAME
 
             def default_versions_file
-                File.join( Autoproj.overrides_dir, DEFAULT_VERSIONS_FILE_BASENAME )
+                File.join( ws.overrides_dir, DEFAULT_VERSIONS_FILE_BASENAME )
             end
 
             def validate_options(packages, options = Hash.new)
@@ -32,9 +32,9 @@ module Autoproj
                 packages, *, config_selected =
                     finalize_setup(user_selection,
                                    recursive: options[:deps])
-                
+
                 ops = Ops::Snapshot.new(ws.manifest, keep_going: options[:keep_going])
-                
+
                 if user_selection.empty?
                     snapshot_package_sets = (options[:config] != false)
                     snapshot_packages = !options[:config]
