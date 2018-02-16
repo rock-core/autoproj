@@ -1,6 +1,3 @@
-require 'autoproj/ops/import'
-require 'autoproj/ops/install'
-
 module Autoproj
     class Workspace < Ops::Loader
         attr_reader :root_dir
@@ -635,7 +632,17 @@ module Autoproj
 
         # Export the workspace's env.sh file
         def export_env_sh(package_names = nil, shell_helpers: true)
+            full_env = self.full_env
+            save_cached_env(full_env)
             full_env.export_env_sh(shell_helpers: shell_helpers)
+        end
+
+        def save_cached_env(env = self.full_env)
+            Ops.save_cached_env(root_dir, env)
+        end
+
+        def load_cached_env
+            Ops.load_cached_env(root_dir)
         end
 
         def pristine_os_packages(packages, options = Hash.new)
@@ -702,9 +709,6 @@ module Autoproj
             pkg
         end
 
-        class ExecutableNotFound < ArgumentError
-        end
-
         # Find the given executable file in PATH
         #
         # If `cmd` is an absolute path, it will either return it or raise if
@@ -717,27 +721,8 @@ module Autoproj
         # @return [String] the resolved program
         # @raise [ExecutableNotFound] if an executable file named `cmd` cannot
         #   be found
-        def which(cmd)
-            path = Pathname.new(cmd)
-            if path.absolute?
-                if path.file? && path.executable?
-                    return cmd
-                elsif path.exist?
-                    raise ExecutableNotFound.new(cmd), "given command `#{cmd}` exists but is not an executable file"
-                else
-                    raise ExecutableNotFound.new(cmd), "given command `#{cmd}` does not exist, an executable file was expected"
-                end
-            else
-                env = full_env
-                absolute = env.find_executable_in_path(cmd)
-                if absolute
-                    return absolute
-                elsif file = env.find_in_path(cmd)
-                    raise ExecutableNotFound.new(cmd), "`#{cmd}` resolves to #{file} which is not executable"
-                else
-                    raise ExecutableNotFound.new(cmd), "cannot resolve `#{cmd}` to an executable in the workspace"
-                end
-            end
+        def which(cmd, path_entries: nil)
+            Ops.which(cmd, path_entries: -> { full_env.value('PATH') || Array.new })
         end
     end
 

@@ -8,3 +8,4 @@ pkg/
 /coverage/
 /.yardoc/
 test/gem_home
+tmp/

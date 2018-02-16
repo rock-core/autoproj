@@ -2,6 +2,7 @@ require 'thor'
 require 'tty/color'
 require 'autoproj/cli/main_test'
 require 'autoproj/cli/main_plugin'
+require 'autoproj/reporter'
 
 module Autoproj
     module CLI
@@ -453,15 +454,23 @@ The format is a string in which special values can be expanded using a $VARNAME 
             end
 
             desc 'exec', "runs a command, applying the workspace's environment first"
+            option :use_cache, type: :boolean, desc: 'use the cached environment instead of loading "\
+                " the whole configuration'
             def exec(*args)
                 require 'autoproj/cli/exec'
-                CLI::Exec.new.run(*args)
+                Autoproj.report(on_package_failures: default_report_on_package_failures, debug: options[:debug], silent: true) do
+                    CLI::Exec.new.run(*args, use_cached_env: options[:use_cache])
+                end
             end
 
             desc 'which', "resolves the full path to a command within the Autoproj workspace"
+            option :use_cache, type: :boolean, desc: 'use the cached environment instead of loading "\
+                " the whole configuration'
             def which(cmd)
                 require 'autoproj/cli/which'
-                CLI::Which.new.run(cmd)
+                Autoproj.report(on_package_failures: default_report_on_package_failures, debug: options[:debug], silent: true) do
+                    CLI::Which.new.run(cmd, use_cached_env: options[:use_cache])
+                end
             end
         end
     end
