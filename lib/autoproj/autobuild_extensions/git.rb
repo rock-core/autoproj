@@ -87,7 +87,7 @@ module Autoproj
                 if options[:exact_state] && !info['tag']
                     info['commit'] = rev_parse(package, 'HEAD')
                 end
-                info
+                info.delete_if { |_, v| v.nil? }
             end
 
             # @api private
@@ -99,17 +99,18 @@ module Autoproj
                 else
                     info['branch'] = branch
                 end
-                
+
                 if options[:exact_state]
                     has_tag, described = describe_rev(package, 'HEAD')
                     if has_tag
-                        info.merge('tag' => described, 'commit' => nil)
+                        info['tag'] = described
+                        info['commit'] = nil
                     else
-                        info.merge('tag' => nil, 'commit' => described)
+                        info['tag'] = nil
+                        info['commit'] = described
                     end
-                else
-                    info
                 end
+                info.delete_if { |_, v| v.nil? }
             end
         end
     end
