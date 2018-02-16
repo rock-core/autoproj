@@ -23,6 +23,18 @@ module Autoproj
             @declared_options = Hash.new
             @displayed_options = Hash.new
             @path = path
+            @modified = false
+        end
+
+        # Whether the configuration was changed since the last call to {#load}
+        # or {#save}
+        def modified?
+            @modified
+        end
+
+        # Resets the modified? flag to false
+        def reset_modified
+            @modified = false
         end
 
         # Deletes the current value for an option
@@ -32,6 +44,7 @@ module Autoproj
         # @param [String] the option name
         # @return the deleted value
         def reset(name)
+            @modified = config.has_key?(name)
             config.delete(name)
         end
 
@@ -43,6 +56,11 @@ module Autoproj
         #   user about this value next time it is needed. Otherwise, it will be
         #   asked about it, the new value being used as default
         def set(key, value, user_validated = false)
+            if config.has_key?(key)
+                @modified = (config[key][0] != value)
+            else
+                @modified = true
+            end
             config[key] = [value, user_validated]
         end
 
@@ -135,6 +153,7 @@ module Autoproj
                     current_value = current_value.first
                 end
                 value = opt.ask(current_value)
+                @modified = true
                 config[option_name] = [value, true]
                 displayed_options[option_name] = value
                 value
@@ -143,14 +162,15 @@ module Autoproj
             end
         end
 
-        def load(options = Hash.new)
-            options = validate_options options,
-                path: self.path,
-                reconfigure: false
-
-            if h = YAML.load(File.read(options[:path]))
+        def load(path: self.path, reconfigure: false)
+            current_keys = @config.keys
+            if h = YAML.load(File.read(path))
                 h.each do |key, value|
-                    set(key, value, !options[:reconfigure])
+                    current_keys.delete(key)
+                    set(key, value, !reconfigure)
+                end
+                if current_keys.empty?
+                    @modified = false
                 end
             end
         end
@@ -160,10 +180,12 @@ module Autoproj
             config.each do |key, (value, _user_validated)|
                 new_config[key] = [value, false]
             end
+            @modified = true
             @config = new_config
         end
 
-        def save(path = self.path)
+        def save(path = self.path, force: false)
+            return if !modified? && !force
             File.open(path, "w") do |io|
                 h = Hash.new
                 config.each do |key, value|
@@ -172,6 +194,7 @@ module Autoproj
 
                 io.write YAML.dump(h)
             end
+            @modified = false
         end
 
         def each_reused_autoproj_installation
