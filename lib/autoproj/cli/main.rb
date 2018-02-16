@@ -343,12 +343,12 @@ EOD
                 run_autoproj_cli(:tag, :Tag, Hash[], tag_name, *packages)
             end
 
-            desc 'commit [PACKAGES]', 'save the package current versions as a new commit in the main build configuration'
+            desc 'commit [TAG_NAME] [PACKAGES]', 'save the package current versions as a new commit in the main build configuration'
             long_desc <<-EOD
 The commit subcommand stores the state of all packages (or of the packages
 selected on the command line) into a new commit in the currently checked-out
 branch of the build configuration. This state can be retrieved later on by using
-"autoproj reset"
+"autoproj reset". If a TAG_NAME is provided, the commit will be tagged.
 
 If given no arguments, will list the existing tags
 EOD
@@ -358,8 +358,8 @@ EOD
                 desc: 'do not stop on build or checkout errors'
             option :message, aliases: :m, type: :string,
                 desc: 'the message to use for the new commit (the default is to mention the creation of the tag)'
-            def commit(*packages)
-                run_autoproj_cli(:commit, :Commit, Hash[], *packages, deps: true)
+            def commit(tag_name = nil, *packages)
+                run_autoproj_cli(:commit, :Commit, Hash[], tag_name, *packages, deps: true)
             end
 
             desc 'switch-config VCS URL [OPTIONS]', 'switches the main build configuration'
