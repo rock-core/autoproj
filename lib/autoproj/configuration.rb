@@ -186,13 +186,14 @@ module Autoproj
 
         def save(path = self.path, force: false)
             return if !modified? && !force
-            File.open(path, "w") do |io|
+
+            Ops.atomic_write(path) do |io|
                 h = Hash.new
                 config.each do |key, value|
                     h[key] = value.first
                 end
 
-                io.write YAML.dump(h)
+                YAML.dump(h, io)
             end
             @modified = false
         end

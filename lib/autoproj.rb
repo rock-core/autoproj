@@ -38,6 +38,7 @@ require 'autoproj/os_package_query'
 require 'autoproj/ops/tools'
 require 'autoproj/ops/loader'
 require 'autoproj/ops/configuration'
+require 'autoproj/ops/atomic_write'
 
 require 'autoproj/workspace'
 

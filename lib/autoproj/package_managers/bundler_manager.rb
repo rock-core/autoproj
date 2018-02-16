@@ -82,7 +82,7 @@ module Autoproj
                 FileUtils.mkdir_p prefix_gems
                 gemfile = File.join(prefix_gems, 'Gemfile')
                 if !File.exist?(gemfile)
-                    File.open(gemfile, 'w') do |io|
+                    Ops.atomic_write(gemfile) do |io|
                         io.puts "eval_gemfile \"#{File.join(ws.dot_autoproj_dir, 'Gemfile')}\""
                     end
                 end
@@ -314,7 +314,7 @@ module Autoproj
                 # wrong to avoid leaving bundler in an inconsistent state
                 backup_files(backups)
                 if !File.file?("#{gemfile_path}.orig")
-                    File.open("#{gemfile_path}.orig", 'w') do |io|
+                    Ops.atomic_write("#{gemfile_path}.orig") do |io|
                         io.puts "eval_gemfile \"#{File.join(ws.dot_autoproj_dir, 'Gemfile')}\""
                     end
                 end
@@ -338,7 +338,7 @@ module Autoproj
 
                 FileUtils.mkdir_p root_dir
                 if updated = (!File.exist?(gemfile_path) || File.read(gemfile_path) != gemfile_contents)
-                    File.open(gemfile_path, 'w') do |io|
+                    Ops.atomic_write(gemfile_path) do |io|
                         io.puts "ruby \"#{RUBY_VERSION}\" if respond_to?(:ruby)"
                         io.puts gemfile_contents
                     end
