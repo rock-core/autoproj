@@ -356,10 +356,12 @@ EOD
                 desc: 'commit the package set state as well (enabled by default)'
             option :keep_going, aliases: :k, type: :boolean, banner: '',
                 desc: 'do not stop on build or checkout errors'
+            option :tag, aliases: :t, type: :string,
+                desc: 'the tag name to use'
             option :message, aliases: :m, type: :string,
                 desc: 'the message to use for the new commit (the default is to mention the creation of the tag)'
-            def commit(tag_name = nil, *packages)
-                run_autoproj_cli(:commit, :Commit, Hash[], tag_name, *packages, deps: true)
+            def commit(*packages)
+                run_autoproj_cli(:commit, :Commit, Hash[], *packages, deps: true)
             end
 
             desc 'switch-config VCS URL [OPTIONS]', 'switches the main build configuration'

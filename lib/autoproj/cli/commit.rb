@@ -13,8 +13,8 @@ module Autoproj
                 end
             end
 
-            def run(arguments, options = Hash.new)
-                tag_name, *user_selection = *arguments
+            def run(user_selection, options = Hash.new)
+                tag_name = options[:tag]
                 ws.load_config
                 pkg = ws.manifest.main_package_set.create_autobuild_package
                 importer = pkg.importer
