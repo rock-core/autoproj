@@ -87,7 +87,7 @@ module Autoproj
                 if options[:exact_state] && !info['tag']
                     info['commit'] = rev_parse(package, 'HEAD')
                 end
-                info.delete_if { |_, v| v.nil? }
+                info
             end
 
             # @api private
@@ -110,7 +110,7 @@ module Autoproj
                         info['commit'] = described
                     end
                 end
-                info.delete_if { |_, v| v.nil? }
+                info
             end
         end
     end
