@@ -1,6 +1,7 @@
 require 'autoproj/find_workspace'
 require 'autoproj/ops/cached_env'
 require 'autoproj/ops/which'
+require 'autoproj/ops/watch'
 
 module Autoproj
     module CLI
@@ -23,7 +24,7 @@ module Autoproj
                     environment_from_export(env, ENV)
             end
 
-            def run(cmd, *args, use_cached_env: false)
+            def run(cmd, *args, use_cached_env: Ops.watch_running?(@root_dir))
                 if use_cached_env
                     env = load_cached_env
                 end

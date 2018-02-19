@@ -1,5 +1,6 @@
 require 'rbconfig'
 require 'autoproj/cli/inspection_tool'
+require 'autoproj/ops/watch'
 module Autoproj
     module CLI
         class Watch < InspectionTool
@@ -120,12 +121,22 @@ module Autoproj
                 @notifier = INotify::Notifier.new
             end
 
+            def cleanup
+                if @marker_io
+                    Ops.watch_cleanup_marker(@marker_io)
+                end
+                if @notifier
+                    cleanup_notifier
+                end
+            end
+
             def restart
-                cleanup_notifier
+                cleanup
                 exec($PROGRAM_NAME, 'watch')
             end
 
             def run(**)
+                @marker_io = Ops.watch_create_marker(ws.root_dir)
                 update_workspace
                 setup_notifier
                 start_watchers
@@ -138,7 +149,7 @@ module Autoproj
             rescue Interrupt
                 puts 'Exiting...'
             ensure
-                cleanup_notifier
+                cleanup
             end
         end
     end

@@ -461,22 +461,35 @@ The format is a string in which special values can be expanded using a $VARNAME 
             end
 
             desc 'exec', "runs a command, applying the workspace's environment first"
-            option :use_cache, type: :boolean, desc: 'use the cached environment instead of loading "\
-                " the whole configuration'
+            option :use_cache, type: :boolean, default: nil,
+                desc: "use the cached environment instead of "\
+                      "loading the whole configuration"
             def exec(*args)
                 require 'autoproj/cli/exec'
                 Autoproj.report(on_package_failures: default_report_on_package_failures, debug: options[:debug], silent: true) do
-                    CLI::Exec.new.run(*args, use_cached_env: options[:use_cache])
+                    opts = Hash.new
+                    use_cache = options[:use_cache]
+                    if !use_cache.nil?
+                        opts[:use_cached_env] = use_cache
+                    end
+                    CLI::Exec.new.run(*args, **opts)
                 end
             end
 
-            desc 'which', "resolves the full path to a command within the Autoproj workspace"
-            option :use_cache, type: :boolean, desc: 'use the cached environment instead of loading "\
-                " the whole configuration'
+            desc 'which', "resolves the full path to a command "\
+                " within the Autoproj workspace"
+            option :use_cache, type: :boolean, default: nil,
+                desc: "use the cached environment instead of "\
+                      "loading the whole configuration"
             def which(cmd)
                 require 'autoproj/cli/which'
                 Autoproj.report(on_package_failures: default_report_on_package_failures, debug: options[:debug], silent: true) do
-                    CLI::Which.new.run(cmd, use_cached_env: options[:use_cache])
+                    opts = Hash.new
+                    use_cache = options[:use_cache]
+                    if !use_cache.nil?
+                        opts[:use_cached_env] = use_cache
+                    end
+                    CLI::Which.new.run(cmd, **opts)
                 end
             end
         end
