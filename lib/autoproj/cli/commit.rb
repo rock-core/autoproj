@@ -40,7 +40,8 @@ module Autoproj
                              save: versions_file,
                              package_sets: options[:package_sets],
                              replace: true,
-                             keep_going: options[:keep_going])
+                             keep_going: options[:keep_going],
+                             deps: options[:deps])
 
                 importer.run_git(pkg, 'add', versions_file)
                 message = options[:message] || default_message(tag_name)
