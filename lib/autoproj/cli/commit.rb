@@ -22,7 +22,7 @@ module Autoproj
                     raise CLIInvalidArguments, "cannot use autoproj commit if the main configuration is not managed by git"
                 end
 
-                unless tag_name.nil?
+                if tag_name
                     begin
                         importer.rev_parse(pkg, "refs/tags/#{tag_name}")
                         raise CLIInvalidArguments, "tag #{tag_name} already exists"
