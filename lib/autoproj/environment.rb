@@ -53,7 +53,7 @@ module Autoproj
             end
 
             if new_content != existing_content
-                File.open(filename, 'w') { |io| io.write new_content }
+                Ops.atomic_write(filename) { |io| io.write new_content }
                 true
             end
         end

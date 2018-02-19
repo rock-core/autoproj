@@ -83,6 +83,11 @@ module Autoproj
                 run_autoproj_cli(:envsh, :Envsh, Hash[])
             end
 
+            desc 'watch', 'watch workspace for changes', hide: true
+            def watch
+                run_autoproj_cli(:watch, :Watch, Hash[])
+            end
+
             desc 'status [PACKAGES]', 'displays synchronization status between this workspace and the package(s) source'
             option :local, type: :boolean, default: false,
                 desc: 'only use locally available information (mainly for distributed version control systems such as git)'
