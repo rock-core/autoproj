@@ -7,12 +7,13 @@ module Autoproj
     module CLI
         class Reset < InspectionTool
             def run(ref_name, options)
-                pkg = manifest.main_package_set.create_autobuild_package
+                ws.load_config
+                pkg = ws.manifest.main_package_set.create_autobuild_package
                 importer = pkg.importer
                 if !importer || !importer.kind_of?(Autobuild::Git)
                     raise CLIInvalidArguments, "cannot use autoproj reset if the main configuration is not managed by git"
                 end
-                
+
                 # Check if the reflog entry exists
                 begin
                     importer.rev_parse(pkg, ref_name)
