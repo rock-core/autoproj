@@ -271,8 +271,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
                 os_package_manager: 'os')
         end
 
-        def ws_create
-            dir = make_tmpdir
+        def ws_create(dir = make_tmpdir)
             require 'autoproj/ops/main_config_switcher'
             FileUtils.cp_r Ops::MainConfigSwitcher::MAIN_CONFIGURATION_TEMPLATE, File.join(dir, 'autoproj')
             FileUtils.mkdir_p File.join(dir, '.autoproj')

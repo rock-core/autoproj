@@ -1,3 +1,5 @@
+require 'autobuild/exceptions'
+
 module Autoproj
     class ConfigError < RuntimeError
         attr_accessor :file
@@ -84,6 +86,9 @@ module Autoproj
     # Exception raised when initializing on a workspace that is not the current
     # one
     class MismatchingWorkspace < InvalidWorkspace; end
+
+    # Raised by 'which' when an executable cannot be found
+    class ExecutableNotFound < ArgumentError; end
 end
 
 

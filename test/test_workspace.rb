@@ -229,6 +229,8 @@ module Autoproj
                 @pkg0         = ws_add_package_to_layout :cmake, :pkg0
                 @pkg1         = ws_define_package :cmake, :pkg1
                 flexmock(ws.env).should_receive(:dup).once.and_return(@env = flexmock)
+                @env.should_receive(:exported_environment).and_return(
+                    Autobuild::Environment::ExportedEnvironment.new(Hash.new, Array.new, Hash.new))
             end
             it "aggregates the environment of all the selected packages" do
                 flexmock(pkg0.autobuild).should_receive(:apply_env).with(env).once.globally.ordered
@@ -354,7 +356,7 @@ module Autoproj
 
                 it "raises if the file does not exist" do
                     path = target_test_path
-                    e = assert_raises(Workspace::ExecutableNotFound) do
+                    e = assert_raises(ExecutableNotFound) do
                         ws.which(path)
                     end
                     assert_equal "given command `#{path}` does not exist, an executable file was expected",
@@ -363,7 +365,7 @@ module Autoproj
 
                 it "raises if the file exists but does not point to an executable file" do
                     path = create_test_file
-                    e = assert_raises(Workspace::ExecutableNotFound) do
+                    e = assert_raises(ExecutableNotFound) do
                         ws.which(path)
                     end
                     assert_equal "given command `#{path}` exists but is not an executable file",
@@ -372,7 +374,7 @@ module Autoproj
 
                 it "raises if the path does not point to a file" do
                     path = create_test_directory
-                    e = assert_raises(Workspace::ExecutableNotFound) do
+                    e = assert_raises(ExecutableNotFound) do
                         ws.which(path)
                     end
                     assert_equal "given command `#{path}` exists but is not an executable file",
@@ -392,7 +394,7 @@ module Autoproj
 
                 it "raises if the file exists but is not executable" do
                     path = create_test_file
-                    e = assert_raises(Workspace::ExecutableNotFound) do
+                    e = assert_raises(ExecutableNotFound) do
                         ws.which('autoproj_which_test')
                     end
                     assert_equal "`autoproj_which_test` resolves to #{path} which is not executable",
@@ -401,7 +403,7 @@ module Autoproj
 
                 it "raises if the file exists but is not a file" do
                     path = create_test_directory
-                    e = assert_raises(Workspace::ExecutableNotFound) do
+                    e = assert_raises(ExecutableNotFound) do
                         ws.which('autoproj_which_test')
                     end
                     assert_equal "cannot resolve `autoproj_which_test` to an executable in the workspace",
@@ -409,7 +411,7 @@ module Autoproj
                 end
 
                 it "raises if the file does not exist" do
-                    e = assert_raises(Workspace::ExecutableNotFound) do
+                    e = assert_raises(ExecutableNotFound) do
                         ws.which('autoproj_which_test')
                     end
                     assert_equal "cannot resolve `autoproj_which_test` to an executable in the workspace",
