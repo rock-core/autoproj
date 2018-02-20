@@ -41,6 +41,7 @@ require 'autoproj/ops/loader'
 require 'autoproj/ops/configuration'
 require 'autoproj/ops/cached_env'
 require 'autoproj/ops/which'
+require 'autoproj/ops/atomic_write'
 
 require 'autoproj/workspace'
 

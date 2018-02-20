@@ -282,7 +282,7 @@ module Autoproj
 
             Autobuild.prefix = prefix_dir
             FileUtils.mkdir_p File.join(prefix_dir, '.autoproj')
-            File.open(File.join(prefix_dir, '.autoproj', 'config.yml'), 'w') do |io|
+            Ops.atomic_write(File.join(prefix_dir, '.autoproj', 'config.yml')) do |io|
                 io.puts "workspace: \"#{root_dir}\""
             end
 
@@ -305,7 +305,7 @@ module Autoproj
             FileUtils.mkdir_p bindir
             env.add 'PATH', bindir
 
-            File.open(File.join(bindir, 'ruby'), 'w') do |io|
+            Ops.atomic_write(File.join(bindir, 'ruby')) do |io|
                 io.puts "#! /bin/sh"
                 io.puts "exec #{config.ruby_executable} \"$@\""
             end
@@ -315,7 +315,7 @@ module Autoproj
                 # Look for the corresponding gem program
                 prg_name = "#{name}#{install_suffix}"
                 if File.file?(prg_path = File.join(RbConfig::CONFIG['bindir'], prg_name))
-                    File.open(File.join(bindir, name), 'w') do |io|
+                    Ops.atomic_write(File.join(bindir, name)) do |io|
                         io.puts "#! #{config.ruby_executable}"
                         io.puts "exec \"#{prg_path}\", *ARGV"
                     end
@@ -327,7 +327,7 @@ module Autoproj
         def rewrite_shims
             gemfile  = File.join(dot_autoproj_dir, 'Gemfile')
             binstubs = File.join(dot_autoproj_dir, 'bin')
-            Ops::Install.rewrite_shims(binstubs, config.ruby_executable, gemfile, config.gems_gem_home)
+            Ops::Install.rewrite_shims(binstubs, config.ruby_executable, root_dir, gemfile, config.gems_gem_home)
         end
 
         def update_bundler
@@ -358,7 +358,7 @@ module Autoproj
                 PackageManagers::BundlerManager.run_bundler_install(
                     self, gemfile, binstubs: binstubs)
             ensure
-                Ops::Install.rewrite_shims(binstubs, config.ruby_executable, gemfile, config.gems_gem_home)
+                rewrite_shims
             end
             if restart_on_update
                 new_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(

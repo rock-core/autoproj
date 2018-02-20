@@ -61,7 +61,7 @@ module Autoproj
 
         # Save the installation manifest
         def save(path = self.path)
-            File.open(path, 'w') do |io|
+            Ops.atomic_write(path) do |io|
                 marshalled_package_sets = each_package_set.map do |v|
                     Hash['package_set' => v.name,
                          'vcs' => v.vcs.to_hash,

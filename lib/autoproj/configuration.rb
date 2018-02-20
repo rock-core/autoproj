@@ -23,6 +23,18 @@ module Autoproj
             @declared_options = Hash.new
             @displayed_options = Hash.new
             @path = path
+            @modified = false
+        end
+
+        # Whether the configuration was changed since the last call to {#load}
+        # or {#save}
+        def modified?
+            @modified
+        end
+
+        # Resets the modified? flag to false
+        def reset_modified
+            @modified = false
         end
 
         # Deletes the current value for an option
@@ -32,7 +44,9 @@ module Autoproj
         # @param [String] the option name
         # @return the deleted value
         def reset(name)
+            @modified = config.has_key?(name)
             config.delete(name)
+            overrides.delete(name)
         end
 
         # Sets a configuration option
@@ -43,6 +57,11 @@ module Autoproj
         #   user about this value next time it is needed. Otherwise, it will be
         #   asked about it, the new value being used as default
         def set(key, value, user_validated = false)
+            if config.has_key?(key)
+                @modified = (config[key][0] != value)
+            else
+                @modified = true
+            end
             config[key] = [value, user_validated]
         end
 
@@ -51,6 +70,16 @@ module Autoproj
         # The new value will not be saved to disk, unlike with {set}
         def override(option_name, value)
             overrides[option_name] = value
+        end
+
+        # Remove a specific override
+        def reset_overrides(name)
+            @overrides.delete(name)
+        end
+
+        # Remove all overrides
+        def reset_overrides
+            @overrides.clear
         end
 
         # Tests whether a value is set for the given option name
@@ -66,20 +95,28 @@ module Autoproj
                 return overrides[key]
             end
 
+            has_value = config.has_key?(key)
             value, validated = config[key]
-            if value.nil? && !declared?(key) && !default_value.empty?
-                default_value.first
-            elsif value.nil? || (declared?(key) && !validated)
-                value = configure(key)
+
+            if !declared?(key)
+                if has_value
+                    return value
+                elsif default_value.empty?
+                    raise ConfigError, "undeclared option '#{key}'"
+                else
+                    default_value.first
+                end
             else
-                if declared?(key) && (displayed_options[key] != value)
+                if validated
                     doc = declared_options[key].short_doc
                     if doc[-1, 1] != "?"
                         doc = "#{doc}:"
                     end
                     displayed_options[key] = value
+                    value
+                else
+                    configure(key)
                 end
-                value
             end
         end
 
@@ -135,6 +172,7 @@ module Autoproj
                     current_value = current_value.first
                 end
                 value = opt.ask(current_value)
+                @modified = true
                 config[option_name] = [value, true]
                 displayed_options[option_name] = value
                 value
@@ -143,14 +181,15 @@ module Autoproj
             end
         end
 
-        def load(options = Hash.new)
-            options = validate_options options,
-                path: self.path,
-                reconfigure: false
-
-            if h = YAML.load(File.read(options[:path]))
+        def load(path: self.path, reconfigure: false)
+            current_keys = @config.keys
+            if h = YAML.load(File.read(path))
                 h.each do |key, value|
-                    set(key, value, !options[:reconfigure])
+                    current_keys.delete(key)
+                    set(key, value, !reconfigure)
+                end
+                if current_keys.empty?
+                    @modified = false
                 end
             end
         end
@@ -160,18 +199,22 @@ module Autoproj
             config.each do |key, (value, _user_validated)|
                 new_config[key] = [value, false]
             end
+            @modified = true
             @config = new_config
         end
 
-        def save(path = self.path)
-            File.open(path, "w") do |io|
+        def save(path = self.path, force: false)
+            return if !modified? && !force
+
+            Ops.atomic_write(path) do |io|
                 h = Hash.new
                 config.each do |key, value|
                     h[key] = value.first
                 end
 
-                io.write YAML.dump(h)
+                YAML.dump(h, io)
             end
+            @modified = false
         end
 
         def each_reused_autoproj_installation
@@ -472,6 +515,9 @@ module Autoproj
         def to_hash
             result = Hash.new
             @config.each do |key, (value, _)|
+                result[key] = value
+            end
+            overrides.each do |key, value|
                 result[key] = value
             end
             result
