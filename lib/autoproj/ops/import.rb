@@ -181,7 +181,7 @@ module Autoproj
 
                 # This is used in the ensure block, initialize as early as
                 # possible
-                executor = Concurrent::FixedThreadPool.new(parallel, max_length: 0)
+                executor = Concurrent::FixedThreadPool.new(parallel)
                 manifest = ws.manifest
 
                 selected_packages = selection.each_source_package_name.map do |pkg_name|
