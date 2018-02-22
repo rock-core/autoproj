@@ -270,6 +270,7 @@ module Autoproj
             rewrite_shims
             autodetect_operating_system
             config.validate_ruby_executable
+            Autobuild.programs['ruby'] = config.ruby_executable
             config.apply_autobuild_configuration
             load_autoprojrc
             load_main_initrb

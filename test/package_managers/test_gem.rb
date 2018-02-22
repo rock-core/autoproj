@@ -20,7 +20,8 @@ module Autoproj
                 @gem_fetcher = flexmock("fake gem fetcher")
                 gem_manager.gem_fetcher = gem_fetcher
                 @gem_spec = flexmock(Gem::Specification)
-                Autobuild.programs['gem'] = 'mygem'
+                Autobuild.programs['gem']  = 'mygem'
+                Autobuild.programs['ruby'] = Gem.ruby
                 super
             end
 
