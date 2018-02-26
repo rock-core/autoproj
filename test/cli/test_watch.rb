@@ -16,7 +16,7 @@ module Autoproj
             describe "#update_workspace" do
                 it "loads the workspace and updates env.sh" do
                     cli.should_receive(:initialize_and_load).once.ordered
-                    cli.should_receive(:finalize_setup).once.ordered
+                    cli.should_receive(:finalize_setup).once.ordered.and_return([[], nil])
                     cli.should_receive(:export_env_sh).once.ordered
 
                     cli.update_workspace
@@ -125,7 +125,7 @@ module Autoproj
                         process_events
                     end
                     it "triggers the callback when the file is modified" do
-                        cli.should_receive(:callback).once
+                        cli.should_receive(:callback).at_least.once
                         open(manifest_file, 'a') do |file|
                             file << "\n"
                         end

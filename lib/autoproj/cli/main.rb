@@ -85,6 +85,8 @@ module Autoproj
             end
 
             desc 'watch', 'watch workspace for changes', hide: true
+            option :show_events, type: :boolean, default: false,
+                desc: "whether detected events should be displayed"
             def watch
                 run_autoproj_cli(:watch, :Watch, Hash[])
             end

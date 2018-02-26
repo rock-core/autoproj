@@ -4,26 +4,50 @@ require 'autoproj/ops/watch'
 module Autoproj
     module CLI
         class Watch < InspectionTool
-            attr_reader :options
-            attr_reader :source_packages
             attr_reader :notifier
+
             def initialize(*args)
                 super(*args)
-                @options = {}
+                @show_events = false
             end
 
             def validate_options(unused, options = {})
                 _, options = super(unused, options)
-                @options = options
-                options
+                @show_events   = options[:show_events]
+                nil
+            end
+
+            def show_events?
+                @show_events
             end
 
             def update_workspace
                 initialize_and_load
-                shell_helpers = options.fetch(:shell_helpers,
-                                              ws.config.shell_helpers?)
-                @source_packages, = finalize_setup([])
-                export_env_sh(shell_helpers: shell_helpers)
+
+                source_packages, _ = finalize_setup([])
+                @source_packages_dirs = source_packages.map do |pkg_name|
+                    ws.manifest.find_autobuild_package(pkg_name).srcdir
+                end
+                @pkg_sets_dirs = ws.manifest.each_package_set.map do |pkg_set|
+                    pkg_set.raw_local_dir
+                end
+                export_env_sh(shell_helpers: ws.config.shell_helpers?)
+            end
+
+            def load_info_from_installation_manifest
+                installation_manifest =
+                    begin
+                        Autoproj::InstallationManifest.from_workspace_root(ws.root_dir)
+                    rescue ConfigError
+                    end
+
+                @source_packages_dirs = []
+                @package_sets = []
+
+                @source_packages_dirs = installation_manifest.each_package.
+                    map(&:srcdir)
+                @package_sets = installation_manifest.each_package_set.
+                    map(&:raw_local_dir)
             end
 
             def callback
@@ -32,79 +56,51 @@ module Autoproj
 
             def create_file_watcher(file)
                 notifier.watch(file, :modify) do |e|
+                    Autobuild.message "#{e.absolute_name} modified" if show_events?
                     callback
                 end
             end
 
-            def create_dir_watcher(dir, *files, recursive: false)
-                opt_args = []
-                opt_args << :recursive if recursive
-
-                notifier.watch(dir, :move, :create, :delete, *opt_args) do |e|
-                    file_name = File.basename(e.absolute_name)
-                    next unless files.any? { |regex| file_name =~ regex }
+            def create_dir_watcher(dir, included_paths: [], excluded_paths: [], inotify_flags: [])
+                strip_dir_range = ((dir.size + 1)..-1)
+                notifier.watch(dir, :move, :create, :delete, :modify, :dont_follow, *inotify_flags) do |e|
+                    file_name = e.absolute_name[strip_dir_range]
+                    included = included_paths.empty? ||
+                        included_paths.any? { |rx| rx === file_name }
+                    if included
+                        included = !excluded_paths.any? { |rx| rx === file_name }
+                    end
+                    next if !included
+                    Autobuild.message "#{e.absolute_name} changed" if show_events?
                     callback
                 end
             end
 
             def create_src_pkg_watchers
-                source_packages.each do |pkg_name|
-                    pkg = ws.manifest.find_autobuild_package(pkg_name)
-                    manifest_file = File.join(pkg.srcdir, 'manifest.xml')
+                @source_packages_dirs.each do |pkg_srcdir|
+                    next unless File.exist? pkg_srcdir
+                    create_dir_watcher(pkg_srcdir, included_paths: ["manifest.xml"])
 
-                    next unless File.exist? pkg.srcdir
-                    create_dir_watcher(pkg.srcdir, /^manifest.xml$/)
+                    manifest_file = File.join(pkg_srcdir, 'manifest.xml')
                     next unless File.exist? manifest_file
                     create_file_watcher(manifest_file)
                 end
             end
 
-            def create_autobuild_watchers(dir)
-                Dir[File.join(dir, '*.autobuild')].each do |file|
-                    create_file_watcher(file)
-                end
-            end
-
-            def create_manifests_watchers(dir)
-                Dir[File.join(dir, '**/*.xml')].each do |file|
-                    create_file_watcher(file)
-                end
-            end
-
-            def create_ruby_watchers(dir)
-                Dir[File.join(dir, '**/*.rb')].each do |file|
-                    create_file_watcher(file)
-                end
-            end
-
-            def create_pkg_set_watchers
-                ws.manifest.each_package_set do |pkg_set|
-                    pkg_set_dir = pkg_set.raw_local_dir
-                    create_dir_watcher(pkg_set_dir,
-                                       /^manifests$/,
-                                       /^*\.autobuild$/,
-                                       /^*\.rb$/)
-
-                    create_autobuild_watchers(pkg_set_dir)
-                    create_ruby_watchers(pkg_set_dir)
-
-                    manifests_dir = File.join(pkg_set_dir, 'manifests')
-                    next unless File.exist?(manifests_dir)
-                    create_manifests_watchers(manifests_dir)
-                    create_dir_watcher(manifests_dir, /^*\.xml$/,
-                                       recursive: true)
-                end
-            end
-
             def start_watchers
                 create_file_watcher(ws.config.path)
-                create_file_watcher(ws.manifest_file_path)
                 create_src_pkg_watchers
-                create_pkg_set_watchers
+                create_dir_watcher(ws.config_dir,
+                    excluded_paths: [/(^|#{File::SEPARATOR})\./],
+                    inotify_flags: [:recursive])
+                FileUtils.mkdir_p ws.remotes_dir
+                create_dir_watcher(ws.remotes_dir,
+                    excluded_paths: [/(^|#{File::SEPARATOR})\./],
+                    inotify_flags: [:recursive])
             end
 
             def cleanup_notifier
-                notifier.watchers.each_value(&:close)
+                notifier.watchers.dup.each_value(&:close)
                 notifier.close
             end
 
@@ -132,12 +128,19 @@ module Autoproj
 
             def restart
                 cleanup
-                exec($PROGRAM_NAME, 'watch')
+                args = []
+                args << "--show-events" if show_events?
+                exec($PROGRAM_NAME, 'watch', *args)
             end
 
             def run(**)
                 @marker_io = Ops.watch_create_marker(ws.root_dir)
-                update_workspace
+                begin
+                    update_workspace
+                rescue Exception => e
+                    puts "ERROR: #{e.message}"
+                    load_info_from_installation_manifest
+                end
                 setup_notifier
                 start_watchers
 
