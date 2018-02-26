@@ -35,13 +35,13 @@ module Autoproj
                     end
                 end
 
-                def run_autoproj_cli(filename, classname, report_options, *args, **extra_options)
+                def run_autoproj_cli(filename, classname, report_options, *args, tool_failure_mode: :exit_silent, **extra_options)
                     require "autoproj/cli/#{filename}"
                     if Autobuild::Subprocess.transparent_mode = options[:tool]
                         Autobuild.silent = true
                         Autobuild.color = false
                         report_options[:silent] = true
-                        report_options[:on_package_failures] = :exit_silent
+                        report_options[:on_package_failures] = tool_failure_mode
                         extra_options[:silent] = true
                     end
 
@@ -201,7 +201,21 @@ In this case, the default is false
                     report_options[:on_package_failures] = :report
                 end
 
-                run_autoproj_cli(:build, :Build, Hash[silent: false].merge(report_options), *packages)
+                failures = run_autoproj_cli(:build, :Build, report_options, *packages,
+                    tool_failure_mode: :report_silent)
+                if !failures.empty?
+                    Autobuild.silent = false
+                    packages_failed = failures.
+                        map do |e|
+                            if e.respond_to?(:target) && e.target.respond_to?(:name)
+                                e.target.name
+                            end
+                        end.compact
+                    if !packages_failed.empty?
+                        Autobuild.error "#{packages_failed.size} packages failed: #{packages_failed.sort.join(", ")}"
+                    end
+                    exit 1
+                end
             end
 
             desc 'cache CACHE_DIR', 'create or update a cache directory that can be given to AUTOBUILD_CACHE_DIR'
