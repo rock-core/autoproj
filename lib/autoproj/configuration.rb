@@ -461,7 +461,7 @@ module Autoproj
         # @param [String] packages the package names
         # @return [void]
         def utility_enable(utility, *packages)
-            utility_config = get(utility_key(utility), Hash.new)
+            utility_config = get(utility_key(utility), Hash.new).dup
             packages.each do |pkg_name|
                 utility_config[pkg_name] = true
             end
@@ -490,7 +490,7 @@ module Autoproj
         # @param [String] packages the package names
         # @return [void]
         def utility_disable(utility, *packages)
-            utility_config = get(utility_key(utility), Hash.new)
+            utility_config = get(utility_key(utility), Hash.new).dup
             packages.each do |pkg_name|
                 utility_config[pkg_name] = false
             end

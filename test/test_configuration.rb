@@ -211,6 +211,100 @@ module Autoproj
                 refute @config.modified?
             end
         end
+
+        describe "#utility_enable" do
+            before do
+                @config.utility_enable 'test', 'my/package'
+            end
+            it "enables the utility for the given packages" do
+                assert @config.utility_enabled_for?('test', 'my/package')
+            end
+            it "dirties the configuration if the utility was not enabled already" do
+                assert @config.modified?
+            end
+            it "does not dirties the configuration if the utility was already enabled" do
+                @config.reset_modified
+                @config.utility_enable 'test', 'my/package'
+                refute @config.modified?
+            end
+        end
+
+        describe "#utility_enable_all" do
+            it "enables the utility for all packages" do
+                @config.utility_enable_all('test')
+                assert @config.utility_enabled_for?('test', 'my/package')
+            end
+            it "dirties the configuration if it was globally disabled" do
+                @config.utility_enable_all('test')
+                assert @config.modified?
+            end
+            it "dirties the configuration if some packages had specific settings" do
+                @config.utility_enable('test', 'my/package')
+                @config.reset_modified
+                @config.utility_enable_all('test')
+                assert @config.modified?
+            end
+            it "allows disabling per-package" do
+                @config.utility_enable_all('test')
+                @config.utility_disable 'test', 'my/package'
+                refute @config.utility_enabled_for?('test', 'my/package')
+            end
+            it "does not dirties the configuration if the utility was already globally enabled" do
+                @config.utility_enable_all('test')
+                @config.reset_modified
+                @config.utility_enable_all('test')
+                refute @config.modified?
+            end
+        end
+
+        describe "#utility_disable" do
+            before do
+                @config.utility_enable('test', 'my/package')
+                @config.reset_modified
+                @config.utility_disable 'test', 'my/package'
+            end
+            it "disables the utility for the given packages" do
+                refute @config.utility_enabled_for?('test', 'my/package')
+            end
+            it "dirties the configuration if the utility was enabled" do
+                assert @config.modified?
+            end
+            it "does not dirties the configuration if the utility was already disabled" do
+                @config.reset_modified
+                @config.utility_disable 'test', 'my/package'
+                refute @config.modified?
+            end
+        end
+
+        describe "#utility_disable_all" do
+            it "disables the utility for all packages" do
+                @config.utility_disable_all('test')
+                refute @config.utility_enabled_for?('test', 'my/package')
+            end
+            it "dirties the configuration if it was globally enabled" do
+                @config.utility_enable_all('test')
+                @config.reset_modified
+                @config.utility_disable_all('test')
+                assert @config.modified?
+            end
+            it "dirties the configuration if some packages had specific settings" do
+                @config.utility_enable('test', 'my/package')
+                @config.reset_modified
+                @config.utility_disable_all('test')
+                assert @config.modified?
+            end
+            it "allows enabling per-package" do
+                @config.utility_disable_all('test')
+                @config.utility_enable 'test', 'my/package'
+                assert @config.utility_enabled_for?('test', 'my/package')
+            end
+            it "does not dirty the configuration if the utility was already globally disabled" do
+                @config.utility_disable_all('test')
+                @config.reset_modified
+                @config.utility_disable_all('test')
+                refute @config.modified?
+            end
+        end
     end
 end
 
