@@ -145,12 +145,21 @@ module Autoproj
 
         describe "#get" do
             describe "undeclared options" do
-                it "returns the set value" do
+                it "returns a copy of set value" do
                     @config.set 'test', 'value'
                     assert_equal 'value', @config.get('test')
                 end
+                it "dups the value before returning it" do
+                    @config.set 'test', 'value'
+                    old = @config.get('test')
+                    refute_same old, @config.get('test')
+                end
                 it "returns the default if one is given" do
                     assert_equal 'value', @config.get('test', 'value')
+                end
+                it "dups the default value before returning it" do
+                    default = 'value'
+                    refute_same default, @config.get('test', default)
                 end
                 it "raises if it is unset and no default is given" do
                     e = assert_raises(Autoproj::ConfigError) do
@@ -168,14 +177,30 @@ module Autoproj
                     @config.should_receive(:configure).with('test').and_return('value')
                     assert_equal 'value', @config.get('test')
                 end
+                it "dups the configured value before returning it" do
+                    value = 'value'
+                    @config.should_receive(:configure).with('test').and_return(value)
+                    refute_same value, @config.get('test')
+                end
                 it "configures it if it is set but unvalidated" do
                     @config.set 'test', 'value'
                     @config.should_receive(:configure).with('test').and_return('value')
                     assert_equal 'value', @config.get('test')
                 end
+                it "dups the unvalidated value before returning it" do
+                    @config.set 'test', 'value'
+                    value = 'value'
+                    @config.should_receive(:configure).with('test').and_return(value)
+                    refute_same value, @config.get('test')
+                end
                 it "returns it if it is set and validated" do
                     @config.set 'test', 'value', true
                     assert_equal 'value', @config.get('test')
+                end
+                it "dups the validated value before returning it" do
+                    value = 'value'
+                    @config.set 'test', value, true
+                    refute_same value, @config.get('test')
                 end
             end
         end
@@ -208,6 +233,100 @@ module Autoproj
                 path = File.join(make_tmpdir, 'config.yml')
                 @config.set 'test', 'value'
                 @config.save path
+                refute @config.modified?
+            end
+        end
+
+        describe "#utility_enable" do
+            before do
+                @config.utility_enable 'test', 'my/package'
+            end
+            it "enables the utility for the given packages" do
+                assert @config.utility_enabled_for?('test', 'my/package')
+            end
+            it "dirties the configuration if the utility was not enabled already" do
+                assert @config.modified?
+            end
+            it "does not dirties the configuration if the utility was already enabled" do
+                @config.reset_modified
+                @config.utility_enable 'test', 'my/package'
+                refute @config.modified?
+            end
+        end
+
+        describe "#utility_enable_all" do
+            it "enables the utility for all packages" do
+                @config.utility_enable_all('test')
+                assert @config.utility_enabled_for?('test', 'my/package')
+            end
+            it "dirties the configuration if it was globally disabled" do
+                @config.utility_enable_all('test')
+                assert @config.modified?
+            end
+            it "dirties the configuration if some packages had specific settings" do
+                @config.utility_enable('test', 'my/package')
+                @config.reset_modified
+                @config.utility_enable_all('test')
+                assert @config.modified?
+            end
+            it "allows disabling per-package" do
+                @config.utility_enable_all('test')
+                @config.utility_disable 'test', 'my/package'
+                refute @config.utility_enabled_for?('test', 'my/package')
+            end
+            it "does not dirties the configuration if the utility was already globally enabled" do
+                @config.utility_enable_all('test')
+                @config.reset_modified
+                @config.utility_enable_all('test')
+                refute @config.modified?
+            end
+        end
+
+        describe "#utility_disable" do
+            before do
+                @config.utility_enable('test', 'my/package')
+                @config.reset_modified
+                @config.utility_disable 'test', 'my/package'
+            end
+            it "disables the utility for the given packages" do
+                refute @config.utility_enabled_for?('test', 'my/package')
+            end
+            it "dirties the configuration if the utility was enabled" do
+                assert @config.modified?
+            end
+            it "does not dirties the configuration if the utility was already disabled" do
+                @config.reset_modified
+                @config.utility_disable 'test', 'my/package'
+                refute @config.modified?
+            end
+        end
+
+        describe "#utility_disable_all" do
+            it "disables the utility for all packages" do
+                @config.utility_disable_all('test')
+                refute @config.utility_enabled_for?('test', 'my/package')
+            end
+            it "dirties the configuration if it was globally enabled" do
+                @config.utility_enable_all('test')
+                @config.reset_modified
+                @config.utility_disable_all('test')
+                assert @config.modified?
+            end
+            it "dirties the configuration if some packages had specific settings" do
+                @config.utility_enable('test', 'my/package')
+                @config.reset_modified
+                @config.utility_disable_all('test')
+                assert @config.modified?
+            end
+            it "allows enabling per-package" do
+                @config.utility_disable_all('test')
+                @config.utility_enable 'test', 'my/package'
+                assert @config.utility_enabled_for?('test', 'my/package')
+            end
+            it "does not dirty the configuration if the utility was already globally disabled" do
+                @config.utility_disable_all('test')
+                @config.reset_modified
+                @config.utility_disable_all('test')
                 refute @config.modified?
             end
         end

@@ -3,6 +3,13 @@ require "enumerator"
 require 'utilrb/module/attr_predicate'
 require 'pathname'
 require 'concurrent'
+
+require 'backports/2.4.0/float/dup'
+require 'backports/2.4.0/fixnum/dup'
+require 'backports/2.4.0/nil_class/dup'
+require 'backports/2.4.0/false_class/dup'
+require 'backports/2.4.0/true_class/dup'
+
 require 'autobuild'
 require 'autoproj/autobuild'
 require 'autoproj/base'
