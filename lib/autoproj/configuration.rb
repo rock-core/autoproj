@@ -1,3 +1,9 @@
+require 'backports/2.4.0/float/dup'
+require 'backports/2.4.0/fixnum/dup'
+require 'backports/2.4.0/nil_class/dup'
+require 'backports/2.4.0/false_class/dup'
+require 'backports/2.4.0/true_class/dup'
+
 module Autoproj
     # Class that does the handling of configuration options as well as
     # loading/saving on disk
@@ -62,7 +68,7 @@ module Autoproj
             else
                 @modified = true
             end
-            config[key] = [value, user_validated]
+            config[key] = [value.dup, user_validated]
         end
 
         # Override a known option value
@@ -92,7 +98,7 @@ module Autoproj
         # Get the value for a given option
         def get(key, *default_value)
             if overrides.has_key?(key)
-                return overrides[key]
+                return overrides[key].dup
             end
 
             has_value = config.has_key?(key)
@@ -100,11 +106,11 @@ module Autoproj
 
             if !declared?(key)
                 if has_value
-                    return value
+                    return value.dup
                 elsif default_value.empty?
                     raise ConfigError, "undeclared option '#{key}'"
                 else
-                    default_value.first
+                    default_value.first.dup
                 end
             else
                 if validated
@@ -113,9 +119,9 @@ module Autoproj
                         doc = "#{doc}:"
                     end
                     displayed_options[key] = value
-                    value
+                    value.dup
                 else
-                    configure(key)
+                    configure(key).dup
                 end
             end
         end
@@ -461,7 +467,7 @@ module Autoproj
         # @param [String] packages the package names
         # @return [void]
         def utility_enable(utility, *packages)
-            utility_config = get(utility_key(utility), Hash.new).dup
+            utility_config = get(utility_key(utility), Hash.new)
             packages.each do |pkg_name|
                 utility_config[pkg_name] = true
             end
@@ -490,7 +496,7 @@ module Autoproj
         # @param [String] packages the package names
         # @return [void]
         def utility_disable(utility, *packages)
-            utility_config = get(utility_key(utility), Hash.new).dup
+            utility_config = get(utility_key(utility), Hash.new)
             packages.each do |pkg_name|
                 utility_config[pkg_name] = false
             end

@@ -145,12 +145,21 @@ module Autoproj
 
         describe "#get" do
             describe "undeclared options" do
-                it "returns the set value" do
+                it "returns a copy of set value" do
                     @config.set 'test', 'value'
                     assert_equal 'value', @config.get('test')
                 end
+                it "dups the value before returning it" do
+                    @config.set 'test', 'value'
+                    old = @config.get('test')
+                    refute_same old, @config.get('test')
+                end
                 it "returns the default if one is given" do
                     assert_equal 'value', @config.get('test', 'value')
+                end
+                it "dups the default value before returning it" do
+                    default = 'value'
+                    refute_same default, @config.get('test', default)
                 end
                 it "raises if it is unset and no default is given" do
                     e = assert_raises(Autoproj::ConfigError) do
@@ -168,14 +177,30 @@ module Autoproj
                     @config.should_receive(:configure).with('test').and_return('value')
                     assert_equal 'value', @config.get('test')
                 end
+                it "dups the configured value before returning it" do
+                    value = 'value'
+                    @config.should_receive(:configure).with('test').and_return(value)
+                    refute_same value, @config.get('test')
+                end
                 it "configures it if it is set but unvalidated" do
                     @config.set 'test', 'value'
                     @config.should_receive(:configure).with('test').and_return('value')
                     assert_equal 'value', @config.get('test')
                 end
+                it "dups the unvalidated value before returning it" do
+                    @config.set 'test', 'value'
+                    value = 'value'
+                    @config.should_receive(:configure).with('test').and_return(value)
+                    refute_same value, @config.get('test')
+                end
                 it "returns it if it is set and validated" do
                     @config.set 'test', 'value', true
                     assert_equal 'value', @config.get('test')
+                end
+                it "dups the validated value before returning it" do
+                    value = 'value'
+                    @config.set 'test', value, true
+                    refute_same value, @config.get('test')
                 end
             end
         end
