@@ -43,7 +43,8 @@ module Autoproj
                         "#{pips.sort.join(", ")}"
 
                     cmdlines.each do |c|
-                        Autobuild::Subprocess.run 'autoproj', 'osdeps', *c
+                        Autobuild::Subprocess.run 'autoproj', 'osdeps', *c,
+                            env: ws.env.resolved_env
                     end
 
                     pips.each do |p|

@@ -23,7 +23,7 @@ module Autoproj
 
                 packages = ['pkg0', 'pkg1', 'pkg2']
                 subprocess.should_receive(:run).
-                    with(any, any, 'mypip', 'install', '--user', 'pkg0', 'pkg1','pkg2').once
+                    with(any, any, 'mypip', 'install', '--user', 'pkg0', 'pkg1','pkg2', any).once
                 pip_manager.install(packages)
             end
 
