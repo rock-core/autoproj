@@ -27,7 +27,7 @@ module Autoproj
             env = Hash['set' => env.set, 'unset' => env.unset, 'update' => env.update]
             if env != existing
                 Ops.atomic_write(path) do |io|
-                    YAML.dump(env, io)
+                    io.write YAML.dump(env)
                 end
                 true
             end
