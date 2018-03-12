@@ -139,26 +139,41 @@ module Autoproj
                 # install while using the gem server
                 install_successful = false
                 out, err = capture_subprocess_io do
-                    system("rake", "build")
+                    system(Hash['__AUTOPROJ_TEST_FAKE_VERSION' => "2.99.90"],
+                        "rake", "build")
                     install_successful = Bundler.clean_system(
                         Hash['GEM_HOME' => fixture_gem_home],
-                        Ops::Install.guess_gem_program, 'install', '--no-document', File.join('pkg', "autoproj-#{VERSION}.gem"))
+                        Ops::Install.guess_gem_program, 'install',
+                        '--ignore-dependencies', '--no-document',
+                        File.join('pkg', "autoproj-2.99.90.gem"))
                 end
                 if !install_successful
-                    flunk("failed to install the autoproj gem in the mock repository:\n#{err}")
+                    flunk("failed to install the autoproj gem in the mock repository:\n"\
+                        "#{err}")
                 end
 
                 autobuild_full_path  = find_gem_dir('autobuild').full_gem_path
-                install_dir, _ = invoke_test_script(
-                    'install.sh', "--gems-path=#{gems_path}", '--gem-source', 'http://localhost:8808',
-                    gemfile_source: "source 'http://localhost:8808'\ngem 'autoproj', '>= 2.0.0.a'\ngem 'autobuild', path: '#{autobuild_full_path}'")
+                install_dir, _ = invoke_test_script 'install.sh',
+                    "--gems-path=#{gems_path}",
+                    '--gem-source', 'http://localhost:8808',
+                    gemfile_source: <<-AUTOPROJ_GEMFILE
+                        source 'https://rubygems.org'
+                        source 'http://localhost:8808'
+                        gem 'autoproj', '>= 2.99.90'
+                        gem 'autobuild', path: '#{autobuild_full_path}'
+                    AUTOPROJ_GEMFILE
 
                 # We create a fake high-version gem and put it in the
                 # vendor/cache (since we rely on a self-started server to serve
                 # our gems)
                 capture_subprocess_io do
-                    system(Hash['__AUTOPROJ_TEST_FAKE_VERSION' => "2.99.99"], "rake", "build")
-                    Bundler.clean_system(Hash['GEM_HOME' => fixture_gem_home], Ops::Install.guess_gem_program, 'install', '--no-document', File.join('pkg', 'autoproj-2.99.99.gem'))
+                    system(Hash['__AUTOPROJ_TEST_FAKE_VERSION' => "2.99.99"],
+                        "rake", "build")
+                    Bundler.clean_system(
+                        Hash['GEM_HOME' => fixture_gem_home],
+                        Ops::Install.guess_gem_program, 'install',
+                        '--ignore-dependencies', '--no-document',
+                        File.join('pkg', 'autoproj-2.99.99.gem'))
                 end
 
                 result = nil

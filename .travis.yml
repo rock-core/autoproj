@@ -3,8 +3,8 @@ language: ruby
 rvm:
   - 2.1.10
   - 2.2.5
-  - 2.3.1
-  - 2.4.1
+  - 2.3.6
+  - 2.4.3
   - 2.5.0
   - jruby-9.1.15.0
 matrix:
@@ -18,7 +18,7 @@ install:
     - git config --global user.email "autoproj@travis"
     - gem install bundler
     # Some tests expect gems to be present in vendor/bundle
-    - bundler install --path vendor/bundle
+    - bundle install --path vendor/bundle
 script:
-    - bundler exec rake
-    - AUTOPROJ_SKIP_LONG_TESTS=1 bundler exec rake test
+    - bundle exec rake
+    - AUTOPROJ_SKIP_LONG_TESTS=1 bundle exec rake test

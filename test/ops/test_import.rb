@@ -269,7 +269,7 @@ module Autoproj
                     flexmock(base_types.autobuild).should_receive(:import).never
                     _, failure =
                         ops.import_selected_packages(mock_selection(base_cmake, base_types),
-                                                     keep_going: false, parallel_import_level: 1)
+                                                     keep_going: false, parallel: 1)
                     assert_equal 1, failure.size
                     assert_kind_of error_t, failure.first
                 end
@@ -283,7 +283,7 @@ module Autoproj
                     flexmock(base_types.autobuild).should_receive(:import).once
                     processed_packages, failure =
                         ops.import_selected_packages(mock_selection(base_cmake, base_types),
-                                                     keep_going: true, parallel_import_level: 1)
+                                                     keep_going: true, parallel: 1)
                     assert_equal Set[base_cmake, base_types], processed_packages
                     assert_equal 1, failure.size
                     assert_kind_of error_t, failure.first

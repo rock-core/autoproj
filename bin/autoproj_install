@@ -432,7 +432,7 @@ require 'bundler/setup'
                     "config_path = File.join(__dir__, 'config.yml')",
                     "if File.file?(config_path)",
                     "    require 'yaml'",
-                    "    config = YAML.load(File.read(config_path))",
+                    "    config = YAML.load(File.read(config_path)) || Hash.new",
                     "    (config['plugins'] || Hash.new).each do |plugin_name, (version, options)|",
                     "        gem plugin_name, version, **options",
                     "    end",
@@ -516,10 +516,10 @@ require 'bundler/setup'
                 
                 config = Hash.new
                 if File.file?(v1_config_path)
-                    config.merge!(YAML.load(File.read(v1_config_path)))
+                    config.merge!(YAML.load(File.read(v1_config_path)) || Hash.new)
                 end
                 if File.file?(autoproj_config_path)
-                    config.merge!(YAML.load(File.read(autoproj_config_path)))
+                    config.merge!(YAML.load(File.read(autoproj_config_path)) || Hash.new)
                 end
 
                 ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']

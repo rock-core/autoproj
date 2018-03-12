@@ -218,7 +218,7 @@ module Autoproj
                     h[key] = value.first
                 end
 
-                YAML.dump(h, io)
+                io.write YAML.dump(h)
             end
             @modified = false
         end

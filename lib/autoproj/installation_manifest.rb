@@ -79,7 +79,7 @@ module Autoproj
                          'prefix' => v.prefix,
                          'dependencies' => v.dependencies]
                 end
-                YAML.dump(marshalled_package_sets + marshalled_packages, io)
+                io.write YAML.dump(marshalled_package_sets + marshalled_packages)
             end
         end
 
