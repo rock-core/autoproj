@@ -50,7 +50,7 @@ module Autoproj
         # @param [String] the option name
         # @return the deleted value
         def reset(name)
-            @modified = config.has_key?(name)
+            @modified ||= config.has_key?(name)
             config.delete(name)
             overrides.delete(name)
         end
@@ -64,7 +64,7 @@ module Autoproj
         #   asked about it, the new value being used as default
         def set(key, value, user_validated = false)
             if config.has_key?(key)
-                @modified = (config[key][0] != value)
+                @modified ||= (config[key][0] != value)
             else
                 @modified = true
             end
