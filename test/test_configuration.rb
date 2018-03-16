@@ -29,6 +29,12 @@ module Autoproj
                 @config.reset 'test'
                 refute @config.modified?
             end
+            it "does not reset modified? when the configuration did not contain the key" do
+                @config.set 'test', 'value'
+                assert @config.modified?
+                @config.reset 'test'
+                assert @config.modified?
+            end
             it "deletes an existing override" do
                 @config.override 'test', 'value'
                 @config.reset 'test'
@@ -76,11 +82,21 @@ module Autoproj
                 @config.set "test", "value"
                 refute @config.modified?
             end
+            it "does not reset modified? when writing an old value" do
+                @config.set "test", "value"
+                @config.set "test", "value"
+                assert @config.modified?
+            end
             it "does not set modified? if it does not set a new value even if the value is nil" do
                 @config.set "test", nil
                 @config.reset_modified
                 @config.set "test", nil
                 refute @config.modified?
+            end
+            it "does not reset modified? when writing an old value, even if this value is nil" do
+                @config.set "test", nil
+                @config.set "test", nil
+                assert @config.modified?
             end
         end
 
