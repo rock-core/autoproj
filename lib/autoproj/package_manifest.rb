@@ -13,10 +13,11 @@ module Autoproj
         #
         # @param [PackageDescription] the package we're loading it for
         # @param [String] file the path to the manifest.xml file
+        # @param [Boolean] ros_manifest whether the file follows the ROS format
         # @return [PackageManifest]
         # @see parse
-        def self.load(package, file)
-            parse(package, File.read(file), path: file)
+        def self.load(package, file, ros_manifest: false)
+            parse(package, File.read(file), path: file, ros_manifest: ros_manifest)
         end
 
         # Create a PackageManifest object from the XML content provided as a
@@ -25,11 +26,16 @@ module Autoproj
         # @param [PackageDescription] the package we're loading it for
         # @param [String] contents the manifest.xml contents as a string
         # @param [String] path the file path, used for error reporting
+        # @param [Boolean] ros_manifest whether the file follows the ROS format
         # @return [PackageManifest]
         # @see load
-        def self.parse(package, contents, path: '<loaded from string>')
+        def self.parse(package, contents, path: '<loaded from string>', ros_manifest: false)
             manifest = PackageManifest.new(package)
-            loader = Loader.new(path, manifest)
+            loader = if ros_manifest
+                        RosLoader.new(path, manifest)
+                     else
+                        Loader.new(path, manifest)
+                     end
             begin
                 REXML::Document.parse_stream(contents, loader)
             rescue REXML::ParseException => e
@@ -210,6 +216,42 @@ module Autoproj
                     if !field.empty?
                         manifest.send("#{name}=", field)
                     end
+                elsif name == 'tags'
+                    manifest.tags.concat(@tag_text.strip.split(',').map(&:strip))
+                end
+                @tag_text = nil
+            end
+        end
+
+        # @api private
+        #
+        # REXML stream parser object used to load the XML contents into a
+        # {PackageManifest} object
+        class RosLoader < Loader
+            DEPEND_TAGS = Set['depend', 'build_depend', 'build_export_depend',
+                              'buildtool_depend', 'buildtool_export_depend',
+                              'exec_depend', 'test_depend', 'run_depend']
+
+            def tag_start(name, attributes)
+                if DEPEND_TAGS.include?(name)
+                    @tag_text = ''
+                elsif TEXT_FIELDS.include?(name) || AUTHOR_FIELDS.include?(name)
+                    @tag_text = ''
+                elsif name == 'tags'
+                    @tag_text = ''
+                else
+                    @tag_text = nil
+                end
+            end
+
+            def tag_end(name)
+                if DEPEND_TAGS.include?(name)
+                    manifest.add_dependency(@tag_text)
+                elsif AUTHOR_FIELDS.include?(name)
+                    manifest.send("#{name}s").concat(parse_contact_field(@tag_text))
+                elsif TEXT_FIELDS.include?(name)
+                    field = @tag_text.strip
+                    manifest.send("#{name}=", field) unless field.empty?
                 elsif name == 'tags'
                     manifest.tags.concat(@tag_text.strip.split(',').map(&:strip))
                 end

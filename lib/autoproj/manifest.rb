@@ -1012,6 +1012,8 @@ module Autoproj
 
             if manifest_path
                 pkg.autobuild.description = PackageManifest.load(package, manifest_path)
+            elsif ros_manifest_path
+                pkg.autobuild.description = PackageManifest.load(package, ros_manifest_path, ros_manifest: true)
             elsif pkg.autobuild.description.null?
                 Autoproj.warn "#{package.name} from #{package_set.name} does not have a manifest"
             end
