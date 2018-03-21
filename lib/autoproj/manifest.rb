@@ -3,7 +3,7 @@ require 'csv'
 require 'utilrb/kernel/options'
 require 'set'
 
-require 'win32/dir' if RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)! 
+require 'win32/dir' if RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)!
 
 module Autoproj
     # The Manifest class represents the information included in the main
@@ -132,7 +132,7 @@ module Autoproj
         # The manifest data as a Hash
         attr_reader :data
 
-        # The set of packages defined so far as a mapping from package name to 
+        # The set of packages defined so far as a mapping from package name to
         # [Autobuild::Package, package_set, file] tuple
         attr_reader :packages
 
@@ -273,7 +273,7 @@ module Autoproj
 
             @ignored_package_names = each_package_definition.find_all do |pkg|
                 ignored_packages.any? do |l|
-                    (pkg.name == l) || 
+                    (pkg.name == l) ||
                         ((pkg_set = metapackages[l]) && pkg_set.include?(pkg))
                 end
             end.map(&:name).to_set
@@ -573,7 +573,7 @@ module Autoproj
         end
 
         # Sets up the package importers based on the information listed in
-        # the source's source.yml 
+        # the source's source.yml
         #
         # The priority logic is that we take the package sets one by one in the
         # order listed in the autoproj main manifest, and first come first used.
@@ -841,7 +841,7 @@ module Autoproj
                     end
                 end
             end
-            
+
             begin
                 result.filter_excluded_and_ignored_packages(self)
             rescue ExcludedSelection => e
@@ -866,10 +866,10 @@ module Autoproj
         # Returns true if +name+ is a valid package and is included in the build
         #
         # If +validate+ is true, the method will raise ArgumentError if the
-        # package does not exists. 
+        # package does not exists.
         #
         # If it is false, the method will simply return false on non-defined
-        # packages 
+        # packages
         def package_enabled?(name, validate = true)
             Autoproj.warn_deprecated "#package_enabled? and #package_selected? were broken in autoproj v1, and there are usually other ways to get the same effect (as e.g. splitting package sets). Feel free to contact the autoproj developers if you have a use case that demands this functionality. For now, this method returns true for backward compatibility reasons."
             true
@@ -879,10 +879,10 @@ module Autoproj
         # the build, nor ignored from the build
         #
         # If +validate+ is true, the method will raise ArgumentError if the
-        # package does not exists. 
+        # package does not exists.
         #
         # If it is false, the method will simply return false on non-defined
-        # packages 
+        # packages
         def package_selected?(name, validate = true)
             Autoproj.warn_deprecated "#package_enabled? and #package_selected? were broken in autoproj v1, and there are usually other ways to get the same effect (as e.g. splitting package sets). Feel free to contact the autoproj developers if you have a use case that demands this functionality. For now, this method returns true for backward compatibility reasons."
             true
@@ -1000,6 +1000,14 @@ module Autoproj
             end
             manifest_path = manifest_paths.find do |path|
                 File.file?(path)
+            end
+
+            # Alternatively, use a ROS manifest file
+            ros_manifest_path = File.join(package.srcdir, 'package.xml')
+            ros_manifest_path = nil unless File.file?(ros_manifest_path)
+
+            if manifest_path && ros_manifest_path
+                Autoproj.warn "ignoring ROS manifest in #{package.name} from #{package_set.name}"
             end
 
             if manifest_path
@@ -1174,7 +1182,7 @@ module Autoproj
         # Compute the reverse dependencies of all the packages
         #
         # The return value is a hash of the form
-        # 
+        #
         #   package_name => [list_of_packages_that_depend_on_package_name]
         #
         # Where the list is given as a list of package names as well
