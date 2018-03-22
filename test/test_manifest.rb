@@ -721,6 +721,37 @@ module Autoproj
                     and_return(package_manifest)
                 manifest.load_package_manifest(pkg)
             end
+            it "parses the autoproj in-src package manifest if a ros manifest is also available" do
+                xml = "<package></package>"
+                package_manifest = PackageManifest.parse(pkg.autobuild, xml)
+                flexmock(File).should_receive(:file?).
+                    with(File.join(pkg.autobuild.srcdir, "manifest.xml")).
+                    and_return(true)
+                flexmock(File).should_receive(:file?).
+                    with(File.join(pkg.autobuild.srcdir, "package.xml")).
+                    and_return(true)
+                flexmock(PackageManifest).should_receive(:load).
+                    with(pkg.autobuild, File.join(pkg.autobuild.srcdir, 'manifest.xml')).
+                    and_return(package_manifest)
+                manifest.load_package_manifest(pkg)
+            end
+            it "parses the autoproj out-of-src package manifest if a ros manifest is also available" do
+                xml = "<package></package>"
+                package_manifest = PackageManifest.parse(pkg.autobuild, xml)
+                flexmock(File).should_receive(:file?).
+                    with(File.join(pkg.autobuild.srcdir, "manifest.xml")).
+                    and_return(false)
+                flexmock(File).should_receive(:file?).
+                    with(File.join(pkg_set.raw_local_dir, 'manifests', "test.xml")).
+                    and_return(true)
+                flexmock(File).should_receive(:file?).
+                    with(File.join(pkg.autobuild.srcdir, "package.xml")).
+                    and_return(true)
+                flexmock(PackageManifest).should_receive(:load).
+                    with(pkg.autobuild, File.join(pkg_set.raw_local_dir, 'manifests', "test.xml")).
+                    and_return(package_manifest)
+                manifest.load_package_manifest(pkg)
+            end
         end
 
         describe "#load_importers" do
