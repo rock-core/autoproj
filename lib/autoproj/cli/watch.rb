@@ -79,11 +79,12 @@ module Autoproj
             def create_src_pkg_watchers
                 @source_packages_dirs.each do |pkg_srcdir|
                     next unless File.exist? pkg_srcdir
-                    create_dir_watcher(pkg_srcdir, included_paths: ["manifest.xml"])
+                    create_dir_watcher(pkg_srcdir, included_paths: ["manifest.xml", "package.xml"])
 
                     manifest_file = File.join(pkg_srcdir, 'manifest.xml')
-                    next unless File.exist? manifest_file
-                    create_file_watcher(manifest_file)
+                    create_file_watcher(manifest_file) if File.exist? manifest_file
+                    ros_manifest_file = File.join(pkg_srcdir, 'package.xml')
+                    create_file_watcher(ros_manifest_file) if File.exist? ros_manifest_file
                 end
             end
 

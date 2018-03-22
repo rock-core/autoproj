@@ -35,6 +35,7 @@ module Autoproj
             describe "#start_watchers" do
                 attr_reader :pkg
                 attr_reader :manifest_file
+                attr_reader :ros_manifest_file
                 attr_reader :pkg_set
                 attr_reader :autobuild_file
                 attr_reader :ruby_file
@@ -44,6 +45,8 @@ module Autoproj
                     ws.config.save
                     @pkg = ws_add_package_to_layout :cmake, 'package'
                     @pkg_set = ws.manifest.main_package_set
+                    @ros_manifest_file = File.join(pkg.autobuild.srcdir,
+                        'package.xml')
                     @manifest_file = File.join(pkg.autobuild.srcdir,
                                                'manifest.xml')
                     @autobuild_file = File.join(pkg_set.raw_local_dir,
@@ -56,6 +59,7 @@ module Autoproj
                                                        'tools', 'package.xml')
 
                     FileUtils.touch(manifest_file)
+                    FileUtils.touch(ros_manifest_file)
                     FileUtils.touch(autobuild_file)
                     FileUtils.touch(ruby_file)
                     FileUtils.mkdir_p(File.join(pkg_set_manifest_dir, 'tools'))
@@ -141,6 +145,34 @@ module Autoproj
                         manifest_copy = File.join(ws.root_dir, 'manifest.xml')
                         FileUtils.cp(manifest_file, manifest_copy)
                         FileUtils.mv(manifest_copy, manifest_file)
+                        process_events
+                    end
+                end
+                describe "in-source ROS manifest watcher" do
+                    it "triggers the callback when the file is created" do
+                        File.unlink(ros_manifest_file)
+                        process_events
+                        cli.should_receive(:callback).once
+                        FileUtils.touch(ros_manifest_file)
+                        process_events
+                    end
+                    it "triggers the callback when the file is modified" do
+                        cli.should_receive(:callback).at_least.once
+                        open(ros_manifest_file, 'a') do |file|
+                            file << "\n"
+                        end
+                        process_events
+                    end
+                    it "triggers the callback when the file is deleted" do
+                        cli.should_receive(:callback).at_least.once
+                        File.unlink(ros_manifest_file)
+                        process_events
+                    end
+                    it "triggers the callback when the file is overwritten" do
+                        cli.should_receive(:callback).at_least.once
+                        manifest_copy = File.join(ws.root_dir, 'package.xml')
+                        FileUtils.cp(ros_manifest_file, manifest_copy)
+                        FileUtils.mv(manifest_copy, ros_manifest_file)
                         process_events
                     end
                 end
