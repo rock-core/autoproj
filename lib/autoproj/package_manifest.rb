@@ -232,7 +232,10 @@ module Autoproj
             def tag_start(name, attributes)
                 if DEPEND_TAGS.include?(name)
                     @tag_text = ''
-                elsif TEXT_FIELDS.include?(name) || AUTHOR_FIELDS.include?(name)
+                elsif TEXT_FIELDS.include?(name)
+                    @tag_text = ''
+                elsif AUTHOR_FIELDS.include?(name)
+                    @author_email = attributes['email']
                     @tag_text = ''
                 elsif name == 'tags'
                     @tag_text = ''
@@ -245,7 +248,11 @@ module Autoproj
                 if DEPEND_TAGS.include?(name)
                     manifest.add_dependency(@tag_text)
                 elsif AUTHOR_FIELDS.include?(name)
-                    manifest.send("#{name}s").concat(parse_contact_field(@tag_text))
+                    author_name = @tag_text.strip
+                    email = @author_email ? @author_email.strip : nil
+                    email = nil if email && email.empty?
+                    contact = ContactInfo.new(author_name, email)
+                    manifest.send("#{name}s").concat([contact])
                 elsif TEXT_FIELDS.include?(name)
                     field = @tag_text.strip
                     manifest.send("#{name}=", field) unless field.empty?
