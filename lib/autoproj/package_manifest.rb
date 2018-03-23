@@ -13,10 +13,12 @@ module Autoproj
         #
         # @param [PackageDescription] the package we're loading it for
         # @param [String] file the path to the manifest.xml file
+        # @param [Boolean] ros_manifest whether the file follows the ROS format
         # @return [PackageManifest]
         # @see parse
-        def self.load(package, file)
-            parse(package, File.read(file), path: file)
+        def self.load(package, file, ros_manifest: false)
+            loader_class = ros_manifest ? RosLoader : Loader
+            parse(package, File.read(file), path: file, loader_class: loader_class)
         end
 
         # Create a PackageManifest object from the XML content provided as a
@@ -25,11 +27,12 @@ module Autoproj
         # @param [PackageDescription] the package we're loading it for
         # @param [String] contents the manifest.xml contents as a string
         # @param [String] path the file path, used for error reporting
+        # @param [Boolean] ros_manifest whether the file follows the ROS format
         # @return [PackageManifest]
         # @see load
-        def self.parse(package, contents, path: '<loaded from string>')
+        def self.parse(package, contents, path: '<loaded from string>', loader_class: Loader)
             manifest = PackageManifest.new(package)
-            loader = Loader.new(path, manifest)
+            loader = loader_class.new(path, manifest)
             begin
                 REXML::Document.parse_stream(contents, loader)
             rescue REXML::ParseException => e
@@ -212,6 +215,46 @@ module Autoproj
                     end
                 elsif name == 'tags'
                     manifest.tags.concat(@tag_text.strip.split(',').map(&:strip))
+                end
+                @tag_text = nil
+            end
+        end
+
+        # @api private
+        #
+        # REXML stream parser object used to load the XML contents into a
+        # {PackageManifest} object
+        class RosLoader < Loader
+            DEPEND_TAGS = Set['depend', 'build_depend', 'build_export_depend',
+                              'buildtool_depend', 'buildtool_export_depend',
+                              'exec_depend', 'test_depend', 'run_depend']
+
+            def tag_start(name, attributes)
+                if DEPEND_TAGS.include?(name)
+                    @tag_text = ''
+                elsif TEXT_FIELDS.include?(name)
+                    @tag_text = ''
+                elsif AUTHOR_FIELDS.include?(name)
+                    @author_email = attributes['email']
+                    @tag_text = ''
+                else
+                    @tag_text = nil
+                end
+            end
+
+            def tag_end(name)
+                if DEPEND_TAGS.include?(name)
+                    raise InvalidPackageManifest, "found '#{name}' tag in #{path} without content" if @tag_text.strip.empty?
+                    manifest.add_dependency(@tag_text)
+                elsif AUTHOR_FIELDS.include?(name)
+                    author_name = @tag_text.strip
+                    email = @author_email ? @author_email.strip : nil
+                    email = nil if email && email.empty?
+                    contact = ContactInfo.new(author_name, email)
+                    manifest.send("#{name}s").concat([contact])
+                elsif TEXT_FIELDS.include?(name)
+                    field = @tag_text.strip
+                    manifest.send("#{name}=", field) unless field.empty?
                 end
                 @tag_text = nil
             end
