@@ -246,6 +246,7 @@ module Autoproj
 
             def tag_end(name)
                 if DEPEND_TAGS.include?(name)
+                    raise InvalidPackageManifest, "found '#{name}' tag in #{path} without content" if @tag_text.strip.empty?
                     manifest.add_dependency(@tag_text)
                 elsif AUTHOR_FIELDS.include?(name)
                     author_name = @tag_text.strip
