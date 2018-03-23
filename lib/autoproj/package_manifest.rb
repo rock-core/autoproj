@@ -237,8 +237,6 @@ module Autoproj
                 elsif AUTHOR_FIELDS.include?(name)
                     @author_email = attributes['email']
                     @tag_text = ''
-                elsif name == 'tags'
-                    @tag_text = ''
                 else
                     @tag_text = nil
                 end
@@ -257,8 +255,6 @@ module Autoproj
                 elsif TEXT_FIELDS.include?(name)
                     field = @tag_text.strip
                     manifest.send("#{name}=", field) unless field.empty?
-                elsif name == 'tags'
-                    manifest.tags.concat(@tag_text.strip.split(',').map(&:strip))
                 end
                 @tag_text = nil
             end
