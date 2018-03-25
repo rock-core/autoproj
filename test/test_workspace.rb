@@ -473,6 +473,23 @@ module Autoproj
                 ws.source_dir = 'src'
             end
         end
+
+        describe "#load_config" do
+            attr_reader :ws
+            before do
+                @ws = ws_create
+                FileUtils.mkdir_p File.join(ws.root_dir, '.autoproj')
+                FileUtils.touch File.join(ws.root_dir, '.autoproj', 'config.yml')
+            end
+
+            it "raises if config.source_dir is not relative" do
+                flexmock(Autoproj::Configuration).new_instances.
+                    should_receive(:source_dir).and_return(ws.root_dir)
+                assert_raises(ConfigError) do
+                    ws.load_config
+                end
+            end
+        end
     end
 end
 

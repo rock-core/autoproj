@@ -228,6 +228,11 @@ module Autoproj
                     manifest.vcs = VCSDefinition.from_raw(
                         type: 'local', url: config_dir)
                 end
+
+                if config.source_dir && Pathname.new(config.source_dir).absolute?
+                    raise ConfigError, 'source dir path configuration must be relative'
+                end
+
                 os_package_resolver.prefer_indep_over_os_packages = config.prefer_indep_over_os_packages?
                 os_package_resolver.operating_system ||= config.get('operating_system', nil)
             end
