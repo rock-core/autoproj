@@ -448,6 +448,31 @@ module Autoproj
                 end
             end
         end
+
+        describe "#source_dir" do
+            attr_reader :ws
+            before do
+                @ws = ws_create
+            end
+
+            it "returns root_dir if 'source' config option is unset" do
+                flexmock(ws.config).should_receive(:source_dir).
+                    and_return(nil)
+                assert_equal ws.source_dir, ws.root_dir
+            end
+
+            it "returns root_dir/source if 'source' config option is set" do
+                flexmock(ws.config).should_receive(:source_dir).
+                    and_return('src')
+                assert_equal ws.source_dir, File.join(ws.root_dir, 'src')
+            end
+
+            it "sets 'source' config option" do
+                flexmock(ws.config).should_receive(:set).
+                    with('source', 'src', true).once
+                ws.source_dir = 'src'
+            end
+        end
     end
 end
 

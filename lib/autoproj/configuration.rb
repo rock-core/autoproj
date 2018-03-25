@@ -381,6 +381,18 @@ module Autoproj
             get('build', 'build')
         end
 
+        # Defines a folder to which source packages will be layed out relative to
+        #
+        # If nil, packages will be layed out relative to root_dir
+        # Only relative paths are allowed
+        #
+        # The default is nil
+        #
+        # @return [String,nil]
+        def source_dir
+            get('source', nil)
+        end
+
         # Returns true if there should be one prefix per package
         #
         # The default is false (disabled)

@@ -191,6 +191,20 @@ module Autoproj
             config.set 'build', path, true
         end
 
+        # (see Configuration#source_dir)
+        def source_dir
+            if config.source_dir
+                File.expand_path(config.source_dir, root_dir)
+            else
+                root_dir
+            end
+        end
+
+        # Change {#source_dir}
+        def source_dir=(path)
+            config.set 'source', path, true
+        end
+
         def log_dir
             File.join(prefix_dir, 'log')
         end
