@@ -306,7 +306,7 @@ module Autoproj
                 io.puts "workspace: \"#{root_dir}\""
             end
 
-            Autobuild.srcdir = root_dir
+            Autobuild.srcdir = source_dir
             Autobuild.logdir = log_dir
             if cache_dir = config.importer_cache_dir
                 Autobuild::Importer.default_cache_dirs = cache_dir
@@ -552,7 +552,7 @@ module Autoproj
                 end
 
             pkg = manifest.find_autobuild_package(pkg_name)
-            pkg.srcdir = File.join(root_dir, srcdir)
+            pkg.srcdir = File.join(source_dir, srcdir)
             if pkg.respond_to?(:builddir)
                 pkg.builddir = compute_builddir(pkg)
             end
