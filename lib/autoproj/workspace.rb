@@ -191,6 +191,20 @@ module Autoproj
             config.set 'build', path, true
         end
 
+        # (see Configuration#source_dir)
+        def source_dir
+            if config.source_dir
+                File.expand_path(config.source_dir, root_dir)
+            else
+                root_dir
+            end
+        end
+
+        # Change {#source_dir}
+        def source_dir=(path)
+            config.set 'source', path, true
+        end
+
         def log_dir
             File.join(prefix_dir, 'log')
         end
@@ -214,6 +228,11 @@ module Autoproj
                     manifest.vcs = VCSDefinition.from_raw(
                         type: 'local', url: config_dir)
                 end
+
+                if config.source_dir && Pathname.new(config.source_dir).absolute?
+                    raise ConfigError, 'source dir path configuration must be relative'
+                end
+
                 os_package_resolver.prefer_indep_over_os_packages = config.prefer_indep_over_os_packages?
                 os_package_resolver.operating_system ||= config.get('operating_system', nil)
             end
@@ -287,7 +306,7 @@ module Autoproj
                 io.puts "workspace: \"#{root_dir}\""
             end
 
-            Autobuild.srcdir = root_dir
+            Autobuild.srcdir = source_dir
             Autobuild.logdir = log_dir
             if cache_dir = config.importer_cache_dir
                 Autobuild::Importer.default_cache_dirs = cache_dir
@@ -533,7 +552,7 @@ module Autoproj
                 end
 
             pkg = manifest.find_autobuild_package(pkg_name)
-            pkg.srcdir = File.join(root_dir, srcdir)
+            pkg.srcdir = File.join(source_dir, srcdir)
             if pkg.respond_to?(:builddir)
                 pkg.builddir = compute_builddir(pkg)
             end

@@ -510,7 +510,7 @@ module Autoproj
             explicit.each do |pkg_or_set, layout_level|
                 next if manifest.find_autobuild_package(pkg_or_set)
                 next if manifest.has_package_set?(pkg_or_set)
-                full_path = File.expand_path(File.join(ws.root_dir, layout_level, pkg_or_set))
+                full_path = File.expand_path(File.join(ws.source_dir, layout_level, pkg_or_set))
                 next if !File.directory?(full_path)
 
                 if handler = auto_add_package(pkg_or_set, full_path)
