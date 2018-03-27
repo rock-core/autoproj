@@ -252,16 +252,25 @@ module Autoproj
             end
         end
 
+        def self.default_expansions(ws)
+            ws.config.to_hash.
+                merge(ws.manifest.constant_definitions).
+                merge("AUTOPROJ_ROOT" => ws.root_dir,
+                      "AUTOPROJ_CONFIG" => ws.config_dir)
+        end
+
         # Resolve the VCS information for a package set
         #
         # This parses the information stored in the package_sets section of
-        # autoproj/manifest, or the imports section of the source.yml files and
+        # autoproj/manifest, r the imports section of the source.yml files and
         # returns the corresponding VCSDefinition object
-        def self.resolve_definition(ws, raw_spec, from: nil, raw: Array.new)
+        def self.resolve_definition(ws, raw_spec, from: nil, raw: Array.new,
+            vars: default_expansions(ws))
+
             spec = VCSDefinition.normalize_vcs_hash(raw_spec, base_dir: ws.config_dir)
             options, vcs_spec = Kernel.filter_options spec, auto_imports: true
 
-            vcs_spec = Autoproj.expand(vcs_spec, ws.config.to_hash.merge(ws.manifest.constant_definitions))
+            vcs_spec = Autoproj.expand(vcs_spec, vars)
             return VCSDefinition.from_raw(vcs_spec, from: from, raw: raw), options
         end
 
@@ -464,36 +473,46 @@ module Autoproj
 
         def parse_source_definition(source_definition)
             @name = source_definition['name'] || self.name
-            @required_autoproj_version = source_definition.fetch('required_autoproj_version', self.required_autoproj_version)
-            if new_imports = source_definition['imports']
-                @imports_vcs  = Array(new_imports).map do |set_def|
-                    if !set_def.kind_of?(Hash) && !set_def.respond_to?(:to_str)
-                        raise ConfigError.new(source_file),
-                            "in #{source_file}: wrong format for 'imports' section. Expected an array of maps or strings (e.g. - github: my/url)."
-                    end
-
-                    Autoproj.in_file(source_file) do
-                        PackageSet.resolve_definition(ws, set_def, from: self, raw: [VCSDefinition::RawEntry.new(self, source_file, set_def)])
-                    end
-                end
-            end
+            @required_autoproj_version = source_definition.fetch(
+                'required_autoproj_version', self.required_autoproj_version)
 
             # Compute the definition of constants
             if new_constants = source_definition['constants']
                 Autoproj.in_file(source_file) do
                     variables = inject_constants_and_config_for_expansion(Hash.new)
-                    @constants_definitions = Autoproj.resolve_constant_definitions(new_constants, variables)
+                    @constants_definitions = Autoproj.resolve_constant_definitions(
+                        new_constants, variables)
+                end
+            end
+
+            if new_imports = source_definition['imports']
+                variables = inject_constants_and_config_for_expansion(Hash.new)
+                @imports_vcs  = Array(new_imports).map do |set_def|
+                    if !set_def.kind_of?(Hash) && !set_def.respond_to?(:to_str)
+                        raise ConfigError.new(source_file), "in #{source_file}: "\
+                            "wrong format for 'imports' section. Expected an array of "\
+                            "maps or strings (e.g. - github: my/url)."
+                    end
+
+                    Autoproj.in_file(source_file) do
+                        PackageSet.resolve_definition(ws, set_def, from: self,
+                            vars: variables,
+                            raw: [VCSDefinition::RawEntry.new(self, source_file, set_def)])
+                    end
                 end
             end
 
             if new_version_control = source_definition['version_control']
                 invalidate_importer_definitions_cache
-                @version_control = normalize_vcs_list('version_control', source_file, new_version_control)
+                @version_control = normalize_vcs_list('version_control', source_file,
+                    new_version_control)
 
                 Autoproj.in_file(source_file) do
-                    default_vcs_spec, raw = version_control_field('default', version_control, file: source_file)
+                    default_vcs_spec, raw = version_control_field(
+                        'default', version_control, file: source_file)
                     if default_vcs_spec
-                        @default_importer = VCSDefinition.from_raw(default_vcs_spec, raw: raw, from: self)
+                        @default_importer = VCSDefinition.from_raw(default_vcs_spec,
+                            raw: raw, from: self)
                     end
                 end
             end

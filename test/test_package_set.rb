@@ -336,6 +336,19 @@ module Autoproj
                     source_definition: Hash['imports' => Array[Hash['type' => 'local', 'url' => 'path/to/package', 'auto_imports' => false]]]
             end
 
+            it "expands constants in the imports" do
+                package_set.add_raw_imported_set(
+                    VCSDefinition.from_raw(type: 'git', url: 'https://github.com'),
+                    auto_imports: false)
+
+                package_set.parse_source_definition(
+                    'constants' => Hash['test' => 'path/to/package'],
+                    'imports' => Array[
+                        Hash['type' => 'local', 'url' => '$test', 'auto_imports' => false]
+                    ])
+                assert_equal 'path/to/package', package_set.imports_vcs[0][0].url
+            end
+
             it "expands configuration variables in the imports" do
                 package_set.add_raw_imported_set(
                     VCSDefinition.from_raw(type: 'git', url: 'https://github.com'),
@@ -343,7 +356,9 @@ module Autoproj
                 ws.config.set 'test', 'path/to/package'
 
                 package_set.parse_source_definition(
-                    'imports' => Array[Hash['type' => 'local', 'url' => '$test', 'auto_imports' => false]])
+                    'imports' => Array[
+                        Hash['type' => 'local', 'url' => '$test', 'auto_imports' => false]
+                    ])
                 assert_equal 'path/to/package', package_set.imports_vcs[0][0].url
             end
 
