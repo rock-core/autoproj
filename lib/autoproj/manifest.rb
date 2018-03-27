@@ -1006,10 +1006,6 @@ module Autoproj
             ros_manifest_path = File.join(package.srcdir, 'package.xml')
             ros_manifest_path = nil unless File.file?(ros_manifest_path)
 
-            if manifest_path && ros_manifest_path
-                Autoproj.warn "ignoring ROS manifest in #{package.name} from #{package_set.name}"
-            end
-
             if manifest_path
                 pkg.autobuild.description = PackageManifest.load(package, manifest_path)
             elsif ros_manifest_path
