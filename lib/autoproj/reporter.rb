@@ -49,8 +49,28 @@ module Autoproj
                 Autoproj.message line, STDERR
             end
         end
+
+        def reset_timer
+            @timer_start = Time.now
+        end
+
+        def elapsed_time
+            return unless @timer_start
+            secs = Time.now - @timer_start
+            return if secs < 1
+
+            [[60, 'sec'], [60, 'min'], [24, 'hour'], [1000, 'day']].map do |count, name|
+                if secs > 0
+                    secs, n = secs.divmod(count)
+                    next if (val = n.to_i) == 0
+                    "#{val} #{val > 1 ? name + 's' : name}"
+                end
+            end.compact.reverse.join(' ')
+        end
+
         def success
-            Autoproj.message("Command finished successfully at #{Time.now}", :bold, :green)
+            elapsed_string = elapsed_time ? " (took #{elapsed_time})" : ''
+            Autoproj.message("Command finished successfully at #{Time.now}#{elapsed_string}", :bold, :green)
             if Autobuild.post_success_message
                 Autoproj.message Autobuild.post_success_message
             end
@@ -65,6 +85,7 @@ module Autoproj
         interrupted = nil
         package_failures = Autobuild::Reporting.report(on_package_failures: :report_silent) do
             begin
+                reporter.reset_timer
                 yield
             rescue Interrupt => e
                 interrupted = e
