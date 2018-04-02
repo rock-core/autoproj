@@ -225,6 +225,7 @@ module Autoproj
         # REXML stream parser object used to load the XML contents into a
         # {PackageManifest} object
         class RosLoader < Loader
+            SUPPORTED_MODES = ['test'].freeze
             DEPEND_TAGS = Set['depend', 'build_depend', 'build_export_depend',
                               'buildtool_depend', 'buildtool_export_depend',
                               'exec_depend', 'test_depend', 'run_depend']
@@ -245,7 +246,13 @@ module Autoproj
             def tag_end(name)
                 if DEPEND_TAGS.include?(name)
                     raise InvalidPackageManifest, "found '#{name}' tag in #{path} without content" if @tag_text.strip.empty?
-                    manifest.add_dependency(@tag_text)
+
+                    mode = []
+                    if name =~ /^(\w+)_depend$/
+                        mode = SUPPORTED_MODES & [$1]
+                    end
+
+                    manifest.add_dependency(@tag_text, modes: mode)
                 elsif AUTHOR_FIELDS.include?(name)
                     author_name = @tag_text.strip
                     email = @author_email ? @author_email.strip : nil
