@@ -397,6 +397,25 @@ module Autoproj
                         end
                     end
                 end
+                Autoproj::PackageManifest::RosLoader::SUPPORTED_MODES.each do |mode|
+                    tag = "#{mode}_depend"
+                    describe "<#{tag}>" do
+                        it "raises if the tag has neither a name nor a package attribute" do
+                            assert_raises(InvalidPackageManifest) do
+                                PackageManifest.parse(pkg, "<package><#{tag}>\n</#{tag}></package>", loader_class: Autoproj::PackageManifest::RosLoader)
+                            end
+                        end
+                        it "parses the dependency name and mode" do
+                            dependency = parse_dependency("<package><#{tag}>test</#{tag}></package>")
+                            assert_equal 'test', dependency.name
+                            assert_equal ['test'], dependency.modes
+                        end
+                        it "is not optional" do
+                            dependency = parse_dependency("<package><#{tag}>test</#{tag}></package>")
+                            refute dependency.optional
+                        end
+                    end
+                end
             end
 
             describe "authors" do
