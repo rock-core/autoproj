@@ -235,10 +235,11 @@ module Autoproj
                     @tag_text = ''
                 elsif TEXT_FIELDS.include?(name)
                     @tag_text = ''
+                    @in_description = true if name == 'description'
                 elsif AUTHOR_FIELDS.include?(name)
                     @author_email = attributes['email']
                     @tag_text = ''
-                else
+                elsif !@in_description
                     @tag_text = nil
                 end
             end
@@ -262,8 +263,9 @@ module Autoproj
                 elsif TEXT_FIELDS.include?(name)
                     field = @tag_text.strip
                     manifest.send("#{name}=", field) unless field.empty?
+                    @in_description = false if name == 'description'
                 end
-                @tag_text = nil
+                @tag_text = nil unless @in_description
             end
         end
     end
