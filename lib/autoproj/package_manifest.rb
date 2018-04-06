@@ -139,14 +139,36 @@ module Autoproj
 
         # @api private
         #
-        # REXML stream parser object used to load the XML contents into a
-        # {PackageManifest} object
-        class Loader
+        # REXML stream parser object used to filter nested tags
+        class BaseLoader
             include REXML::StreamListener
 
+            def initialize
+                @tag_level = 0
+            end
+
+            def tag_start(name, attributes)
+                toplevel_tag_start(name, attributes) if (@tag_level += 1) == 2
+            end
+
+            def tag_end(name)
+                toplevel_tag_end(name) if (@tag_level -= 1) == 1
+            end
+
+            def text(text)
+                @tag_text << text if @tag_text
+            end
+        end
+
+        # @api private
+        #
+        # REXML stream parser object used to load the XML contents into a
+        # {PackageManifest} object
+        class Loader < BaseLoader
             attr_reader :path, :manifest
 
             def initialize(path, manifest)
+                super()
                 @path = path
                 @manifest = manifest
             end
@@ -178,7 +200,7 @@ module Autoproj
             TEXT_FIELDS = Set['url', 'license', 'version', 'description']
             AUTHOR_FIELDS = Set['author', 'maintainer', 'rock_maintainer']
 
-            def tag_start(name, attributes)
+            def toplevel_tag_start(name, attributes)
                 if name == 'depend'
                     parse_depend_tag(name, attributes)
                 elsif name == 'depend_optional'
@@ -200,12 +222,7 @@ module Autoproj
                     @tag_text = nil
                 end
             end
-            def text(text)
-                if @tag_text
-                    @tag_text << text
-                end
-            end
-            def tag_end(name)
+            def toplevel_tag_end(name)
                 if AUTHOR_FIELDS.include?(name)
                     manifest.send("#{name}s").concat(parse_contact_field(@tag_text))
                 elsif TEXT_FIELDS.include?(name)
@@ -230,21 +247,20 @@ module Autoproj
                               'buildtool_depend', 'buildtool_export_depend',
                               'exec_depend', 'test_depend', 'run_depend']
 
-            def tag_start(name, attributes)
+            def toplevel_tag_start(name, attributes)
                 if DEPEND_TAGS.include?(name)
                     @tag_text = ''
                 elsif TEXT_FIELDS.include?(name)
                     @tag_text = ''
-                    @in_description = true if name == 'description'
                 elsif AUTHOR_FIELDS.include?(name)
                     @author_email = attributes['email']
                     @tag_text = ''
-                elsif !@in_description
+                else
                     @tag_text = nil
                 end
             end
 
-            def tag_end(name)
+            def toplevel_tag_end(name)
                 if DEPEND_TAGS.include?(name)
                     raise InvalidPackageManifest, "found '#{name}' tag in #{path} without content" if @tag_text.strip.empty?
 
@@ -263,9 +279,8 @@ module Autoproj
                 elsif TEXT_FIELDS.include?(name)
                     field = @tag_text.strip
                     manifest.send("#{name}=", field) unless field.empty?
-                    @in_description = false if name == 'description'
                 end
-                @tag_text = nil unless @in_description
+                @tag_text = nil
             end
         end
     end

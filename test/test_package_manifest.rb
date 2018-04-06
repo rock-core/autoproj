@@ -68,6 +68,10 @@ module Autoproj
                 manifest = Autoproj::PackageManifest.parse(pkg, "<package><description>long\ndocumentation\nblock</description></package>")
                 assert_equal "long\ndocumentation\nblock", manifest.documentation
             end
+            it "allows html tags in a long description block" do
+                manifest = Autoproj::PackageManifest.parse(pkg, "<package><description>long <tt>test</tt> documentation block</description></package>")
+                assert_equal "long test documentation block", manifest.documentation
+            end
             it "returns the short documentation if there is no expanded documentation" do
                 manifest = Autoproj::PackageManifest.parse(pkg, "<package><description brief=\"brief documentation\"/></package>")
                 assert_equal "brief documentation", manifest.documentation
