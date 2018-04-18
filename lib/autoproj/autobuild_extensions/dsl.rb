@@ -110,7 +110,8 @@ module Autoproj
             find_topmost_directory_containing(full_path, "lib/*.rb")
 
             return "ruby_package", dir
-        elsif (dir = find_topmost_directory_containing(full_path, 'setup.py'))
+        elsif (dir = find_topmost_directory_containing(full_path, 'setup.py')) ||
+             (dir = find_topmost_directory_containing(full_path, File.join(File.basename(full_path), "*.py")))
             return 'python_package', dir
         end
     end
