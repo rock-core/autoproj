@@ -83,6 +83,12 @@ module Autoproj
         reporter = Autoproj::Reporter.new
         Autobuild::Reporting << reporter
         interrupted = nil
+
+        if !silent.nil?
+            on_package_success = silent ? :silent : :report
+        end
+        silent_errors = [:report_silent, :exit_silent].include?(on_package_failures)
+
         package_failures = Autobuild::Reporting.report(on_package_failures: :report_silent) do
             begin
                 reporter.reset_timer
@@ -92,10 +98,6 @@ module Autoproj
             end
         end
 
-        if !silent.nil?
-            on_package_success = silent ? :silent : :report
-        end
-        silent_errors = [:report_silent, :exit_silent].include?(on_package_failures)
 
         if package_failures.empty?
             if interrupted
@@ -116,6 +118,7 @@ module Autoproj
             raise e
         elsif on_package_failures == :report
             Autoproj.error e.message
+            [e]
         elsif on_package_failures == :exit
             Autoproj.error e.message
             exit 1
