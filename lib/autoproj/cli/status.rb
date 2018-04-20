@@ -85,7 +85,17 @@ module Autoproj
                 elsif !File.directory?(pkg.srcdir)
                     package_status.msg << Autoproj.color("  is not imported yet", :magenta)
                 else
-                    if importer.respond_to?(:snapshot)
+                    begin status = importer.status(pkg, only_local)
+                    rescue Interrupt
+                        raise
+                    rescue Exception => e
+                        package_status.msg << Autoproj.color("  failed to fetch status information (#{e})", :red)
+                        return package_status
+                    end
+
+                    snapshot_useful = [Autobuild::Importer::Status::ADVANCED, Autobuild::Importer::Status::NEEDS_MERGE].
+                        include?(status.status)
+                    if snapshot && snapshot_useful && importer.respond_to?(:snapshot)
                         snapshot_version =
                             begin importer.snapshot(pkg, nil, exact_state: false, only_local: only_local)
                             rescue Autobuild::PackageException
@@ -102,14 +112,6 @@ module Autoproj
                                 importer.relocate(importer.repository, snapshot_version)
                             end
                         end
-                    end
-
-                    begin status = importer.status(pkg, only_local)
-                    rescue Interrupt
-                        raise
-                    rescue Exception => e
-                        package_status.msg << Autoproj.color("  failed to fetch status information (#{e})", :red)
-                        return package_status
                     end
 
                     status.unexpected_working_copy_state.each do |msg|
