@@ -87,7 +87,10 @@ ruby23:
   default: ignore # we assume that if the user has a ruby 2.3 runtime, it is usable
 
 ruby24:
-  default: ignore # we assume that if the user has a ruby 2.3 runtime, it is usable
+  default: ignore # we assume that if the user has a ruby 2.4 runtime, it is usable
+
+ruby25:
+  default: ignore # we assume that if the user has a ruby 2.5 runtime, it is usable
 
 build-essential:
   debian,ubuntu: build-essential
