@@ -245,7 +245,7 @@ module Autoproj
                 @pkg1         = ws_define_package :cmake, :pkg1
                 flexmock(ws.env).should_receive(:dup).once.and_return(@env = flexmock)
                 @env.should_receive(:exported_environment).and_return(
-                    Autobuild::Environment::ExportedEnvironment.new(Hash.new, Array.new, Hash.new))
+                    Autobuild::Environment::ExportedEnvironment.new(Hash.new, Array.new, Hash.new, Set.new))
             end
             it "aggregates the environment of all the selected packages" do
                 flexmock(pkg0.autobuild).should_receive(:apply_env).with(env).once.globally.ordered
