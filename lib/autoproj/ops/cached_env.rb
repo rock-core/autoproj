@@ -11,7 +11,7 @@ module Autoproj
             if File.file?(path)
                 env = YAML.load(File.read(path))
                 Autobuild::Environment::ExportedEnvironment.new(
-                    env['set'], env['unset'], env['update'])
+                    env['set'], env['unset'], env['update'], Set.new(env['appended']))
             end
         end
 
@@ -24,7 +24,8 @@ module Autoproj
                 rescue Exception
                 end
 
-            env = Hash['set' => env.set, 'unset' => env.unset, 'update' => env.update]
+            env = Hash['set' => env.set, 'unset' => env.unset,
+                       'update' => env.update, 'appended' => env.appended.to_a]
             if env != existing
                 Ops.atomic_write(path) do |io|
                     io.write YAML.dump(env)
