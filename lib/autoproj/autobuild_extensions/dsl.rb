@@ -110,6 +110,9 @@ module Autoproj
             find_topmost_directory_containing(full_path, "lib/*.rb")
 
             return "ruby_package", dir
+        elsif (dir = find_topmost_directory_containing(full_path, 'setup.py')) ||
+             (dir = find_topmost_directory_containing(full_path, File.join(File.basename(full_path), "*.py")))
+            return 'python_package', dir
         end
     end
 end
@@ -154,6 +157,10 @@ end
 
 def import_package(name, workspace: Autoproj.workspace, &block)
     package_common(:import, name, workspace: Autoproj.workspace, &block)
+end
+
+def python_package(name, workspace: Autoproj.workspace, &block)
+    package_common(:python, name, workspace: Autoproj.workspace, &block)
 end
 
 def common_make_based_package_setup(pkg)
@@ -230,7 +237,7 @@ end
 # Defines a Ruby package
 #
 # Example:
-#   
+#
 #   ruby_package 'package_name' do |pkg|
 #       pkg.doc_target = 'doc'
 #   end
