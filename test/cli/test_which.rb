@@ -26,7 +26,7 @@ module Autoproj
                 it "raises if the executable cannot be resolved" do
                     cmd = run_command_and_stop "#{@autoproj_bin} which does_not_exist", fail_on_error: false
                     assert_equal 1, cmd.exit_status
-                    assert_equal "\r  ERROR: cannot resolve `does_not_exist` to an executable in the workspace\n", cmd.stderr
+                    assert_equal "#{Autobuild.clear_line}  ERROR: cannot resolve `does_not_exist` to an executable in the workspace\n", cmd.stderr
                 end
             end
 
@@ -55,7 +55,7 @@ module Autoproj
                     write_file '.autoproj/env.yml', YAML.dump(cache)
                     cmd = run_command_and_stop "#{@autoproj_bin} which --use-cache does_not_exist", fail_on_error: false
                     assert_equal 1, cmd.exit_status
-                    assert_equal "\r  ERROR: cannot resolve `does_not_exist` to an executable in the workspace\n", cmd.stderr
+                    assert_equal "#{Autobuild.clear_line}  ERROR: cannot resolve `does_not_exist` to an executable in the workspace\n", cmd.stderr
                 end
             end
         end
