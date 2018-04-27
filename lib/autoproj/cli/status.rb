@@ -86,9 +86,7 @@ module Autoproj
                     package_status.msg << Autoproj.color("  is not imported yet", :magenta)
                 else
                     begin status = importer.status(pkg, only_local)
-                    rescue Interrupt
-                        raise
-                    rescue Exception => e
+                    rescue StandardError => e
                         package_status.msg << Autoproj.color("  failed to fetch status information (#{e})", :red)
                         return package_status
                     end
@@ -100,7 +98,7 @@ module Autoproj
                             begin importer.snapshot(pkg, nil, exact_state: false, only_local: only_local)
                             rescue Autobuild::PackageException
                                 Hash.new
-                            rescue Exception => e
+                            rescue StandardError => e
                                 package_status.msg << Autoproj.color("  failed to fetch snapshotting information (#{e})", :red)
                                 return package_status
                             end
