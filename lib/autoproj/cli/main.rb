@@ -207,7 +207,11 @@ In this case, the default is false
                     tool_failure_mode: :report_silent)
                 if !failures.empty?
                     Autobuild.silent = false
-                    packages_failed = failures.
+                    package_failures, config_failures = failures.partition do |e|
+                        e.respond_to?(:target) && e.target.respond_to?(:name)
+                    end
+
+                    packages_failed = package_failures.
                         map do |e|
                             if e.respond_to?(:target) && e.target.respond_to?(:name)
                                 e.target.name
@@ -215,6 +219,9 @@ In this case, the default is false
                         end.compact
                     if !packages_failed.empty?
                         Autobuild.error "#{packages_failed.size} packages failed: #{packages_failed.sort.join(", ")}"
+                    end
+                    config_failures.each do |e|
+                        Autobuild.error(e)
                     end
                     exit 1
                 end
