@@ -978,6 +978,8 @@ module Autoproj
             '/'
         end
 
+        class NoPackageXML < ConfigError; end
+
         # Loads the package's manifest.xml file for the current package
         #
         # Right now, the absence of a manifest makes autoproj only issue a
@@ -994,23 +996,32 @@ module Autoproj
 
             # Look for the package's manifest.xml, but fallback to a manifest in
             # the package set if present
-            manifest_paths = [File.join(package.srcdir, "manifest.xml")]
-            if package_set.local_dir
-                manifest_paths << File.join(package_set.local_dir, "manifests", package.name + ".xml")
-            end
-            manifest_path = manifest_paths.find do |path|
-                File.file?(path)
+            if package.use_package_xml?
+                manifest_path = File.join(package.srcdir, "package.xml")
+                raise NoPackageXML.new(package.srcdir), "#{package.name} from "\
+                    "#{package_set.name} has use_package_xml set, but the package has "\
+                    "no package.xml file" unless File.file?(manifest_path)
+
+                manifest = PackageManifest.load(package, manifest_path,
+                    ros_manifest: true)
+            else
+                manifest_paths = [File.join(package.srcdir, "manifest.xml")]
+                if package_set.local_dir
+                    manifest_paths << File.join(
+                        package_set.local_dir, "manifests", package.name + ".xml")
+                end
+                manifest_path = manifest_paths.find do |path|
+                    File.file?(path)
+                end
+                if manifest_path
+                    manifest = PackageManifest.load(package, manifest_path,
+                        ros_manifest: false)
+                end
             end
 
-            # Alternatively, use a ROS manifest file
-            ros_manifest_path = File.join(package.srcdir, 'package.xml')
-            ros_manifest_path = nil unless File.file?(ros_manifest_path)
-
-            if manifest_path
-                pkg.autobuild.description = PackageManifest.load(package, manifest_path)
-            elsif ros_manifest_path
-                pkg.autobuild.description = PackageManifest.load(package, ros_manifest_path, ros_manifest: true)
-            elsif pkg.autobuild.description.null?
+            if manifest
+                pkg.autobuild.description = manifest
+            else
                 Autoproj.warn "#{package.name} from #{package_set.name} does not have a manifest"
             end
 
@@ -1238,4 +1249,3 @@ module Autoproj
         manifest.add_osdeps_overrides(*args, &block)
     end
 end
-

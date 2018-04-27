@@ -204,6 +204,14 @@ def cmake_package(name, workspace: Autoproj.workspace)
     end
 end
 
+# Define a package that was originall designed for Catkin
+def catkin_package(name, workspace: Autoproj.workspace)
+    cmake_package(name, workspace: workspace) do |pkg|
+        pkg.use_package_xml = true
+        yield(pkg) if block_given?
+    end
+end
+
 # Define an autotools package
 #
 # Example:

@@ -394,10 +394,27 @@ gem 'autobuild', path: '#{autobuild_dir}'
             end
             dir
         end
+
+        def ws_create_package_set_file(pkg_set, name, content)
+            path = File.join(pkg_set.raw_local_dir, name)
+            FileUtils.mkdir_p File.dirname(path)
+            File.open(path, 'w') do |io|
+                io.write content
+            end
+            path
+        end
+
+        def ws_create_package_file(pkg, name, content)
+            path = File.join(pkg.autobuild.srcdir, name)
+            FileUtils.mkdir_p File.dirname(path)
+            File.open(path, 'w') do |io|
+                io.write content
+            end
+            path
+        end
     end
 end
 
 class Minitest::Test
     include Autoproj::SelfTest
 end
-
