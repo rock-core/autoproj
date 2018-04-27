@@ -23,7 +23,19 @@ module Autoproj
                 @added_tags = Set.new
                 @optional_dependencies = Set.new
                 @description = PackageManifest.new(self, null: true)
+                @use_package_xml = false
             end
+
+            # Whether we should use a package.xml file present in this package
+            # (parsed as ROS' catkin would) instead of Autoproj's manifest.xml
+            #
+            # @see use_package_xml=
+            def use_package_xml?
+                @use_package_xml
+            end
+
+            # Set {#use_package_xml?}
+            attr_writer :use_package_xml
 
             # The set of tags for this package. This is an union of the tags
             # contained in +description+ and the ones explicitely added with

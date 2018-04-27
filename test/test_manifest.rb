@@ -623,134 +623,97 @@ module Autoproj
                 @pkg = ws_add_package_to_layout :cmake, 'test',
                     package_set: pkg_set
             end
-            it "loads the package's manifest.xml file if present" do
-                package_manifest = PackageManifest.new(pkg.autobuild)
-                flexmock(File).should_receive(:file?).
-                    with(manifest_path = File.join(pkg.autobuild.srcdir, "manifest.xml")).
-                    and_return(true)
-                flexmock(File).should_receive(:file?).
-                    with(File.join(pkg.autobuild.srcdir, "package.xml")).
-                    and_return(false)
-                flexmock(PackageManifest).should_receive(:load).
-                    with(pkg.autobuild, manifest_path).
-                    and_return(package_manifest)
-                assert_same package_manifest, manifest.load_package_manifest(pkg)
-                assert_same package_manifest, pkg.autobuild.description
-            end
-            it "falls back on the manifest in the package set if present" do
-                package_manifest = PackageManifest.new(pkg.autobuild)
-                flexmock(File).should_receive(:file?).
-                    with(File.join(pkg.autobuild.srcdir, "manifest.xml")).
-                    and_return(false)
-                flexmock(File).should_receive(:file?).
-                    with(File.join(pkg.autobuild.srcdir, "package.xml")).
-                    and_return(false)
-                flexmock(File).should_receive(:file?).
-                    with(manifest_path = File.join(pkg_set.raw_local_dir, 'manifests', "test.xml")).
-                    and_return(true)
-                flexmock(PackageManifest).should_receive(:load).
-                    with(pkg.autobuild, manifest_path).
-                    and_return(package_manifest)
-                assert_same package_manifest, manifest.load_package_manifest(pkg)
-                assert_same package_manifest, pkg.autobuild.description
-            end
             it "warns if no package set can be found" do
-                flexmock(File).should_receive(:file?).and_return(false)
                 flexmock(Autoproj).should_receive(:warn).
                     with("test from pkg_set does not have a manifest").
                     once
                 assert manifest.load_package_manifest(pkg).null?
             end
+            it "loads the package's manifest.xml file if present" do
+                manifest_path = ws_create_package_file pkg, 'manifest.xml', "<package />"
+                flexmock(PackageManifest).should_receive(:load).
+                    with(pkg.autobuild, manifest_path, ros_manifest: false).
+                    once.pass_thru
+                manifest.load_package_manifest(pkg)
+            end
+            it "falls back on the package set's manifest if it has one" do
+                manifest_path = ws_create_package_set_file pkg_set,
+                    'manifests/test.xml', "<package />"
+                flexmock(PackageManifest).should_receive(:load).
+                    with(pkg.autobuild, manifest_path, ros_manifest: false).
+                    once.pass_thru
+                manifest.load_package_manifest(pkg)
+            end
+            it "favors the package's manifest.xml over the packag set one" do
+                manifest_path = ws_create_package_file pkg, 'manifest.xml', "<package />"
+                ws_create_package_set_file pkg_set, 'manifests/test.xml', "<package />"
+                flexmock(PackageManifest).should_receive(:load).
+                    with(pkg.autobuild, manifest_path, ros_manifest: false).
+                    once.pass_thru
+                manifest.load_package_manifest(pkg)
+            end
+            it "ignores a package.xml if it is not explicitely enabled" do
+                manifest_path = ws_create_package_file pkg, 'package.xml', "<package />"
+                flexmock(Autoproj).should_receive(:warn).
+                    with("test from pkg_set does not have a manifest").
+                    once
+                manifest.load_package_manifest(pkg)
+            end
+            it "loads a package's package.xml if it is explicitely enabled" do
+                pkg.autobuild.use_package_xml = true
+                manifest_path = ws_create_package_file pkg, 'package.xml', "<package />"
+                flexmock(PackageManifest).should_receive(:load).
+                    with(pkg.autobuild, manifest_path, ros_manifest: true).
+                    once.pass_thru
+                manifest.load_package_manifest(pkg)
+            end
+            it "ignores in-package and in-set manifests if use_package_xml is set" do
+                pkg.autobuild.use_package_xml = true
+                ws_create_package_file pkg, 'manifest.xml', "<package />"
+                ws_create_package_set_file pkg_set, 'manifests/test.xml', "<package />"
+                manifest_path = ws_create_package_file pkg,
+                    'package.xml', "<package />"
+                flexmock(PackageManifest).should_receive(:load).
+                    with(pkg.autobuild, manifest_path, ros_manifest: true).
+                    once.pass_thru
+                manifest.load_package_manifest(pkg)
+            end
+            it "raises if use_package_xml is set but there is no package.xml" do
+                pkg.autobuild.use_package_xml = true
+                e = assert_raises(Manifest::NoPackageXML) do
+                    manifest.load_package_manifest(pkg)
+                end
+                assert_equal "test from pkg_set has use_package_xml set, but the package"\
+                    " has no package.xml file", e.message
+            end
             it "applies the dependencies from the manifest to the package" do
-                xml = "<package><depend package=\"dependency\" /></package>"
-                package_manifest = PackageManifest.parse(pkg.autobuild, xml)
-                flexmock(File).should_receive(:file?).and_return(true)
-                flexmock(PackageManifest).should_receive(:load).and_return(package_manifest)
+                ws_create_package_file pkg, 'manifest.xml',
+                    "<package><depend package=\"dependency\" /></package>"
                 ws_define_package :cmake, 'dependency'
                 flexmock(pkg.autobuild).should_receive(:depends_on).
                     with('dependency').once.pass_thru
                 manifest.load_package_manifest(pkg)
             end
             it "applies the optional dependencies from the manifest to the package" do
-                xml = "<package><depend_optional package=\"dependency\" /></package>"
-                package_manifest = PackageManifest.parse(pkg.autobuild, xml)
-                flexmock(File).should_receive(:file?).and_return(true)
-                flexmock(PackageManifest).should_receive(:load).and_return(package_manifest)
+                ws_create_package_file pkg, 'manifest.xml',
+                    "<package><depend_optional package=\"dependency\" /></package>"
                 ws_define_package :cmake, 'dependency'
                 flexmock(pkg.autobuild).should_receive(:optional_dependency).
                     with('dependency').once.pass_thru
                 manifest.load_package_manifest(pkg)
             end
-            it "adds a reference to the manifest file in the error message if it refers to a package that does not exist" do
-                package_manifest = PackageManifest.parse(pkg.autobuild, "<package><depend package=\"dependency\" /></package>")
-                flexmock(File).should_receive(:file?).and_return(true)
-                flexmock(PackageManifest).should_receive(:load).and_return(package_manifest)
+            it "adds a reference to the manifest file in the error message "\
+                "if it refers to a package that does not exist" do
+                manifest_path = ws_create_package_file pkg, "manifest.xml",
+                    "<package><depend package=\"dependency\" /></package>"
                 e = assert_raises(ConfigError) do
                     manifest.load_package_manifest(pkg)
                 end
-                assert_equal "manifest #{File.join(ws.root_dir, 'test', 'manifest.xml')} of test from pkg_set lists 'dependency' as dependency, but it is neither a normal package nor an osdeps package. osdeps reports: cannot resolve dependency: dependency is not an osdep and it cannot be resolved as a source package", e.message
-            end
-            it "parses an autoproj format manifest" do
-                xml = "<package></package>"
-                package_manifest = PackageManifest.parse(pkg.autobuild, xml)
-                flexmock(File).should_receive(:file?).
-                    with(File.join(pkg.autobuild.srcdir, "manifest.xml")).
-                    and_return(true)
-                flexmock(File).should_receive(:file?).
-                    with(File.join(pkg.autobuild.srcdir, "package.xml")).
-                    and_return(false)
-                flexmock(PackageManifest).should_receive(:load).
-                    with(pkg.autobuild, File.join(pkg.autobuild.srcdir, 'manifest.xml')).
-                    and_return(package_manifest)
-                manifest.load_package_manifest(pkg)
-            end
-            it "parses a ROS format manifest" do
-                xml = "<package></package>"
-                package_manifest = PackageManifest.parse(pkg.autobuild, xml)
-                flexmock(File).should_receive(:file?).
-                    with(File.join(pkg.autobuild.srcdir, "manifest.xml")).
-                    and_return(false)
-                flexmock(File).should_receive(:file?).
-                    with(File.join(pkg_set.raw_local_dir, 'manifests', "test.xml")).
-                    and_return(false)
-                flexmock(File).should_receive(:file?).
-                    with(File.join(pkg.autobuild.srcdir, "package.xml")).
-                    and_return(true)
-                flexmock(PackageManifest).should_receive(:load).
-                    with(pkg.autobuild, File.join(pkg.autobuild.srcdir, 'package.xml'), ros_manifest: true).
-                    and_return(package_manifest)
-                manifest.load_package_manifest(pkg)
-            end
-            it "parses the autoproj in-src package manifest if a ros manifest is also available" do
-                xml = "<package></package>"
-                package_manifest = PackageManifest.parse(pkg.autobuild, xml)
-                flexmock(File).should_receive(:file?).
-                    with(File.join(pkg.autobuild.srcdir, "manifest.xml")).
-                    and_return(true)
-                flexmock(File).should_receive(:file?).
-                    with(File.join(pkg.autobuild.srcdir, "package.xml")).
-                    and_return(true)
-                flexmock(PackageManifest).should_receive(:load).
-                    with(pkg.autobuild, File.join(pkg.autobuild.srcdir, 'manifest.xml')).
-                    and_return(package_manifest)
-                manifest.load_package_manifest(pkg)
-            end
-            it "parses the autoproj out-of-src package manifest if a ros manifest is also available" do
-                xml = "<package></package>"
-                package_manifest = PackageManifest.parse(pkg.autobuild, xml)
-                flexmock(File).should_receive(:file?).
-                    with(File.join(pkg.autobuild.srcdir, "manifest.xml")).
-                    and_return(false)
-                flexmock(File).should_receive(:file?).
-                    with(File.join(pkg_set.raw_local_dir, 'manifests', "test.xml")).
-                    and_return(true)
-                flexmock(File).should_receive(:file?).
-                    with(File.join(pkg.autobuild.srcdir, "package.xml")).
-                    and_return(true)
-                flexmock(PackageManifest).should_receive(:load).
-                    with(pkg.autobuild, File.join(pkg_set.raw_local_dir, 'manifests', "test.xml")).
-                    and_return(package_manifest)
-                manifest.load_package_manifest(pkg)
+                assert_equal "manifest #{manifest_path} of test from pkg_set lists "\
+                    "'dependency' as dependency, but it is neither a normal package "\
+                    "nor an osdeps package. osdeps reports: cannot resolve "\
+                    "dependency: dependency is not an osdep and it cannot be "\
+                    "resolved as a source package", e.message
             end
         end
 
@@ -829,4 +792,3 @@ module Autoproj
         end
     end
 end
-
