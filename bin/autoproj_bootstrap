@@ -62,8 +62,16 @@ module Autoproj
                 @ruby_executable = config['ruby_executable']
                 @local = false
 
+                xdg_default_gem_path = File.join(Dir.home, '.local', 'share', 'autoproj', 'gems')
                 default_gem_path = File.join(Dir.home, '.autoproj', 'gems')
-                @gems_install_path     = default_gem_path
+                @gems_install_path =
+                    if File.directory?(xdg_default_gem_path)
+                        xdg_default_gem_path
+                    elsif File.directory?(default_gem_path)
+                        default_gem_path
+                    else
+                        xdg_default_gem_path
+                    end
             end
 
             def env_for_child

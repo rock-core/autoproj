@@ -1,3 +1,6 @@
+require 'autoproj/ops/loader'
+require 'xdg'
+
 module Autoproj
     class Workspace < Ops::Loader
         attr_reader :root_dir
@@ -457,24 +460,47 @@ module Autoproj
             load_if_present(local_source, config_dir, "init.rb")
         end
 
+        def self.find_path(xdg_var, xdg_path, home_path)
+            home_dir = begin Dir.home
+                       rescue ArgumentError
+                           return
+                       end
+
+            xdg_path  = File.join(XDG[xdg_var].to_path, 'autoproj', xdg_path)
+            home_path = File.join(home_dir, home_path)
+
+            if File.exist?(xdg_path)
+                xdg_path
+            elsif File.exist?(home_path)
+                home_path
+            else
+                xdg_path
+            end
+        end
+
+        def self.find_user_config_path(xdg_path, home_path = xdg_path)
+            find_path('CONFIG_HOME', xdg_path, home_path)
+        end
+
+        def self.rcfile_path
+            find_user_config_path('rc', '.autoprojrc')
+        end
+
+        def self.find_user_data_path(xdg_path, home_path = xdg_path)
+            find_path('DATA_HOME', xdg_path, File.join('.autoproj', home_path))
+        end
+
+        def self.find_user_cache_path(xdg_path, home_path = xdg_path)
+            find_path('CACHE_HOME', xdg_path, File.join('.autoproj', home_path))
+        end
+
         # Loads the .autoprojrc file
         #
         # This is included in {setup}
         def load_autoprojrc
             set_as_main_workspace
-
-            # Load the user-wide autoproj RC file
-            home_dir =
-                begin Dir.home
-                rescue ArgumentError
-                end
-
-            if home_dir
-                rcfile = File.join(home_dir, '.autoprojrc')
-                if File.file?(rcfile)
-                    Kernel.load rcfile
-                end
-            end
+            rcfile = Workspace.rcfile_path
+            Kernel.load(rcfile) if File.file?(rcfile)
         end
 
         def load_package_sets(only_local: false,
