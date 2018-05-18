@@ -2,6 +2,7 @@ require 'thor'
 require 'tty/color'
 require 'autoproj/cli/main_test'
 require 'autoproj/cli/main_plugin'
+require 'autoproj/cli/main_global'
 require 'autoproj/reporter'
 
 module Autoproj
@@ -466,6 +467,9 @@ The format is a string in which special values can be expanded using a $VARNAME 
             desc 'plugin', 'interface to manage autoproj plugins'
             subcommand 'plugin', MainPlugin
 
+            desc 'global', 'global management of the known workspaces'
+            subcommand 'global', MainGlobal
+
             desc 'patch', 'applies patches necessary for the selected package',
                 hide: true
             def patch(*packages)
@@ -518,3 +522,4 @@ The format is a string in which special values can be expanded using a $VARNAME 
         end
     end
 end
+
