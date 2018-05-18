@@ -13,7 +13,7 @@ begin
     if ARGV.include?('--help') || ARGV.include?('help')
         Aup.start(['help', 'update'])
     else
-        Aup.start(['update', '--aup', *ARGV])
+        Aup.start(['update', *ARGV, '--aup'])
     end
 rescue Interrupt
     # Already notified in the reporting infrastructure
