@@ -1,3 +1,6 @@
+require 'autoproj/ops/loader'
+require 'xdg'
+
 module Autoproj
     class Workspace < Ops::Loader
         attr_reader :root_dir
@@ -286,6 +289,7 @@ module Autoproj
             setup_ruby_version_handling
             migrate_bundler_and_autoproj_gem_layout
             load_config
+            register_workspace
             rewrite_shims
             autodetect_operating_system
             config.validate_ruby_executable
@@ -457,24 +461,89 @@ module Autoproj
             load_if_present(local_source, config_dir, "init.rb")
         end
 
+        def self.find_path(xdg_var, xdg_path, home_path)
+            home_dir = begin Dir.home
+                       rescue ArgumentError
+                           return
+                       end
+
+            xdg_path  = File.join(XDG[xdg_var].to_path, 'autoproj', xdg_path)
+            home_path = File.join(home_dir, home_path)
+
+            if File.exist?(xdg_path)
+                xdg_path
+            elsif File.exist?(home_path)
+                home_path
+            else
+                xdg_path
+            end
+        end
+
+        def self.find_user_config_path(xdg_path, home_path = xdg_path)
+            find_path('CONFIG_HOME', xdg_path, home_path)
+        end
+
+        def self.rcfile_path
+            find_user_config_path('rc', '.autoprojrc')
+        end
+
+        def self.find_user_data_path(xdg_path, home_path = xdg_path)
+            find_path('DATA_HOME', xdg_path, File.join('.autoproj', home_path))
+        end
+
+        def self.find_user_cache_path(xdg_path, home_path = xdg_path)
+            find_path('CACHE_HOME', xdg_path, File.join('.autoproj', home_path))
+        end
+
+        RegisteredWorkspace = Struct.new :root_dir, :prefix_dir, :build_dir
+
+        def self.registered_workspaces
+            path = find_user_data_path('workspaces.yml')
+            if File.file?(path)
+                yaml = (YAML.load(File.read(path)) || [])
+                fields = RegisteredWorkspace.members.map(&:to_s)
+                yaml.map do |h|
+                    values = h.values_at(*fields)
+                    RegisteredWorkspace.new(*values)
+                end.compact
+            else
+                []
+            end
+        end
+
+        def self.save_registered_workspaces(workspaces)
+            workspaces = workspaces.map do |w|
+                Hash['root_dir' => w.root_dir,
+                     'prefix_dir' => w.prefix_dir,
+                     'build_dir' => w.build_dir]
+            end
+
+            path = find_user_data_path('workspaces.yml')
+            FileUtils.mkdir_p(File.dirname(path))
+            Ops.atomic_write(path) do |io|
+                io.write YAML.dump(workspaces)
+            end
+        end
+
+        def register_workspace
+            current_workspaces = Workspace.registered_workspaces
+            existing = current_workspaces.find { |w| w.root_dir == root_dir }
+            if existing
+                existing.prefix_dir = prefix_dir
+                existing.build_dir  = build_dir
+            else
+                current_workspaces << self
+            end
+            Workspace.save_registered_workspaces(current_workspaces)
+        end
+
         # Loads the .autoprojrc file
         #
         # This is included in {setup}
         def load_autoprojrc
             set_as_main_workspace
-
-            # Load the user-wide autoproj RC file
-            home_dir =
-                begin Dir.home
-                rescue ArgumentError
-                end
-
-            if home_dir
-                rcfile = File.join(home_dir, '.autoprojrc')
-                if File.file?(rcfile)
-                    Kernel.load rcfile
-                end
-            end
+            rcfile = Workspace.rcfile_path
+            Kernel.load(rcfile) if File.file?(rcfile)
         end
 
         def load_package_sets(only_local: false,
