@@ -3,7 +3,15 @@ require 'xdg'
 
 module Autoproj
     class Workspace < Ops::Loader
+        # The workspace root as a string
+        #
+        # New code should prefer {#root_path}
         attr_reader :root_dir
+
+        # The workspace root
+        #
+        # This should be used rather than {#root_dir} in new code
+        attr_reader :root_path
 
         attr_accessor :config
         attr_reader :env
@@ -45,6 +53,7 @@ module Autoproj
                        os_package_resolver: OSPackageResolver.new,
                        package_managers: OSPackageInstaller::PACKAGE_MANAGERS)
             @root_dir = root_dir
+            @root_path = Pathname.new(root_dir)
             @ruby_version_keyword = "ruby#{RUBY_VERSION.split('.')[0, 2].join("")}"
             @osdep_suffixes = Array.new
 
