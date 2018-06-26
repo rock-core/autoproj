@@ -360,7 +360,8 @@ module Autoproj
         def rewrite_shims
             gemfile  = File.join(dot_autoproj_dir, 'Gemfile')
             binstubs = File.join(dot_autoproj_dir, 'bin')
-            Ops::Install.rewrite_shims(binstubs, config.ruby_executable, root_dir, gemfile, config.gems_gem_home)
+            Ops::Install.rewrite_shims(binstubs, config.ruby_executable,
+                root_dir, gemfile, config.gems_gem_home)
         end
 
         def update_bundler
@@ -448,7 +449,7 @@ module Autoproj
             if block_given?
                 begin
                     yield
-                ensure 
+                ensure
                     clear_main_workspace
                 end
             end
@@ -585,7 +586,7 @@ module Autoproj
         def load_all_available_package_manifests
             manifest.load_all_available_package_manifests
         end
-        
+
         def setup_all_package_directories
             # Override the package directories from our reused installations
             imported_packages = Set.new
@@ -639,7 +640,7 @@ module Autoproj
             pkg.doc_target_dir = File.join(prefix_dir, 'doc', pkg_name)
             pkg.logdir = File.join(pkg.prefix, "log")
         end
-        
+
         def compute_builddir(pkg)
             # If we're given an absolute build dir, we have to append the
             # package name to it to make it unique
@@ -813,7 +814,7 @@ module Autoproj
         # `cmd` is not executable. Otherwise, looks for an executable named
         # `cmd` in PATH and returns it, or raises if it cannot be found. The
         # exception contains a more detailed reason for failure
-        # 
+        #
         #
         # @param [String] cmd
         # @return [String] the resolved program
@@ -839,4 +840,3 @@ module Autoproj
         workspace.env
     end
 end
-
