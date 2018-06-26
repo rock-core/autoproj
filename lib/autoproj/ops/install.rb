@@ -52,16 +52,7 @@ module Autoproj
                 @ruby_executable = config['ruby_executable']
                 @local = false
 
-                xdg_default_gem_path = File.join(Dir.home, '.local', 'share', 'autoproj', 'gems')
-                default_gem_path = File.join(Dir.home, '.autoproj', 'gems')
-                @gems_install_path =
-                    if File.directory?(xdg_default_gem_path)
-                        xdg_default_gem_path
-                    elsif File.directory?(default_gem_path)
-                        default_gem_path
-                    else
-                        xdg_default_gem_path
-                    end
+                install_gems_in_gem_user_dir
             end
 
             def env_for_child
@@ -140,11 +131,11 @@ module Autoproj
             #
             # They are installed in a versioned subdirectory of this path, e.g.
             # {#gem_path_suffix}.
-            # 
+            #
             # @return [String]
             attr_reader :gems_install_path
             # The GEM_HOME under which the workspace's gems should be installed
-            # 
+            #
             # @return [String]
             def gems_gem_home; File.join(gems_install_path, gem_path_suffix) end
             # Sets where the workspace's gems should be installed
@@ -157,7 +148,18 @@ module Autoproj
             end
             # Install autoproj in Gem's default user dir
             def install_gems_in_gem_user_dir
-                @gems_install_path = File.join(Gem.user_home, '.gem')
+                xdg_default_gem_path = File.join(
+                    Dir.home, '.local', 'share', 'autoproj', 'gems')
+                default_gem_path = File.join(
+                    Dir.home, '.autoproj', 'gems')
+                @gems_install_path =
+                    if File.directory?(xdg_default_gem_path)
+                        xdg_default_gem_path
+                    elsif File.directory?(default_gem_path)
+                        default_gem_path
+                    else
+                        xdg_default_gem_path
+                    end
             end
 
             # Whether autoproj should prefer OS-independent packages over their
@@ -173,7 +175,7 @@ module Autoproj
 
                 candidates = ['gem']
                 if ruby_bin =~ /^ruby(.+)$/
-                    candidates.unshift "gem#{$1}" 
+                    candidates.unshift "gem#{$1}"
                 end
 
                 candidates.each do |gem_name|
@@ -368,7 +370,7 @@ Gem.paths = Hash['GEM_HOME' => '#{gems_gem_home}', 'GEM_PATH' => '']
 
 load Gem.bin_path('bundler', 'bundler')"
             end
-            
+
             def self.shim_script(ruby_executable, root_dir, autoproj_gemfile_path, gems_gem_home, load_line)
 "#! #{ruby_executable}
 
@@ -511,7 +513,7 @@ require 'bundler/setup'
 
             def load_config
                 v1_config_path = File.join(root_dir, 'autoproj', 'config.yml')
-                
+
                 config = Hash.new
                 if File.file?(v1_config_path)
                     config.merge!(YAML.load(File.read(v1_config_path)) || Hash.new)
@@ -598,4 +600,3 @@ require 'bundler/setup'
         end
     end
 end
-
