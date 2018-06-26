@@ -146,10 +146,19 @@ module Autoproj
             def gems_install_path=(path)
                 @gems_install_path = path
             end
+
+            private def xdg_var(varname, default)
+                if (env = ENV[varname]) && !env.empty?
+                    env
+                else
+                    default
+                end
+            end
+
             # Install autoproj in Gem's default user dir
             def install_gems_in_gem_user_dir
-                xdg_default_gem_path = File.join(
-                    Dir.home, '.local', 'share', 'autoproj', 'gems')
+                xdg_default_gem_path = xdg_var('XDG_DATA_HOME',
+                    File.join(Dir.home, '.local', 'share', 'autoproj', 'gems'))
                 default_gem_path = File.join(
                     Dir.home, '.autoproj', 'gems')
                 @gems_install_path =
