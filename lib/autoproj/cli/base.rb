@@ -9,7 +9,7 @@ module Autoproj
             include Ops::Tools
 
             # The underlying workspace
-            # 
+            #
             # @return [Workspace]
             attr_reader :ws
 
@@ -85,7 +85,7 @@ module Autoproj
                         if handler
                             Autoproj.message "  auto-adding #{srcdir} using the #{handler.gsub(/_package/, '')} package handler"
                             srcdir = File.expand_path(srcdir)
-                            relative_to_root = Pathname.new(srcdir).relative_path_from(Pathname.new(ws.root_dir))
+                            relative_to_root = Pathname.new(srcdir).relative_path_from(Pathname.new(ws.source_dir))
                             pkg = ws.in_package_set(ws.manifest.main_package_set, ws.manifest.file) do
                                 send(handler, relative_to_root.to_s, workspace: ws)
                             end
