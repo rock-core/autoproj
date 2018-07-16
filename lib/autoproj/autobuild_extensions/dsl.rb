@@ -105,6 +105,11 @@ module Autoproj
             end
             toplevel_dir ||= find_topmost_directory_containing(full_path, 'CMakeLists.txt')
 
+            manifest_xml = File.join(toplevel_dir, 'manifest.xml')
+            package_xml = File.join(toplevel_dir, 'package.xml')
+            if File.file?(package_xml) && !File.file?(manifest_xml)
+                return "catkin_package", toplevel_dir
+            end
             return "cmake_package", toplevel_dir
         elsif dir = find_topmost_directory_containing(full_path, "Rakefile") ||
             find_topmost_directory_containing(full_path, "lib/*.rb")
