@@ -1,0 +1,1556 @@
+#!/usr/bin/env bash
+
+__autoproj_autoproj()
+{
+    __autoproj
+}
+
+_autoproj()
+{
+    local cur prev words cword
+    local command='autoproj'
+    local counter=1
+
+    _get_comp_words_by_ref -n : cur prev words cword
+
+    while [ "$counter" -lt "$cword" ]; do
+        case "${words[$counter]}" in
+            -*)
+                break
+                ;;
+            *)
+                command="${words[$counter]}"
+                break
+                ;;
+        esac
+        (( counter++ ))
+    done
+
+    local completions_func=__autoproj_${command//-/_}
+    $completions_func
+}
+
+__autoproj() {
+    local subcommands="
+        help
+        bootstrap
+        envsh
+        status
+        doc
+        update
+        build
+        cache
+        clean
+        locate
+        reconfigure
+        test
+        show
+        osdeps
+        versions
+        log
+        reset
+        tag
+        commit
+        switch-config
+        query
+        plugin
+        global
+        manifest
+        exec
+        which
+    "
+
+    local options="
+    "
+
+    _autoproj_subcommands "$subcommands" && return
+
+    case "$cur" in
+        -*)
+            COMPREPLY=( $( compgen -W "$options" -- "$cur" ) )
+            ;;
+        *)
+            COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+            ;;
+    esac
+}
+
+
+__autoproj_help() {
+    local subcommands="
+        bootstrap
+        envsh
+        status
+        doc
+        update
+        build
+        cache
+        clean
+        locate
+        reconfigure
+        test
+        show
+        osdeps
+        versions
+        log
+        reset
+        tag
+        commit
+        switch-config
+        query
+        plugin
+        global
+        manifest
+        exec
+        which
+    "
+
+    local options="
+    "
+
+    _autoproj_subcommands "$subcommands" && return
+
+    case "$cur" in
+        -*)
+            COMPREPLY=( $( compgen -W "$options" -- "$cur" ) )
+            ;;
+        *)
+            COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+            ;;
+    esac
+}
+
+
+__autoproj_help_bootstrap() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_envsh() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_status() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_doc() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_update() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_build() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_cache() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_clean() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_locate() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_reconfigure() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_test() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_show() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_osdeps() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_versions() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_log() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_reset() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_tag() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_commit() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_switch-config() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_query() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_plugin() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_global() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_manifest() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_exec() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_help_which() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_bootstrap() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --reuse
+        --seed-config
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_envsh() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_status() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --local
+        --no-local
+        --mainline
+        --snapshot
+        --no-snapshot
+        --parallel
+        -p
+        --deps
+        --no-deps
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+__autoproj_doc() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --deps
+        --no-deps
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+__autoproj_update() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --keep-going
+        --no-keep-going
+        -k
+        --config
+        --no-config
+        --bundler
+        --no-bundler
+        --autoproj
+        --no-autoproj
+        --osdeps
+        --no-osdeps
+        --from
+        --checkout-only
+        --no-checkout-only
+        -c
+        --local
+        --no-local
+        --osdeps-filter-uptodate
+        --no-osdeps-filter-uptodate
+        --deps
+        --no-deps
+        --reset
+        --no-reset
+        --force-reset
+        --no-force-reset
+        --retry-count
+        --parallel
+        -p
+        --mainline
+        --auto-exclude
+        --no-auto-exclude
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+__autoproj_build() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --keep-going
+        --no-keep-going
+        -k
+        --force
+        --no-force
+        --rebuild
+        --no-rebuild
+        --osdeps
+        --no-osdeps
+        --deps
+        --no-deps
+        --parallel
+        -p
+        --auto-exclude
+        --no-auto-exclude
+        --tool
+        --no-tool
+        --confirm
+        --no-confirm
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+__autoproj_cache() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --keep-going
+        -k
+        --checkout-only
+        --no-checkout-only
+        -c
+        --all
+        --no-all
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _filedir
+            ;;
+    esac
+}
+
+__autoproj_clean() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --deps
+        --no-deps
+        --all
+        --no-all
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+__autoproj_locate() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --cache
+        --no-cache
+        --prefix
+        --no-prefix
+        -p
+        --build
+        --no-build
+        -b
+        --log
+        -l
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+__autoproj_reconfigure() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --separate-prefixes
+        --no-separate-prefixes
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_test() {
+    local subcommands="
+        help
+        enable
+        disable
+        list
+        exec
+    "
+
+    local options="
+    "
+
+    _autoproj_subcommands "$subcommands" && return
+
+    case "$cur" in
+        -*)
+            COMPREPLY=( $( compgen -W "$options" -- "$cur" ) )
+            ;;
+        *)
+            COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+            ;;
+    esac
+}
+
+
+__autoproj_test_help() {
+    local subcommands="
+        enable
+        disable
+        list
+        exec
+    "
+
+    local options="
+    "
+
+    _autoproj_subcommands "$subcommands" && return
+
+    case "$cur" in
+        -*)
+            COMPREPLY=( $( compgen -W "$options" -- "$cur" ) )
+            ;;
+        *)
+            COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+            ;;
+    esac
+}
+
+
+__autoproj_test_help_enable() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_test_help_disable() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_test_help_list() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_test_help_exec() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_test_enable() {
+    local options="
+        --deps
+        --no-deps
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+__autoproj_test_disable() {
+    local options="
+        --deps
+        --no-deps
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+__autoproj_test_list() {
+    local options="
+        --deps
+        --no-deps
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+__autoproj_test_exec() {
+    local options="
+        --keep-going
+        --no-keep-going
+        -k
+        --deps
+        --no-deps
+        --fail
+        --no-fail
+        --coverage
+        --no-coverage
+        --tool
+        --no-tool
+        --color
+        --no-color
+        --progress
+        --no-progress
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+__autoproj_show() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --mainline
+        --env
+        --no-env
+        --short
+        --recursive
+        --no-recursive
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+__autoproj_osdeps() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --system-info
+        --no-system-info
+        --update
+        --no-update
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+__autoproj_versions() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --config
+        --no-config
+        --keep-going
+        --no-keep-going
+        -k
+        --replace
+        --no-replace
+        --deps
+        --no-deps
+        --local
+        --no-local
+        --save
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+__autoproj_log() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --since
+        --diff
+        --no-diff
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_reset() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --freeze
+        --no-freeze
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_tag() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --package-sets
+        --no-package-sets
+        --keep-going
+        --no-keep-going
+        -k
+        --message
+        -m
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+__autoproj_commit() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --package-sets
+        --no-package-sets
+        --keep-going
+        --no-keep-going
+        -k
+        --tag
+        -t
+        --message
+        -m
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+__autoproj_switch-config() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_query() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --search-all
+        --no-search-all
+        --format
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_plugin() {
+    local subcommands="
+        help
+        install
+        list
+        remove
+    "
+
+    local options="
+    "
+
+    _autoproj_subcommands "$subcommands" && return
+
+    case "$cur" in
+        -*)
+            COMPREPLY=( $( compgen -W "$options" -- "$cur" ) )
+            ;;
+        *)
+            COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+            ;;
+    esac
+}
+
+
+__autoproj_plugin_help() {
+    local subcommands="
+        install
+        list
+        remove
+    "
+
+    local options="
+    "
+
+    _autoproj_subcommands "$subcommands" && return
+
+    case "$cur" in
+        -*)
+            COMPREPLY=( $( compgen -W "$options" -- "$cur" ) )
+            ;;
+        *)
+            COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+            ;;
+    esac
+}
+
+
+__autoproj_plugin_help_install() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_plugin_help_list() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_plugin_help_remove() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_plugin_install() {
+    local options="
+        --version
+        --git
+        --path
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_plugin_list() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_plugin_remove() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_global() {
+    local subcommands="
+        help
+        register
+        status
+    "
+
+    local options="
+    "
+
+    _autoproj_subcommands "$subcommands" && return
+
+    case "$cur" in
+        -*)
+            COMPREPLY=( $( compgen -W "$options" -- "$cur" ) )
+            ;;
+        *)
+            COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+            ;;
+    esac
+}
+
+
+__autoproj_global_help() {
+    local subcommands="
+        register
+        status
+    "
+
+    local options="
+    "
+
+    _autoproj_subcommands "$subcommands" && return
+
+    case "$cur" in
+        -*)
+            COMPREPLY=( $( compgen -W "$options" -- "$cur" ) )
+            ;;
+        *)
+            COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+            ;;
+    esac
+}
+
+
+__autoproj_global_help_register() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_global_help_status() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_global_register() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_global_status() {
+    local options="
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+__autoproj_manifest() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _filedir
+            ;;
+    esac
+}
+
+__autoproj_exec() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --use-cache
+        --no-use-cache
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            COMPREPLY=( $( compgen -d -c -- "$cur" ) )
+            ;;
+    esac
+}
+
+__autoproj_which() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --use-cache
+        --no-use-cache
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            COMPREPLY=( $( compgen -d -c -- "$cur" ) )
+            ;;
+    esac
+}
+
+
+complete -F _autoproj autoproj

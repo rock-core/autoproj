@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+__alog_alog()
+{
+    __alog
+}
+
+_alog()
+{
+    local cur prev words cword
+    local command='alog'
+    local counter=1
+
+    _get_comp_words_by_ref -n : cur prev words cword
+
+    while [ "$counter" -lt "$cword" ]; do
+        case "${words[$counter]}" in
+            -*)
+                break
+                ;;
+            *)
+                command="${words[$counter]}"
+                break
+                ;;
+        esac
+        (( counter++ ))
+    done
+
+    local completions_func=__alog_${command//-/_}
+    $completions_func
+}
+
+__alog() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --since
+        --diff
+        --no-diff
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            
+            ;;
+    esac
+}
+
+
+complete -F _alog alog

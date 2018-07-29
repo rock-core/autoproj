@@ -1,0 +1,22 @@
+#!/usr/bin/env zsh
+
+_alocate() {
+  __alocate
+}
+
+__alocate() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--cache,--no-cache}'[controls whether the resolution should be done by loading the whole configuration (false, slow) or through a cache file (the default)]' \
+    {--prefix,--no-prefix,-p}'[outputs the package''s prefix directory instead of its source directory]' \
+    {--build,--no-build,-b}'[outputs the package''s build directory instead of its source directory]' \
+    {--log,-l}'[outputs the path to a package''s log file]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+
+compdef _alocate alocate

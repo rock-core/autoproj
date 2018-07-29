@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+__alocate_alocate()
+{
+    __alocate
+}
+
+_alocate()
+{
+    local cur prev words cword
+    local command='alocate'
+    local counter=1
+
+    _get_comp_words_by_ref -n : cur prev words cword
+
+    while [ "$counter" -lt "$cword" ]; do
+        case "${words[$counter]}" in
+            -*)
+                break
+                ;;
+            *)
+                command="${words[$counter]}"
+                break
+                ;;
+        esac
+        (( counter++ ))
+    done
+
+    local completions_func=__alocate_${command//-/_}
+    $completions_func
+}
+
+__alocate() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --cache
+        --no-cache
+        --prefix
+        --no-prefix
+        -p
+        --build
+        --no-build
+        -b
+        --log
+        -l
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+
+complete -F _alocate alocate

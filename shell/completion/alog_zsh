@@ -1,0 +1,20 @@
+#!/usr/bin/env zsh
+
+_alog() {
+  __alog
+}
+
+__alog() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    --since'[show what got updated since the given version]' \
+    {--diff,--no-diff}'[show the difference between two stages in the log]' \
+    '*:arg::'
+}
+
+
+compdef _alog alog
