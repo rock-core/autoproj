@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+__amake_amake()
+{
+    __amake
+}
+
+_amake()
+{
+    local cur prev words cword
+    local command='amake'
+    local counter=1
+
+    _get_comp_words_by_ref -n : cur prev words cword
+
+    while [ "$counter" -lt "$cword" ]; do
+        case "${words[$counter]}" in
+            -*)
+                break
+                ;;
+            *)
+                command="${words[$counter]}"
+                break
+                ;;
+        esac
+        (( counter++ ))
+    done
+
+    local completions_func=__amake_${command//-/_}
+    $completions_func
+}
+
+__amake() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --keep-going
+        --no-keep-going
+        -k
+        --force
+        --no-force
+        --rebuild
+        --no-rebuild
+        --osdeps
+        --no-osdeps
+        --deps
+        --no-deps
+        --parallel
+        -p
+        --auto-exclude
+        --no-auto-exclude
+        --tool
+        --no-tool
+        --confirm
+        --no-confirm
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+
+complete -F _amake amake

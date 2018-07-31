@@ -213,9 +213,9 @@ module Autoproj
                 return if @env_sh_updated.nil?
 
                 if @env_sh_updated
-                    Autoproj.message "  updated: #{ws.root_dir}/#{Autoproj::ENV_FILENAME}", :green
+                    Autoproj.message "  updated environment", :green
                 else
-                    Autoproj.message "  left unchanged: #{ws.root_dir}/#{Autoproj::ENV_FILENAME}", :green
+                    Autoproj.message "  environment already up-to-date", :green
                 end
             end
         end

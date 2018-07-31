@@ -344,7 +344,7 @@ module Autoproj
                 end
             end
         end
-        
+
         # A cache directory for autobuild's importers
         def importer_cache_dir
             get('importer_cache_dir', nil)
@@ -365,6 +365,18 @@ module Autoproj
         # @return [String]
         def prefix_dir
             get('prefix', 'install')
+        end
+
+        # Sets the shells used in this workspace.
+        def user_shells=(shells)
+            set('user_shells', shells, true)
+        end
+
+        # The shells used in this workspace.
+        #
+        # @return [Array<String>]
+        def user_shells
+            get('user_shells', [])
         end
 
         # Defines the temporary area in which packages should put their build
@@ -433,7 +445,7 @@ module Autoproj
             'test' => false]
 
         # The configuration key that should be used to store the utility
-        # enable/disable information 
+        # enable/disable information
         #
         # @param [String] the utility name
         # @return [String] the config key

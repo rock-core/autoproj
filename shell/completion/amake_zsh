@@ -1,0 +1,27 @@
+#!/usr/bin/env zsh
+
+_amake() {
+  __amake
+}
+
+__amake() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--keep-going,--no-keep-going,-k}'[do not stop on build or checkout errors]' \
+    {--force,--no-force}'[force reconfiguration-build cycle on the requested packages, even if they do not seem to need it]' \
+    {--rebuild,--no-rebuild}'[clean and build the requested packages]' \
+    {--osdeps,--no-osdeps}'[controls whether missing osdeps should be installed. In rebuild mode, also controls whether the osdeps should be reinstalled or not (the default is to reinstall them)]' \
+    {--deps,--no-deps}'[controls whether the operation should apply to the package''s dependencies as well. -n is a shortcut for --no-deps]' \
+    {--parallel,-p}'[maximum number of parallel jobs]' \
+    {--auto-exclude,--no-auto-exclude}'[if true, packages that fail to import will be excluded from the build]' \
+    {--tool,--no-tool}'[act as a build tool, transparently passing the subcommand''s outputs to STDOUT]' \
+    {--confirm,--no-confirm}'[--force and --rebuild will ask confirmation if applied to the whole workspace. Use --no-confirm to disable this confirmation]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+
+compdef _amake amake

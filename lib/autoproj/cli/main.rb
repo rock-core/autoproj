@@ -80,7 +80,7 @@ module Autoproj
                 run_autoproj_cli(:bootstrap, :Bootstrap, Hash[], *args)
             end
 
-            desc 'envsh', 'update the env.sh file'
+            desc 'envsh', 'update the environment files'
             def envsh
                 run_autoproj_cli(:envsh, :Envsh, Hash[])
             end

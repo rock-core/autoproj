@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+__<%= name %>_<%= name %>()
+{
+    __<%= name %>
+}
+
+_<%= name %>()
+{
+    local cur prev words cword
+    local command='<%= name %>'
+    local counter=1
+
+    _get_comp_words_by_ref -n : cur prev words cword
+
+    while [ "$counter" -lt "$cword" ]; do
+        case "${words[$counter]}" in
+            -*)
+                break
+                ;;
+            *)
+                command="${words[$counter]}"
+                break
+                ;;
+        esac
+        (( counter++ ))
+    done
+
+    local completions_func=__<%= name %>_${command//-/_}
+    $completions_func
+}
+
+<%= render_subcommand_function(cli_metadata) %>
+
+complete -F _<%= name %> <%= name %>

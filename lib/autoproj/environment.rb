@@ -24,38 +24,55 @@ module Autoproj
             options = validate_options options,
                 shell_helpers: true
 
-            filename = if subdir
-                   File.join(root_dir, subdir, ENV_FILENAME)
-               else
-                   File.join(root_dir, ENV_FILENAME)
-               end
-
             shell_dir = File.expand_path(File.join("..", "..", "shell"), File.dirname(__FILE__))
-            if options[:shell_helpers]
-                source_after(File.join(shell_dir, "autoproj_sh"))
-            end
+            completion_dir = File.join(shell_dir, 'completion')
+            env_updated = false
 
-            existing_content =
-                begin File.read(filename)
-                rescue SystemCallError
+            (['sh'] + Autoproj.workspace.config.user_shells).to_set.each do |shell|
+                env_filename = if shell == 'sh'
+                                   ENV_FILENAME
+                               else
+                                   (Pathname(ENV_FILENAME).sub_ext '').to_s.concat(".#{shell}")
+                               end
+
+                filename = if subdir
+                    File.join(root_dir, subdir, env_filename)
+                else
+                    File.join(root_dir, env_filename)
                 end
 
-            StringIO.open(new_content = String.new, 'w') do |io|
-                if inherit?
-                    io.write <<-EOF
-                    if test -n "$AUTOPROJ_CURRENT_ROOT" && test "$AUTOPROJ_CURRENT_ROOT" != "#{root_dir}"; then
-                        echo "the env.sh from $AUTOPROJ_CURRENT_ROOT is already loaded. Start a new shell before sourcing this one"
-                        return
-                    fi
-                    EOF
+                helper = File.join(shell_dir, "autoproj_#{shell}")
+                if options[:shell_helpers]
+                    source_after(helper, shell: shell) if File.file?(helper)
+                    %w[alocate alog amake aup autoproj].each do |tool|
+                        completion_file = File.join(completion_dir, "#{tool}_#{shell}")
+                        source_after(completion_file, shell: shell) if File.file?(completion_file)
+                    end
                 end
-                super(io)
-            end
 
-            if new_content != existing_content
-                Ops.atomic_write(filename) { |io| io.write new_content }
-                true
+                existing_content =
+                    begin File.read(filename)
+                    rescue SystemCallError
+                    end
+
+                StringIO.open(new_content = String.new, 'w') do |io|
+                    if inherit?
+                        io.write <<-EOF
+                        if test -n "$AUTOPROJ_CURRENT_ROOT" && test "$AUTOPROJ_CURRENT_ROOT" != "#{root_dir}"; then
+                            echo "the env.sh from $AUTOPROJ_CURRENT_ROOT is already loaded. Start a new shell before sourcing this one"
+                            return
+                        fi
+                        EOF
+                    end
+                    super(io, shell: shell)
+                end
+
+                if new_content != existing_content
+                    Ops.atomic_write(filename) { |io| io.write new_content }
+                    env_updated = true
+                end
             end
+            env_updated
         end
     end
 
@@ -76,16 +93,16 @@ module Autoproj
         env.add_path(name, *value)
     end
     # @deprecated call Autoproj.env.source_after instead
-    def self.env_source_file(file)
-        env.source_after(file)
+    def self.env_source_file(file, shell: 'sh')
+        env.source_after(file, shell: shell)
     end
     # @deprecated call Autoproj.env.source_after instead
-    def self.env_source_after(file)
-        env.source_after(file)
+    def self.env_source_after(file, shell: 'sh')
+        env.source_after(file, shell: shell)
     end
     # @deprecated call Autoproj.env.source_before instead
-    def self.env_source_before(file)
-        env.source_before(file)
+    def self.env_source_before(file, shell: 'sh')
+        env.source_before(file, shell: shell)
     end
     # @deprecated call Autoproj.env.inherit instead
     def self.env_inherit(*names)

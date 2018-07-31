@@ -1,0 +1,50 @@
+<%- if subcommand[:subcommands].any? %>
+<%= function_name %>() {
+    local subcommands="
+        <%- subcommand[:subcommands].each do |subcommand| -%>
+        <%= subcommand[:name] %>
+        <%- subcommand[:aliases].each do |_alias| -%>
+        <%= _alias %>
+        <%- end -%>
+        <%- end -%>
+    "
+
+    local options="
+        <%- subcommand[:options].each do |option| -%>
+        <%- option[:names].each do |name| -%>
+        <%= name %>
+        <%- end -%>
+        <%- end -%>
+    "
+
+    _autoproj_subcommands "$subcommands" && return
+
+    case "$cur" in
+        -*)
+            COMPREPLY=( $( compgen -W "$options" -- "$cur" ) )
+            ;;
+        *)
+            COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+            ;;
+    esac
+}
+<%- else %>
+<%= function_name %>() {
+    local options="
+        <%- subcommand[:options].each do |option| -%>
+        <%- option[:names].each do |name| -%>
+        <%= name %>
+        <%- end -%>
+        <%- end -%>
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            <%= subcommand[:completer] %>
+            ;;
+    esac
+}
+<%- end %>

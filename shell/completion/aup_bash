@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+
+__aup_aup()
+{
+    __aup
+}
+
+_aup()
+{
+    local cur prev words cword
+    local command='aup'
+    local counter=1
+
+    _get_comp_words_by_ref -n : cur prev words cword
+
+    while [ "$counter" -lt "$cword" ]; do
+        case "${words[$counter]}" in
+            -*)
+                break
+                ;;
+            *)
+                command="${words[$counter]}"
+                break
+                ;;
+        esac
+        (( counter++ ))
+    done
+
+    local completions_func=__aup_${command//-/_}
+    $completions_func
+}
+
+__aup() {
+    local options="
+        --verbose
+        --no-verbose
+        --debug
+        --no-debug
+        --silent
+        --no-silent
+        --color
+        --no-color
+        --progress
+        --no-progress
+        --keep-going
+        --no-keep-going
+        -k
+        --config
+        --no-config
+        --bundler
+        --no-bundler
+        --autoproj
+        --no-autoproj
+        --osdeps
+        --no-osdeps
+        --from
+        --checkout-only
+        --no-checkout-only
+        -c
+        --local
+        --no-local
+        --osdeps-filter-uptodate
+        --no-osdeps-filter-uptodate
+        --deps
+        --no-deps
+        --reset
+        --no-reset
+        --force-reset
+        --no-force-reset
+        --retry-count
+        --parallel
+        -p
+        --mainline
+        --auto-exclude
+        --no-auto-exclude
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$options" -- ${cur}))
+            ;;
+        *)
+            _autoproj_installed_packages
+            ;;
+    esac
+}
+
+
+complete -F _aup aup

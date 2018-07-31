@@ -1,0 +1,51 @@
+<%- if subcommand[:subcommands].any? %>
+<%= function_name %>() {
+  readonly local DEPTH=<%= depth %>
+
+  case $CURRENT in
+    $DEPTH)
+      _arguments \
+        <%- subcommand[:options].each do |option| -%>
+        <%= escape_option_names(option[:names]) %><%= quote(bracket(option[:description])) if option[:description] %> \
+        <%- end -%>
+        '*: :->subcommands'
+
+      case $state in
+        subcommands)
+          _values \
+            'subcommand' \
+            <%- subcommand[:subcommands].each do |subcommand| -%>
+            <%= quote(subcommand[:name] + bracket(subcommand[:description])) %> \
+            <%- subcommand[:aliases].each do |_alias| -%>
+            <%= quote(_alias + bracket(subcommand[:description])) %> \
+            <%- end -%>
+            <%- end -%>
+            ;
+          ;;
+      esac
+      ;;
+    *)
+      case $words[$DEPTH] in
+        <%- subcommand[:subcommands].each do |subcommand| -%>
+        <%= subcommand[:name] %>)
+          <%= function_name %>_<%= subcommand[:name] %>
+          ;;
+        <%- subcommand[:aliases].each do |_alias| -%>
+        <%= _alias %>)
+          <%= function_name %>_<%= subcommand[:name] %>
+          ;;
+        <%- end -%>
+        <%- end -%>
+      esac
+      ;;
+  esac
+}
+<%- else %>
+<%= function_name %>() {
+  _arguments \
+    <%- subcommand[:options].each do |option| -%>
+    <%= escape_option_names(option[:names]) %><%= quote(bracket(option[:description])) if option[:description] %> \
+    <%- end -%>
+    '*:arg:<%= subcommand[:completer] -%>'
+}
+<%- end %>

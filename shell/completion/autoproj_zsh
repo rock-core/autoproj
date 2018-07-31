@@ -1,0 +1,1005 @@
+#!/usr/bin/env zsh
+
+_autoproj() {
+  __autoproj
+}
+
+__autoproj() {
+  readonly local DEPTH=2
+
+  case $CURRENT in
+    $DEPTH)
+      _arguments \
+        '*: :->subcommands'
+
+      case $state in
+        subcommands)
+          _values \
+            'subcommand' \
+            'help[Describe available commands or one specific command]' \
+            'bootstrap[bootstraps a new autoproj installation. This is usually not called directly, but called from the autoproj_bootstrap standalone script]' \
+            'envsh[update the environment files]' \
+            'status[displays synchronization status between this workspace and the package(s) source]' \
+            'doc[generate API documentation for packages that support it]' \
+            'update[update packages]' \
+            'build[build packages]' \
+            'cache[create or update a cache directory that can be given to AUTOBUILD_CACHE_DIR]' \
+            'clean[remove build byproducts for the given packages]' \
+            'locate[return the path to the given package, or the path to the root if no packages are given on the command line]' \
+            'reconfigure[pass through all configuration questions]' \
+            'test[interface for running tests]' \
+            'show[show informations about package(s)]' \
+            'osdeps[install/update OS dependencies that are required by the given package (or for the whole installation if no packages are given]' \
+            'versions[generate a version file for the given packages, or all packages if none are given]' \
+            'log[shows the log of autoproj updates]' \
+            'reset[resets packages to the state stored in the required version]' \
+            'tag[save the package current versions as a tag, or lists the available tags if given no arguments.]' \
+            'commit[save the package current versions as a new commit in the main build configuration]' \
+            'switch-config[switches the main build configuration]' \
+            'query[searches for packages matching a query string. With no query string, matches all packages.]' \
+            'plugin[interface to manage autoproj plugins]' \
+            'global[global management of the known workspaces]' \
+            'manifest[select or displays the active manifest]' \
+            'exec[runs a command, applying the workspace''s environment first]' \
+            'which[resolves the full path to a command  within the Autoproj workspace]' \
+            ;
+          ;;
+      esac
+      ;;
+    *)
+      case $words[$DEPTH] in
+        help)
+          __autoproj_help
+          ;;
+        bootstrap)
+          __autoproj_bootstrap
+          ;;
+        envsh)
+          __autoproj_envsh
+          ;;
+        status)
+          __autoproj_status
+          ;;
+        doc)
+          __autoproj_doc
+          ;;
+        update)
+          __autoproj_update
+          ;;
+        build)
+          __autoproj_build
+          ;;
+        cache)
+          __autoproj_cache
+          ;;
+        clean)
+          __autoproj_clean
+          ;;
+        locate)
+          __autoproj_locate
+          ;;
+        reconfigure)
+          __autoproj_reconfigure
+          ;;
+        test)
+          __autoproj_test
+          ;;
+        show)
+          __autoproj_show
+          ;;
+        osdeps)
+          __autoproj_osdeps
+          ;;
+        versions)
+          __autoproj_versions
+          ;;
+        log)
+          __autoproj_log
+          ;;
+        reset)
+          __autoproj_reset
+          ;;
+        tag)
+          __autoproj_tag
+          ;;
+        commit)
+          __autoproj_commit
+          ;;
+        switch-config)
+          __autoproj_switch-config
+          ;;
+        query)
+          __autoproj_query
+          ;;
+        plugin)
+          __autoproj_plugin
+          ;;
+        global)
+          __autoproj_global
+          ;;
+        manifest)
+          __autoproj_manifest
+          ;;
+        exec)
+          __autoproj_exec
+          ;;
+        which)
+          __autoproj_which
+          ;;
+      esac
+      ;;
+  esac
+}
+
+
+__autoproj_help() {
+  readonly local DEPTH=3
+
+  case $CURRENT in
+    $DEPTH)
+      _arguments \
+        '*: :->subcommands'
+
+      case $state in
+        subcommands)
+          _values \
+            'subcommand' \
+            'bootstrap[bootstraps a new autoproj installation. This is usually not called directly, but called from the autoproj_bootstrap standalone script]' \
+            'envsh[update the environment files]' \
+            'status[displays synchronization status between this workspace and the package(s) source]' \
+            'doc[generate API documentation for packages that support it]' \
+            'update[update packages]' \
+            'build[build packages]' \
+            'cache[create or update a cache directory that can be given to AUTOBUILD_CACHE_DIR]' \
+            'clean[remove build byproducts for the given packages]' \
+            'locate[return the path to the given package, or the path to the root if no packages are given on the command line]' \
+            'reconfigure[pass through all configuration questions]' \
+            'test[interface for running tests]' \
+            'show[show informations about package(s)]' \
+            'osdeps[install/update OS dependencies that are required by the given package (or for the whole installation if no packages are given]' \
+            'versions[generate a version file for the given packages, or all packages if none are given]' \
+            'log[shows the log of autoproj updates]' \
+            'reset[resets packages to the state stored in the required version]' \
+            'tag[save the package current versions as a tag, or lists the available tags if given no arguments.]' \
+            'commit[save the package current versions as a new commit in the main build configuration]' \
+            'switch-config[switches the main build configuration]' \
+            'query[searches for packages matching a query string. With no query string, matches all packages.]' \
+            'plugin[interface to manage autoproj plugins]' \
+            'global[global management of the known workspaces]' \
+            'manifest[select or displays the active manifest]' \
+            'exec[runs a command, applying the workspace''s environment first]' \
+            'which[resolves the full path to a command  within the Autoproj workspace]' \
+            ;
+          ;;
+      esac
+      ;;
+    *)
+      case $words[$DEPTH] in
+        bootstrap)
+          __autoproj_help_bootstrap
+          ;;
+        envsh)
+          __autoproj_help_envsh
+          ;;
+        status)
+          __autoproj_help_status
+          ;;
+        doc)
+          __autoproj_help_doc
+          ;;
+        update)
+          __autoproj_help_update
+          ;;
+        build)
+          __autoproj_help_build
+          ;;
+        cache)
+          __autoproj_help_cache
+          ;;
+        clean)
+          __autoproj_help_clean
+          ;;
+        locate)
+          __autoproj_help_locate
+          ;;
+        reconfigure)
+          __autoproj_help_reconfigure
+          ;;
+        test)
+          __autoproj_help_test
+          ;;
+        show)
+          __autoproj_help_show
+          ;;
+        osdeps)
+          __autoproj_help_osdeps
+          ;;
+        versions)
+          __autoproj_help_versions
+          ;;
+        log)
+          __autoproj_help_log
+          ;;
+        reset)
+          __autoproj_help_reset
+          ;;
+        tag)
+          __autoproj_help_tag
+          ;;
+        commit)
+          __autoproj_help_commit
+          ;;
+        switch-config)
+          __autoproj_help_switch-config
+          ;;
+        query)
+          __autoproj_help_query
+          ;;
+        plugin)
+          __autoproj_help_plugin
+          ;;
+        global)
+          __autoproj_help_global
+          ;;
+        manifest)
+          __autoproj_help_manifest
+          ;;
+        exec)
+          __autoproj_help_exec
+          ;;
+        which)
+          __autoproj_help_which
+          ;;
+      esac
+      ;;
+  esac
+}
+
+
+__autoproj_help_bootstrap() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_envsh() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_status() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_doc() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_update() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_build() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_cache() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_clean() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_locate() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_reconfigure() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_test() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_show() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_osdeps() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_versions() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_log() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_reset() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_tag() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_commit() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_switch-config() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_query() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_plugin() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_global() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_manifest() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_exec() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_help_which() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_bootstrap() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    --reuse'[reuse packages already built within the DIR autoproj workspace in this installation, if DIR is not given, reuses the installation whose env.sh is currently sourced]' \
+    --seed-config'[a configuration file used to seed the bootstrap''s configuration]' \
+    '*:arg::'
+}
+
+__autoproj_envsh() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    '*:arg::'
+}
+
+__autoproj_status() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--local,--no-local}'[only use locally available information (mainly for distributed version control systems such as git)]' \
+    --mainline'[compare to the given baseline. if ''true'', the comparison will ignore any override, otherwise it will take into account overrides only up to the given package set]' \
+    {--snapshot,--no-snapshot}'[use the VCS information as ''versions --no-local'' would detect it instead of the one in the configuration]' \
+    {--parallel,-p}'[maximum number of parallel jobs]' \
+    {--deps,--no-deps}'[whether only the status of the given packages should be displayed, or of their dependencies as well. -n is a shortcut for --no-deps]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+__autoproj_doc() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--deps,--no-deps}'[control whether documentation should be generated only for the packages given on the command line, or also for their dependencies. -n is a shortcut for --no-deps]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+__autoproj_update() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--keep-going,--no-keep-going,-k}'[do not stop on build or checkout errors]' \
+    {--config,--no-config}'[(do not) update configuration. The default is to update configuration if explicitely selected or if no additional arguments are given on the command line, and to not do it if packages are explicitely selected on the command line]' \
+    {--bundler,--no-bundler}'[(do not) update bundler. This is automatically enabled only if no arguments are given on the command line]' \
+    {--autoproj,--no-autoproj}'[(do not) update autoproj. This is automatically enabled only if no arguments are given on the command line]' \
+    {--osdeps,--no-osdeps}'[enable or disable osdeps handling]' \
+    --from'[use this existing autoproj installation to check out the packages (for importers that support this)]' \
+    {--checkout-only,--no-checkout-only,-c}'[only checkout packages, do not update existing ones]' \
+    {--local,--no-local}'[use only local information for the update (for importers that support it)]' \
+    {--osdeps-filter-uptodate,--no-osdeps-filter-uptodate}'[controls whether the osdeps subsystem should filter up-to-date packages or not]' \
+    {--deps,--no-deps}'[whether the package dependencies should be recursively updated (the default) or not. -n is a shortcut for --no-deps]' \
+    {--reset,--no-reset}'[forcefully resets the repository to the state expected by autoproj''s configuration]' \
+    {--force-reset,--no-force-reset}'[like --reset, but bypasses tests that ensure you won''t lose data]' \
+    --retry-count'[force the importer''s retry count to this value]' \
+    {--parallel,-p}'[maximum number of parallel jobs]' \
+    --mainline'[compare to the given baseline. if ''true'', the comparison will ignore any override, otherwise it will take into account overrides only up to the given package set]' \
+    {--auto-exclude,--no-auto-exclude}'[if true, packages that fail to import will be excluded from the build]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+__autoproj_build() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--keep-going,--no-keep-going,-k}'[do not stop on build or checkout errors]' \
+    {--force,--no-force}'[force reconfiguration-build cycle on the requested packages, even if they do not seem to need it]' \
+    {--rebuild,--no-rebuild}'[clean and build the requested packages]' \
+    {--osdeps,--no-osdeps}'[controls whether missing osdeps should be installed. In rebuild mode, also controls whether the osdeps should be reinstalled or not (the default is to reinstall them)]' \
+    {--deps,--no-deps}'[controls whether the operation should apply to the package''s dependencies as well. -n is a shortcut for --no-deps]' \
+    {--parallel,-p}'[maximum number of parallel jobs]' \
+    {--auto-exclude,--no-auto-exclude}'[if true, packages that fail to import will be excluded from the build]' \
+    {--tool,--no-tool}'[act as a build tool, transparently passing the subcommand''s outputs to STDOUT]' \
+    {--confirm,--no-confirm}'[--force and --rebuild will ask confirmation if applied to the whole workspace. Use --no-confirm to disable this confirmation]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+__autoproj_cache() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--keep-going,-k}'[do not stop on errors]' \
+    {--checkout-only,--no-checkout-only,-c}'[only checkout packages, do not update already-cached ones]' \
+    {--all,--no-all}'[cache all defined packages (the default) or only the selected ones]' \
+    '*:arg:_files'
+}
+
+__autoproj_clean() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--deps,--no-deps}'[clean the given packages as well as their dependencies]' \
+    {--all,--no-all}'[bypass the safety question when you mean to clean all packages]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+__autoproj_locate() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--cache,--no-cache}'[controls whether the resolution should be done by loading the whole configuration (false, slow) or through a cache file (the default)]' \
+    {--prefix,--no-prefix,-p}'[outputs the package''s prefix directory instead of its source directory]' \
+    {--build,--no-build,-b}'[outputs the package''s build directory instead of its source directory]' \
+    {--log,-l}'[outputs the path to a package''s log file]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+__autoproj_reconfigure() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--separate-prefixes,--no-separate-prefixes}'[sets or clears autoproj''s separate prefixes mode]' \
+    '*:arg::'
+}
+
+__autoproj_test() {
+  readonly local DEPTH=3
+
+  case $CURRENT in
+    $DEPTH)
+      _arguments \
+        '*: :->subcommands'
+
+      case $state in
+        subcommands)
+          _values \
+            'subcommand' \
+            'help[Describe subcommands or one specific subcommand]' \
+            'enable[enable tests for the given packages (or for all packages if none are given)]' \
+            'disable[disable tests for the given packages (or for all packages if none are given)]' \
+            'list[show test enable/disable status for the given packages (or all packages if none are given)]' \
+            'exec[execute the tests for the given packages, or all if no packages are given on the command line]' \
+            ;
+          ;;
+      esac
+      ;;
+    *)
+      case $words[$DEPTH] in
+        help)
+          __autoproj_test_help
+          ;;
+        enable)
+          __autoproj_test_enable
+          ;;
+        disable)
+          __autoproj_test_disable
+          ;;
+        list)
+          __autoproj_test_list
+          ;;
+        exec)
+          __autoproj_test_exec
+          ;;
+      esac
+      ;;
+  esac
+}
+
+
+__autoproj_test_help() {
+  readonly local DEPTH=4
+
+  case $CURRENT in
+    $DEPTH)
+      _arguments \
+        '*: :->subcommands'
+
+      case $state in
+        subcommands)
+          _values \
+            'subcommand' \
+            'enable[enable tests for the given packages (or for all packages if none are given)]' \
+            'disable[disable tests for the given packages (or for all packages if none are given)]' \
+            'list[show test enable/disable status for the given packages (or all packages if none are given)]' \
+            'exec[execute the tests for the given packages, or all if no packages are given on the command line]' \
+            ;
+          ;;
+      esac
+      ;;
+    *)
+      case $words[$DEPTH] in
+        enable)
+          __autoproj_test_help_enable
+          ;;
+        disable)
+          __autoproj_test_help_disable
+          ;;
+        list)
+          __autoproj_test_help_list
+          ;;
+        exec)
+          __autoproj_test_help_exec
+          ;;
+      esac
+      ;;
+  esac
+}
+
+
+__autoproj_test_help_enable() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_test_help_disable() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_test_help_list() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_test_help_exec() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_test_enable() {
+  _arguments \
+    {--deps,--no-deps}'[controls whether the dependencies of the packages given on the command line should be enabled as well (the default is not)]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+__autoproj_test_disable() {
+  _arguments \
+    {--deps,--no-deps}'[controls whether the dependencies of the packages given on the command line should be disabled as well (the default is not)]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+__autoproj_test_list() {
+  _arguments \
+    {--deps,--no-deps}'[controls whether the dependencies of the packages given on the command line should be disabled as well (the default is not)]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+__autoproj_test_exec() {
+  _arguments \
+    {--keep-going,--no-keep-going,-k}'[do not stop on build or checkout errors]' \
+    {--deps,--no-deps}'[controls whether to execute the tests of the dependencies of the packages given on the command line (the default is not)]' \
+    {--fail,--no-fail}'[return with a nonzero exit code if the test does not pass]' \
+    {--coverage,--no-coverage}'[whether code coverage should be generated if possible]' \
+    {--tool,--no-tool}'[build in tool mode, which do not redirect the subcommand''s outputs]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+__autoproj_show() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    --mainline'[compare to the given baseline. if ''true'', the comparison will ignore any override, otherwise it will take into account overrides only up to the given package set]' \
+    {--env,--no-env}'[display the package''s own environment]' \
+    --short'[display a package summary with one package line]' \
+    {--recursive,--no-recursive}'[display the package and their dependencies (the default is to only display selected packages)]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+__autoproj_osdeps() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--system-info,--no-system-info}'[show information about the osdep system and quit]' \
+    {--update,--no-update}'[whether already installed packages should be updated or not]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+__autoproj_versions() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--config,--no-config}'[controls whether the package sets should be versioned as well]' \
+    {--keep-going,--no-keep-going,-k}'[do not stop if some package cannot be versioned]' \
+    {--replace,--no-replace}'[in combination with --save, controls whether an existing file should be updated or replaced]' \
+    {--deps,--no-deps}'[whether both packages and their dependencies should be versioned, or only the selected packages (the latter is the default)]' \
+    {--local,--no-local}'[whether we should access the remote server to verify that the snapshotted state is present]' \
+    --save'[save to the given file instead of displaying it on the standard output]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+__autoproj_log() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    --since'[show what got updated since the given version]' \
+    {--diff,--no-diff}'[show the difference between two stages in the log]' \
+    '*:arg::'
+}
+
+__autoproj_reset() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--freeze,--no-freeze}'[whether the version we reset to should be saved in overrides.d or not]' \
+    '*:arg::'
+}
+
+__autoproj_tag() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--package-sets,--no-package-sets}'[commit the package set state as well (enabled by default)]' \
+    {--keep-going,--no-keep-going,-k}'[do not stop on build or checkout errors]' \
+    {--message,-m}'[the message to use for the new commit (the default is to mention the creation of the tag)]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+__autoproj_commit() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--package-sets,--no-package-sets}'[commit the package set state as well (enabled by default)]' \
+    {--keep-going,--no-keep-going,-k}'[do not stop on build or checkout errors]' \
+    {--tag,-t}'[the tag name to use]' \
+    {--message,-m}'[the message to use for the new commit (the default is to mention the creation of the tag)]' \
+    '*:arg:_autoproj_installed_packages'
+}
+
+__autoproj_switch-config() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    '*:arg::'
+}
+
+__autoproj_query() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--search-all,--no-search-all}'[search in all defined packages instead of only in those selected selected in the layout]' \
+    --format'[customize what should be displayed. See FORMAT SPECIFICATION above]' \
+    '*:arg::'
+}
+
+__autoproj_plugin() {
+  readonly local DEPTH=3
+
+  case $CURRENT in
+    $DEPTH)
+      _arguments \
+        '*: :->subcommands'
+
+      case $state in
+        subcommands)
+          _values \
+            'subcommand' \
+            'help[Describe subcommands or one specific subcommand]' \
+            'install[install or upgrade an autoproj plugin]' \
+            'list[list installed plugins]' \
+            'remove[uninstall a plugin]' \
+            ;
+          ;;
+      esac
+      ;;
+    *)
+      case $words[$DEPTH] in
+        help)
+          __autoproj_plugin_help
+          ;;
+        install)
+          __autoproj_plugin_install
+          ;;
+        list)
+          __autoproj_plugin_list
+          ;;
+        remove)
+          __autoproj_plugin_remove
+          ;;
+      esac
+      ;;
+  esac
+}
+
+
+__autoproj_plugin_help() {
+  readonly local DEPTH=4
+
+  case $CURRENT in
+    $DEPTH)
+      _arguments \
+        '*: :->subcommands'
+
+      case $state in
+        subcommands)
+          _values \
+            'subcommand' \
+            'install[install or upgrade an autoproj plugin]' \
+            'list[list installed plugins]' \
+            'remove[uninstall a plugin]' \
+            ;
+          ;;
+      esac
+      ;;
+    *)
+      case $words[$DEPTH] in
+        install)
+          __autoproj_plugin_help_install
+          ;;
+        list)
+          __autoproj_plugin_help_list
+          ;;
+        remove)
+          __autoproj_plugin_help_remove
+          ;;
+      esac
+      ;;
+  esac
+}
+
+
+__autoproj_plugin_help_install() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_plugin_help_list() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_plugin_help_remove() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_plugin_install() {
+  _arguments \
+    --version'[a gem version constraint]' \
+    --git'[checkout a git repository instead of downloading the gem]' \
+    --path'[use the plugin that is already present on this path]' \
+    '*:arg::'
+}
+
+__autoproj_plugin_list() {
+  _arguments \
+    '*:arg::'
+}
+
+__autoproj_plugin_remove() {
+  _arguments \
+    '*:arg::'
+}
+
+__autoproj_global() {
+  readonly local DEPTH=3
+
+  case $CURRENT in
+    $DEPTH)
+      _arguments \
+        '*: :->subcommands'
+
+      case $state in
+        subcommands)
+          _values \
+            'subcommand' \
+            'help[Describe subcommands or one specific subcommand]' \
+            'register[register the current workspace]' \
+            'status[display information about the known workspaces]' \
+            ;
+          ;;
+      esac
+      ;;
+    *)
+      case $words[$DEPTH] in
+        help)
+          __autoproj_global_help
+          ;;
+        register)
+          __autoproj_global_register
+          ;;
+        status)
+          __autoproj_global_status
+          ;;
+      esac
+      ;;
+  esac
+}
+
+
+__autoproj_global_help() {
+  readonly local DEPTH=4
+
+  case $CURRENT in
+    $DEPTH)
+      _arguments \
+        '*: :->subcommands'
+
+      case $state in
+        subcommands)
+          _values \
+            'subcommand' \
+            'register[register the current workspace]' \
+            'status[display information about the known workspaces]' \
+            ;
+          ;;
+      esac
+      ;;
+    *)
+      case $words[$DEPTH] in
+        register)
+          __autoproj_global_help_register
+          ;;
+        status)
+          __autoproj_global_help_status
+          ;;
+      esac
+      ;;
+  esac
+}
+
+
+__autoproj_global_help_register() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_global_help_status() {
+  _arguments \
+    '*:arg:'
+}
+
+__autoproj_global_register() {
+  _arguments \
+    '*:arg::'
+}
+
+__autoproj_global_status() {
+  _arguments \
+    '*:arg::'
+}
+
+__autoproj_manifest() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    '*:arg:_files'
+}
+
+__autoproj_exec() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--use-cache,--no-use-cache}'[use the cached environment instead of loading the whole configuration]' \
+    '*:arg:_path_commands'
+}
+
+__autoproj_which() {
+  _arguments \
+    {--verbose,--no-verbose}'[turns verbose output]' \
+    {--debug,--no-debug}'[turns debugging output]' \
+    {--silent,--no-silent}'[tell autoproj to not display anything]' \
+    {--color,--no-color}'[enables or disables colored display (enabled by default if the terminal supports it)]' \
+    {--progress,--no-progress}'[enables or disables progress display (enabled by default if the terminal supports it)]' \
+    {--use-cache,--no-use-cache}'[use the cached environment instead of loading the whole configuration]' \
+    '*:arg:_path_commands'
+}
+
+
+compdef _autoproj autoproj
