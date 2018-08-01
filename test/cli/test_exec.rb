@@ -1,12 +1,14 @@
 require 'autoproj/test'
 require 'autoproj/aruba_minitest'
 require 'autoproj/cli/exec'
+require 'tty-cursor'
 
 module Autoproj
     module CLI
         describe Exec do
             include Autoproj::ArubaMinitest
             before do
+                @cursor = TTY::Cursor
                 ws_create(expand_path('.'))
                 set_environment_variable 'AUTOPROJ_CURRENT_ROOT', ws.root_dir
                 @autoproj_bin = File.expand_path(File.join("..", "..", "bin", "autoproj"), __dir__)
@@ -39,7 +41,7 @@ ENV SOME_VALUE
                     cmd = run_command_and_stop "#{@autoproj_bin} exec does_not_exist --some --arg",
                         fail_on_error: false
                     assert_equal 1, cmd.exit_status
-                    assert_equal "#{Autobuild.clear_line}  ERROR: cannot resolve `does_not_exist` to an executable in the workspace\n",
+                    assert_equal "#{@cursor.column(1)}#{@cursor.clear_screen_down}  ERROR: cannot resolve `does_not_exist` to an executable in the workspace\n",
                         cmd.stderr
                 end
             end
@@ -67,7 +69,7 @@ ENV SOME_VALUE
                     cmd = run_command_and_stop "#{@autoproj_bin} exec --use-cache does_not_exist --some --arg",
                         fail_on_error: false
                     assert_equal 1, cmd.exit_status
-                    assert_equal "#{Autobuild.clear_line}  ERROR: cannot resolve `does_not_exist` to an executable in the workspace\n",
+                    assert_equal "#{@cursor.column(1)}#{@cursor.clear_screen_down}  ERROR: cannot resolve `does_not_exist` to an executable in the workspace\n",
                         cmd.stderr
                 end
             end
