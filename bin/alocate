@@ -1,7 +1,7 @@
 #! /usr/bin/env ruby
 
 require 'autoproj/cli/main'
-Autoproj::CLI.basic_setup
+argv = Autoproj::CLI.basic_setup
 
 class Alocate < Autoproj::CLI::Main
     def self.banner(*)
@@ -10,13 +10,11 @@ class Alocate < Autoproj::CLI::Main
 end
 
 begin
-    if ARGV.include?('--help') || ARGV.include?('help')
+    if argv.include?('--help') || argv.include?('help')
         Alocate.start(['help', 'locate'])
     else
-        Alocate.start(['locate', *ARGV])
+        Alocate.start(['locate', *argv])
     end
 rescue Interrupt
     # Already notified in the reporting infrastructure
 end
-
-

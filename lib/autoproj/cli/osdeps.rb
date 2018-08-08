@@ -29,8 +29,9 @@ module Autoproj
                     run_package_managers_without_packages: true,
                     install_only: !update)
                 export_env_sh(shell_helpers: shell_helpers)
+                Main.run_post_command_hook(:update, ws, source_packages: [],
+                    osdep_packages: osdep_packages)
             end
         end
     end
 end
-

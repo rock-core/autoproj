@@ -3,6 +3,7 @@ require 'tty/color'
 require 'autoproj/cli/main_test'
 require 'autoproj/cli/main_plugin'
 require 'autoproj/cli/main_global'
+require 'autoproj/cli'
 require 'autoproj/reporter'
 
 module Autoproj
@@ -10,6 +11,12 @@ module Autoproj
         def self.basic_setup
             Encoding.default_internal = Encoding::UTF_8
             Encoding.default_external = Encoding::UTF_8
+
+            argv = ARGV.find_all { |arg| arg != "--no-plugins" }
+            if argv.size == ARGV.size
+                Autoproj::CLI.load_plugins
+            end
+            argv
         end
 
         class Main < Thor
@@ -26,6 +33,44 @@ module Autoproj
 
             stop_on_unknown_option! :exec
             check_unknown_options!  except: :exec
+
+            # @api private
+            #
+            # Run hooks defined for a given hook name
+            def self.run_post_command_hook(hook_name, ws, **args)
+                @post_command_hooks[hook_name].each do |hook|
+                    hook.call(ws, args)
+                end
+            end
+
+            # Register a hook that should be called at a given event
+            #
+            # @overload register_post_command_hook(:update)
+            #   @yieldparam [Workspace] ws
+            #   @yieldparam [Hash] params
+            #
+            #   Hook called after an update operation (from the CLI, either
+            #   update or osdeps)
+            #
+            #   The params contain :source_packages and :osdeps_packages,
+            #   respectively the list of names of the source and osdeps packages
+            #   selected for the update operation (NOT the list of packages
+            #   actually updated)
+            #
+            # @overload register_post_command_hook(:build)
+            #   @yieldparam [Workspace] ws
+            #   @yieldparam [Hash] params
+            #
+            #   Hook called after a build operation (from the CLI, build)
+            #
+            #   The params contain :source_packages, the list of names of the
+            #   source and osdeps packages selected for the update operation (NOT
+            #   the list of packages actually updated)
+            def self.register_post_command_hook(hook_name, &block)
+                @post_command_hooks[hook_name.to_sym] << block
+            end
+
+            @post_command_hooks = Hash.new { |h, k| h[k] = Array.new }
 
             no_commands do
                 def default_report_on_package_failures
@@ -164,7 +209,7 @@ module Autoproj
                     report_options[:on_package_failures] = :report
                 end
 
-                run_autoproj_cli(:update, :Update, report_options, *packages)
+                run_autoproj_cli(:update, :Update, report_options, *packages, run_hook: true)
             end
 
             desc 'build [PACKAGES]', 'build packages'
