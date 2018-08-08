@@ -1,10 +1,12 @@
 require 'autoproj/test'
 require 'autoproj/cli/base'
+require 'tty-cursor'
 module Autoproj
     module CLI
         describe Base do
             attr_reader :ws, :base
             before do
+                @cursor = TTY::Cursor
                 @ws = ws_create
                 @base = Base.new(ws)
             end
@@ -47,7 +49,8 @@ module Autoproj
                         out, err = capture_subprocess_io do
                             base.resolve_user_selection([]) 
                         end
-                        assert_equal ["#{Autobuild.clear_line}selected packages: pkg0, pkg1", ""], [out.strip, err.strip]
+                        assert_equal ["#{@cursor.column(1)}#{@cursor.clear_screen_down}selected packages: pkg0, pkg1\n#{@cursor.clear_screen_down}#{@cursor.column(0)}",
+                                      ""], [out.strip, err.strip]
                     end
                 end
 
@@ -79,7 +82,8 @@ module Autoproj
                         out, err = capture_subprocess_io do
                             base.resolve_user_selection(['pkg0']) 
                         end
-                        assert_equal ["#{Autobuild.clear_line}selected packages: pkg0", ""], [out.strip, err.strip]
+                        assert_equal ["#{@cursor.column(1)}#{@cursor.clear_screen_down}selected packages: pkg0\n#{@cursor.clear_screen_down}#{@cursor.column(0)}",
+                                      ""], [out.strip, err.strip]
                     end
                 end
 
@@ -108,8 +112,8 @@ module Autoproj
                         out, err = capture_subprocess_io do
                             selection, _ = base.resolve_user_selection([package_relative_path]) 
                         end
-                        assert_equal "#{Autobuild.clear_line}  auto-adding #{package_path}"\
-                            " using the cmake package handler", out.strip
+                        assert_equal "#{@cursor.column(1)}#{@cursor.clear_screen_down}  auto-adding #{package_path}"\
+                            " using the cmake package handler\n#{@cursor.clear_screen_down}#{@cursor.column(0)}", out.strip
                         assert_equal "", err
                         assert_equal ['path/to/package'], selection.each_source_package_name.to_a
                         autobuild_package = ws.manifest.find_autobuild_package('path/to/package')
