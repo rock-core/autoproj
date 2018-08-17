@@ -66,7 +66,7 @@ module Autoproj
                 return selection, options
             end
 
-            def run(selected_packages, options)
+            def run(selected_packages, run_hook: false, **options)
                 ws.manifest.accept_unavailable_osdeps = !options[:osdeps]
                 ws.setup
                 ws.autodetect_operating_system(force: true)
@@ -125,6 +125,18 @@ module Autoproj
 
                 if options[:osdeps] && !osdep_packages.empty?
                     ws.install_os_packages(osdep_packages, **osdeps_options)
+                end
+
+                if run_hook
+                    if options[:osdeps]
+                        CLI::Main.run_post_command_hook(:update, ws,
+                            source_packages: source_packages,
+                            osdep_packages: osdep_packages)
+                    else
+                        CLI::Main.run_post_command_hook(:update, ws,
+                            source_packages: source_packages,
+                            osdep_packages: [])
+                    end
                 end
 
                 export_env_sh

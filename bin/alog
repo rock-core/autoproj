@@ -3,7 +3,8 @@
 require 'autoproj/cli/main'
 require 'autoproj/cli/locate'
 
-if ARGV.include?('--help') || ARGV.include?('help')
+argv = Autoproj::CLI.basic_setup
+if argv.include?('--help') || argv.include?('help')
     puts "Usage:"
     puts "  alog [package]"
     puts
@@ -11,11 +12,10 @@ if ARGV.include?('--help') || ARGV.include?('help')
     exit 0
 end
 
-Autoproj::CLI.basic_setup
 Autoproj.report(silent: true) do
     cli = Autoproj::CLI::Locate.new
 
-    arg = ARGV.first || Dir.pwd
+    arg = argv.first || Dir.pwd
     if File.directory?(arg)
         arg = "#{File.expand_path(arg)}/"
     end

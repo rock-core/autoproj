@@ -13,7 +13,7 @@ module Autoproj
                     options[:deps] = false
                 end
                 if options[:deps].nil?
-                    options[:deps] = 
+                    options[:deps] =
                         !(options[:rebuild] || options[:force])
                 end
                 return selected_packages, options
@@ -78,11 +78,10 @@ module Autoproj
                 Autobuild.do_build = true
                 ops.build_packages(source_packages, parallel: parallel)
                 Autobuild.apply(source_packages, "autoproj-build", ['install'])
+                Main.run_post_command_hook(:build, ws, source_packages: source_packages)
             ensure
                 export_env_sh
             end
         end
     end
 end
-
-
