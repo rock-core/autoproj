@@ -419,7 +419,7 @@ if defined?(Bundler)
         exec($0, *ARGV)
     end
 end
-ENV['BUNDLE_GEMFILE'] = '#{autoproj_gemfile_path}'
+ENV['BUNDLE_GEMFILE'] ||= '#{autoproj_gemfile_path}'
                 RESTART_BUNDLER
                 script_lines.join
             end
