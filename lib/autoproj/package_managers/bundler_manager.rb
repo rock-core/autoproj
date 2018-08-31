@@ -51,7 +51,7 @@ module Autoproj
                     env.set('BUNDLE_GEMFILE', gemfile_path)
                 end
 
-                Autobuild.programs['bundler'] = File.join(ws.dot_autoproj_dir, 'bin', 'bundler')
+                Autobuild.programs['bundler'] = File.join(ws.dot_autoproj_dir, 'bin', 'bundle')
 
                 env.init_from_env 'RUBYLIB'
                 env.inherit 'RUBYLIB'
