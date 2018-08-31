@@ -363,7 +363,10 @@ module Autoproj
                 backup_restore(backups)
                 raise
             ensure
-                FileUtils.rm_f File.join(binstubs_path, 'bundler') if binstubs_path
+                if binstubs_path
+                    FileUtils.rm_f File.join(binstubs_path, 'bundle') 
+                    FileUtils.rm_f File.join(binstubs_path, 'bundler')
+                end
                 backup_clean(backups)
             end
 

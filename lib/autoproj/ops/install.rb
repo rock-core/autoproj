@@ -284,7 +284,7 @@ module Autoproj
                     out: '/dev/null')
                 return if !result
 
-                bundler_path = File.join(gems_gem_home, 'bin', 'bundler')
+                bundler_path = File.join(gems_gem_home, 'bin', 'bundle')
                 if File.exist?(bundler_path)
                     bundler_path
                 end
@@ -304,14 +304,14 @@ module Autoproj
                         '--env-shebang', '--no-document', '--no-format-executable',
                         '--clear-sources', '--source', gem_source,
                         *local, "--bindir=#{File.join(gems_gem_home, 'bin')}",
-                        'bundler', **redirection)
+                        'bundle', **redirection)
 
                 if !result
                     STDERR.puts "FATAL: failed to install bundler in #{gems_gem_home}"
                     nil
                 end
 
-                bundler_path = File.join(gems_gem_home, 'bin', 'bundler')
+                bundler_path = File.join(gems_gem_home, 'bin', 'bundle')
                 if File.exist?(bundler_path)
                     bundler_path
                 else
