@@ -52,6 +52,7 @@ module Autoproj
                 end
 
                 Autobuild.programs['bundler'] = File.join(ws.dot_autoproj_dir, 'bin', 'bundle')
+                Autobuild.programs['bundle'] = File.join(ws.dot_autoproj_dir, 'bin', 'bundle')
 
                 env.init_from_env 'RUBYLIB'
                 env.inherit 'RUBYLIB'
@@ -213,7 +214,7 @@ module Autoproj
                         'RUBYLIB' => nil
                     ]
                     ws.run 'autoproj', 'osdeps',
-                        Autobuild.tool('bundler'), *commandline,
+                        Autobuild.tool('bundle'), *commandline,
                         working_directory: File.dirname(gemfile), env: target_env do |line|
                             yield(line) if block_given?
                         end

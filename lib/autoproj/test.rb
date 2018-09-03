@@ -188,7 +188,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
             cached_bundler_gem = File.join(vendor, "bundler-#{Bundler::VERSION}.gem")
             if !File.file?(cached_bundler_gem)
                 FileUtils.mkdir_p vendor
-                if !system(Ops::Install.guess_gem_program, 'fetch', '-v', Bundler::VERSION, 'bundler', chdir: vendor)
+                if !system(Ops::Install.guess_gem_program, 'fetch', '-v', Bundler::VERSION, 'bundle', chdir: vendor)
                     raise "cannot download the bundler gem"
                 end
             end
