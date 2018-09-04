@@ -278,14 +278,14 @@ module Autoproj
             end
 
             def find_bundler(gem_program)
-                result = system(
-                    env_for_child,
-                    Gem.ruby, gem_program, 'which', 'bundler/setup',
-                    out: '/dev/null')
-                return if !result
+                setup_path =
+                    IO.popen([env_for_child, Gem.ruby, gem_program, 'which', 'bundler/setup']) do |io|
+                        io.read
+                    end
+                return unless $?.success?
 
                 bundler_path = File.join(gems_gem_home, 'bin', 'bundle')
-                if File.exist?(bundler_path)
+                if File.exist?(bundler_path) && setup_path.start_with?(gems_gem_home)
                     bundler_path
                 end
             end
@@ -299,24 +299,24 @@ module Autoproj
                 end
 
                 result = system(
-                    env_for_child.merge('GEM_HOME' => gems_gem_home),
+                    env_for_child,
                     Gem.ruby, gem_program, 'install',
                         '--env-shebang', '--no-document', '--no-format-executable',
                         '--clear-sources', '--source', gem_source,
+                        '--no-user-install', '--install-dir', gems_gem_home,
                         *local, "--bindir=#{File.join(gems_gem_home, 'bin')}",
-                        'bundle', **redirection)
+                        'bundler', **redirection)
 
                 if !result
                     STDERR.puts "FATAL: failed to install bundler in #{gems_gem_home}"
                     nil
                 end
 
-                bundler_path = File.join(gems_gem_home, 'bin', 'bundle')
-                if File.exist?(bundler_path)
+                if (bundler_path = find_bundler(gem_program))
                     bundler_path
                 else
                     STDERR.puts "gem install bundler returned successfully, but still "\
-                        "cannot find bundler in #{bundler_path}"
+                        "cannot find bundler in #{gems_gem_home}"
                     nil
                 end
             end
@@ -593,6 +593,7 @@ require 'bundler/setup'
                 gem_program  = self.class.guess_gem_program
                 puts "Detected 'gem' to be #{gem_program}"
                 env['GEM_HOME'] = [gems_gem_home]
+                env['GEM_PATH'] = [gems_gem_home]
 
                 if bundler = find_bundler(gem_program)
                     puts "Detected bundler at #{bundler}"
