@@ -68,7 +68,7 @@ module Autoproj
                 install_gems_in_gem_user_dir
             end
 
-            def env_for_child
+            def env_for_child(env = self.env)
                 env.inject(Hash.new) do |h, (k, v)|
                     h[k] = if v && !v.empty? then v.join(File::PATH_SEPARATOR)
                            end
@@ -308,8 +308,11 @@ module Autoproj
                     redirection = Hash[out: :close]
                 end
 
+                # Shut up the bundler warning about 'bin' not being in PATH
+                env = self.env
+                env['PATH'] += [File.join(gems_gem_home, 'bin')]
                 result = system(
-                    env_for_child,
+                    env_for_child(env),
                     Gem.ruby, gem_program, 'install',
                         '--env-shebang', '--no-document', '--no-format-executable',
                         '--clear-sources', '--source', gem_source,
