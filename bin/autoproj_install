@@ -50,12 +50,11 @@ module Autoproj
                 @env = Hash.new
                 env['RUBYOPT'] = []
                 env['RUBYLIB'] = []
-                env['GEM_PATH'] = []
-                env['GEM_HOME'] = []
                 env['PATH'] = self.class.sanitize_env(ENV['PATH'] || "")
                 env['BUNDLE_GEMFILE'] = []
 
                 load_config
+
                 if config['ruby_executable'] != Gem.ruby
                     raise "this autoproj installation was already bootstrapped using "\
                         "#{config['ruby_executable']}, but you are currently running "\
@@ -65,10 +64,14 @@ module Autoproj
                 @ruby_executable = config['ruby_executable']
                 @local = false
 
-                install_gems_in_gem_user_dir
+                unless @gems_install_path
+                    install_gems_in_gem_user_dir
+                end
+                env['GEM_HOME'] = [gems_gem_home]
+                env['GEM_PATH'] = [gems_gem_home]
             end
 
-            def env_for_child
+            def env_for_child(env = self.env)
                 env.inject(Hash.new) do |h, (k, v)|
                     h[k] = if v && !v.empty? then v.join(File::PATH_SEPARATOR)
                            end
@@ -288,14 +291,14 @@ module Autoproj
             end
 
             def find_bundler(gem_program)
-                result = system(
-                    env_for_child,
-                    Gem.ruby, gem_program, 'which', 'bundler/setup',
-                    out: '/dev/null')
-                return if !result
+                setup_path =
+                    IO.popen([env_for_child, Gem.ruby, gem_program, 'which', 'bundler/setup']) do |io|
+                        io.read
+                    end
+                return unless $?.success?
 
                 bundler_path = File.join(gems_gem_home, 'bin', 'bundle')
-                if File.exist?(bundler_path)
+                if File.exist?(bundler_path) && setup_path.start_with?(gems_gem_home)
                     bundler_path
                 end
             end
@@ -308,25 +311,28 @@ module Autoproj
                     redirection = Hash[out: :close]
                 end
 
+                # Shut up the bundler warning about 'bin' not being in PATH
+                env = self.env
+                env['PATH'] += [File.join(gems_gem_home, 'bin')]
                 result = system(
-                    env_for_child.merge('GEM_HOME' => gems_gem_home),
+                    env_for_child(env),
                     Gem.ruby, gem_program, 'install',
                         '--env-shebang', '--no-document', '--no-format-executable',
                         '--clear-sources', '--source', gem_source,
+                        '--no-user-install', '--install-dir', gems_gem_home,
                         *local, "--bindir=#{File.join(gems_gem_home, 'bin')}",
-                        'bundle', **redirection)
+                        'bundler', **redirection)
 
                 if !result
                     STDERR.puts "FATAL: failed to install bundler in #{gems_gem_home}"
                     nil
                 end
 
-                bundler_path = File.join(gems_gem_home, 'bin', 'bundle')
-                if File.exist?(bundler_path)
+                if (bundler_path = find_bundler(gem_program))
                     bundler_path
                 else
                     STDERR.puts "gem install bundler returned successfully, but still "\
-                        "cannot find bundler in #{bundler_path}"
+                        "cannot find bundler in #{gems_gem_home}"
                     nil
                 end
             end
@@ -603,6 +609,7 @@ require 'bundler/setup'
                 gem_program  = self.class.guess_gem_program
                 puts "Detected 'gem' to be #{gem_program}"
                 env['GEM_HOME'] = [gems_gem_home]
+                env['GEM_PATH'] = [gems_gem_home]
 
                 if bundler = find_bundler(gem_program)
                     puts "Detected bundler at #{bundler}"
