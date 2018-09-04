@@ -44,6 +44,7 @@ module Autoproj
                 env['BUNDLE_GEMFILE'] = []
 
                 load_config
+
                 if config['ruby_executable'] != Gem.ruby
                     raise "this autoproj installation was already bootstrapped using "\
                         "#{config['ruby_executable']}, but you are currently running "\
@@ -53,7 +54,9 @@ module Autoproj
                 @ruby_executable = config['ruby_executable']
                 @local = false
 
-                install_gems_in_gem_user_dir
+                unless @gems_install_path
+                    install_gems_in_gem_user_dir
+                end
                 env['GEM_HOME'] = [gems_gem_home]
                 env['GEM_PATH'] = [gems_gem_home]
             end
