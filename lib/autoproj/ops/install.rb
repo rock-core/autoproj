@@ -40,8 +40,6 @@ module Autoproj
                 @env = Hash.new
                 env['RUBYOPT'] = []
                 env['RUBYLIB'] = []
-                env['GEM_PATH'] = []
-                env['GEM_HOME'] = []
                 env['PATH'] = self.class.sanitize_env(ENV['PATH'] || "")
                 env['BUNDLE_GEMFILE'] = []
 
@@ -56,6 +54,8 @@ module Autoproj
                 @local = false
 
                 install_gems_in_gem_user_dir
+                env['GEM_HOME'] = [gems_gem_home]
+                env['GEM_PATH'] = [gems_gem_home]
             end
 
             def env_for_child(env = self.env)
