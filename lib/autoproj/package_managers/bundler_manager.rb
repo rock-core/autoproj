@@ -170,7 +170,9 @@ module Autoproj
                 end
             end
 
-            def self.run_bundler_install(ws, gemfile, *options, update: true, binstubs: nil, gem_path: ws.config.gems_install_path)
+            def self.run_bundler_install(ws, gemfile, *options, update: true, binstubs: nil,
+			gem_home: ws.config.gems_gem_home,
+			gem_path: ws.config.gems_install_path)
                 if update && File.file?("#{gemfile}.lock")
                     FileUtils.rm "#{gemfile}.lock"
                 end
@@ -182,7 +184,7 @@ module Autoproj
                 end
 
                 connections = Set.new
-                run_bundler(ws, 'install', *options, gemfile: gemfile) do |line|
+                run_bundler(ws, 'install', *options, gem_home: gem_home, gemfile: gemfile) do |line|
                     case line
                     when /Installing (.*)/
                         Autobuild.message "  bundler: installing #{$1}"
@@ -196,18 +198,18 @@ module Autoproj
                 end
             end
 
-            def self.bundle_gem_path(ws, gem_name, gemfile: nil)
+            def self.bundle_gem_path(ws, gem_name, gem_home: nil, gemfile: nil)
                 path = String.new
-                PackageManagers::BundlerManager.run_bundler(ws, 'show', gem_name, gemfile: gemfile) do |line|
+                PackageManagers::BundlerManager.run_bundler(ws, 'show', gem_name, gem_home: gem_home, gemfile: gemfile) do |line|
                     path << line
                 end
                 path.chomp
             end
 
-            def self.run_bundler(ws, *commandline, gemfile: nil)
+            def self.run_bundler(ws, *commandline, gem_home: nil, gemfile: nil)
                 Bundler.with_clean_env do
                     target_env = Hash[
-                        'GEM_HOME' => nil,
+                        'GEM_HOME' => gem_home,
                         'GEM_PATH' => nil,
                         'BUNDLE_GEMFILE' => gemfile,
                         'RUBYOPT' => nil,

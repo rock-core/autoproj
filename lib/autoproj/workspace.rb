@@ -385,7 +385,7 @@ module Autoproj
             binstubs = File.join(dot_autoproj_dir, 'bin')
             if restart_on_update
                 old_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(
-                    self, 'autoproj', gemfile: gemfile)
+                    self, 'autoproj', gem_home: config.gems_gem_home, gemfile: gemfile)
             end
             begin
                 Autoproj.message "  updating autoproj"
@@ -396,7 +396,7 @@ module Autoproj
             end
             if restart_on_update
                 new_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(
-                    self, 'autoproj', gemfile: gemfile)
+                    self, 'autoproj', gem_home: config.gems_gem_home, gemfile: gemfile)
             end
 
             # First things first, see if we need to update ourselves
