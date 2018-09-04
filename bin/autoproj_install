@@ -424,6 +424,9 @@ if defined?(Bundler)
     end
 end
 ENV['BUNDLE_GEMFILE'] ||= '#{autoproj_gemfile_path}'
+ENV['GEM_HOME'] = '#{gems_gem_home}'
+ENV.delete('GEM_PATH')
+Gem.paths = Hash['GEM_HOME' => '#{gems_gem_home}', 'GEM_PATH' => '']
                 RESTART_BUNDLER
                 script_lines.join
             end
@@ -471,6 +474,7 @@ end
 
 ENV['BUNDLE_GEMFILE'] = '#{autoproj_gemfile_path}'
 ENV['AUTOPROJ_CURRENT_ROOT'] = '#{root_dir}'
+Gem.paths = Hash['GEM_HOME' => '#{gems_gem_home}', 'GEM_PATH' => '']
                 AUTOPROJ_PREAMBLE
                 return script_lines.join
             end
