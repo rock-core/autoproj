@@ -291,16 +291,18 @@ module Autoproj
             end
 
             def find_bundler(gem_program)
-                setup_path =
-                    IO.popen([env_for_child, Gem.ruby, gem_program, 'which', 'bundler/setup']) do |io|
+                setup_paths =
+                    IO.popen([env_for_child, Gem.ruby, gem_program, 'which','-a', 'bundler/setup']) do |io|
                         io.read
                     end
                 return unless $?.success?
-
                 bundler_path = File.join(gems_gem_home, 'bin', 'bundle')
-                if File.exist?(bundler_path) && setup_path.start_with?(gems_gem_home)
-                    bundler_path
+                setup_paths.each_line do |setup_path|
+                    if File.exist?(bundler_path) && setup_path.start_with?(gems_gem_home)
+                        return bundler_path
+                    end
                 end
+                return
             end
 
             def install_bundler(gem_program, silent: false)
