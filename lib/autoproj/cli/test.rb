@@ -60,7 +60,7 @@ module Autoproj
             def run(user_selection, deps: true)
                 initialize_and_load
                 packages, =
-                    finalize_setup(user_selection, recursive: deps)
+                    finalize_setup(user_selection, recursive: user_selection.empty? || deps)
                 packages.each do |pkg|
                     ws.manifest.find_autobuild_package(pkg).disable_phases('import', 'prepare', 'install')
                 end
