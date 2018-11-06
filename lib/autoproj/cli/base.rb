@@ -206,7 +206,14 @@ module Autoproj
             end
 
             def export_env_sh(shell_helpers: ws.config.shell_helpers?)
-                @env_sh_updated = ws.export_env_sh(shell_helpers: shell_helpers)
+                # @env_sh_updated == nil means "did not even export".
+                # make sure that it is set to 'true' or 'false'
+                @env_sh_updated =
+                    if ws.export_env_sh(shell_helpers: shell_helpers)
+                        true
+                    else
+                        false
+                    end
             end
 
             def notify_env_sh_updated
