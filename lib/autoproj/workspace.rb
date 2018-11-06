@@ -730,10 +730,13 @@ module Autoproj
         end
 
         # Export the workspace's env.sh file
+        #
+        # @return [Boolean] true if the environment has been changed, false otherwise
         def export_env_sh(package_names = nil, shell_helpers: true)
             full_env = self.full_env
-            save_cached_env(full_env)
+            changed = save_cached_env(full_env)
             full_env.export_env_sh(shell_helpers: shell_helpers)
+            changed
         end
 
         def save_cached_env(env = self.full_env)
