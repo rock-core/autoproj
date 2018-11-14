@@ -85,7 +85,7 @@ module Autoproj
                 elsif !File.directory?(pkg.srcdir)
                     package_status.msg << Autoproj.color("  is not imported yet", :magenta)
                 else
-                    begin status = importer.status(pkg, only_local)
+                    begin status = importer.status(pkg, only_local: only_local)
                     rescue StandardError => e
                         package_status.msg << Autoproj.color("  failed to fetch status information (#{e})", :red)
                         return package_status
@@ -227,7 +227,7 @@ module Autoproj
                     end
                 end
 
-                result = each_package_status(packages, parallel: parallel, progress: progress) do |pkg, status|
+                result = each_package_status(packages, only_local: only_local, parallel: parallel, progress: progress) do |pkg, status|
                     if spinner
                         spinner.stop
                         spinner = nil
