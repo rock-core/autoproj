@@ -141,7 +141,7 @@ module Autoproj
 
                 export_env_sh
 
-                if !options[:auto_exclude]
+                if !options[:auto_exclude] && !options[:ignore_errors]
                     if import_failure && configuration_import_failure
                         raise ImportFailed.new(configuration_import_failure.original_errors + import_failure.original_errors)
                     elsif import_failure

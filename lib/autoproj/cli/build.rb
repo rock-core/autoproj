@@ -27,7 +27,10 @@ module Autoproj
                     confirm: true
 
                 command_line_selection, source_packages, _osdep_packages =
-                    super(selected_packages, options.merge(checkout_only: true))
+                    super(selected_packages,
+                          ignore_errors: options[:keep_going],
+                          checkout_only: true,
+                          **options)
 
                 parallel = build_options[:parallel] || ws.config.parallel_build_level
 
