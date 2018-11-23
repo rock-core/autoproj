@@ -73,6 +73,15 @@ module Autoproj
                 end
             end
 
+            def report_exception(package_status, msg, e)
+                package_status.msg << Autoproj.color("  #{msg} (#{e})", :red)
+                if Autobuild.debug
+                    package_status.msg.concat(e.backtrace.map do |line|
+                        Autoproj.color("    #{line}", :red)
+                    end)
+                end
+            end
+
             PackageStatus = Struct.new :msg, :sync, :uncommitted, :local, :remote
             def status_of_package(package_description, only_local: false, snapshot: false)
                 pkg = package_description.autobuild
@@ -85,9 +94,9 @@ module Autoproj
                 elsif !File.directory?(pkg.srcdir)
                     package_status.msg << Autoproj.color("  is not imported yet", :magenta)
                 else
-                    begin status = importer.status(pkg, only_local)
+                    begin status = importer.status(pkg, only_local: only_local)
                     rescue StandardError => e
-                        package_status.msg << Autoproj.color("  failed to fetch status information (#{e})", :red)
+                        report_exception(package_status, "failed to fetch status information", e)
                         return package_status
                     end
 
@@ -99,7 +108,7 @@ module Autoproj
                             rescue Autobuild::PackageException
                                 Hash.new
                             rescue StandardError => e
-                                package_status.msg << Autoproj.color("  failed to fetch snapshotting information (#{e})", :red)
+                                report_exception(package_status, "failed to fetch snapshotting information", e)
                                 return package_status
                             end
                         if snapshot_overrides_vcs?(importer, package_description.vcs, snapshot_version)
@@ -227,7 +236,7 @@ module Autoproj
                     end
                 end
 
-                result = each_package_status(packages, parallel: parallel, progress: progress) do |pkg, status|
+                result = each_package_status(packages, only_local: only_local, parallel: parallel, progress: progress) do |pkg, status|
                     if spinner
                         spinner.stop
                         spinner = nil
