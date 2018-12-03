@@ -8,13 +8,13 @@ module Autoproj
             def initialize(ws, status_file = "/var/lib/dpkg/status")
                 @status_file = status_file
                 @installed_packages = nil
-                @installed_versions = {}
+                @installed_versions = nil
                 super(ws, true,
                       %w{apt-get install},
                       %w{DEBIAN_FRONTEND=noninteractive apt-get install -y})
             end
 
-            def self.parse_package_status(installed_packages, paragraph, installed_versions: {})
+            def self.parse_package_status(installed_packages, installed_versions, paragraph)
                 if paragraph =~ /^Status: install ok installed$/
                     if paragraph =~ /^Package: (.*)$/
                         package_name = $1
@@ -29,8 +29,9 @@ module Autoproj
                 end
             end
 
-            def self.parse_dpkg_status(status_file, installed_versions: {})
+            def self.parse_dpkg_status(status_file)
                 installed_packages = Set.new
+                installed_versions = {}
                 dpkg_status = File.read(status_file)
                 dpkg_status << "\n"
 
@@ -41,10 +42,10 @@ module Autoproj
 
                 while paragraph_end = dpkg_status.scan_until(/Package: /)
                     paragraph = "Package: #{paragraph_end[0..-10]}"
-                    parse_package_status(installed_packages, paragraph, installed_versions: installed_versions)
+                    parse_package_status(installed_packages, installed_versions, paragraph)
                 end
-                parse_package_status(installed_packages, "Package: #{dpkg_status.rest}")
-                installed_packages
+                parse_package_status(installed_packages, installed_versions, "Package: #{dpkg_status.rest}")
+                [installed_packages, installed_versions]
             end
 
             def self.parse_apt_cache_paragraph(paragraph)
@@ -104,12 +105,12 @@ module Autoproj
                 [epoch, upstream_version, debian_revision]
             end
 
-            def alpha?(lookAhead)
-                lookAhead =~ /[[:alpha:]]/
+            def alpha?(look_ahead)
+                look_ahead =~ /[[:alpha:]]/
             end
 
-            def digit?(lookAhead)
-                lookAhead =~ /[[:digit:]]/
+            def digit?(look_ahead)
+                look_ahead =~ /[[:digit:]]/
             end
 
             def order(c)
@@ -188,13 +189,14 @@ module Autoproj
                 # Consider up-to-date if the package is provided by another package (purely virtual)
                 # Ideally, we should check the version of the package that provides it
                 return true unless available_version && @installed_versions[package]
+
                 compare_version(available_version, @installed_versions[package]) != GREATER
             end
 
             # On a dpkg-enabled system, checks if the provided package is installed
             # and returns true if it is the case
             def installed?(package_name, filter_uptodate_packages: false, install_only: false)
-                @installed_packages ||= AptDpkgManager.parse_dpkg_status(status_file, installed_versions: @installed_versions)
+                @installed_packages, @installed_versions = AptDpkgManager.parse_dpkg_status(status_file) unless @installed_packages && @installed_versions
                 if package_name =~ /^(\w[a-z0-9+-.]+)/
                     @installed_packages.include?($1)
                 else
@@ -202,7 +204,7 @@ module Autoproj
                     false
                 end
             end
-            
+
             def install(packages, filter_uptodate_packages: false, install_only: false)
                 packages_versions = AptDpkgManager.parse_packages_versions(packages)
                 if filter_uptodate_packages || install_only
