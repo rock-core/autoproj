@@ -285,7 +285,11 @@ module Autoproj
                 end
 
                 prompt = TTY::Prompt.new
-                prompt.select("Select the log file", choices)
+                begin
+                    prompt.select("Select the log file", choices)
+                rescue TTY::Reader::InputInterrupt
+                    raise Interrupt
+                end
             end
         end
     end
