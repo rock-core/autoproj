@@ -41,6 +41,11 @@ module Autoproj
                 false
             end
 
+            # If this package manager depends on OS packages, they should be added here
+            def os_dependencies
+                []
+            end
+
             # Create a package manager
             #
             # @param [Workspace] ws the underlying workspace
