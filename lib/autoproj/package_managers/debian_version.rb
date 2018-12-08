@@ -1,6 +1,6 @@
 module Autoproj
     module PackageManagers
-    class DebianVersion
+        class DebianVersion
             attr_reader :version
             attr_reader :epoch
             attr_reader :upstream_version
@@ -20,7 +20,7 @@ module Autoproj
             def <=>(b)
                 (0..2).inject(0) do |result, i|
                     return result unless result == 0
-                normalize(compare_fragments(self.split[i], b.split[i]))
+                    normalize(compare_fragments(self.split[i], b.split[i]))
                 end
             end
 
