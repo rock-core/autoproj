@@ -11,9 +11,25 @@ module Autoproj
                 @status_file = status_file
                 @installed_packages = nil
                 @installed_versions = nil
+                @ws = ws
                 super(ws, true,
                       %w{apt-get install},
                       %w{DEBIAN_FRONTEND=noninteractive apt-get install -y})
+            end
+
+            def configure_manager
+                @ws.config.declare 'apt_dpkg_update', 'boolean',
+                    default: 'yes',
+                    doc: ['Would you like autoproj to keep apt packages up-to-date?']
+                keep_uptodate?
+            end
+
+            def keep_uptodate?
+                @ws.config.get('apt_dpkg_update')
+            end
+
+            def keep_uptodate=(flag)
+                @ws.config.set('apt_dpkg_update', flag, true)
             end
 
             def self.parse_package_status(installed_packages, installed_versions, paragraph)
@@ -103,7 +119,7 @@ module Autoproj
                 packages_versions = self.class.parse_packages_versions(packages)
                 if filter_uptodate_packages || install_only
                     packages = packages.find_all do |package_name|
-                        !installed?(package_name) || !updated?(package_name, packages_versions[package_name])
+                        !installed?(package_name) || (keep_uptodate? && !updated?(package_name, packages_versions[package_name]))
                     end
                 end
 

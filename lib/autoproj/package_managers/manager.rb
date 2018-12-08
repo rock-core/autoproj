@@ -56,6 +56,10 @@ module Autoproj
             # This is e.g. needed for python pip or rubygems
             def initialize_environment
             end
+
+            # Perform additional configuration required for the package manager
+            def configure_manager
+            end
         end
     end
 end
