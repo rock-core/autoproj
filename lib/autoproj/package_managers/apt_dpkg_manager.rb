@@ -17,6 +17,7 @@ module Autoproj
             end
 
             def configure_manager
+                super
                 ws.config.declare 'apt_dpkg_update', 'boolean',
                     default: 'yes',
                     doc: ['Would you like autoproj to keep apt packages up-to-date?']
