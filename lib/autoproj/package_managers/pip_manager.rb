@@ -20,6 +20,10 @@ module Autoproj
                 @installed_pips = Set.new
             end
 
+            def os_dependencies
+                super + ['pip']
+            end
+
             def guess_pip_program
                 if Autobuild.programs['pip']
                     return Autobuild.programs['pip']
