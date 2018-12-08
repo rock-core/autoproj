@@ -38,15 +38,14 @@ module Autoproj
                 assert !mng.installed?('non-existent-package')
             end
 
-            LESS = Autoproj::PackageManagers::AptDpkgManager::LESS
-            EQUAL = Autoproj::PackageManagers::AptDpkgManager::EQUAL
-            GREATER = Autoproj::PackageManagers::AptDpkgManager::GREATER
+            LESS = :<
+            EQUAL = :==
+            GREATER = :>
 
-            def assert_version(a, result, b)
-                ws = flexmock
-                mng = Autoproj::PackageManagers::AptDpkgManager.new(ws)
-
-                assert_equal result, mng.compare_version(a, b)
+            def assert_version(a, operator, b)
+                a = Autoproj::PackageManagers::DebianVersion.new(a)
+                b = Autoproj::PackageManagers::DebianVersion.new(b)
+                assert_operator(a, operator, b)
             end
 
             # Tests extracted from https://github.com/Debian/apt/blob/master/test/libapt/compareversion_test.cc
