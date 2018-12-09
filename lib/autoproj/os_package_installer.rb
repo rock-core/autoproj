@@ -380,8 +380,10 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
 
                 partitioned_packages[manager] = manager_packages
             end
+            resolve_managers_dependencies(partitioned_packages)
+        end
 
-            # Add manager dependencies
+        def resolve_managers_dependencies(partitioned_packages)
             partitioned_packages.clone.each do |manager, packages|
                 # Skip if the manager is not being used
                 next if packages&.empty?
@@ -392,11 +394,15 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
                     deps = manager_dependencies.fetch(nested_manager, Set.new).to_set
                     next if deps.empty?
 
-                    partitioned_packages[nested_manager] ||= Set.new
+                    unless partitioned_packages[nested_manager]
+                        partitioned_packages[nested_manager] = Set.new
+                        enable_recursion = true
+                    end
+
                     partitioned_packages[nested_manager] += deps
+                    partitioned_packages = resolve_managers_dependencies(partitioned_packages) if enable_recursion
                end
             end
-
             partitioned_packages
         end
 
