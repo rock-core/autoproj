@@ -160,6 +160,7 @@ pip:
   opensuse: python-pip
   fedora: python-pip
   freebsd: pip
+  default: ignore # assume pip will be installed by the user
 
 sudo:
   macos-brew: ignore

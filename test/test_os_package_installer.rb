@@ -67,6 +67,38 @@ module Autoproj
                 assert_equal Hash.new, os_package_installer.
                     resolve_and_partition_osdep_packages([])
             end
+            it "adds manager's os dependencies to packages" do
+                ws_define_osdep_entries 'dependency' => Hash['os' => 'dependency_pkg']
+                ws_define_osdep_entries 'pkg2' => Hash['os_indep' => 'pkg2']
+
+                os_indep_manager.should_receive(:os_dependencies).and_return(['dependency'])
+                assert_equal Hash[os_manager => Set['os:pkg0', 'dependency_pkg'], os_indep_manager => Set['pkg2']],
+                    os_package_installer.resolve_and_partition_osdep_packages(['pkg0', 'pkg2'])
+            end
+            it "returns the manager's dependencies" do
+                ws_define_osdep_entries 'dependency' => Hash['os' => 'dependency_pkg']
+                ws_define_osdep_entries 'pkg2' => Hash['os_indep' => 'pkg2']
+
+                os_indep_manager.should_receive(:os_dependencies).and_return(['dependency'])
+                assert_equal Hash[os_manager => Set['dependency_pkg'], os_indep_manager => Set['pkg2']],
+                    os_package_installer.resolve_and_partition_osdep_packages(['pkg2'])
+            end
+            it "resolves manager's dependencies recursively" do
+                ws_define_osdep_entries 'dependency' => Hash['os' => 'dependency_pkg']
+                ws_define_osdep_entries 'dependency-foo' => Hash['os_indep' => 'dependency_foo']
+
+                os_indep_manager.should_receive(:os_dependencies).and_return(['dependency'])
+                os_manager.should_receive(:os_dependencies).and_return(['dependency-foo'])
+                assert_equal Hash[os_manager => Set['dependency_pkg', 'os:pkg0'], os_indep_manager => Set['dependency_foo']],
+                    os_package_installer.resolve_and_partition_osdep_packages(['pkg0'])
+            end
+            it "does not add manager's os dependencies if manager not being used" do
+                ws_define_osdep_entries 'dependency' => Hash['os' => 'dependency_pkg']
+
+                os_indep_manager.should_receive(:os_dependencies).and_return(['dependency'])
+                assert_equal Hash[os_manager => Set['os:pkg0']],
+                    os_package_installer.resolve_and_partition_osdep_packages(['pkg0'])
+            end
         end
         describe "#install" do
             it "installs the resolved packages" do

@@ -380,6 +380,29 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
 
                 partitioned_packages[manager] = manager_packages
             end
+            resolve_managers_dependencies(partitioned_packages)
+        end
+
+        def resolve_managers_dependencies(partitioned_packages)
+            partitioned_packages.clone.each do |manager, packages|
+                # Skip if the manager is not being used
+                next if packages&.empty?
+
+                manager_dependencies = os_package_resolver.resolve_os_packages(manager.os_dependencies)
+                manager_dependencies = resolve_package_managers_in_mapping(manager_dependencies)
+                manager_dependencies.each_key do |nested_manager|
+                    deps = manager_dependencies.fetch(nested_manager, Set.new).to_set
+                    next if deps.empty?
+
+                    unless partitioned_packages[nested_manager]
+                        partitioned_packages[nested_manager] = Set.new
+                        enable_recursion = true
+                    end
+
+                    partitioned_packages[nested_manager] += deps
+                    partitioned_packages = resolve_managers_dependencies(partitioned_packages) if enable_recursion
+               end
+            end
             partitioned_packages
         end
 
