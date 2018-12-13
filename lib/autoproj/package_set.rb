@@ -64,9 +64,20 @@ module Autoproj
         #   and the corresponding OSPackageResolver object
         attr_reader :all_osdeps
 
+        # The set of OSRepositoryResolver object that represent the osrepos files
+        # available in this package set
+        #
+        # @return [Array<(String,OSRepositoryResolver)>] the list of osdep files
+        #   and the corresponding OSRepositoryResolver object
+        attr_reader :all_osrepos
+
         # The OSPackageResolver which is a merged version of all OSdeps in
         # {#all_osdeps}
         attr_reader :os_package_resolver
+
+        # The OSRepositoryResolver which is a merged version of all OSrepos in
+        # {#all_osrepos}
+        attr_reader :os_repository_resolver
 
         # If this package set has been imported from another package set, this
         # is the other package set object
@@ -144,12 +155,14 @@ module Autoproj
                 raise ArgumentError, "cannot create a package set with a nil vcs, create a null VCS using VCSDefinition.none"
             end
             @name = name
+            @os_repository_resolver = OSRepositoryResolver.new
             @os_package_resolver = OSPackageResolver.new(
                 operating_system: ws.os_package_resolver.operating_system,
                 package_managers: ws.os_package_resolver.package_managers,
                 os_package_manager: ws.os_package_resolver.os_package_manager)
             @importer_definitions_cache = Hash.new
             @all_osdeps = []
+            @all_osrepos = []
             @constants_definitions = Hash.new
             @required_autoproj_version = '0'
             @version_control = Array.new
@@ -175,9 +188,22 @@ module Autoproj
             new_osdeps
         end
 
+        # Load a new osrepos file for this package set
+        def load_osrepos(file)
+            new_osrepos = OSRepositoryResolver.load(file)
+            all_osrepos << new_osrepos
+            os_repository_resolver.merge(all_osrepos.last)
+            new_osrepos
+        end
+
         # Enumerate all osdeps package names from this package set
         def each_osdep(&block)
             os_package_resolver.all_package_names.each(&block)
+        end
+
+        # Enumerate all osrepos entries from this package set
+        def each_osrepo(&block)
+            os_repository_resolver.all_entries.each(&block)
         end
 
         # True if this source has already been checked out on the local autoproj
@@ -759,6 +785,15 @@ module Autoproj
         def each_osdeps_file
             return enum_for(__method__) if !block_given?
             Dir.glob(File.join(local_dir, "*.osdeps")).each do |file|
+                yield(file)
+            end
+        end
+
+        # Yields each osdeps definition files that are present in this package
+        # set
+        def each_osrepos_file
+            return enum_for(__method__) if !block_given?
+            Dir.glob(File.join(local_dir, "*.osrepos")).each do |file|
                 yield(file)
             end
         end
