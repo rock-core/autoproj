@@ -23,6 +23,7 @@ module Autoproj
 
         attr_reader :loader
 
+        attr_reader :os_repository_resolver
         attr_reader :os_package_resolver
         attr_reader :os_package_installer
 
@@ -51,7 +52,8 @@ module Autoproj
 
         def initialize(root_dir,
                        os_package_resolver: OSPackageResolver.new,
-                       package_managers: OSPackageInstaller::PACKAGE_MANAGERS)
+                       package_managers: OSPackageInstaller::PACKAGE_MANAGERS,
+                       os_repository_resolver: OSRepositoryResolver.new(operating_system: os_package_resolver.operating_system))
             @root_dir = root_dir
             @root_path = Pathname.new(root_dir)
             @ruby_version_keyword = "ruby#{RUBY_VERSION.split('.')[0, 2].join("")}"
@@ -62,6 +64,7 @@ module Autoproj
             env.prepare(root_dir)
             env.source_before(File.join(dot_autoproj_dir, 'env.sh'))
 
+            @os_repository_resolver = os_repository_resolver
             @os_package_resolver = os_package_resolver
             @manifest = Manifest.new(self, os_package_resolver: os_package_resolver)
             @config = Configuration.new(config_file_path)
@@ -247,6 +250,7 @@ module Autoproj
 
                 os_package_resolver.prefer_indep_over_os_packages = config.prefer_indep_over_os_packages?
                 os_package_resolver.operating_system ||= config.get('operating_system', nil)
+                os_repository_resolver.operating_system ||= config.get('operating_system', nil)
             end
             @config
         end
@@ -262,6 +266,7 @@ module Autoproj
                         "autodetecting the operating system"
                     names, versions = OSPackageResolver.autodetect_operating_system
                     os_package_resolver.operating_system = [names, versions]
+                    os_repository_resolver.operating_system = [names, versions]
                     Autobuild.progress :operating_system_autodetection,
                         "operating system: #{(names - ['default']).join(",")} - #{(versions - ['default']).join(",")}"
                 ensure
