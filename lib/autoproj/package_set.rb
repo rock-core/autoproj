@@ -5,7 +5,7 @@ module Autoproj
     # dependencies that are provided by the operating system (.osdeps file).
     class PackageSet
         # Exception raised when an operation that needs the source.yml to be
-        # loaded is called before {PackageSet#load_description_file} is called 
+        # loaded is called before {PackageSet#load_description_file} is called
         class NotLoaded < RuntimeError
             attr_reader :package_set
             def initialize(package_set)
@@ -34,7 +34,7 @@ module Autoproj
 
         # The manifest this package set is registered on
         #
-        # @return [Manifest] 
+        # @return [Manifest]
         def manifest
             ws.manifest
         end
@@ -302,7 +302,7 @@ module Autoproj
         # For local sources, is simply returns the path to the source directory.
         def user_local_dir
             if local?
-                return vcs.url 
+                return vcs.url
             else
                 File.join(ws.config_dir, 'remotes', name)
             end
@@ -714,7 +714,7 @@ module Autoproj
         # This is a helper for {#overrides_for}
         def resolve_overrides(key, vcs)
             overrides.each do |file, file_overrides|
-                new_spec, new_raw_entry = 
+                new_spec, new_raw_entry =
                     Autoproj.in_file file do
                         version_control_field(key, file_overrides, validate: false, file: file)
                     end
