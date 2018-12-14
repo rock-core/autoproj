@@ -287,6 +287,7 @@ module Autoproj
             os_package_resolver.load_default
             os_package_installer.define_osdeps_mode_option
             os_package_installer.osdeps_mode
+            os_package_installer.configure_manager
         end
 
         def setup_ruby_version_handling

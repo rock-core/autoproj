@@ -188,6 +188,10 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             modes
         end
 
+        def configure_manager
+            os_package_manager.configure_manager if osdeps_mode.include?('os')
+        end
+
         # If set to true (the default), #install will try to remove the list of
         # already uptodate packages from the installed packages. Set to false to
         # install all packages regardless of their status
