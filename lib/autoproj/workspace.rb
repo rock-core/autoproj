@@ -788,6 +788,8 @@ module Autoproj
         end
 
         def install_os_repositories
+            return unless os_package_installer.osdeps_mode.include?('os')
+
             os_repository_installer.install_os_repositories
         end
 
