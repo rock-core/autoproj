@@ -44,7 +44,7 @@ module Autoproj
                     (options[:autoproj] || (
                         options[:autoproj] != false &&
                         !has_explicit_selection &&
-                        !options[:config] && 
+                        !options[:config] &&
                         !options[:checkout_only])
                     )
 
@@ -106,7 +106,7 @@ module Autoproj
                     osdeps: options[:osdeps],
                     osdeps_filter_uptodate: options[:osdeps_filter_uptodate])
 
-                source_packages, osdep_packages, import_failure = 
+                source_packages, osdep_packages, import_failure =
                     update_packages(
                         selected_packages,
                         osdeps: options[:osdeps], osdeps_options: osdeps_options,
@@ -198,7 +198,7 @@ module Autoproj
                 end
 
                 ops = Autoproj::Ops::Import.new(ws)
-                source_packages, osdep_packages = 
+                source_packages, osdep_packages =
                         ops.import_packages(selected_packages,
                                         checkout_only: checkout_only,
                                         only_local: only_local,
