@@ -17,6 +17,10 @@ module Autoproj
 
             def install(definitions)
             end
+
+            def os_dependencies
+                []
+            end
         end
     end
 end

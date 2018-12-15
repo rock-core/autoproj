@@ -23,6 +23,10 @@ module Autoproj
                 super(ws)
             end
 
+            def os_dependencies
+                super + ['archive-keyring', 'gnupg', 'apt-transport-https']
+            end
+
             def load_sources_from_file(file)
                 contents = File.open(file).read
                 contents.gsub!(/\r\n?/, "\n")

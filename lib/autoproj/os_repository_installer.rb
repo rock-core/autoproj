@@ -43,6 +43,10 @@ module Autoproj
         end
 
         def install_os_repositories
+            return if os_repository_resolver.resolved_entries.empty?
+
+            deps = os_repository_manager.os_dependencies
+            ws.install_os_packages(deps, all: nil) unless deps.empty?
             os_repository_manager.install(os_repository_resolver.resolved_entries)
         end
     end
