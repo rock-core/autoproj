@@ -24,6 +24,7 @@ module Autoproj
 
                 shell_helpers = options.fetch(:shell_helpers, ws.config.shell_helpers?)
 
+                ws.install_os_repositories
                 ws.install_os_packages(
                     osdep_packages,
                     run_package_managers_without_packages: true,
