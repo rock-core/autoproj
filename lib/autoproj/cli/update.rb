@@ -124,6 +124,7 @@ module Autoproj
                 ws.export_installation_manifest
 
                 if options[:osdeps] && !osdep_packages.empty?
+                    ws.install_os_repositories
                     ws.install_os_packages(osdep_packages, **osdeps_options)
                 end
 
