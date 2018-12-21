@@ -10,13 +10,17 @@ module Autoproj
         class APT < Manager
             attr_reader :source_files
             attr_reader :source_entries
+            attr_reader :sources_dir
+            attr_reader :autoproj_sources
 
             SOURCES_DIR = '/etc/apt'.freeze
             SOURCE_TYPES = ['deb', 'deb-src'].freeze
             AUTOPROJ_SOURCES = '/etc/apt/sources.list.d/autoproj.list'.freeze
 
-            def initialize(ws)
-                @source_files = Dir[File.join(SOURCES_DIR, '**', '*.list')]
+            def initialize(ws, sources_dir: SOURCES_DIR, autoproj_sources: AUTOPROJ_SOURCES)
+                @sources_dir = sources_dir
+                @autoproj_sources = autoproj_sources
+                @source_files = Dir[File.join(sources_dir, '**', '*.list')]
                 @source_entries = {}
 
                 source_files.each { |file| load_sources_from_file(file) }
@@ -70,9 +74,9 @@ module Autoproj
 
             def add_source(source, file = nil)
                 file = if file
-                           File.join(SOURCES_DIR, 'sources.list.d', file)
+                           File.join(sources_dir, 'sources.list.d', file)
                        else
-                           AUTOPROJ_SOURCES
+                           autoproj_sources
                        end
 
                 new_entry = parse_source_line(source)
@@ -163,7 +167,7 @@ module Autoproj
                         '--keyserver',
                         origin,
                         '--recv-key',
-                        id,
+                        id
                     )
                 else
                     open(origin) do |io|
