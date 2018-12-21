@@ -118,6 +118,8 @@ module Autoproj
         def self.verify_release(array, path = [])
             verify_type(array, Array, path)
             array.each do |entry|
+                verify_type(entry, Hash, path)
+
                 release = entry.first
                 verify_type(release[0], String, path)
                 verify_type(release[1], NilClass, path)
