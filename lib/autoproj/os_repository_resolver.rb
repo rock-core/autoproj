@@ -45,10 +45,6 @@ module Autoproj
             end
         end
 
-        def add_entries(entries, file: nil)
-            merge(self.class.new(entries, file))
-        end
-
         def merge(info)
             @all_definitions += info.all_definitions
         end
