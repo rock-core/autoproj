@@ -166,4 +166,17 @@ sudo:
   macos-brew: ignore
   default: sudo
 
+archive-keyring:
+  ubuntu: ubuntu-keyring
+  debian: debian-archive-keyring
+  default: ignore
+
+gnupg:
+  ubuntu,debian: gnupg
+  default: ignore
+
+apt-transport-https:
+  ubuntu,debian: apt-transport-https
+  default: ignore
+
 # vim: expandtab

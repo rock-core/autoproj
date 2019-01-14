@@ -281,6 +281,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
                 dir, os_package_resolver: ws_os_package_resolver,
                      package_managers: ws_package_managers)
             ws.config.set 'osdeps_mode', 'all'
+            ws.config.set 'apt_dpkg_update', true
             ws.config.set 'GITHUB', 'http,ssh', true
             ws.config.set 'GITORIOUS', 'http,ssh', true
             ws.config.set 'gems_install_path', File.join(dir, 'gems')

@@ -464,6 +464,9 @@ module Autoproj
                 end
             end
 
+            # Loads OS repository definitions once and for all
+            load_osrepos_from_package_sets
+
             # Loads OS package definitions once and for all
             load_osdeps_from_package_sets
 
@@ -576,6 +579,21 @@ module Autoproj
                     file_osdeps = pkg_set.load_osdeps(
                         file, operating_system: ws.operating_system)
                     ws.os_package_resolver.merge(file_osdeps)
+                end
+            end
+        end
+
+        # Load OS repository information contained in our registered package
+        # sets into the provided osrepo object
+        #
+        # This is included in {load_package_sets}
+        #
+        # @return [void]
+        def load_osrepos_from_package_sets
+            ws.manifest.each_package_set do |pkg_set|
+                pkg_set.each_osrepos_file do |file|
+                    file_osrepos = pkg_set.load_osrepos(file)
+                    ws.os_repository_resolver.merge(file_osrepos)
                 end
             end
         end

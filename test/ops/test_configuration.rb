@@ -408,6 +408,9 @@ module Autoproj
                     File.open(File.join(ws.config_dir, 'test.osdeps'), 'w') do |io|
                         YAML.dump(Hash.new, io)
                     end
+                    File.open(File.join(ws.config_dir, 'test.osrepos'), 'w') do |io|
+                        YAML.dump([], io)
+                    end
                     File.open(File.join(ws.config_dir, 'overrides.yml'), 'w') do |io|
                         YAML.dump(Hash['version_control' => Array.new, 'overrides' => Array.new], io)
                     end
@@ -447,6 +450,16 @@ module Autoproj
                         at_least.once.and_return(osdep = flexmock)
                     flexmock(ws.os_package_resolver).
                         should_receive(:merge).with(osdep).at_least.once
+
+                    ops.load_package_set_information
+                end
+                it 'loads the osrepos files' do
+                    flexmock(ws.manifest.each_package_set.first)
+                        .should_receive(:load_osrepos)
+                        .with(File.join(ws.config_dir, 'test.osrepos'))
+                        .at_least.once.and_return(osrepo = flexmock)
+                    flexmock(ws.os_repository_resolver)
+                        .should_receive(:merge).with(osrepo).at_least.once
 
                     ops.load_package_set_information
                 end
