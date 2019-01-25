@@ -213,7 +213,7 @@ module Autoproj
                         'GEM_PATH' => nil,
                         'BUNDLE_GEMFILE' => gemfile,
                         'RUBYOPT' => nil,
-                        'RUBYLIB' => nil
+                        'RUBYLIB' => rubylib_for_bundler
                     ]
                     ws.run 'autoproj', 'osdeps',
                         Autobuild.tool('bundle'), *commandline,
@@ -388,6 +388,11 @@ module Autoproj
                 end
             end
 
+            def self.rubylib_for_bundler
+                rx = Regexp.new("/gems/#{Regexp.quote("bundler-#{Bundler::VERSION}")}/")
+                $LOAD_PATH.grep(rx).join(File::PATH_SEPARATOR)
+            end
+
             def discover_bundle_rubylib(silent_errors: false)
                 require 'bundler'
                 gemfile = File.join(ws.prefix_dir, 'gems', 'Gemfile')
@@ -398,7 +403,9 @@ module Autoproj
                 env = ws.env.resolved_env
                 Tempfile.open 'autoproj-rubylib' do |io|
                     result = Bundler.clean_system(
-                        Hash['GEM_HOME' => env['GEM_HOME'], 'GEM_PATH' => env['GEM_PATH'], 'BUNDLE_GEMFILE' => gemfile, 'RUBYOPT' => nil, 'RUBYLIB' => nil],
+                        Hash['GEM_HOME' => env['GEM_HOME'], 'GEM_PATH' => env['GEM_PATH'],
+                             'BUNDLE_GEMFILE' => gemfile, 'RUBYOPT' => nil,
+                             'RUBYLIB' => self.class.rubylib_for_bundler],
                         Autobuild.tool('ruby'), '-rbundler/setup', '-e', 'puts $LOAD_PATH',
                         out: io, **silent_redirect)
                         
