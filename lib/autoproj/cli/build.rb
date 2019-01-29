@@ -80,7 +80,6 @@ module Autoproj
 
                 Autobuild.do_build = true
                 ops.build_packages(source_packages, parallel: parallel)
-                Autobuild.apply(source_packages, "autoproj-build", ['install'])
                 Main.run_post_command_hook(:build, ws, source_packages: source_packages)
             ensure
                 export_env_sh
