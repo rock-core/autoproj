@@ -50,6 +50,35 @@ module Autoproj
                 selection.empty?
             end
 
+            # Returns the source packages selected explicitely or through
+            # dependencies
+            #
+            # @param [Manifest] manifest
+            # @return [Array<PackageDefinition>]
+            def all_selected_source_packages(manifest)
+                names = Set.new
+                roots = each_source_package_name.to_set
+                roots.each do |pkg_name|
+                    manifest.find_autobuild_package(pkg_name).all_dependencies(names)
+                end
+                names.merge(roots).map do |pkg_name|
+                    manifest.find_package_definition(pkg_name)
+                end
+            end
+
+            # Returns the source packages selected explicitely or through
+            # dependencies
+            #
+            # @param [Manifest] manifest
+            # @return [Array<String>]
+            def all_selected_osdep_packages(manifest)
+                all_sources = all_selected_source_packages(manifest)
+                from_source = all_sources.each_with_object(Set.new) do |pkg, s|
+                    s.merge(pkg.autobuild.os_packages)
+                end
+                from_source | osdeps
+            end
+
             def each(&block)
                 Autoproj.warn_deprecated "PackageSelection#each", "use PackageSelection#each_source_package_name instead", 0
                 each_source_package_name(&block)
@@ -78,27 +107,24 @@ module Autoproj
                 source_packages
             end
 
-            def select(sel, packages, options = Hash.new)
-                if !options.kind_of?(Hash)
+            def select(sel, packages, *_backward, weak: false, osdep: false)
+                unless _backward.empty?
                     Autoproj.warn_deprecated "calling PackageSelection#select with a boolean as third argument", "use e.g. weak: true instead", 0
-                    options = Hash[weak: options]
+                    weak = _backward.first
                 end
-                options = Kernel.validate_options options,
-                    weak: false,
-                    osdep: false
 
                 packages = Array(packages).to_set
                 matches[sel].merge(packages)
                 packages.each do |pkg_name|
                     selection[pkg_name] << sel
                 end
-                if options[:osdep]
+                if osdep
                     osdeps.merge(packages)
                 else
                     source_packages.merge(packages)
                 end
 
-                weak_dependencies[sel] = options[:weak]
+                weak_dependencies[sel] = weak
             end
 
             def initialize_copy(old)
@@ -160,10 +186,10 @@ module Autoproj
                     end
                 end
 
-                source_packages.delete_if do |pkg_name| 
+                source_packages.delete_if do |pkg_name|
                     manifest.excluded?(pkg_name) || manifest.ignored?(pkg_name)
                 end
-                osdeps.delete_if do |pkg_name| 
+                osdeps.delete_if do |pkg_name|
                     manifest.excluded?(pkg_name) || manifest.ignored?(pkg_name)
                 end
                 selection.delete_if do |pkg_name, _|

@@ -109,7 +109,8 @@ module Autoproj
                 source_packages, osdep_packages, import_failure =
                     update_packages(
                         selected_packages,
-                        osdeps: options[:osdeps], osdeps_options: osdeps_options,
+                        osdeps: options[:osdeps],
+                        osdeps_options: osdeps_options,
                         from: options[:from],
                         checkout_only: options[:checkout_only],
                         only_local: options[:only_local],

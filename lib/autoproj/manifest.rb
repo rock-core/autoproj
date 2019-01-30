@@ -892,16 +892,14 @@ module Autoproj
         #
         # @return [Array<PackageDefinition>]
         def all_selected_source_packages(validate = true)
-            result = Set.new
-            selection = default_packages(validate)
+            default_packages(validate).all_selected_source_packages(self)
+        end
 
-            root_sources = selection.each_source_package_name.to_set
-            root_sources.each do |pkg_name|
-                find_autobuild_package(pkg_name).all_dependencies(result)
-            end
-            result.merge(root_sources).map do |pkg_name|
-                find_package_definition(pkg_name)
-            end
+        # Returns the set of osdep packages that are selected by the layout
+        #
+        # @return [Array<String>]
+        def all_selected_osdep_packages(validate = true)
+            default_packages(validate).all_selected_osdep_packages(self)
         end
 
         # Returns the set of packages that are selected by the layout
