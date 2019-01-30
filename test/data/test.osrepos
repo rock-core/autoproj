@@ -1,4 +1,4 @@
 ---
 - ubuntu:
    - xenial:
-     type: repo
+     - type: repo
