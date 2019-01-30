@@ -96,7 +96,6 @@ module Autoproj
                 end
             end
 
-            TEMPLATES_DIR = File.join(File.dirname(__dir__), 'templates')
             REPORT_BASENAME = "build_report.json"
 
             # The path to the report file
@@ -108,9 +107,24 @@ module Autoproj
             end
 
             def build_report(package_list)
-                erb = File.read(File.join(TEMPLATES_DIR, "build_report_helper.erb"))
                 FileUtils.mkdir_p @report_dir
-                IO.write(report_path, ::ERB.new(erb, nil, '-').result(binding))
+
+                packages = package_list.map do |pkg_name|
+                    pkg = Autobuild::Package[pkg_name]
+                    {
+                        name: pkg.name,
+                        import_invoked: pkg.import_invoked?,
+                        prepare_invoked: pkg.prepare_invoked?,
+                        build_invoked: pkg.build_invoked?,
+                        failed: pkg.failed?,
+                        imported: pkg.imported?,
+                        prepared: pkg.prepared?,
+                        built: pkg.built?
+                    }
+                end
+
+                build_report = JSON.pretty_generate({ build_report: { timestamp: Time.now, packages: packages }})
+                IO.write(report_path, build_report)
             end
         end
     end

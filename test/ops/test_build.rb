@@ -39,13 +39,13 @@ module Autoproj
             def expected_package(pkg_name)
                 Hash[
                  'name' => pkg_name,
-                 'import_invoked' => 'false',
-                 'prepare_invoked' => 'false',
-                 'build_invoked' => 'false',
-                 'failed' => "",
-                 'imported'=>'false',
-                 'prepared'=>'false',
-                 'built'=>'false']
+                 'import_invoked' => false,
+                 'prepare_invoked' => false,
+                 'build_invoked' => false,
+                 'failed' => nil,
+                 'imported'=> false,
+                 'prepared'=> false,
+                 'built'=> false]
             end
         end
     end
