@@ -775,11 +775,7 @@ module Autoproj
                                     retry_count: 0)
                 all_os_packages
             else
-                result = Set.new
-                manifest.all_selected_source_packages.each do |source_package|
-                    result.merge(source_package.autobuild.os_packages)
-                end
-                result
+                manifest.all_selected_osdep_packages
             end
         end
 
