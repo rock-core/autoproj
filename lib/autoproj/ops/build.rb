@@ -110,7 +110,7 @@ module Autoproj
                 FileUtils.mkdir_p @report_dir
 
                 packages = package_list.map do |pkg_name|
-                    pkg = Autobuild::Package[pkg_name]
+                    pkg = manifest.find_autobuild_package(pkg_name)
                     {
                         name: pkg.name,
                         import_invoked: pkg.import_invoked?,
