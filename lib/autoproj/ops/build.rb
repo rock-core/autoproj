@@ -1,3 +1,4 @@
+require 'erb'
 module Autoproj
     module Ops
         # Operations related to building packages
@@ -10,8 +11,11 @@ module Autoproj
             # @return [Manifest]
             attr_reader :manifest
 
-            def initialize(manifest)
+            # @param [String] report_dir the log directory in which to build
+            #   the build report. If left to nil, no report will be generated
+            def initialize(manifest, report_dir: nil)
                 @manifest = manifest
+                @report_dir = report_dir
             end
 
             # Triggers a rebuild of all packages
@@ -73,6 +77,7 @@ module Autoproj
                 build_packages(all_enabled_packages)
             end
 
+
             # Builds the listed packages
             #
             # Only build steps that are actually needed will be performed. See
@@ -84,7 +89,48 @@ module Autoproj
             def build_packages(all_enabled_packages, options = Hash.new)
                 Autobuild.do_rebuild = false
                 Autobuild.do_forced_build = false
-                Autobuild.apply(all_enabled_packages, "autoproj-build", ['build'], options)
+                begin
+                    Autobuild.apply(all_enabled_packages, "autoproj-build", ['build'], options)
+                ensure
+                    build_report(all_enabled_packages) if @report_dir
+                end
+            end
+
+            REPORT_BASENAME = "build_report.json"
+
+            # The path to the report file
+            #
+            # @return [String,nil] the path, or nil if the report should not
+            #    be generated
+            def report_path
+                File.join(@report_dir, REPORT_BASENAME) if @report_dir
+            end
+
+            def build_report(package_list)
+                FileUtils.mkdir_p @report_dir
+
+                packages = package_list.map do |pkg_name|
+                    pkg = manifest.find_autobuild_package(pkg_name)
+
+                    {
+                        name: pkg.name,
+                        import_invoked: pkg.import_invoked?,
+                        prepare_invoked: pkg.prepare_invoked?,
+                        build_invoked: pkg.build_invoked?,
+                        failed: pkg.failed?,
+                        imported: pkg.imported?,
+                        prepared: pkg.prepared?,
+                        built: pkg.built?
+                    }
+                end
+
+                build_report = JSON.pretty_generate({
+                    build_report: {
+                        timestamp: Time.now,
+                        packages: packages
+                    }
+                })
+                IO.write(report_path, build_report)
             end
         end
     end

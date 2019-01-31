@@ -44,7 +44,7 @@ module Autoproj
 
                 Autobuild.ignore_errors = options[:keep_going]
 
-                ops = Ops::Build.new(ws.manifest)
+                ops = Ops::Build.new(ws.manifest, report_dir: ws.log_dir)
                 if build_options[:rebuild] || build_options[:force]
                     packages_to_rebuild =
                         if options[:deps] || command_line_selection.empty?
@@ -80,7 +80,6 @@ module Autoproj
 
                 Autobuild.do_build = true
                 ops.build_packages(source_packages, parallel: parallel)
-                Autobuild.apply(source_packages, "autoproj-build", ['install'])
                 Main.run_post_command_hook(:build, ws, source_packages: source_packages)
             ensure
                 export_env_sh
