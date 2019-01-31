@@ -111,6 +111,7 @@ module Autoproj
 
                 packages = package_list.map do |pkg_name|
                     pkg = manifest.find_autobuild_package(pkg_name)
+
                     {
                         name: pkg.name,
                         import_invoked: pkg.import_invoked?,
@@ -123,7 +124,12 @@ module Autoproj
                     }
                 end
 
-                build_report = JSON.pretty_generate({ build_report: { timestamp: Time.now, packages: packages }})
+                build_report = JSON.pretty_generate({
+                    build_report: {
+                        timestamp: Time.now,
+                        packages: packages
+                    }
+                })
                 IO.write(report_path, build_report)
             end
         end
