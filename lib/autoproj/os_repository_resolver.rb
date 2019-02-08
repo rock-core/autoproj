@@ -56,16 +56,9 @@ module Autoproj
         def all_entries
             definitions.map do |distribution|
                 distribution.values.map do |release|
-                    release.map do |entry|
-                        remove_identifier_from_entry(entry.dup)
-                    end
+                    release.map(&:values)
                 end
-            end.flatten
-        end
-
-        def remove_identifier_from_entry(entry)
-            entry.delete(entry.keys.first)
-            entry
+            end.flatten.uniq
         end
 
         def entry_matches?(entry, identifiers)
@@ -81,15 +74,15 @@ module Autoproj
             end.map(&:values).flatten
 
             release_filtered = distribution_filtered.select { |entry| entry_matches?(entry, os_version) }
-            release_filtered.map { |entry| remove_identifier_from_entry(entry.dup) }
+            release_filtered.map(&:values).flatten.uniq
         end
 
         # OS repos definitions must follow the format:
         #
         # - distribution:
         #   - release:
-        #     key1: value1
-        #     key2: value2
+        #     - key1: value1
+        #       key2: value2
         #
         # The key, value pairs are OS dependent, and will be verified/parsed by the
         # corresponding 'repository manager'. Thus, for a debian-like distribution
@@ -97,8 +90,8 @@ module Autoproj
         #
         # - ubuntu:
         #   - xenial:
-        #     type: repo
-        #     repo: 'deb http://br.archive.ubuntu.com/ubuntu/ xenial main restricted'
+        #     - type: repo
+        #       repo: 'deb http://br.archive.ubuntu.com/ubuntu/ xenial main restricted'
         def self.verify_definitions(array, path = [])
             verify_type(array, Array, path)
             array.each do |entry|
@@ -117,12 +110,20 @@ module Autoproj
 
         def self.verify_release(array, path = [])
             verify_type(array, Array, path)
+            array.each do |releases|
+                verify_type(releases, Hash, path)
+
+                releases.values.each do |entries|
+                    verify_type(entries, Array, path)
+                    verify_entries(entries, path + entries)
+                end
+            end
+        end
+
+        def self.verify_entries(array, path = [])
+            verify_type(array, Array, path)
             array.each do |entry|
                 verify_type(entry, Hash, path)
-
-                release = entry.first
-                verify_type(release[0], String, path)
-                verify_type(release[1], NilClass, path)
             end
         end
 

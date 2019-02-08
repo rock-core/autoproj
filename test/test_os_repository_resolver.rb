@@ -8,7 +8,7 @@ module Autoproj
 
         before do
             @subject = OSRepositoryResolver.new
-            @definitions = [{ 'ubuntu' => [{ 'xenial' => nil, 'type' => 'repo' }] }]
+            @definitions = [{ 'ubuntu' => [{ 'xenial' => [{ 'type' => 'repo' }] }] }]
         end
 
         describe '#load' do
@@ -32,7 +32,7 @@ module Autoproj
         end
         describe '#merge' do
             it 'merges definitions in the receiver' do
-                new_defs = [{ 'debian' => [{ 'jessie' => nil, 'type' => 'key' }] }]
+                new_defs = [{ 'debian' => [{ 'jessie' => [{ 'type' => 'key' }] }] }]
                 new_resolver = OSRepositoryResolver.new(new_defs, '/path/to/some.osrepos')
 
                 @subject = OSRepositoryResolver.new(definitions, '/foo/test.osrepos')
@@ -47,8 +47,8 @@ module Autoproj
         end
         describe '#definitions' do
             it 'returns an array of the merged definitions' do
-                definitions << { 'debian' => [{ 'jessie' => nil, 'type' => 'key' }] }
-                definitions << { 'debian' => [{ 'jessie' => nil, 'type' => 'key' }] }
+                definitions << { 'debian' => [{ 'jessie' => [{ 'type' => 'key' }] }] }
+                definitions << { 'debian' => [{ 'jessie' => [{ 'type' => 'key' }] }] }
                 @subject = OSRepositoryResolver.new(definitions, '/foo/test.osrepos')
 
                 assert_equal subject.definitions, definitions.uniq
@@ -56,8 +56,8 @@ module Autoproj
         end
         describe '#all_entries' do
             it 'returns an array of the merged entries' do
-                definitions << { 'debian' => [{ 'jessie' => nil, 'type' => 'key' }] }
-                definitions << { 'debian' => [{ 'jessie' => nil, 'type' => 'key' }] }
+                definitions << { 'debian' => [{ 'jessie' => [{ 'type' => 'key' }] }] }
+                definitions << { 'debian' => [{ 'jessie' => [{ 'type' => 'key' }] }] }
                 @subject = OSRepositoryResolver.new(definitions, '/foo/test.osrepos')
 
                 assert_equal subject.all_entries, [{ 'type' => 'repo' }, { 'type' => 'key' }]
@@ -65,8 +65,8 @@ module Autoproj
         end
         describe '#resolved_entries' do
             it 'returns an array of the entries valid for this OS' do
-                definitions << { 'debian' => [{ 'jessie' => nil, 'type' => 'key' }] }
-                definitions << { 'debian' => [{ 'jessie' => nil, 'type' => 'key' }] }
+                definitions << { 'debian' => [{ 'jessie' => [{ 'type' => 'key' }] }] }
+                definitions << { 'debian' => [{ 'jessie' => [{ 'type' => 'key' }] }] }
 
                 @subject = OSRepositoryResolver.new(
                     definitions,
@@ -79,8 +79,8 @@ module Autoproj
         end
         describe '#resolved_entries' do
             it 'allows "default" as a release name while resolving entries' do
-                definitions << { 'ubuntu' => [{ 'default' => nil, 'type' => 'key' }] }
-                definitions << { 'debian' => [{ 'jessie' => nil, 'type' => 'foo' }] }
+                definitions << { 'ubuntu' => [{ 'default' => [{ 'type' => 'key' }] }] }
+                definitions << { 'debian' => [{ 'jessie' => [{ 'type' => 'foo' }] }] }
 
                 @subject = OSRepositoryResolver.new(
                     definitions,
@@ -113,7 +113,7 @@ module Autoproj
                 end
             end
             it 'does not throw if definitions are valid' do
-                OSRepositoryResolver.verify_definitions([{ 'ubuntu' => [{ 'xenial' => nil, 'type' => 'repo' }] }])
+                OSRepositoryResolver.verify_definitions([{ 'ubuntu' => [{ 'xenial' => [{ 'type' => 'repo' }] }] }])
             end
         end
     end
