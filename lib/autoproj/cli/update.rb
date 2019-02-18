@@ -97,6 +97,8 @@ module Autoproj
                     command_line_selection, selected_packages =
                         finish_loading_configuration(selected_packages)
                 else
+                    ws.setup_all_package_directories
+                    ws.finalize_package_setup
                     command_line_selection, selected_packages = [], PackageSelection.new
                 end
 
