@@ -196,6 +196,13 @@ module Autoproj
                         with(hsh(checkout_only: true)).once
                     cli.run([], checkout_only: true)
                 end
+                it "properly sets up packages while updating configuration only" do
+                    flexmock(ws).should_receive(:setup_all_package_directories).
+                        ordered.once
+                    flexmock(ws).should_receive(:finalize_package_setup).
+                        ordered.once
+                    cli.run([], config: true)
+                end
                 it "passes options to the osdep installer for package import" do
                     flexmock(Ops::Import).new_instances.
                         should_receive(:import_packages).
