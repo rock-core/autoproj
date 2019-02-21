@@ -164,8 +164,11 @@ def import_package(name, workspace: Autoproj.workspace, &block)
     package_common(:import, name, workspace: Autoproj.workspace, &block)
 end
 
-def python_package(name, workspace: Autoproj.workspace, &block)
-    package_common(:python, name, workspace: Autoproj.workspace, &block)
+def python_package(name, workspace: Autoproj.workspace)
+    package_common(:python, name, workspace: Autoproj.workspace) do |pkg|
+        pkg.internal_dependency 'python'
+        yield(pkg) if block_given?
+    end
 end
 
 def common_make_based_package_setup(pkg)

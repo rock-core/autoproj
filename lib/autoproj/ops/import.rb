@@ -73,7 +73,7 @@ module Autoproj
                 end
                 new_packages
             end
-            
+
             def pre_package_import(selection, manifest, pkg, reverse_dependencies)
                 # Try to auto-exclude the package early. If the autobuild file
                 # contained some information that allows us to exclude it now,
@@ -133,12 +133,30 @@ module Autoproj
                 vcs_to_install
             end
 
+            # Install the internal dependencies for the given packages
+            #
+            # @param [Hash] osdeps_options the options that will be passed to
+            #   {Workspace#install_os_packages}
+            # @return [Set] the set of installed OS packages
+            def install_internal_dependencies_for(*packages, **osdeps_options)
+                packages_to_install = packages.map do |pkg|
+                    pkg.autobuild.internal_dependencies
+                end.flatten.uniq
+                return if packages_to_install.empty?
+
+                # This assumes that the internal dependencies do not depend on a
+                # 'strict' package mangers such as e.g. BundlerManager and that
+                # the package manager itself does not have any dependencies
+                ws.install_os_packages(packages_to_install, all: nil, **osdeps_options)
+                packages_to_install
+            end
+
             # @api private
             #
             # Queue the work necessary to import the given package, making sure
             # that the execution results end up in a given queue
             #
-            # @param executor the future executor 
+            # @param executor the future executor
             # @param [Queue] completion_queue the queue where the completion
             #   results should be pushed, as a (package, time, result,
             #   error_reason) tuple
@@ -331,7 +349,7 @@ module Autoproj
                     executor.wait_for_termination
                 end
             end
-            
+
             def finalize_package_load(processed_packages, auto_exclude: auto_exclude?)
                 manifest = ws.manifest
 
@@ -405,6 +423,7 @@ module Autoproj
                     raise failures.first
                 end
 
+                install_internal_dependencies_for(*all_processed_packages)
                 finalize_package_load(all_processed_packages, auto_exclude: auto_exclude)
 
                 all_enabled_osdeps = selection.each_osdep_package_name.to_set

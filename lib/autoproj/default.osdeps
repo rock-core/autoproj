@@ -162,6 +162,15 @@ pip:
   freebsd: pip
   default: ignore # assume pip will be installed by the user
 
+python:
+  arch: python2
+  debian,ubuntu: python-dev
+  fedora: python-devel
+  freebsd: python-devel
+  gentoo: dev-lang/python
+  opensuse: python-devel
+  default: ignore # will be installed manually by the user
+
 sudo:
   macos-brew: ignore
   default: sudo

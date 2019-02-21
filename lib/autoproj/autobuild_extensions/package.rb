@@ -3,7 +3,6 @@ module Autoproj
         module Package
             # Tags explicitely added with #add_tag
             attr_reader :added_tags
-
             attr_reader :optional_dependencies
 
             attr_reader :os_packages
@@ -24,6 +23,7 @@ module Autoproj
                 @optional_dependencies = Set.new
                 @description = PackageManifest.new(self, null: true)
                 @use_package_xml = false
+                @internal_dependencies = []
             end
 
             # Whether we should use a package.xml file present in this package
@@ -32,6 +32,10 @@ module Autoproj
             # @see use_package_xml=
             def use_package_xml?
                 @use_package_xml
+            end
+
+            def internal_dependencies
+                @internal_dependencies.dup
             end
 
             # Set {#use_package_xml?}
@@ -134,6 +138,21 @@ module Autoproj
                 dependencies.delete name
                 optional_dependencies.delete name
                 os_packages.delete name
+            end
+
+            # @api private
+            #
+            # Adds and 'internal' dependency to the package
+            # 'Internal' dependencies are actually autobuild dependencies
+            # for a given package type. It is assumed that only
+            # osdeps that do not rely on strict package managers will be
+            # declared as internal dependencies.
+            #
+            # The difference between a regular "os dependency" is that
+            # the internal dependency is installed right after the impport
+            # phase (before the actual osdeps phase)
+            def internal_dependency(osdeps_name)
+                @internal_dependencies << osdeps_name
             end
 
             def optional_dependency(name)
