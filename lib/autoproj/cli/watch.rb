@@ -51,7 +51,7 @@ module Autoproj
             end
 
             def callback
-                notifier.stop
+                Thread.new { notifier.stop }
             end
 
             def create_file_watcher(file)
