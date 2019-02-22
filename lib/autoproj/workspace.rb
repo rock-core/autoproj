@@ -236,10 +236,16 @@ module Autoproj
             File.join(config_dir, OVERRIDES_DIR)
         end
 
+        # Load the configuration for this workspace from
+        # config_file_path
+        #
+        # @param [Boolean] reset Set to true to replace the configuration object,
+        #   set to false to load into the existing
+        # @return [Configuration] configuration object
         def load_config(reconfigure = false)
-            @config = Configuration.new(config_file_path)
             if File.file?(config_file_path)
-                config.load(reconfigure: reconfigure)
+                config.reset
+                config.load(path: config_file_path, reconfigure: reconfigure)
                 if raw_vcs = config.get('manifest_source', nil)
                     manifest.vcs = VCSDefinition.from_raw(raw_vcs)
                 else

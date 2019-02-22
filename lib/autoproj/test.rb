@@ -271,7 +271,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
                 os_package_manager: 'os')
         end
 
-        def ws_create(dir = make_tmpdir)
+        def ws_create(dir = make_tmpdir, partial_config: false)
             require 'autoproj/ops/main_config_switcher'
             FileUtils.cp_r Ops::MainConfigSwitcher::MAIN_CONFIGURATION_TEMPLATE, File.join(dir, 'autoproj')
             FileUtils.mkdir_p File.join(dir, '.autoproj')
@@ -280,8 +280,11 @@ gem 'autobuild', path: '#{autobuild_dir}'
             @ws = Workspace.new(
                 dir, os_package_resolver: ws_os_package_resolver,
                      package_managers: ws_package_managers)
-            ws.config.set 'osdeps_mode', 'all'
-            ws.config.set 'apt_dpkg_update', true
+
+            if !partial_config
+                ws.config.set 'osdeps_mode', 'all'
+                ws.config.set 'apt_dpkg_update', true
+            end
             ws.config.set 'GITHUB', 'http,ssh', true
             ws.config.set 'GITORIOUS', 'http,ssh', true
             ws.config.set 'gems_install_path', File.join(dir, 'gems')

@@ -22,6 +22,9 @@ module Autoproj
         attr_reader :displayed_options
         # The path to the underlying configuration file
         attr_reader :path
+        # Whether the configuration should be performed interactively
+        # or not
+        attr_accessor :interactive
 
         def initialize(path = nil)
             @config = Hash.new
@@ -43,16 +46,24 @@ module Autoproj
             @modified = false
         end
 
-        # Deletes the current value for an option
+        # Deletes the current configuration for all options or the one specified
         #
-        # The user will be asked for a new value next time the option is needed
+        # The user will be asked for a new value next time one of the reset
+        # options is needed
         #
-        # @param [String] the option name
+        # @param [String] name the option name (or by default nil to reset all
+        #   options)
         # @return the deleted value
-        def reset(name)
-            @modified ||= config.has_key?(name)
-            config.delete(name)
-            overrides.delete(name)
+        def reset(name = nil)
+            if name
+                @modified ||= config.has_key?(name)
+                config.delete(name)
+                overrides.delete(name)
+            else
+                @config.clear
+                @overrides.clear
+                @modified = true
+            end
         end
 
         # Sets a configuration option
@@ -177,10 +188,18 @@ module Autoproj
                 if current_value = config[option_name]
                     current_value = current_value.first
                 end
-                value = opt.ask(current_value)
+                is_default = false
+                if interactive?
+                    value = opt.ask(current_value, nil)
+                else
+                    value, is_default = opt.ensure_value(current_value)
+                    Autoproj.info "       using: #{value} (noninteractive mode)"
+                end
                 @modified = true
-                config[option_name] = [value, true]
-                displayed_options[option_name] = value
+                if !is_default
+                    config[option_name] = [value, true]
+                    displayed_options[option_name] = value
+                end
                 value
             else
                 raise ConfigError.new, "undeclared option '#{option_name}'"
@@ -440,6 +459,21 @@ module Autoproj
             set('randomize_layout', value, true)
         end
 
+        # Returns true if the configuration should be performed interactively
+        #
+        # @return [Boolean]
+        # @see interactive=
+        def interactive?
+            if !interactive.nil?
+                return interactive
+            elsif ENV['AUTOPROJ_NONINTERACTIVE'] == '1'
+                return false
+            elsif has_value_for?("interactive")
+                return get('interactive')
+            end
+            true
+        end
+
         DEFAULT_UTILITY_SETUP = Hash[
             'doc' => true,
             'test' => false]
@@ -545,7 +579,11 @@ module Autoproj
         def to_hash
             result = Hash.new
             @config.each do |key, (value, _)|
-                result[key] = value
+                if declared_options.include?(key)
+                    result[key] = declared_options[key].ensure_value(value)
+                else
+                    result[key] = value
+                end
             end
             overrides.each do |key, value|
                 result[key] = value

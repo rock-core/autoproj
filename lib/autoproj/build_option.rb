@@ -45,18 +45,35 @@ module Autoproj
             end
         end
 
-        def ask(current_value, doc = nil)
-            default_value =
-                if !current_value.nil? then current_value.to_s
-                elsif options[:default] then options[:default].to_str
-                else ''
-                end
+        # Return either the current value if it is not nil, or use
+        # a default value
+        #
+        # @return [value, Boolean] Current value, and flag whether this is a
+        # default value
+        def ensure_value(current_value)
+            if !current_value.nil?
+                return current_value.to_s, false
+            elsif options[:default]
+                return options[:default].to_str, true
+            else
+                return '', true
+            end
+        end
 
-            STDOUT.print "  #{doc || self.doc} [#{default_value}] "
+        # Ask the user for the setting of this option
+        # by providing the current value as input and falling
+        # back to default values if needed
+        #
+        # @param [String] current_value the option's current value
+        # @param [String] doc a string to override the default option banner
+        def ask(current_value, doc = nil)
+            value,_ = ensure_value(current_value)
+
+            STDOUT.print "  #{doc || self.doc} [#{value}] "
             STDOUT.flush
             answer = STDIN.readline.chomp
             if answer == ''
-                answer = default_value
+                answer = value
             end
             validate(answer)
 
