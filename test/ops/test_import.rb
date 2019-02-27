@@ -71,6 +71,23 @@ module Autoproj
                         assert ws.manifest.excluded?('11')
                     end
                 end
+
+                it 'installs internal dependencies for all processed packages' do
+                    flexmock(ops).should_receive(:import_selected_packages).
+                        and_return([[@pkg1], []])
+
+                    flexmock(ops).should_receive(:install_internal_dependencies_for).with(@pkg1).once
+                    ops.import_packages(@selection)
+                end
+            end
+
+            describe '#install_internal_dependencies_for' do
+                it 'installs internal dependencies for the given packages' do
+                    flexmock(@pkg0.autobuild).should_receive(:internal_dependencies).and_return(['dep1'])
+                    flexmock(@pkg1.autobuild).should_receive(:internal_dependencies).and_return(['dep2'])
+                    flexmock(ws).should_receive(:install_os_packages).with(%w[dep1 dep2], all: nil).once
+                    ops.install_internal_dependencies_for(@pkg0, @pkg1)
+                end
             end
 
             describe "#import_selected_packages" do
