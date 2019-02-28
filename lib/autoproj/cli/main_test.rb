@@ -64,6 +64,8 @@ module Autoproj
                 desc: 'do not stop on build or checkout errors'
             option :deps, type: :boolean, default: false,
                 desc: 'controls whether to execute the tests of the dependencies of the packages given on the command line (the default is not)'
+            option :parallel, aliases: :p, type: :numeric,
+                desc: 'maximum number of parallel jobs'
             option :fail, type: :boolean, default: true,
                 desc: 'return with a nonzero exit code if the test does not pass'
             option :coverage, type: :boolean, default: false,
