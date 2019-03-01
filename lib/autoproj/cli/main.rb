@@ -30,6 +30,8 @@ module Autoproj
                 desc: 'enables or disables colored display (enabled by default if the terminal supports it)'
             class_option :progress, type: :boolean, default: TTY::Color.color?,
                 desc: 'enables or disables progress display (enabled by default if the terminal supports it)'
+            class_option 'interactive', type: :boolean, default: nil,
+                desc: 'tell autoproj to run (non)interactively'
 
             stop_on_unknown_option! :exec
             check_unknown_options!  except: :exec

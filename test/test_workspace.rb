@@ -486,6 +486,7 @@ module Autoproj
                 flexmock(Autoproj::Configuration).new_instances.
                     should_receive(:source_dir).and_return(ws.root_dir)
                 assert_raises(ConfigError) do
+                    ws.config = Configuration.new(ws.root_dir)
                     ws.load_config
                 end
             end

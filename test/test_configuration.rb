@@ -346,6 +346,85 @@ module Autoproj
                 refute @config.modified?
             end
         end
+        describe "#interactive" do
+            it "set interactive mode" do
+                @config.interactive = false
+                assert !@config.interactive?
+
+                @config.interactive = true
+                assert @config.interactive?
+            end
+
+            it "disables interactive configuration setting through config option" do
+                option_name = "custom-configuration-option"
+                default_value = "option-defaultvalue"
+                @config.declare(option_name,"string",default: default_value)
+
+                @config.interactive = false
+
+                Timeout.timeout(3) do
+                    @config.configure(option_name)
+                end
+                assert @config.get(option_name) == default_value
+            end
+
+            it "disables interactive configuration setting through ENV" do
+                option_name = "custom-configuration-option"
+                default_value = "option-defaultvalue"
+                @config.declare(option_name,"string",default: default_value)
+
+                ENV['AUTOPROJ_NONINTERACTIVE'] = '1'
+
+                assert !@config.interactive?
+                begin
+                    Timeout.timeout(3) do
+                        @config.configure(option_name)
+                    end
+                    assert @config.get(option_name) == default_value
+                ensure
+                    ENV.delete('AUTOPROJ_NONINTERACTIVE')
+                end
+            end
+            it "use interactive configuration by default" do
+                option_name = "custom-configuration-option"
+                default_value = "option-defaultvalue"
+                @config.declare(option_name,"string",default: default_value)
+                assert @config.interactive?
+                assert_raises Timeout::Error do
+                    Timeout.timeout(3) do
+                        @config.configure(option_name)
+                    end
+                end
+            end
+            it "skip saving default value" do
+                option_a_name = "custom-configuration-option-a"
+                default_a_value = "option-a-defaultvalue"
+
+                option_b_name = "custom-configuration-option-b"
+                default_b_value = "option-b-default-value"
+                b_value = "option-b-value"
+
+                @config.declare(option_a_name,"string",default: default_a_value)
+                @config.declare(option_b_name,"string",default: default_b_value)
+
+                @config.interactive = false
+                @config.configure(option_a_name)
+                @config.set(option_b_name, b_value)
+                @config.configure(option_b_name)
+
+                assert !@config.has_value_for?(option_a_name)
+                assert @config.has_value_for?(option_b_name)
+
+                tempfile = Tempfile.new("skip-saving-config")
+                @config.save(tempfile)
+
+                loaded_config = Configuration.new(tempfile)
+                loaded_config.load
+                assert !loaded_config.has_value_for?(option_a_name)
+                assert loaded_config.has_value_for?(option_b_name)
+                assert loaded_config.get(option_b_name) == b_value
+            end
+        end
     end
 end
 
