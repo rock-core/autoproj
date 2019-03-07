@@ -140,9 +140,7 @@ module Autoproj
                         next
                     end
 
-
                 vcs_info['fingerprint'] = package.autobuild.fingerprint
-                vcs_info['dependencies'] = package.autobuild.dependencies
 
                 if vcs_info
                     result << Hash[package_name, vcs_info]
