@@ -36,8 +36,6 @@ module Autoproj
                     result['url'] = @url.to_s
                 end
                 
-                result['digest'] = package.importer.digest
-
                 result
             end
         end
