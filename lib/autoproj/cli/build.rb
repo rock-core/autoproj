@@ -24,7 +24,8 @@ module Autoproj
                     force: false,
                     rebuild: false,
                     parallel: nil,
-                    confirm: true
+                    confirm: true,
+                    not: nil
 
                 command_line_selection, source_packages, _osdep_packages =
                     super(selected_packages,
@@ -40,6 +41,16 @@ module Autoproj
                 ws.manifest.each_autobuild_package do |pkg|
                     next if source_packages.include?(pkg.name)
                     pkg.disable
+                end
+
+                # and disable packages listed in the not command if there are any
+                source_packages.each do |pkg_name|
+                    pkg = ws.manifest.package_definition_by_name(pkg_name)
+                    if build_options[:not]
+                        next if !build_options[:not].include?(pkg.name)
+                    end
+                    Autobuild.warn 'disabling ' + pkg.name
+                    pkg.autobuild.disable
                 end
 
                 Autobuild.ignore_errors = options[:keep_going]

@@ -245,6 +245,8 @@ In this case, the default is false
                 desc: "act as a build tool, transparently passing the subcommand's outputs to STDOUT"
             option :confirm, type: :boolean, default: nil,
                 desc: '--force and --rebuild will ask confirmation if applied to the whole workspace. Use --no-confirm to disable this confirmation'
+            option :not, type: :array, default: nil,
+                desc: 'do not build the packages listed'
             def build(*packages)
                 report_options = Hash[silent: false, on_package_failures: default_report_on_package_failures]
                 if options[:auto_exclude]
