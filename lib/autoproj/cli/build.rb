@@ -44,13 +44,13 @@ module Autoproj
                 end
 
                 # and disable packages listed in the not command if there are any
-                source_packages.each do |pkg_name|
-                    pkg = ws.manifest.package_definition_by_name(pkg_name)
-                    if build_options[:not]
-                        next if !build_options[:not].include?(pkg.name)
+                if build_options[:not]
+                    source_packages.each do |pkg_name|
+                        next if !build_options[:not].include?(pkg_name)
+                        pkg = ws.manifest.package_definition_by_name(pkg_name)
+                        Autobuild.warn 'disabling ' + pkg.name
+                        pkg.autobuild.disable
                     end
-                    Autobuild.warn 'disabling ' + pkg.name
-                    pkg.autobuild.disable
                 end
 
                 Autobuild.ignore_errors = options[:keep_going]
