@@ -353,6 +353,13 @@ In this case, the default is false
                 run_autoproj_cli(:osdeps, :OSDeps, Hash[silent: options[:system_info]], *packages)
             end
 
+            desc 'version', 'display the current version of autobuild and optionally with dependencies'
+            option :deps, type: :boolean, default: false, banner:'',
+                desc: "controls whether to list dependant gems as well"
+            def version(*args)
+                run_autoproj_cli(:version, :Version, Hash[], *args)
+            end
+
             desc 'versions [PACKAGES]', 'generate a version file for the given packages, or all packages if none are given'
             option :config, type: :boolean, default: nil, banner: '',
                 desc: "controls whether the package sets should be versioned as well",
