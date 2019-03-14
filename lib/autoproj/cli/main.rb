@@ -377,6 +377,8 @@ are given, the packages will not be versioned. In other words,
                 desc: 'whether we should access the remote server to verify that the snapshotted state is present'
             option :save, type: :string,
                 desc: 'save to the given file instead of displaying it on the standard output'
+            option :fingerprint, type: :boolean, default: false,
+                desc: 'calculate unique fingerprint for each package'
             def versions(*packages)
                 run_autoproj_cli(:versions, :Versions, Hash[], *packages, deps: true)
             end

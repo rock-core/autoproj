@@ -1062,6 +1062,7 @@ __autoproj_versions() {
         --local
         --no-local
         --save
+        --fingerprint
     "
 
     case "$cur" in
