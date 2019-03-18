@@ -54,11 +54,12 @@ module Autoproj
         def initialize(root_dir,
                        os_package_resolver: OSPackageResolver.new,
                        package_managers: OSPackageInstaller::PACKAGE_MANAGERS,
-                       os_repository_resolver: OSRepositoryResolver.new(operating_system: os_package_resolver.operating_system),
+                       os_repository_resolver: OSRepositoryResolver.new(
+                            operating_system: os_package_resolver.operating_system),
                        os_repository_installer: OSRepositoryInstaller.new(self))
             @root_dir = root_dir
             @root_path = Pathname.new(root_dir)
-            @ruby_version_keyword = "ruby#{RUBY_VERSION.split('.')[0, 2].join("")}"
+            @ruby_version_keyword = "ruby#{RUBY_VERSION.split('.')[0, 2].join('')}"
             @osdep_suffixes = Array.new
 
             @loader = loader
@@ -82,10 +83,8 @@ module Autoproj
         # @return [String,nil] the root path, or nil if one did not yet source
         #   the workspace's env.sh
         def self.autoproj_current_root
-            if env = ENV['AUTOPROJ_CURRENT_ROOT']
-                if !env.empty?
-                    env
-                end
+            if (env = ENV['AUTOPROJ_CURRENT_ROOT'])
+                env unless env.empty?
             end
         end
 
@@ -104,31 +103,35 @@ module Autoproj
         #   and the one from +dir+ mismatch
         # @raise [NotWorkspace] if dir is not within an autoproj workspace
         def self.from_dir(dir, **workspace_options)
-            if path = Autoproj.find_workspace_dir(dir)
+            if (path = Autoproj.find_workspace_dir(dir))
                 Workspace.new(path, **workspace_options)
             elsif Autoproj.find_v1_workspace_dir(dir)
-                raise OutdatedWorkspace, "#{dir} looks like a v1 workspace, run autoproj upgrade before continuing"
+                raise OutdatedWorkspace, "#{dir} looks like a v1 workspace, "\
+                    "run autoproj upgrade before continuing"
             else
                 raise NotWorkspace, "not in a Autoproj installation"
             end
         end
 
         def self.from_environment(**workspace_options)
-            if path = Autoproj.find_workspace_dir
+            if (path = Autoproj.find_workspace_dir)
                 from_dir(path, **workspace_options)
             elsif Autoproj.find_v1_workspace_dir(dir = Autoproj.default_find_base_dir)
-                raise OutdatedWorkspace, "#{dir} looks like a v1 workspace, run autoproj upgrade before continuing"
-            elsif envvar = ENV['AUTOPROJ_CURRENT_ROOT']
-                raise NotWorkspace, "AUTOPROJ_CURRENT_ROOT is currently set to #{envvar}, but that is not an Autoproj workspace"
+                raise OutdatedWorkspace, "#{dir} looks like a v1 workspace, "\
+                    "run autoproj upgrade before continuing"
+            elsif (envvar = ENV['AUTOPROJ_CURRENT_ROOT'])
+                raise NotWorkspace, "AUTOPROJ_CURRENT_ROOT is currently set "\
+                    "to #{envvar}, but that is not an Autoproj workspace"
             else
-                raise NotWorkspace, "not in an Autoproj installation, and no env.sh has been loaded so far"
+                raise NotWorkspace, "not in an Autoproj installation, "\
+                    "and no env.sh has been loaded so far"
             end
         end
 
         # Tests whether the given path is under a directory tree managed by
         # autoproj
         def self.in_autoproj_project?(path)
-            !!Autoproj.find_workspace_dir(path)
+            Autoproj.find_workspace_dir(path)
         end
 
         # Returns the default workspace
@@ -141,15 +144,19 @@ module Autoproj
         # directory
         def self.default(**workspace_options)
             ws = from_environment(**workspace_options)
-            if (from_pwd = Autoproj.find_workspace_dir(Dir.pwd)) && (from_pwd != ws.root_dir)
-                raise MismatchingWorkspace, "the current environment points to #{ws.root_dir}, but you are in #{from_pwd}, make sure you are loading the right #{ENV_FILENAME} script !"
+            from_pwd = Autoproj.find_workspace_dir(Dir.pwd)
+            if from_pwd && (from_pwd != ws.root_dir)
+                raise MismatchingWorkspace, "the current environment points to "\
+                    "#{ws.root_dir}, but you are in #{from_pwd}, make sure you "\
+                    "are loading the right #{ENV_FILENAME} script !"
             end
             ws
         end
 
         def load(*args)
             set_as_main_workspace
-            flag, Autoproj.warn_deprecated_level = Autoproj.warn_deprecated_level, 1
+            flag = Autoproj.warn_deprecated_level
+            Autoproj.warn_deprecated_level = 1
             super
         ensure
             Autoproj.warn_deprecated_level = flag
@@ -227,7 +234,7 @@ module Autoproj
             File.join(prefix_dir, 'log')
         end
 
-        OVERRIDES_DIR = "overrides.d"
+        OVERRIDES_DIR = "overrides.d".freeze
 
         # Returns the directory containing overrides files
         #
@@ -246,20 +253,23 @@ module Autoproj
             if File.file?(config_file_path)
                 config.reset
                 config.load(path: config_file_path, reconfigure: reconfigure)
-                if raw_vcs = config.get('manifest_source', nil)
-                    manifest.vcs = VCSDefinition.from_raw(raw_vcs)
-                else
-                    manifest.vcs = VCSDefinition.from_raw(
-                        type: 'local', url: config_dir)
-                end
+                manifest.vcs =
+                    if (raw_vcs = config.get('manifest_source', nil))
+                        VCSDefinition.from_raw(raw_vcs)
+                    else
+                        VCSDefinition.from_raw(type: 'local', url: config_dir)
+                    end
 
                 if config.source_dir && Pathname.new(config.source_dir).absolute?
                     raise ConfigError, 'source dir path configuration must be relative'
                 end
 
-                os_package_resolver.prefer_indep_over_os_packages = config.prefer_indep_over_os_packages?
-                os_package_resolver.operating_system ||= config.get('operating_system', nil)
-                os_repository_resolver.operating_system ||= config.get('operating_system', nil)
+                os_package_resolver.prefer_indep_over_os_packages =
+                    config.prefer_indep_over_os_packages?
+                os_package_resolver.operating_system ||=
+                    config.get('operating_system', nil)
+                os_repository_resolver.operating_system ||=
+                    config.get('operating_system', nil)
             end
             @config
         end
@@ -277,7 +287,8 @@ module Autoproj
                     os_package_resolver.operating_system = [names, versions]
                     os_repository_resolver.operating_system = [names, versions]
                     Autobuild.progress :operating_system_autodetection,
-                        "operating system: #{(names - ['default']).join(",")} - #{(versions - ['default']).join(",")}"
+                        "operating system: #{(names - ['default']).join(',')} -"\
+                        " #{(versions - ['default']).join(',')}"
                 ensure
                     Autobuild.progress_done :operating_system_autodetection
                 end
@@ -295,9 +306,7 @@ module Autoproj
 
         def setup_os_package_installer
             autodetect_operating_system
-            os_package_installer.each_manager do |pkg_mng|
-                pkg_mng.initialize_environment
-            end
+            os_package_installer.each_manager(&:initialize_environment)
             os_package_resolver.load_default
             os_package_installer.define_osdeps_mode_option
             os_package_installer.osdeps_mode
@@ -324,9 +333,7 @@ module Autoproj
             config.each_reused_autoproj_installation do |p|
                 manifest.reuse(p)
             end
-            if File.exist?(manifest_file_path)
-                manifest.load(manifest_file_path)
-            end
+            manifest.load(manifest_file_path) if File.exist?(manifest_file_path)
 
             Autobuild.prefix = prefix_dir
             FileUtils.mkdir_p File.join(prefix_dir, '.autoproj')
@@ -336,7 +343,7 @@ module Autoproj
 
             Autobuild.srcdir = source_dir
             Autobuild.logdir = log_dir
-            if cache_dir = config.importer_cache_dir
+            if (cache_dir = config.importer_cache_dir)
                 Autobuild::Importer.default_cache_dirs = cache_dir
             end
             setup_os_package_installer
@@ -345,7 +352,7 @@ module Autoproj
 
         def install_ruby_shims
             install_suffix = ""
-            if match = /ruby(.*)$/.match(RbConfig::CONFIG['RUBY_INSTALL_NAME'])
+            if (match = /ruby(.*)$/.match(RbConfig::CONFIG['RUBY_INSTALL_NAME']))
                 install_suffix = match[1]
             end
 
@@ -357,9 +364,9 @@ module Autoproj
                 io.puts "#! /bin/sh"
                 io.puts "exec #{config.ruby_executable} \"$@\""
             end
-            FileUtils.chmod 0755, File.join(bindir, 'ruby')
+            FileUtils.chmod 0o755, File.join(bindir, 'ruby')
 
-            ['gem', 'irb', 'testrb'].each do |name|
+            %w[gem irb testrb].each do |name|
                 # Look for the corresponding gem program
                 prg_name = "#{name}#{install_suffix}"
                 if File.file?(prg_path = File.join(RbConfig::CONFIG['bindir'], prg_name))
@@ -367,7 +374,7 @@ module Autoproj
                         io.puts "#! #{config.ruby_executable}"
                         io.puts "exec \"#{prg_path}\", *ARGV"
                     end
-                    FileUtils.chmod 0755, File.join(bindir, name)
+                    FileUtils.chmod 0o755, File.join(bindir, name)
                 end
             end
         end
@@ -392,9 +399,7 @@ module Autoproj
 
             # This is a guard to avoid infinite recursion in case the user is
             # running autoproj osdeps --force
-            if ENV['AUTOPROJ_RESTARTING'] == '1'
-                return
-            end
+            return if ENV['AUTOPROJ_RESTARTING'] == '1'
 
             gemfile  = File.join(dot_autoproj_dir, 'Gemfile')
             binstubs = File.join(dot_autoproj_dir, 'bin')
@@ -426,15 +431,16 @@ module Autoproj
                 config.save
                 ENV['AUTOPROJ_RESTARTING'] = '1'
                 require 'rbconfig'
-                exec(config.ruby_executable, $0, *ARGV)
+                exec(config.ruby_executable, $PROGRAM_NAME, *ARGV)
             end
         end
 
         def run(*args, &block)
-            if args.last.kind_of?(Hash)
-                options = args.pop
-            else options = Hash.new
-            end
+            options =
+                if args.last.kind_of?(Hash)
+                    args.pop
+                else Hash.new
+                end
             options_env = options.fetch(:env, Hash.new)
             options[:env] = env.resolved_env.merge(options_env)
             Autobuild::Subprocess.run(*args, options, &block)
@@ -444,7 +450,8 @@ module Autoproj
             if !File.directory?(File.join(dot_autoproj_dir, 'autoproj'))
                 return
             else
-                config = YAML.load(File.read(File.join(dot_autoproj_dir, 'config.yml')))
+                config_path = File.join(dot_autoproj_dir, 'config.yml')
+                config = YAML.safe_load(File.read(config_path))
                 return if config['gems_install_path']
             end
 
@@ -525,7 +532,7 @@ module Autoproj
         def self.registered_workspaces
             path = find_user_data_path('workspaces.yml')
             if File.file?(path)
-                yaml = (YAML.load(File.read(path)) || [])
+                yaml = (YAML.safe_load(File.read(path)) || [])
                 fields = RegisteredWorkspace.members.map(&:to_s)
                 yaml.map do |h|
                     values = h.values_at(*fields)
@@ -578,9 +585,7 @@ module Autoproj
                               mainline: nil,
                               reset: false,
                               retry_count: nil)
-            if !File.file?(manifest_file_path) # empty install, just return
-                return
-            end
+            return unless File.file?(manifest_file_path) # empty install, just return
 
             Ops::Configuration.new(self).
                 load_package_sets(only_local: only_local,
@@ -591,7 +596,7 @@ module Autoproj
                                   mainline: mainline)
         end
 
-        def load_packages(selection = manifest.default_packages(false), options = Hash.new)
+        def load_packages(selection = manifest.default_packages(false), options = {})
             options = Hash[warn_about_ignored_packages: true, checkout_only: true].
                 merge(options)
             ops = Ops::Import.new(self)
@@ -608,7 +613,7 @@ module Autoproj
             manifest.reused_installations.each do |imported_manifest|
                 imported_manifest.each do |imported_pkg|
                     imported_packages << imported_pkg.name
-                    if pkg = manifest.find_package_definition(imported_pkg.name)
+                    if (pkg = manifest.find_package_definition(imported_pkg.name))
                         pkg.autobuild.srcdir = imported_pkg.srcdir
                         pkg.autobuild.prefix = imported_pkg.prefix
                     end
@@ -618,6 +623,7 @@ module Autoproj
             manifest.each_package_definition do |pkg_def|
                 pkg = pkg_def.autobuild
                 next if imported_packages.include?(pkg_def.name)
+
                 setup_package_directories(pkg)
             end
         end
@@ -632,7 +638,7 @@ module Autoproj
                 end
 
             srcdir =
-                if target = manifest.moved_packages[pkg_name]
+                if (target = manifest.moved_packages[pkg_name])
                     File.join(layout, target)
                 else
                     File.join(layout, pkg_name)
@@ -647,9 +653,7 @@ module Autoproj
 
             pkg = manifest.find_autobuild_package(pkg_name)
             pkg.srcdir = File.join(source_dir, srcdir)
-            if pkg.respond_to?(:builddir)
-                pkg.builddir = compute_builddir(pkg)
-            end
+            pkg.builddir = compute_builddir(pkg) if pkg.respond_to?(:builddir)
 
             pkg.prefix = File.join(prefix_dir, prefixdir)
             pkg.doc_target_dir = File.join(prefix_dir, 'doc', pkg_name)
@@ -688,7 +692,7 @@ module Autoproj
             end
 
             main_package_set = manifest.main_package_set
-            Dir.glob(File.join( overrides_dir, "*.rb" ) ).sort.each do |file|
+            Dir.glob(File.join(overrides_dir, "*.rb")).sort.each do |file|
                 load main_package_set, file
             end
         end
@@ -699,9 +703,7 @@ module Autoproj
         # have been properly set up (a.k.a. after package import)
         def finalize_setup
             # Finally, disable all ignored packages on the autobuild side
-            manifest.each_ignored_package do |pkg|
-                pkg.disable
-            end
+            manifest.each_ignored_package(&:disable)
 
             # We now have processed the process setup blocks. All configuration
             # should be done and we can save the configuration data.
@@ -725,6 +727,7 @@ module Autoproj
             # Update the new entries
             manifest.each_package_set do |pkg_set|
                 next if pkg_set.main?
+
                 install_manifest.add_package_set(pkg_set)
             end
             selected_packages.each do |pkg_name|
@@ -747,14 +750,14 @@ module Autoproj
         # Export the workspace's env.sh file
         #
         # @return [Boolean] true if the environment has been changed, false otherwise
-        def export_env_sh(package_names = nil, shell_helpers: true)
+        def export_env_sh(_package_names = nil, shell_helpers: true)
             full_env = self.full_env
             changed = save_cached_env(full_env)
             full_env.export_env_sh(shell_helpers: shell_helpers)
             changed
         end
 
-        def save_cached_env(env = self.full_env)
+        def save_cached_env(env = full_env)
             Ops.save_cached_env(root_dir, env)
         end
 
@@ -807,7 +810,8 @@ module Autoproj
         # @param [Proc,nil] block a setup block that should be called to
         #   configure the package
         # @return [PackageDefinition]
-        def define_package(package_type, package_name, block = nil, package_set = manifest.main_package_set, file = nil)
+        def define_package(package_type, package_name, block = nil,
+                           package_set = manifest.main_package_set, file = nil)
             autobuild_package = Autobuild.send(package_type, package_name)
             register_package(autobuild_package, block, package_set, file)
         end
@@ -822,7 +826,8 @@ module Autoproj
         # @param [Proc,nil] block a setup block that should be called to
         #   configure the package
         # @return [PackageDefinition]
-        def register_package(package, block = nil, package_set = manifest.main_package_set, file = nil)
+        def register_package(package, block = nil,
+                             package_set = manifest.main_package_set, file = nil)
             pkg = manifest.register_package(package, block, package_set, file)
             pkg.autobuild.ws = self
             pkg
@@ -840,7 +845,7 @@ module Autoproj
         # @return [String] the resolved program
         # @raise [ExecutableNotFound] if an executable file named `cmd` cannot
         #   be found
-        def which(cmd, path_entries: nil)
+        def which(cmd, _path_entries: nil)
             Ops.which(cmd, path_entries: -> { full_env.value('PATH') || Array.new })
         end
     end
@@ -851,9 +856,7 @@ module Autoproj
 
     def self.workspace=(ws)
         @workspace = ws
-        if ws
-            self.root_dir = ws.root_dir
-        end
+        self.root_dir = ws&.root_dir
     end
 
     def self.env

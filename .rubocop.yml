@@ -1,0 +1,113 @@
+inherit_gem:
+  rubocop-rock: defaults.yml
+
+AllCops:
+    TargetRubyVersion: "2.3"
+    Exclude:
+    - lib/autobuild/packages/genom.rb
+    - vendor/**/*
+    - pkg/**/*
+
+Style/ClassVars:
+    Enabled: false
+
+Style/TrivialAccessors:
+    IgnoreClassMethods: true
+
+Naming/PredicateName:
+    Enabled: false
+
+Lint/SplatKeywordArguments:
+    Enabled: false
+
+Style/FrozenStringLiteralComment:
+    Enabled: false
+
+Style/AccessModifierDeclarations:
+    EnforcedStyle: inline
+
+Naming/FileName:
+    Exclude:
+      - lib/autobuild/import/git-lfs.rb
+
+Metrics/ParameterLists:
+    Enabled: false
+
+Naming/UncommunicativeMethodParamName:
+    AllowedNames: [io, id, to, by, on, in, at, ip, db, ws]
+
+
+
+
+Layout/AlignParameters:
+    Enabled: false
+
+Layout/DotPosition:
+    Enabled: false
+
+Layout/FirstParameterIndentation:
+    Enabled: false
+
+Layout/IndentAssignment:
+    Enabled: false
+
+Layout/IndentationWidth:
+    Enabled: false
+
+Layout/MultilineMethodCallBraceLayout:
+    Enabled: false
+
+Layout/MultilineMethodCallIndentation:
+    Enabled: false
+
+Lint/RescueException:
+    Enabled: false
+
+Metrics/AbcSize:
+    Enabled: false
+
+Metrics/BlockLength:
+    Enabled: false
+
+Metrics/ClassLength:
+    Enabled: false
+
+Metrics/CyclomaticComplexity:
+    Enabled: false
+
+Metrics/MethodLength:
+    Enabled: false
+
+Metrics/PerceivedComplexity:
+    Enabled: false
+
+Style/ClassCheck:
+    Enabled: false
+
+Style/Documentation:
+    Enabled: false
+
+Style/EmptyLiteral:
+    Enabled: false
+
+Style/GuardClause:
+    Enabled: false
+
+Style/HashSyntax:
+    Enabled: false
+
+Style/PerlBackrefs:
+    Enabled: false
+
+Style/StringLiterals:
+    Enabled: false
+
+Layout/IndentHeredoc:
+    Enabled: false
+
+Metrics/LineLength:
+    Max: 90
+    Exclude:
+    - test/**/*
+
+
