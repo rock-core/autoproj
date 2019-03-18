@@ -25,7 +25,7 @@ module Autoproj
                     rebuild: false,
                     parallel: nil,
                     confirm: true,
-                    not: nil
+                    not: Array.new
 
                 command_line_selection, source_packages, _osdep_packages =
                     super(selected_packages,
@@ -37,20 +37,13 @@ module Autoproj
 
                 return if source_packages.empty?
 
+                active_packages = source_packages - build_options[:not]
+
                 # Disable all packages that are not selected
                 ws.manifest.each_autobuild_package do |pkg|
-                    next if source_packages.include?(pkg.name)
+                    next if active_packages.include?(pkg.name)
+                    Autobuild.warn 'disabling ' + pkg.name
                     pkg.disable
-                end
-
-                # and disable packages listed in the not command if there are any
-                if build_options[:not]
-                    source_packages.each do |pkg_name|
-                        next if !build_options[:not].include?(pkg_name)
-                        pkg = ws.manifest.package_definition_by_name(pkg_name)
-                        Autobuild.warn 'disabling ' + pkg.name
-                        pkg.autobuild.disable
-                    end
                 end
 
                 Autobuild.ignore_errors = options[:keep_going]
