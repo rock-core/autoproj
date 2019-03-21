@@ -179,13 +179,17 @@ gem 'autobuild', path: '#{autobuild_dir}'
             FileUtils.cp_r bundled_gems_path, fixture_gem_home
 
             vendor = File.join(__dir__, '..', '..', 'vendor')
-            cached_bundler_gem = File.join(vendor, "bundler-#{Bundler::VERSION}.gem")
+            bundler_filename = "bundler-#{Bundler::VERSION}.gem"
+            cached_bundler_gem = File.join(vendor, bundler_filename)
             unless File.file?(cached_bundler_gem)
                 FileUtils.mkdir_p vendor
-                gem_fetch_result = system(
+                Bundler.clean_system(
                     Ops::Install.guess_gem_program, 'fetch', '-v',
-                    Bundler::VERSION, 'bundle', chdir: vendor)
-                raise "cannot download the bundler gem" unless gem_fetch_result
+                    Bundler::VERSION, 'bundler', chdir: vendor)
+
+                unless File.file?(bundler_filename)
+                    raise "cannot download the bundler gem"
+                end
             end
 
             capture_subprocess_io do
