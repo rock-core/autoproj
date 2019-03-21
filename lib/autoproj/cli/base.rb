@@ -156,9 +156,18 @@ module Autoproj
                 raise CLIInvalidSelection, e.message, e.backtrace
             end
 
+            # Check whether the user selection refers to non-existant/unknown
+            # packages
+            #
+            # @param [Array<String>] user_selection List of selected packages
+            # @param [Autoproj::PackageSelection] resolved_selection The
+            #   selection of known packages
+            # @raises [CLIInvalidArguments] if no match for a package could be found
             def validate_user_selection(user_selection, resolved_selection)
                 not_matched = user_selection.find_all do |pkg_name|
-                    !resolved_selection.has_match_for?(pkg_name)
+                    !resolved_selection.has_match_for?(pkg_name) &&
+                        !(resolved_selection.ignored?(pkg_name) ||
+                          resolved_selection.excluded?(pkg_name))
                 end
                 if !not_matched.empty?
                     raise CLIInvalidArguments, "autoproj: wrong package selection on command line, cannot find a match for #{not_matched.to_a.sort.join(", ")}"

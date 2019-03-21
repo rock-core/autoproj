@@ -50,6 +50,24 @@ module Autoproj
                 selection.empty?
             end
 
+            # Test if a package is in the ignore list
+            #
+            # @param [String] pkg_name Name of the package
+            # @return [Bool] true, if package is in the ignore list, false
+            # otherwise
+            def ignored?(pkg_name)
+                ignores.include?(pkg_name)
+            end
+
+            # Test if a package is in the exclusions list
+            #
+            # @param [String] pkg_name Name of the package
+            # @return [Bool] true, if package is in the exclusion list, false
+            # otherwise
+            def excluded?(pkg_name)
+                exclusions.include?(pkg_name)
+            end
+
             # Returns the source packages selected explicitely or through
             # dependencies
             #
