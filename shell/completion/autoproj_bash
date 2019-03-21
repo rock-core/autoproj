@@ -666,6 +666,7 @@ __autoproj_build() {
         --no-tool
         --confirm
         --no-confirm
+        --not
     "
 
     case "$cur" in
@@ -1061,6 +1062,7 @@ __autoproj_versions() {
         --local
         --no-local
         --save
+        --fingerprint
     "
 
     case "$cur" in

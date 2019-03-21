@@ -51,7 +51,10 @@ module Autoproj
                     versions += ops.snapshot_package_sets(nil, only_local: options[:only_local])
                 end
                 if snapshot_packages
-                    versions += ops.snapshot_packages(packages, nil, only_local: options[:only_local])
+                    versions += ops.snapshot_packages(packages, 
+                        nil, 
+                        only_local: options[:only_local],
+                        fingerprint: options[:fingerprint])
                 end
 
                 if output_file = options[:save]

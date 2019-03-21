@@ -117,7 +117,7 @@ module Autoproj
             end
         end
 
-        def snapshot_packages(packages, target_dir = nil, only_local: true)
+        def snapshot_packages(packages, target_dir = nil, only_local: true, fingerprint: false)
             result = Array.new
             packages.each do |package_name|
                 package  = manifest.find_package_definition(package_name)
@@ -139,6 +139,10 @@ module Autoproj
                         error_or_warn(package, e)
                         next
                     end
+
+                if fingerprint
+                    vcs_info['fingerprint'] = package.autobuild.fingerprint
+                end
 
                 if vcs_info
                     result << Hash[package_name, vcs_info]

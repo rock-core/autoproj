@@ -20,6 +20,7 @@ __amake() {
     {--auto-exclude,--no-auto-exclude}'[if true, packages that fail to import will be excluded from the build]' \
     {--tool,--no-tool}'[act as a build tool, transparently passing the subcommand''s outputs to STDOUT]' \
     {--confirm,--no-confirm}'[--force and --rebuild will ask confirmation if applied to the whole workspace. Use --no-confirm to disable this confirmation]' \
+    --not'[do not build the packages listed]' \
     '*:arg:_autoproj_installed_packages'
 }
 

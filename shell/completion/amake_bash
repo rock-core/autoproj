@@ -61,6 +61,7 @@ __amake() {
         --no-tool
         --confirm
         --no-confirm
+        --not
     "
 
     case "$cur" in

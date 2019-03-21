@@ -471,6 +471,7 @@ __autoproj_build() {
     {--auto-exclude,--no-auto-exclude}'[if true, packages that fail to import will be excluded from the build]' \
     {--tool,--no-tool}'[act as a build tool, transparently passing the subcommand''s outputs to STDOUT]' \
     {--confirm,--no-confirm}'[--force and --rebuild will ask confirmation if applied to the whole workspace. Use --no-confirm to disable this confirmation]' \
+    --not'[do not build the packages listed]' \
     '*:arg:_autoproj_installed_packages'
 }
 
@@ -697,6 +698,7 @@ __autoproj_versions() {
     {--deps,--no-deps}'[whether both packages and their dependencies should be versioned, or only the selected packages (the latter is the default)]' \
     {--local,--no-local}'[whether we should access the remote server to verify that the snapshotted state is present]' \
     --save'[save to the given file instead of displaying it on the standard output]' \
+    --fingerprint'[calculate unique fingerprint for each package]' \
     '*:arg:_autoproj_installed_packages'
 }
 

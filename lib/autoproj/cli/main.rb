@@ -245,6 +245,8 @@ In this case, the default is false
                 desc: "act as a build tool, transparently passing the subcommand's outputs to STDOUT"
             option :confirm, type: :boolean, default: nil,
                 desc: '--force and --rebuild will ask confirmation if applied to the whole workspace. Use --no-confirm to disable this confirmation'
+            option :not, type: :array, default: nil,
+                desc: 'do not build the packages listed'
             def build(*packages)
                 report_options = Hash[silent: false, on_package_failures: default_report_on_package_failures]
                 if options[:auto_exclude]
@@ -382,6 +384,8 @@ are given, the packages will not be versioned. In other words,
                 desc: 'whether we should access the remote server to verify that the snapshotted state is present'
             option :save, type: :string,
                 desc: 'save to the given file instead of displaying it on the standard output'
+            option :fingerprint, type: :boolean, default: false,
+                desc: 'calculate unique fingerprint for each package'
             def versions(*packages)
                 run_autoproj_cli(:versions, :Versions, Hash[], *packages, deps: true)
             end
