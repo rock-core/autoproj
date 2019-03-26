@@ -43,8 +43,7 @@ Each package definition includes:
 * on what the package depends. This can be either another package built by
   autoproj, or an operating system package.
 
-See this
-page[http://www.rock-robotics.org/stable/documentation/autoproj/writing_manifest.html] for more information.
+See [this page](https://www.rock-robotics.org/documentation/autoproj/writing_manifest.html) for more information.
 
 ## Software packages in Autoproj
 
@@ -60,7 +59,7 @@ using pkg-config for C/C++ packages.
 
 To describe the package, and more importantly to setup cross-package
 dependencies, an optional manifest file can be
-added[http://www.rock-robotics.org/stable/documentation/autoproj/advanced/manifest-xml.html].
+added [link to documentation here](https://www.rock-robotics.org/documentation/autoproj/advanced/manifest-xml.html).
 
 # Migrating from v1 to v2
 
@@ -104,7 +103,7 @@ saved under a new .autoproj directory (as e.g. the config files and
 remotes). The upgrade process does not delete these to allow for
 "downgrading".
 
-In addition, autoproj now uses [bundler](bundler.io) to manage the gems. This means
+In addition, autoproj now uses [bundler](http://bundler.io) to manage the gems. This means
 that, by default, the gems are shared between all autoproj installs,
 bundler making sure that upgrading a gem on one install does not
 affect another. This makes bootstrapping a lot faster (since already
@@ -122,7 +121,7 @@ entries following [the bundler documentation](http://bundler.io/gemfile.html).
 Once the file is edited, run `autoproj osdeps` and reload the updated `env.sh`. 
 
 To remove gems, remove the corresponding line in `autoproj/Gemfile`, run
-`autoproj osdeps` and reload env.sh.
+`autoproj osdeps` and reload `env.sh`
 
 Alternatively to the main `autoproj/Gemfile`, files with the `.gemfile`
 extension in `autoproj/overrides.d` are also considered
@@ -174,7 +173,7 @@ The option is also available to "autoproj show"
 The environment is not global anymore, but per-package. This means
 that builds that were missing dependencies could be previously passing
 and will fail. It also means that the environment of packages that
-have been used but are not anymore will not pollute env.sh.
+have been used but are not anymore will not pollute `env.sh`
 
 ### Separate build directories
 
