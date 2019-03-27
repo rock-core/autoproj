@@ -25,8 +25,8 @@ module Autoproj
             super
         end
 
-        def run_command_and_stop(*args, fail_on_error: true)
-            cmd = run_command(*args)
+        def run_command_and_stop(*args, fail_on_error: true, **kwargs)
+            cmd = run_command(*args, **kwargs)
             cmd.stop
             if fail_on_error
                 assert_command_finished_successfully(cmd)
@@ -34,8 +34,8 @@ module Autoproj
             cmd
         end
 
-        def run_command(*args)
-            @aruba_api.run(*args)
+        def run_command(*args, **kwargs)
+            @aruba_api.run(*args, **kwargs)
         end
 
         def chmod(*args) # also defined by Rake

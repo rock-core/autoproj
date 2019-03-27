@@ -32,16 +32,22 @@ module Autoproj
                 end
                 return args, options
             end
-            
-            def run(buildconf_info, options)
+
+            def run(buildconf_info, interactive: nil, **options)
                 ws = Workspace.new(root_dir)
+                ws.config.interactive = interactive unless interactive.nil?
                 ws.setup
 
                 seed_config = options.delete(:seed_config)
 
                 switcher = Ops::MainConfigSwitcher.new(ws)
+                check_root_dir_empty =
+                    ws.config.interactive? && switcher.check_root_dir_empty?
+
                 begin
-                    switcher.bootstrap(buildconf_info, options)
+                    switcher.bootstrap(buildconf_info,
+                        check_root_dir_empty: check_root_dir_empty,
+                        **options)
                     if seed_config
                         FileUtils.cp seed_config, File.join(ws.config_dir, 'config.yml')
                     end

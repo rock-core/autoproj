@@ -16,16 +16,20 @@ module Autoproj
             EXPECTED_ROOT_ENTRIES = [".", "..", "autoproj_bootstrap",
                                      ".autoproj", "bootstrap.sh", ENV_FILENAME].to_set
 
+
+            def check_root_dir_empty?
+                (ENV['AUTOPROJ_NONINTERACTIVE'] != '1') &&
+                    (ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] != '1')
+            end
+
             # Verifies that {#root_dir} contains only expected entries, to make
             # sure that the user bootstraps into a new directory
             #
             # If the environment variable AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR
             # is set to 1, the check is skipped
             def check_root_dir_empty
-                return if ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] == '1'
-
                 require 'set'
-                curdir_entries = Dir.entries(ws.root_dir).map { |p| File.basename(p) }.to_set - 
+                curdir_entries = Dir.entries(ws.root_dir).map { |p| File.basename(p) }.to_set -
                     EXPECTED_ROOT_ENTRIES
                 return if curdir_entries.empty?
 
@@ -73,8 +77,10 @@ module Autoproj
 
             MAIN_CONFIGURATION_TEMPLATE = File.expand_path(File.join("..", "..", "..", "samples", 'autoproj'), File.dirname(__FILE__))
 
-            def bootstrap(buildconf_info, reuse: Array.new)
-                check_root_dir_empty
+            def bootstrap(buildconf_info,
+                          check_root_dir_empty: check_root_dir_empty?,
+                          reuse: Array.new)
+                self.check_root_dir_empty if check_root_dir_empty
                 validate_autoproj_current_root(reuse)
 
                 ws.config.validate_ruby_executable
@@ -179,7 +185,7 @@ module Autoproj
                         backup_name = "#{backup_base_name}-#{index}.bak"
                         index += 1
                     end
-                        
+
                     FileUtils.mv config_dir, backup_name
                 end
 

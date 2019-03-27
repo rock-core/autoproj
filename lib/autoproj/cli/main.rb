@@ -30,7 +30,7 @@ module Autoproj
                 desc: 'enables or disables colored display (enabled by default if the terminal supports it)'
             class_option :progress, type: :boolean, default: TTY::Color.color?,
                 desc: 'enables or disables progress display (enabled by default if the terminal supports it)'
-            class_option 'interactive', type: :boolean, default: nil,
+            class_option 'interactive', type: :boolean, default: true,
                 desc: 'tell autoproj to run (non)interactively'
 
             stop_on_unknown_option! :exec
@@ -83,6 +83,19 @@ module Autoproj
                     end
                 end
 
+                # Generate a command line for Ops::Install, which has an
+                # internal option parser based on OptionParse (to be
+                # self-sufficient)
+                def thor_options_to_optparse
+                    flags = []
+                    %i[color progress debug interactive].each do |option|
+                        if options[option] then flags << "--#{option}"
+                        else flags << "--no-#{option}"
+                        end
+                    end
+                    flags
+                end
+
                 def run_autoproj_cli(filename, classname, report_options, *args, tool_failure_mode: :exit_silent, **extra_options)
                     require "autoproj/cli/#{filename}"
                     if Autobuild::Subprocess.transparent_mode = options[:tool]
@@ -120,9 +133,9 @@ module Autoproj
                 if !File.directory?(File.join(Dir.pwd, '.autoproj'))
                     require 'autoproj/ops/install'
                     ops = Autoproj::Ops::Install.new(Dir.pwd)
-                    ops.parse_options(args)
+                    bootstrap_options = ops.parse_options(thor_options_to_optparse + args)
                     ops.run
-                    exec Gem.ruby, $0, 'bootstrap', *args
+                    exec Gem.ruby, $0, 'bootstrap', *bootstrap_options
                 end
                 run_autoproj_cli(:bootstrap, :Bootstrap, Hash[], *args)
             end
@@ -513,12 +526,7 @@ The format is a string in which special values can be expanded using a $VARNAME 
             def install_stage2(root_dir, *vars)
                 require 'autoproj/ops/install'
                 ops = Autoproj::Ops::Install.new(root_dir)
-                if options[:color] then ops.autoproj_options << "--color"
-                else ops.autoproj_options << "--no-color"
-                end
-                if options[:progress] then ops.autoproj_options << "--progress"
-                else ops.autoproj_options << "--no-progress"
-                end
+                ops.parse_options(thor_options_to_optparse)
                 ops.stage2(*vars)
             end
 

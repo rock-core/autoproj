@@ -122,6 +122,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
                                dir: nil,
                                gemfile_source: nil,
                                use_autoproj_from_rubygems: (ENV['USE_AUTOPROJ_FROM_RUBYGEMS'] == '1'),
+                               interactive: true,
                                seed_config: File.join(scripts_dir, 'seed-config.yml'),
                                env: Hash.new, display_output: false, copy_from: nil,
                                **system_options)
@@ -144,6 +145,8 @@ gem 'autobuild', path: '#{autobuild_dir}'
                 end
                 arguments << "--gemfile" << gemfile_path << "--gem-source" << "http://localhost:8808"
             end
+
+            arguments << "--no-interactive" unless interactive
 
             if copy_from
                 test_workspace = File.expand_path(copy_from, scripts_dir)
@@ -415,6 +418,18 @@ gem 'autobuild', path: '#{autobuild_dir}'
                 io.write content
             end
             path
+        end
+
+        def gemfile_aruba
+            base_dir = File.expand_path('../../', __dir__)
+            gemfile_path = File.join(base_dir, 'tmp', 'Gemfile.local')
+            File.open(gemfile_path, 'w') do |io|
+                io.write <<~GEMFILE
+                source 'https://rubygems.org'
+                gem 'autoproj', path: '#{base_dir}'
+                GEMFILE
+            end
+            gemfile_path
         end
     end
 end
