@@ -45,7 +45,7 @@ module Autoproj
 
                 Autobuild.ignore_errors = options[:keep_going]
 
-                ops = Ops::Build.new(ws.manifest, report_dir: ws.log_dir)
+                ops = Ops::Build.new(ws.manifest, report_path: ws.build_report_path)
                 if build_options[:rebuild] || build_options[:force]
                     packages_to_rebuild =
                         if options[:deps] || command_line_selection.empty?

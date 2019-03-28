@@ -243,6 +243,15 @@ module Autoproj
             File.join(config_dir, OVERRIDES_DIR)
         end
 
+        BUILD_REPORT_BASENAME = "build_report.json"
+
+        # The full path to the build report
+        #
+        # @return [String]
+        def build_report_path
+            File.join(log_dir, BUILD_REPORT_BASENAME)
+        end
+
         # Load the configuration for this workspace from
         # config_file_path
         #

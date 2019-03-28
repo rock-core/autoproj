@@ -13,9 +13,9 @@ module Autoproj
 
             # @param [String] report_dir the log directory in which to build
             #   the build report. If left to nil, no report will be generated
-            def initialize(manifest, report_dir: nil)
+            def initialize(manifest, report_path: nil)
                 @manifest = manifest
-                @report_dir = report_dir
+                @report_path = report_path
             end
 
             # Triggers a rebuild of all packages
@@ -92,22 +92,12 @@ module Autoproj
                 begin
                     Autobuild.apply(all_enabled_packages, "autoproj-build", ['build'], options)
                 ensure
-                    build_report(all_enabled_packages) if @report_dir
+                    build_report(all_enabled_packages) if @report_path
                 end
             end
 
-            REPORT_BASENAME = "build_report.json"
-
-            # The path to the report file
-            #
-            # @return [String,nil] the path, or nil if the report should not
-            #    be generated
-            def report_path
-                File.join(@report_dir, REPORT_BASENAME) if @report_dir
-            end
-
             def build_report(package_list)
-                FileUtils.mkdir_p @report_dir
+                FileUtils.mkdir_p File.dirname(@report_path)
 
                 packages = package_list.map do |pkg_name|
                     pkg = manifest.find_autobuild_package(pkg_name)
@@ -130,7 +120,7 @@ module Autoproj
                         packages: packages
                     }
                 })
-                IO.write(report_path, build_report)
+                IO.write(@report_path, build_report)
             end
         end
     end
