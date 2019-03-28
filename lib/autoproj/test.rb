@@ -296,8 +296,8 @@ gem 'autobuild', path: '#{autobuild_dir}'
             ws.config.set 'GITHUB', 'http,ssh', true
             ws.config.set 'GITORIOUS', 'http,ssh', true
             ws.config.set 'gems_install_path', File.join(dir, 'gems')
-            ws.config.save
             ws.prefix_dir = make_tmpdir
+            ws.config.save
             ws
         end
 
