@@ -40,8 +40,6 @@ module Autoproj
                 # Disable all packages that are not selected
                 ws.manifest.each_autobuild_package do |pkg|
                     next if active_packages.include?(pkg.name)
-
-                    Autobuild.warn 'disabling ' + pkg.name
                     pkg.disable
                 end
 
