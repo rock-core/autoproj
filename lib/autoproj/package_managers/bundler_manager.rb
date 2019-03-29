@@ -128,7 +128,7 @@ module Autoproj
             end
 
             class NotCleanState < RuntimeError; end
-            
+
             # @api private
             #
             # Create backup files matching a certain file mapping
@@ -206,7 +206,13 @@ module Autoproj
                 path.chomp
             end
 
+            def self.default_bundler(ws)
+                File.join(ws.dot_autoproj_dir, 'bin', 'bundle')
+            end
+
             def self.run_bundler(ws, *commandline, gem_home: nil, gemfile: nil)
+                bundle = Autobuild.programs['bundle'] || default_bundler(ws)
+
                 Bundler.with_clean_env do
                     target_env = Hash[
                         'GEM_HOME' => gem_home,
@@ -216,14 +222,14 @@ module Autoproj
                         'RUBYLIB' => rubylib_for_bundler
                     ]
                     ws.run 'autoproj', 'osdeps',
-                        Autobuild.tool('bundle'), *commandline,
+                        bundle, *commandline,
                         working_directory: File.dirname(gemfile), env: target_env do |line|
                             yield(line) if block_given?
                         end
                 end
             end
 
-            # Parse the contents of a gemfile into a set of 
+            # Parse the contents of a gemfile into a set of
             def merge_gemfiles(*path, unlock: [])
                 gems_remotes = Set.new
                 dependencies = Hash.new do |h, k|
@@ -367,7 +373,7 @@ module Autoproj
                 raise
             ensure
                 if binstubs_path
-                    FileUtils.rm_f File.join(binstubs_path, 'bundle') 
+                    FileUtils.rm_f File.join(binstubs_path, 'bundle')
                     FileUtils.rm_f File.join(binstubs_path, 'bundler')
                 end
                 backup_clean(backups)
@@ -408,7 +414,7 @@ module Autoproj
                              'RUBYLIB' => self.class.rubylib_for_bundler],
                         Autobuild.tool('ruby'), '-rbundler/setup', '-e', 'puts $LOAD_PATH',
                         out: io, **silent_redirect)
-                        
+
                     if result
                         io.rewind
                         io.readlines.map { |l| l.chomp }.find_all { |l| !l.empty? }
