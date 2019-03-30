@@ -79,5 +79,24 @@ module Autoproj
         def depends_on(pkg)
             autobuild.depends_on(pkg.autobuild)
         end
+
+        def apply_dependencies_from_manifest
+            manifest = autobuild.description
+            manifest.each_dependency(modes) do |name, is_optional|
+                begin
+                    if is_optional
+                        autobuild.optional_dependency name
+                    else
+                        autobuild.depends_on name
+                    end
+                rescue ConfigError => e
+                    raise ConfigError.new(manifest.path),
+                          "manifest #{manifest.path} of #{self.name} from "\
+                          "#{package_set.name} lists '#{name}' as dependency, "\
+                          'but it is neither a normal package nor an osdeps '\
+                          "package. osdeps reports: #{e.message}", e.backtrace
+                end
+            end
+        end
     end
 end

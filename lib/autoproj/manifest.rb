@@ -1020,23 +1020,14 @@ module Autoproj
             if manifest
                 pkg.autobuild.description = manifest
             else
-                Autoproj.warn "#{package.name} from #{package_set.name} does not have a manifest"
+                Autoproj.warn "#{package.name} from #{package_set.name} "\
+                              "does not have a manifest"
             end
 
-            manifest = pkg.autobuild.description
-            manifest.each_dependency(pkg.modes) do |name, is_optional|
-                begin
-                    if is_optional
-                        package.optional_dependency name
-                    else
-                        package.depends_on name
-                    end
-                rescue ConfigError => e
-                    raise ConfigError.new(manifest_path),
-                        "manifest #{manifest_path} of #{package.name} from #{package_set.name} lists '#{name}' as dependency, but it is neither a normal package nor an osdeps package. osdeps reports: #{e.message}", e.backtrace
-                end
-            end
-            manifest
+            pkg.apply_dependencies_from_manifest
+            # #description is initialized with a null package manifest
+            # return it even if we haven't overriden it
+            pkg.autobuild.description
         end
 
         def load_all_available_package_manifests

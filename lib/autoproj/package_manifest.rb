@@ -31,7 +31,7 @@ module Autoproj
         # @return [PackageManifest]
         # @see load
         def self.parse(package, contents, path: '<loaded from string>', loader_class: Loader)
-            manifest = PackageManifest.new(package)
+            manifest = PackageManifest.new(package, path)
             loader = loader_class.new(path, manifest)
             begin
                 REXML::Document.parse_stream(contents, loader)
@@ -46,6 +46,7 @@ module Autoproj
 
         # The Autobuild::Package instance this manifest applies on
         attr_reader :package
+        attr_reader :path
         attr_accessor :description
         attr_accessor :brief_description
         attr_reader :dependencies
@@ -79,8 +80,9 @@ module Autoproj
                 "no documentation available for package '#{package.name}' in its manifest.xml file"
         end
 
-        def initialize(package, null: false)
+        def initialize(package, path = nil, null: false)
             @package = package
+            @path = path
             @dependencies = []
             @authors = []
             @maintainers = []
