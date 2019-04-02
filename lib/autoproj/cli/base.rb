@@ -175,7 +175,8 @@ module Autoproj
             end
 
             def validate_options(args, options)
-                ws.config.interactive = options.delete(:interactive)
+                interactive = options.delete(:interactive)
+                ws.config.interactive = interactive unless interactive.nil?
                 self.class.validate_options(args, options)
             end
 
