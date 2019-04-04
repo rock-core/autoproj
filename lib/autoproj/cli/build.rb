@@ -19,7 +19,7 @@ module Autoproj
                 return selected_packages, options
             end
 
-            def run(selected_packages, options)
+            def run(selected_packages, **options)
                 build_options, options = filter_options options,
                     force: false,
                     rebuild: false,
@@ -86,7 +86,8 @@ module Autoproj
                 ops.build_packages(source_packages, parallel: parallel)
                 Main.run_post_command_hook(:build, ws, source_packages: source_packages)
             ensure
-                export_env_sh
+                # Update env.sh, but only if we managed to load the configuration
+                export_env_sh if source_packages
             end
         end
     end

@@ -9,6 +9,11 @@ module Autoproj
             before do
                 ws_create
                 @cli = Build.new(ws)
+                Autoproj.silent = true
+            end
+
+            after do
+                Autoproj.silent = false
             end
 
             describe "the main CLI" do
@@ -20,6 +25,26 @@ module Autoproj
                             Main.start(['build', '-n', '--silent'])
                         end
                     end
+                end
+
+                it "fails with the actual error if the manifest cannot be "\
+                    "resolved due to a configuration error" do
+                    # This is a regression test. `autoproj build` would fail
+                    # during env.sh generation if the load failed, in case
+                    # the layout could not be resolved
+                    dir = make_tmpdir
+                    File.open(ws.manifest_file_path, 'w') do |io|
+                        manifest_data = {
+                            'package_sets' => [dir],
+                            'layout' => ['some']
+                        }
+                        YAML.dump(manifest_data, io)
+                    end
+                    e = assert_raises(Autoproj::ConfigError) do
+                        @cli.run([], silent: true)
+                    end
+                    assert_equal "package set local:#{dir} present in #{dir} should "\
+                        "have a source.yml file, but does not", e.message
                 end
             end
 
