@@ -9,14 +9,12 @@ module Autoproj
                     super(selected_packages, options.merge(
                         checkout_only: true, aup: options[:amake]))
 
-                if options[:no_deps_shortcut]
-                    options[:deps] = false
-                end
+                options[:deps] = false if options[:no_deps_shortcut]
                 if options[:deps].nil?
                     options[:deps] =
                         !(options[:rebuild] || options[:force])
                 end
-                return selected_packages, options
+                [selected_packages, options]
             end
 
             def run(selected_packages, **options)
@@ -42,13 +40,12 @@ module Autoproj
                 # Disable all packages that are not selected
                 ws.manifest.each_autobuild_package do |pkg|
                     next if active_packages.include?(pkg.name)
-                    Autobuild.warn 'disabling ' + pkg.name
                     pkg.disable
                 end
 
                 Autobuild.ignore_errors = options[:keep_going]
 
-                ops = Ops::Build.new(ws.manifest, report_dir: ws.log_dir)
+                ops = Ops::Build.new(ws.manifest, report_path: ws.build_report_path)
                 if build_options[:rebuild] || build_options[:force]
                     packages_to_rebuild =
                         if options[:deps] || command_line_selection.empty?
@@ -63,10 +60,12 @@ module Autoproj
                                     else 'force-build'
                                     end
                         if build_options[:confirm] != false
-                            opt = BuildOption.new("", "boolean", {:doc => "this is going to trigger a #{mode_name} of all packages. Is that really what you want ?"}, nil)
-                            if !opt.ask(false)
-                                raise Interrupt
-                            end
+                            opt = BuildOption.new("", "boolean",
+                                {
+                                    doc: "this is going to trigger a #{mode_name} "\
+                                        "of all packages. Is that really what you want ?"
+                                }, nil)
+                            raise Interrupt unless opt.ask(false)
                         end
 
                         if build_options[:rebuild]

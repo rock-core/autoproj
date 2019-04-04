@@ -19,11 +19,11 @@ module Autoproj
 
         # Loads the manifest file located at +file+ and returns the Manifest
         # instance that represents it
-	def self.load(file)
-	    manifest = Manifest.new
+        def self.load(file)
+            manifest = Manifest.new
             manifest.load(file)
             manifest
-	end
+        end
 
         # A normalized version of the layout as represented in the manifest file
         #
@@ -176,7 +176,7 @@ module Autoproj
             @ws = ws
             @vcs = VCSDefinition.none
             @file = nil
-	    @data = Hash.new
+            @data = Hash.new
             @has_layout = false
             @normalized_layout = Hash.new
             @packages = Hash.new
@@ -198,7 +198,7 @@ module Autoproj
 
             @constant_definitions = Hash.new
             @package_sets << LocalPackageSet.new(ws)
-	end
+        end
 
         # @api private
         #

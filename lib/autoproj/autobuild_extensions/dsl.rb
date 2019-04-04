@@ -32,22 +32,27 @@ module Autoproj
         end
     end
 
-    # @deprecated use Autoproj.workspace.in_package_set or add a proper Loader object to your
-    #   class
+    # @deprecated use Autoproj.workspace.in_package_set or add a proper Loader
+    #   object to your class
     def self.in_package_set(package_set, path, &block)
-        Autoproj.warn_deprecated __method__, "use Autoproj.workspace.in_package_set instead"
+        Autoproj.warn_deprecated __method__,
+            "use Autoproj.workspace.in_package_set instead"
         Autoproj.workspace.in_package_set(package_set, path, &block)
     end
-    # @deprecated use Autoproj.workspace.current_file or add a proper Loader object to your
-    #   class
+
+    # @deprecated use Autoproj.workspace.current_file or add a proper Loader
+    #   object to your class
     def self.current_file
-        Autoproj.warn_deprecated __method__, "use AUtoproj.workspace.current_file instead"
+        Autoproj.warn_deprecated __method__,
+            "use AUtoproj.workspace.current_file instead"
         Autoproj.workspace.current_file
     end
-    # @deprecated use Autoproj.workspace.current_package_set or add a proper Loader object to your
-    #   class
+
+    # @deprecated use Autoproj.workspace.current_package_set or add a proper
+    #   Loader object to your class
     def self.current_package_set
-        Autoproj.warn_deprecated __method__, "use Autoproj.workspace.current_package_set instead"
+        Autoproj.warn_deprecated __method__,
+            "use Autoproj.workspace.current_package_set instead"
         Autoproj.workspace.current_package_set
     end
 
@@ -55,18 +60,22 @@ module Autoproj
     #   Beware that the return value changed from Autobuild::Package to
     #   Autoproj::PackageDefinition
     def self.define(package_type, spec, &block)
-        Autoproj.warn_deprecated __method__, "use Autoproj.workspace.define_package instead (and beware that the return value changed from Autobuild::Package to Autoproj::PackageDefinition)"
+        Autoproj.warn_deprecated __method__, "use Autoproj.workspace.define_package "\
+            "instead (and beware that the return value changed from "\
+            "Autobuild::Package to Autoproj::PackageDefinition)"
         workspace.define_package(package_type, spec, block, *current_file).
             autobuild
     end
 
     def self.loaded_autobuild_files
-        Autoproj.warn_deprecated __method__, "use Autoproj.workspace.loaded_autobuild_files"
+        Autoproj.warn_deprecated __method__,
+            "use Autoproj.workspace.loaded_autobuild_files"
         Autoproj.workspace.loaded_autobuild_files
     end
 
     def self.import_autobuild_file(package_set, path)
-        Autoproj.warn_deprecated __method__, "use Autoproj.workspace.import_autobuild_file"
+        Autoproj.warn_deprecated __method__,
+            "use Autoproj.workspace.import_autobuild_file"
         Autoproj.workspace.import_autobuild_file(package_set, path)
     end
 
@@ -75,14 +84,11 @@ module Autoproj
         while dir != "/"
             match = false
             if glob_pattern
-                if !Dir.glob(File.join(dir, glob_pattern)).empty?
-                    match = true
-                end
+                match = true unless Dir.glob(File.join(dir, glob_pattern)).empty?
             end
 
-            if !match && block_given? && yield(dir)
-                match = true
-            end
+            match = true if !match && block_given? && yield(dir)
+
             if !match && result
                 return result
             elsif match
@@ -130,9 +136,7 @@ end
 
 # Adds a new setup block to an existing package
 def setup_package(package_name, workspace: Autoproj.workspace, &block)
-    if !block
-        raise ConfigError.new, "you must give a block to #setup_package"
-    end
+    raise ConfigError.new, "you must give a block to #setup_package" unless block
 
     package_definition = workspace.manifest.find_package_definition(package_name)
     if !package_definition
@@ -148,10 +152,11 @@ end
 def package_common(package_type, spec, workspace: Autoproj.workspace, &block)
     package_name = Autoproj.package_name_from_options(spec)
 
-    if existing_package = workspace.manifest.find_package_definition(package_name)
+    if (existing_package = workspace.manifest.find_package_definition(package_name))
         current_file = workspace.current_file[1]
         old_file     = existing_package.file
-        Autoproj.warn "#{package_name} from #{current_file} is overridden by the definition in #{old_file}"
+        Autoproj.warn "#{package_name} from #{current_file} is overridden "\
+            "by the definition in #{old_file}"
         return existing_package.autobuild
     end
 
@@ -161,11 +166,11 @@ def package_common(package_type, spec, workspace: Autoproj.workspace, &block)
 end
 
 def import_package(name, workspace: Autoproj.workspace, &block)
-    package_common(:import, name, workspace: Autoproj.workspace, &block)
+    package_common(:import, name, workspace: workspace, &block)
 end
 
 def python_package(name, workspace: Autoproj.workspace)
-    package_common(:python, name, workspace: Autoproj.workspace) do |pkg|
+    package_common(:python, name, workspace: workspace) do |pkg|
         pkg.internal_dependency 'python'
         yield(pkg) if block_given?
     end
@@ -175,22 +180,19 @@ def common_make_based_package_setup(pkg)
     unless pkg.has_doc? && pkg.doc_dir
         pkg.with_doc do
             doc_html = File.join(pkg.builddir, 'doc', 'html')
-            if File.directory?(doc_html)
-                pkg.doc_dir = doc_html
-            end
+            pkg.doc_dir = doc_html if File.directory?(doc_html)
         end
     end
-    if !pkg.test_utility.has_task?
-        if !pkg.test_utility.source_dir
+
+    unless pkg.test_utility.has_task?
+        unless pkg.test_utility.source_dir
             test_dir = File.join(pkg.srcdir, 'test')
             if File.directory?(test_dir)
                 pkg.test_utility.source_dir = File.join(pkg.builddir, 'test', 'results')
             end
         end
 
-        if pkg.test_utility.source_dir
-            pkg.with_tests
-        end
+        pkg.with_tests if pkg.test_utility.source_dir
     end
 end
 
@@ -249,7 +251,6 @@ def env_add(name, value)
     Autoproj.env.add(name, value)
 end
 
-
 # Defines a Ruby package
 #
 # Example:
@@ -267,11 +268,10 @@ def ruby_package(name, workspace: Autoproj.workspace)
         # Documentation code. Ignore if the user provided its own documentation
         # task, or disabled the documentation generation altogether by setting
         # rake_doc_task to nil
-        if !pkg.has_doc? && pkg.rake_doc_task
-            pkg.with_doc
-        end
-        if !pkg.test_utility.has_task?
-            if !pkg.test_utility.source_dir
+        pkg.with_doc if !pkg.has_doc? && pkg.rake_doc_task
+
+        unless pkg.test_utility.has_task?
+            unless pkg.test_utility.source_dir
                 test_dir = File.join(pkg.srcdir, 'test')
                 if File.directory?(test_dir)
                     pkg.test_utility.source_dir = File.join(pkg.srcdir, '.test-results')
@@ -279,9 +279,7 @@ def ruby_package(name, workspace: Autoproj.workspace)
                 end
             end
 
-            if pkg.test_utility.source_dir
-                pkg.with_tests
-            end
+            pkg.with_tests if pkg.test_utility.source_dir
         end
 
         yield(pkg) if block_given?
@@ -321,13 +319,13 @@ def only_on(*architectures)
 
     os_names, os_versions = Autoproj.workspace.operating_system
     matching_archs = architectures.find_all { |arch| os_names.include?(arch[0].downcase) }
-    if matching_archs.empty?
-        return
-    elsif matching_archs.none? { |arch| !arch[1] || os_versions.include?(arch[1].downcase) }
-        return
+    return if matching_archs.empty?
+
+    has_matching_arch = matching_archs.any? do |arch|
+        !arch[1] || os_versions.include?(arch[1].downcase)
     end
 
-    yield
+    yield if has_matching_arch
 end
 
 # Declare that the packages declared in the block should not be built in the
@@ -346,22 +344,25 @@ def not_on(*architectures)
 
     os_names, os_versions = Autoproj.workspace.operating_system
     matching_archs = architectures.find_all { |arch| os_names.include?(arch[0].downcase) }
-    if matching_archs.empty?
-        return yield
-    elsif matching_archs.all? { |arch| arch[1] && !os_versions.include?(arch[1].downcase) }
-        return yield
+    return yield if matching_archs.empty?
+
+    matches_arch = matching_archs.all? do |arch|
+        arch[1] && !os_versions.include?(arch[1].downcase)
     end
+    return yield if matches_arch
 
     # Simply get the current list of packages, yield the block, and exclude all
     # packages that have been added
     manifest = Autoproj.workspace.manifest
     current_packages = manifest.each_autobuild_package.map(&:name).to_set
     yield
-    new_packages = manifest.each_autobuild_package.map(&:name).to_set -
+    new_packages =
+        manifest.each_autobuild_package.map(&:name).to_set -
         current_packages
 
     new_packages.each do |pkg_name|
-        manifest.exclude_package(pkg_name, "#{pkg_name} is disabled on this operating system")
+        manifest.exclude_package(
+            pkg_name, "#{pkg_name} is disabled on this operating system")
     end
 end
 
@@ -369,7 +370,7 @@ end
 # not built in any way
 def source_package(options, workspace: Autoproj.workspace)
     package_common(options, workspace: workspace) do |pkg|
-        pkg.srcdir   = pkg.name
+        pkg.srcdir = pkg.name
         yield(pkg) if block_given?
     end
 end
@@ -403,7 +404,7 @@ end
 
 # If used in init.rb, allows to disable automatic imports from specific package
 # sets
-def disable_imports_from(name)
+def disable_imports_from(_name)
     raise NotImplementedError, "not implemented in autoproj v2"
 end
 
@@ -451,12 +452,16 @@ def remove_from_default(*names)
 end
 
 def renamed_package(current_name, old_name, options)
-    if options[:obsolete] && !Autoproj.workspace.manifest.explicitely_selected_in_layout?(old_name)
+    explicit_selection = Autoproj.workspace.manifest.
+        explicitely_selected_in_layout?(old_name)
+    if options[:obsolete] && !explicit_selection
         import_package old_name
-        Autoproj.workspace.manifest.exclude_package old_name, "#{old_name} has been renamed to #{current_name}, you still have the option of using the old name by adding '- #{old_name}' explicitely in the layout in autoproj/manifest, but be warned that the name will stop being usable at all in the near future"
+        Autoproj.workspace.manifest.exclude_package old_name,
+            "#{old_name} has been renamed to #{current_name}, you still have "\
+            "the option of using the old name by adding '- #{old_name}' explicitely "\
+            "in the layout in autoproj/manifest, but be warned that the name will "\
+            "stop being usable at all in the near future"
     else
         metapackage old_name, current_name
     end
 end
-
-
