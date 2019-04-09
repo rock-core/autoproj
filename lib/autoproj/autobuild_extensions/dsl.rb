@@ -111,6 +111,9 @@ module Autoproj
                 File.file?(configure_ac) || File.file?(configure_in)
             end
             ['autotools_package', toplevel_dir] if toplevel_dir
+        elsif File.file?(File.join(full_path, "configure.ac")) ||
+              File.file?(File.join(full_path, "configure.in"))
+            ['autotools_package', full_path]
         elsif File.file?(File.join(full_path, "CMakeLists.txt"))
             toplevel_dir = find_topmost_directory_containing(full_path) do |dir|
                 cmakelists = File.join(dir, 'CMakeLists.txt')

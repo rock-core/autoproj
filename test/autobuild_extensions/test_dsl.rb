@@ -57,17 +57,24 @@ module Autoproj
                 FileUtils.touch File.join(@dir, "a", "b", "c", "Makefile.am")
             end
 
-            it "relies on the presence of Makefile.am" do
+            it "return the given directory if it has a configure.ac" do
                 dir = make_tmpdir
                 FileUtils.touch File.join(dir, "configure.ac")
-                assert_nil Autoproj.package_handler_for(dir)
+                assert_equal ['autotools_package', dir],
+                    Autoproj.package_handler_for(dir)
             end
-            it "returns the toplevel directory in which there is a configure.ac" do
+            it "return the given directory if it has a configure.in" do
+                dir = make_tmpdir
+                FileUtils.touch File.join(dir, "configure.in")
+                assert_equal ['autotools_package', dir],
+                    Autoproj.package_handler_for(dir)
+            end
+            it "returns the toplevel directory in which there is a configure.ac if the given directory has Makefile.am" do
                 FileUtils.touch File.join(@dir, "a", "configure.ac")
                 assert_equal ['autotools_package', File.join(@dir, "a")],
                     Autoproj.package_handler_for(File.join(@dir, "a", "b", "c"))
             end
-            it "returns the toplevel directory in which there is a configure.in" do
+            it "returns the toplevel directory in which there is a configure.in if the given directory has Makefile.am" do
                 FileUtils.touch File.join(@dir, "a", "configure.in")
                 assert_equal ['autotools_package', File.join(@dir, "a")],
                     Autoproj.package_handler_for(File.join(@dir, "a", "b", "c"))
