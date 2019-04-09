@@ -15,6 +15,14 @@ module Autoproj
         Autobuild.silent(&block)
     end
 
+    def self.not_silent
+        silent = Autobuild.silent?
+        Autobuild.silent = false
+        yield
+    ensure
+        Autobuild.silent = silent
+    end
+
     def self.message(*args)
         Autobuild.message(*args)
     end
@@ -43,10 +51,12 @@ module Autoproj
     class Reporter < Autobuild::Reporter
         def error(error)
             error_lines = error.to_s.split("\n")
-            Autoproj.message("Command failed", :bold, :red, STDERR)
-            Autoproj.message("#{error_lines.shift}", :bold, :red, STDERR)
-            error_lines.each do |line|
-                Autoproj.message line, STDERR
+            Autoproj.not_silent do
+                Autoproj.message("Command failed", :bold, :red, STDERR)
+                Autoproj.message("#{error_lines.shift}", :bold, :red, STDERR)
+                error_lines.each do |line|
+                    Autoproj.message line, STDERR
+                end
             end
         end
 

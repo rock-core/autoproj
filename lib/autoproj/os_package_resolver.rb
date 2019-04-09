@@ -5,31 +5,35 @@ module Autoproj
     # Manager for packages provided by external package managers
     class OSPackageResolver
         def self.load(file, suffixes: [], **options)
-	    if !File.file?(file)
-		raise ArgumentError, "no such file or directory #{file}"
-	    end
+            unless File.file?(file)
+                raise ArgumentError, "no such file or directory #{file}"
+            end
 
-	    candidates = [file]
-	    candidates.concat(suffixes.map { |s| "#{file}-#{s}" })
+            candidates = [file]
+            candidates.concat(suffixes.map { |s| "#{file}-#{s}" })
 
-            error_t = if defined? Psych::SyntaxError then [ArgumentError, Psych::SyntaxError]
-                      else ArgumentError
-                      end
+            error_t =
+                if defined? Psych::SyntaxError
+                    [ArgumentError, Psych::SyntaxError]
+                else ArgumentError
+                end
 
-	    result = new(**options)
-	    candidates.each do |file_candidate|
-                next if !File.file?(file_candidate)
+            result = new(**options)
+            candidates.each do |file_candidate|
+                next unless File.file?(file_candidate)
+
                 file_candidate = File.expand_path(file_candidate)
                 begin
-                    data = YAML.load(File.read(file_candidate)) || Hash.new
+                    data = YAML.safe_load(File.read(file_candidate)) || Hash.new
                     verify_definitions(data)
                 rescue *error_t => e
-                    raise ConfigError.new, "error in #{file_candidate}: #{e.message}", e.backtrace
+                    raise ConfigError.new, "error in #{file_candidate}: "\
+                        "#{e.message}", e.backtrace
                 end
 
                 result.merge(new(data, file_candidate, **options))
-	    end
-	    result
+            end
+            result
         end
 
         # The underlying workspace
@@ -43,11 +47,12 @@ module Autoproj
             ruby_executable
         end
 
-        AUTOPROJ_OSDEPS = File.join(File.expand_path(File.dirname(__FILE__)), 'default.osdeps')
+        AUTOPROJ_OSDEPS = File.join(__dir__, 'default.osdeps')
         def self.load_default
             file = ENV['AUTOPROJ_DEFAULT_OSDEPS'] || AUTOPROJ_OSDEPS
-            if !File.file?(file)
-                Autoproj.warn "#{file} (from AUTOPROJ_DEFAULT_OSDEPS) is not a file, falling back to #{AUTOPROJ_OSDEPS}"
+            unless File.file?(file)
+                Autoproj.warn "#{file} (from AUTOPROJ_DEFAULT_OSDEPS) is not a file, "\
+                    "falling back to #{AUTOPROJ_OSDEPS}"
                 file = AUTOPROJ_OSDEPS
             end
             load(file)
@@ -58,7 +63,7 @@ module Autoproj
         end
 
         PACKAGE_MANAGERS = OSPackageInstaller::PACKAGE_MANAGERS.keys
-        
+
         # Mapping from OS name to package manager name
         #
         # Package handlers and OSes MUST have different names. The former are
@@ -71,15 +76,15 @@ module Autoproj
         #
         # we need to be able to separate between OS and package manager names.
         OS_PACKAGE_MANAGERS = {
-            'debian'     => 'apt-dpkg',
-            'gentoo'     => 'emerge',
-            'arch'       => 'pacman',
-            'fedora'     => 'yum',
+            'debian' => 'apt-dpkg',
+            'gentoo' => 'emerge',
+            'arch' => 'pacman',
+            'fedora' => 'yum',
             'macos-port' => 'macports',
             'macos-brew' => 'brew',
-            'opensuse'   => 'zypper',
-            'freebsd'    => 'pkg'
-        }
+            'opensuse' => 'zypper',
+            'freebsd' => 'pkg'
+        }.freeze
 
         # The information contained in the OSdeps files, as a hash
         attr_reader :definitions
@@ -93,16 +98,20 @@ module Autoproj
         # Controls whether the package resolver will prefer installing
         # OS-independent packages (such as e.g. Gems) over their OS-provided
         # equivalent (e.g. the packaged version of a gem)
-        def prefer_indep_over_os_packages?; !!@prefer_indep_over_os_packages end
+        def prefer_indep_over_os_packages?
+            @prefer_indep_over_os_packages
+        end
         # (see prefer_indep_over_os_packages?)
-        def prefer_indep_over_os_packages=(flag); @prefer_indep_over_os_packages = flag end
+        attr_writer :prefer_indep_over_os_packages
         # Cached results of {#resolve_package}
         attr_reader :resolve_package_cache
 
         # Use to override the autodetected OS-specific package handler
         def os_package_manager=(manager_name)
             if manager_name && !package_managers.include?(manager_name)
-                raise ArgumentError, "#{manager_name} is not a known package manager, known managers are #{package_managers.to_a.sort.join(", ")}"
+                raise ArgumentError, "#{manager_name} is not a known "\
+                    "package manager, known managers are "\
+                    "#{package_managers.to_a.sort.join(', ')}"
             end
             @os_package_manager = manager_name
         end
@@ -111,13 +120,12 @@ module Autoproj
         #
         # @return [String]
         def os_package_manager
-            if !@os_package_manager
-                os_names, _ = operating_system
+            unless @os_package_manager
+                os_names, = operating_system
                 os_name = os_names.find { |name| OS_PACKAGE_MANAGERS[name] }
-                @os_package_manager = OS_PACKAGE_MANAGERS[os_name] ||
-                    'unknown'
+                @os_package_manager = OS_PACKAGE_MANAGERS[os_name] || 'unknown'
             end
-            return @os_package_manager
+            @os_package_manager
         end
 
         # Returns the set of known package managers
@@ -143,7 +151,7 @@ module Autoproj
             @prefer_indep_over_os_packages = false
             @aliases = Hash.new
 
-            @sources     = Hash.new
+            @sources = Hash.new
             @installed_packages = Set.new
             @operating_system = operating_system
             @supported_operating_system = nil
@@ -195,57 +203,58 @@ module Autoproj
         # takes precedence
         def merge(info, suffixes: [])
             @definitions = definitions.merge(info.definitions) do |h, v1, v2|
-                if v1 != v2
-                    warn_about_merge_collisions(info, suffixes, h, v1, v2)
-                end
+                warn_about_merge_collisions(info, suffixes, h, v1, v2) if v1 != v2
                 v2
             end
             invalidate_resolve_package_cache
 
             @sources = sources.merge(info.sources)
-            @all_definitions = all_definitions.merge(info.all_definitions) do |package_name, all_defs, new_all_defs|
-                all_defs = all_defs.dup
-                new_all_defs = new_all_defs.dup
-                new_all_defs.delete_if do |files, data|
-                    if entry = all_defs.find { |_, d| d == data }
-                        entry[0] |= files
+            @all_definitions = all_definitions.
+                merge(info.all_definitions) do |_package_name, all_defs, new_all_defs|
+                    all_defs = all_defs.dup
+                    new_all_defs = new_all_defs.dup
+                    new_all_defs.delete_if do |files, data|
+                        if (entry = all_defs.find { |_, d| d == data })
+                            entry[0] |= files
+                        end
                     end
+                    all_defs.concat(new_all_defs)
                 end
-                all_defs.concat(new_all_defs)
-            end
         end
 
         # @api private
         #
         # Warn about a collision (override) detected during #merge
-        def warn_about_merge_collisions(merged_info, suffixes, key, old_value, new_value)
+        def warn_about_merge_collisions(merged_info, suffixes, key,
+                                        _old_value, _new_value)
             old = source_of(key)
             new = merged_info.source_of(key)
 
-            if suffixes.any? { |s| "#{old}#{s}" == new }
-                return
-            end
+            return if suffixes.any? { |s| new == "#{old}#{s}" }
 
             # Warn if the new osdep definition resolves to a different
             # set of packages than the old one
-            old_resolved = resolve_package(key, resolve_recursive: false).inject(Hash.new) do |osdep_h, (handler, status, list)|
-                osdep_h[handler] = [status, list.dup]
-                osdep_h
-            end
-            new_resolved = merged_info.resolve_package(key, resolve_recursive: false).inject(Hash.new) do |osdep_h, (handler, status, list)|
-                osdep_h[handler] = [status, list.dup]
-                osdep_h
-            end
+            old_resolved = resolve_package(key, resolve_recursive: false).
+                each_with_object(Hash.new) do |(handler, status, list), osdep_h|
+                    osdep_h[handler] = [status, list.dup]
+                end
+            new_resolved = merged_info.resolve_package(key, resolve_recursive: false).
+                each_with_object(Hash.new) do |(handler, status, list), osdep_h|
+                    osdep_h[handler] = [status, list.dup]
+                end
             if old_resolved != new_resolved
-                Autoproj.warn "osdeps definition for #{key}, previously defined in #{old} overridden by #{new}:"
+                Autoproj.warn "osdeps definition for #{key}, "\
+                    "previously defined in #{old} overridden by #{new}:"
                 first = true
                 old_resolved.each do |handler, (_, packages)|
-                    Autoproj.warn "  #{first ? 'resp. ' : '      '}#{handler}: #{packages.map(&:to_s).join(", ")}"
+                    Autoproj.warn "  #{first ? 'resp. ' : '      '}#{handler}: "\
+                        "#{packages.map(&:to_s).join(', ')}"
                     first = false
                 end
                 first = true
                 new_resolved.each do |handler, (_, packages)|
-                    Autoproj.warn "  #{first ? 'and   ' : '      '}#{handler}: #{packages.map(&:to_s).join(", ")}"
+                    Autoproj.warn "  #{first ? 'and   ' : '      '}#{handler}: "\
+                        "#{packages.map(&:to_s).join(', ')}"
                     first = false
                 end
             end
@@ -255,25 +264,27 @@ module Autoproj
         def self.verify_definitions(hash, path = [])
             hash.each do |key, value|
                 if value && !key.kind_of?(String)
-                    raise ArgumentError, "invalid osdeps definition: found an #{key.class} as a key in #{path.join("/")}. Don't forget to put quotes around numbers"
+                    raise ArgumentError, "invalid osdeps definition: "\
+                        "found an #{key.class} as a key in #{path.join('/')}. "\
+                        "Don't forget to put quotes around numbers"
                 elsif !value && (key.kind_of?(Hash) || key.kind_of?(Array))
                     verify_definitions(key)
                 end
-                next if !value
+                next unless value
 
                 if value.kind_of?(Array) || value.kind_of?(Hash)
                     verify_definitions(value, (path + [key]))
-                else
-                    if !value.kind_of?(String)
-                        raise ArgumentError, "invalid osdeps definition: found an #{value.class} as a value in #{path.join("/")}. Don't forget to put quotes around numbers"
-                    end
+                elsif !value.kind_of?(String)
+                    raise ArgumentError, "invalid osdeps definition: "\
+                        "found an #{value.class} as a value in #{path.join('/')}. "\
+                        "Don't forget to put quotes around numbers"
                 end
             end
         end
 
         # Whether the operating system could be autodetected successfully
         def known_operating_system?
-            os_names, _ = operating_system
+            os_names, = operating_system
             !os_names.empty?
         end
 
@@ -283,24 +294,20 @@ module Autoproj
             if @supported_operating_system.nil?
                 @supported_operating_system = (os_package_manager != 'unknown')
             end
-            return @supported_operating_system
+            @supported_operating_system
         end
 
         def self.guess_operating_system
             if File.exist?('/etc/debian_version')
                 versions = [File.read('/etc/debian_version').strip]
-                if versions.first =~ /sid/
-                    versions = ["unstable", "sid"]
-                end
+                versions = %w[unstable sid] if versions.first =~ /sid/
                 [['debian'], versions]
             elsif File.exist?('/etc/redhat-release')
                 release_string = File.read('/etc/redhat-release').strip
                 release_string =~ /(.*) release ([\d.]+)/
                 name = $1.downcase
                 version = $2
-                if name =~ /Red Hat Entreprise/
-                    name = 'rhel'
-                end
+                name = 'rhel' if name =~ /Red Hat Entreprise/
                 [[name], [version]]
             elsif File.exist?('/etc/gentoo-release')
                 release_string = File.read('/etc/gentoo-release').strip
@@ -309,19 +316,19 @@ module Autoproj
                 [['gentoo'], [version]]
             elsif File.exist?('/etc/arch-release')
                 [['arch'], []]
-            elsif Autobuild.macos? 
-                version=`sw_vers | head -2 | tail -1`.split(":")[1]
+            elsif Autobuild.macos?
+                version = `sw_vers | head -2 | tail -1`.split(":")[1]
                 manager =
-                    if ENV['AUTOPROJ_MACOSX_PACKAGE_MANAGER']
-                        ENV['AUTOPROJ_MACOSX_PACKAGE_MANAGER']
-                    else 'macos-brew'
-                    end
-                if !OS_PACKAGE_MANAGERS.has_key?(manager)
+                    ENV['AUTOPROJ_MACOSX_PACKAGE_MANAGER'] ||
+                    'macos-brew'
+                unless OS_PACKAGE_MANAGERS.key?(manager)
                     known_managers = OS_PACKAGE_MANAGERS.keys.grep(/^macos/)
-                    raise ArgumentError, "#{manager} is not a known MacOSX package manager. Known package managers are #{known_managers.join(", ")}"
+                    raise ArgumentError, "#{manager} is not a known MacOSX "\
+                        "package manager. Known package managers are "\
+                        "#{known_managers.join(', ')}"
                 end
 
-                managers = 
+                managers =
                     if manager == 'macos-port'
                         [manager, 'port']
                     else [manager]
@@ -331,12 +338,12 @@ module Autoproj
                 [['windows'], []]
             elsif File.exist?('/etc/SuSE-release')
                 version = File.read('/etc/SuSE-release').strip
-                version =~/.*VERSION\s+=\s+([^\s]+)/
+                version =~ /.*VERSION\s+=\s+([^\s]+)/
                 version = $1
                 [['opensuse'], [version.strip]]
-            elsif Autobuild.freebsd? 
-		version = `uname -r`.strip.split("-")[0]
-		[['freebsd'],[version]]
+            elsif Autobuild.freebsd?
+                version = `uname -r`.strip.split("-")[0]
+                [['freebsd'], [version]]
             end
         end
 
@@ -349,21 +356,17 @@ module Autoproj
                 '/etc/arch-release' => 'arch',
                 '/etc/SuSE-release' => 'opensuse']
             version_files.each do |file, name|
-                if File.exist?(file) && !names.include?(name)
-                    names << name
-                end
+                names << name if File.exist?(file) && !names.include?(name)
             end
             names
         end
-        
+
         def self.normalize_os_representation(names, versions)
             # Normalize the names to lowercase
             names    = names.map(&:downcase)
             versions = versions.map(&:downcase)
-            if !versions.include?('default')
-                versions += ['default']
-            end
-            return names, versions
+            versions += ['default'] unless versions.include?('default')
+            [names, versions]
         end
 
         # The operating system self is targetting
@@ -392,20 +395,18 @@ module Autoproj
         #
         # Examples: ['debian', ['sid', 'unstable']] or ['ubuntu', ['lucid lynx', '10.04']]
         def self.autodetect_operating_system
-            if user_os = ENV['AUTOPROJ_OS']
+            if (user_os = ENV['AUTOPROJ_OS'])
                 if user_os.empty?
                     return false
                 else
                     names, versions = user_os.split(':')
-                    return normalize_os_representation(names.split(','), versions.split(','))
+                    return normalize_os_representation(
+                        names.split(','), versions.split(','))
                 end
             end
 
             names, versions = os_from_os_release
-
-            if !names
-                names, versions = guess_operating_system
-            end
+            names, versions = guess_operating_system unless names
 
             # on Debian, they refuse to put enough information to detect
             # 'unstable' reliably. So, we use the heuristic method for it
@@ -416,21 +417,19 @@ module Autoproj
                 # phase...
                 if File.exist?('/etc/debian_version')
                     debian_versions = [File.read('/etc/debian_version').strip]
-                    if debian_versions.first =~ /sid/
-                        versions = ["unstable", "sid"]
-                    end
+                    versions = %w[unstable sid] if debian_versions.first =~ /sid/
                 end
                 # otherwise "versions" contains the result it previously had
             end
-            return if !names
+            return unless names
 
             names = ensure_derivatives_refer_to_their_parents(names)
             names, versions = normalize_os_representation(names, versions)
-            return [names, versions]
+            [names, versions]
         end
 
         def self.os_from_os_release(filename = '/etc/os-release')
-            return if !File.exist?(filename)
+            return unless File.exist?(filename)
 
             fields = Hash.new
             File.readlines(filename).each do |line|
@@ -438,7 +437,8 @@ module Autoproj
                 if line.strip =~ /^(\w+)=(?:["'])?([^"']+)(?:["'])?$/
                     fields[$1] = $2
                 elsif !line.empty?
-                    Autoproj.warn "could not parse line '#{line.inspect}' in /etc/os-release"
+                    Autoproj.warn "could not parse line '#{line.inspect}' "\
+                        "in /etc/os-release"
                 end
             end
 
@@ -448,19 +448,17 @@ module Autoproj
             versions << fields['VERSION_ID']
             version = fields['VERSION'] || ''
             versions.concat(version.gsub(/[^\w.]/, ' ').split(' '))
-            return names.compact.uniq, versions.compact.uniq
+            [names.compact.uniq, versions.compact.uniq]
         end
 
         def self.os_from_lsb
-            if !Autobuild.find_in_path('lsb_release')
-                return
-            end
+            return unless Autobuild.find_in_path('lsb_release')
 
             distributor = [`lsb_release -i -s`.strip.downcase]
             codename    = `lsb_release -c -s`.strip.downcase
             version     = `lsb_release -r -s`.strip.downcase
 
-            return [distributor, [codename, version]]
+            [distributor, [codename, version]]
         end
 
         class InvalidRecursiveStatement < Autobuild::Exception; end
@@ -471,8 +469,8 @@ module Autoproj
         # returns an array contain the path starting with name and
         # ending at the resolved name
         def resolve_name(name)
-            path = [ name ]
-            while aliases.has_key?(name)
+            path = [name]
+            while aliases.key?(name)
                 name = aliases[name]
                 path << name
             end
@@ -482,7 +480,9 @@ module Autoproj
         # Null object class that is used to mark recursive resolution when
         # calling {#resolve_package} with resolve_recursive set to false
         class OSDepRecursiveResolver
-            def self.to_s; 'osdep' end
+            def self.to_s
+                'osdep'.freeze
+            end
         end
 
         # Return the list of packages that should be installed for +name+
@@ -503,17 +503,13 @@ module Autoproj
         # name and version. The package list might be empty even if status ==
         # FOUND_PACKAGES, for instance if the ignore keyword is used.
         def resolve_package(name, resolve_recursive: true)
-            if resolve_package_cache.has_key?(name)
-                return resolve_package_cache[name]
-            end
+            return resolve_package_cache[name] if resolve_package_cache.key?(name)
 
             path = resolve_name(name)
             name = path.last
 
             dep_def = definitions[name]
-            if !dep_def
-                return (resolve_package_cache[name] = nil)
-            end
+            return (resolve_package_cache[name] = nil) unless dep_def
 
             os_names, os_versions = operating_system
 
@@ -534,27 +530,28 @@ module Autoproj
             end
 
             result = []
-            found, pkg = partition_osdep_entry(name, dep_def, nil,
-                                               (package_managers - [os_package_manager]), os_names, os_versions)
-            if found
-                result << [os_package_manager, found, pkg]
-            end
+            found, pkg = partition_osdep_entry(
+                name, dep_def, nil,
+                (package_managers - [os_package_manager]), os_names, os_versions)
+            result << [os_package_manager, found, pkg] if found
 
             package_managers.each do |handler|
-                found, pkg = partition_osdep_entry(name, dep_def, [handler], [], os_names, os_versions)
-                if found
-                    result << [handler, found, pkg]
-                end
+                found, pkg = partition_osdep_entry(
+                    name, dep_def, [handler], [], os_names, os_versions)
+                result << [handler, found, pkg] if found
             end
 
             # Recursive resolutions
-            found, pkg = partition_osdep_entry(name, dep_def, ['osdep'], [], os_names, os_versions)
+            found, pkg = partition_osdep_entry(
+                name, dep_def, ['osdep'], [], os_names, os_versions)
             if found
                 if resolve_recursive
                     pkg.each do |pkg_name|
                         resolved = resolve_package(pkg_name)
-                        if !resolved
-                            raise InvalidRecursiveStatement, "the '#{name}' osdep refers to another osdep, '#{pkg_name}', which does not seem to exist"
+                        unless resolved
+                            raise InvalidRecursiveStatement, "the '#{name}' osdep "\
+                                "refers to another osdep, '#{pkg_name}', which "\
+                                "does not seem to exist"
                         end
                         result.concat(resolved)
                     end
@@ -641,66 +638,20 @@ module Autoproj
             found_keys = Hash.new
             Array(dep_def).each do |names, values|
                 if !values
-                    # Raw array of packages. Possible only if we are not at toplevel
-                    # (i.e. if we already have a handler)
-                    if names == 'ignore'
-                        found = true if !handler_names
-                    elsif names == 'nonexistent'
-                        nonexistent = true if !handler_names
-                    elsif !handler_names && names.kind_of?(Array)
-                        result.concat(result)
-                        found = true
-                    elsif names.respond_to?(:to_str)
-                        if excluded.include?(names)
-                        elsif handler_names && handler_names.include?(names)
-                            result << osdep_name
-                            found = true
-                        elsif !handler_names
-                            result << names
-                            found = true
-                        end
-                    elsif names.respond_to?(:to_hash)
-                        rec_found, rec_result = partition_osdep_entry(osdep_name, names, handler_names, excluded, keys, *additional_keys)
-                        if rec_found == FOUND_NONEXISTENT then nonexistent = true
-                        elsif rec_found == FOUND_PACKAGES then found = true
-                        end
-                        result.concat(rec_result)
-                    end
+                    entry_found, entry_nonexistent, entry_names =
+                        partition_osdep_raw_array_entry(names, osdep_name,
+                            handler_names, excluded, keys, additional_keys)
                 else
-                    if names.respond_to?(:to_str) # names could be an array already
-                        names = names.split(',')
-                    end
-
-                    if handler_names
-                        if matching_name = handler_names.find { |k| names.any? { |name_tag| k == name_tag.downcase } }
-                            rec_found, rec_result = partition_osdep_entry(osdep_name, values, nil, excluded, keys, *additional_keys)
-                            if rec_found == FOUND_NONEXISTENT then nonexistent = true
-                            elsif rec_found == FOUND_PACKAGES then found = true
-                            end
-                            result.concat(rec_result)
-                        end
-                    end
-
-                    matching_name = keys.find { |k| names.any? { |name_tag| k == name_tag.downcase } }
-                    if matching_name
-                        rec_found, rec_result = partition_osdep_entry(osdep_name, values, handler_names, excluded, *additional_keys)
-                        # We only consider the first highest-priority entry,
-                        # regardless of whether it has some packages for us or
-                        # not
-                        idx = keys.index(matching_name)
-                        if !rec_found
-                            if !found_keys.has_key?(idx)
-                                found_keys[idx] = nil
-                            end
-                        else
-                            found_keys[idx] ||= [0, []]
-                            found_keys[idx][0] += rec_found
-                            found_keys[idx][1].concat(rec_result)
-                        end
-                    end
+                    entry_found, entry_nonexistent, entry_names =
+                        partition_osdep_map_entry(names, values, osdep_name,
+                            handler_names, excluded, keys, found_keys, additional_keys)
                 end
+                found ||= entry_found
+                nonexistent ||= entry_nonexistent
+                result.concat(entry_names)
             end
-            first_entry = found_keys.keys.sort.first
+
+            first_entry = found_keys.keys.min
             found_keys = found_keys[first_entry]
             if found_keys
                 if found_keys[0] > 0
@@ -717,13 +668,91 @@ module Autoproj
                 else false
                 end
 
-            return found, result
+            [found, result]
+        end
+
+        def partition_osdep_raw_array_entry(names, osdep_name, handler_names,
+                                            excluded, keys, additional_keys)
+            have_handler_names = true if handler_names
+
+            # Raw array of packages. Possible only if we are not at toplevel
+            # (i.e. if we already have a handler)
+            if names == 'ignore'
+                [!have_handler_names, false, []]
+            elsif names == 'nonexistent'
+                [false, !have_handler_names, []]
+            elsif !handler_names && names.kind_of?(Array)
+                [true, false, names]
+            elsif names.respond_to?(:to_str)
+                if excluded.include?(names)
+                    [false, false, []]
+                elsif handler_names&.include?(names)
+                    [true, false, [osdep_name]]
+                elsif !handler_names
+                    [true, false, [names]]
+                else
+                    [false, false, []]
+                end
+            elsif names.respond_to?(:to_hash)
+                rec_found, rec_result = partition_osdep_entry(osdep_name,
+                    names, handler_names, excluded, keys, *additional_keys)
+                if rec_found == FOUND_NONEXISTENT
+                    [false, true, rec_result]
+                elsif rec_found == FOUND_PACKAGES
+                    [true, false, rec_result]
+                else
+                    [false, false, []]
+                end
+            else
+                [false, false, []]
+            end
+        end
+
+        def partition_osdep_map_entry(names, values, osdep_name, handler_names,
+                                      excluded, keys, found_keys, additional_keys)
+            # names could be an array already
+            names = names.split(',') if names.respond_to?(:to_str)
+            result = [false, false, []]
+
+            if handler_names
+                matching_handler = handler_names.
+                    find { |k| names.any? { |name_tag| k == name_tag.downcase } }
+                if matching_handler
+                    rec_found, rec_result = partition_osdep_entry(
+                        osdep_name, values, nil, excluded, keys, *additional_keys)
+                    if rec_found == FOUND_NONEXISTENT
+                        result = [false, true, rec_result]
+                    elsif rec_found == FOUND_PACKAGES
+                        result = [true, false, rec_result]
+                    end
+                end
+            end
+
+            matching_name = keys.
+                find { |k| names.any? { |name_tag| k == name_tag.downcase } }
+            return result unless matching_name
+
+            rec_found, rec_result = partition_osdep_entry(
+                osdep_name, values, handler_names, excluded, *additional_keys)
+            # We only consider the first highest-priority entry,
+            # regardless of whether it has some packages for us or
+            # not
+            idx = keys.index(matching_name)
+            if !rec_found
+                found_keys[idx] = nil unless found_keys.key?(idx)
+            else
+                found_keys[idx] ||= [0, []]
+                found_keys[idx][0] += rec_found
+                found_keys[idx][1].concat(rec_result)
+            end
+            result
         end
 
         # Resolves the given OS dependencies into the actual packages that need
         # to be installed on this particular OS.
         #
-        # @param [Array<String>] dependencies the list of osdep names that should be resolved
+        # @param [Array<String>] dependencies the list of osdep names that
+        #   should be resolved
         # @return [Array<#install,Array<String>>] the set of packages, grouped
         #   by the package handlers that should be used to install them
         #
@@ -733,25 +762,33 @@ module Autoproj
             all_packages = []
             dependencies.each do |name|
                 result = resolve_package(name)
-                if !result
+                unless result
                     path = resolve_name(name)
-                    raise MissingOSDep.new, "there is no osdeps definition for #{path.last} (search tree: #{path.join("->")})"
+                    raise MissingOSDep.new, "there is no osdeps definition "\
+                        "for #{path.last} (search tree: #{path.join('->')})"
                 end
 
                 if result.empty?
                     os_names, os_versions = operating_system
                     if os_names.empty?
-                        raise MissingOSDep.new, "there is an osdeps definition for #{name}, but autoproj cannot detect the local operation system"
+                        raise MissingOSDep.new, "there is an osdeps "\
+                            "definition for #{name}, but autoproj cannot "\
+                            "detect the local operation system"
                     else
-                        raise MissingOSDep.new, "there is an osdeps definition for #{name}, but not for this operating system and version (resp. #{os_names.join(", ")} and #{os_versions.join(", ")})"
+                        raise MissingOSDep.new, "there is an osdeps "\
+                            "definition for #{name}, but not for this "\
+                            "operating system and version resp. "\
+                            "#{os_names.join(', ')} and #{os_versions.join(', ')})"
                     end
                 end
 
                 result.each do |handler, status, packages|
                     if status == FOUND_NONEXISTENT
-                        raise MissingOSDep.new, "there is an osdep definition for #{name}, and it explicitely states that this package does not exist on your OS"
+                        raise MissingOSDep.new, "there is an osdep "\
+                            "definition for #{name}, and it explicitely "\
+                            "states that this package does not exist on your OS"
                     end
-                    if entry = all_packages.find { |h, _| h == handler }
+                    if (entry = all_packages.find { |h, _| h == handler })
                         entry[1].concat(packages)
                     else
                         all_packages << [handler, packages.dup]
@@ -759,22 +796,22 @@ module Autoproj
                 end
             end
 
-            all_packages.delete_if do |handler, pkg|
+            all_packages.delete_if do |_handler, pkg|
                 pkg.empty?
             end
-            return all_packages
+            all_packages
         end
 
         # Returns true if the given name has an entry in the osdeps
         def include?(name)
-            definitions.has_key?(name)
+            definitions.key?(name)
         end
 
         # Returns true if +name+ is an acceptable OS package for this OS and
         # version
         def has?(name)
             status = availability_of(name)
-            status == AVAILABLE || status == IGNORE
+            [AVAILABLE, IGNORE].include?(status)
         end
 
         # Value returned by #availability_of if the required package has no
@@ -809,9 +846,7 @@ module Autoproj
         #          be installed for it
         def availability_of(name)
             resolved = resolve_package(name)
-            if !resolved
-                return NO_PACKAGE
-            end
+            return NO_PACKAGE unless resolved
 
             if resolved.empty?
                 if known_operating_system?
@@ -821,7 +856,9 @@ module Autoproj
                 end
             end
 
-            resolved = resolved.find_all { |_, status, list| status != FOUND_PACKAGES || !list.empty? }
+            resolved = resolved.find_all do |_, status, list|
+                status != FOUND_PACKAGES || !list.empty?
+            end
             failed = resolved.find_all do |_, status, _|
                 status == FOUND_NONEXISTENT
             end
@@ -837,4 +874,3 @@ module Autoproj
         end
     end
 end
-

@@ -75,9 +75,7 @@ module Autoproj
             Autobuild::Package.clear
             Autoproj.silent = false
 
-            if @gem_server_pid
-                stop_gem_server
-            end
+            stop_gem_server if @gem_server_pid
 
             FileUtils.rm_rf fixture_gem_home
         end
@@ -102,9 +100,7 @@ module Autoproj
 
         def find_gem_dir(gem_name)
             Bundler.definition.specs.each do |spec|
-                if spec.name == gem_name
-                    return spec
-                end
+                return spec if spec.name == gem_name
             end
             nil
         end
@@ -119,23 +115,21 @@ gem 'autobuild', path: '#{autobuild_dir}'
         end
 
         def invoke_test_script(name, *arguments,
-                               dir: nil,
-                               gemfile_source: nil,
-                               use_autoproj_from_rubygems: (ENV['USE_AUTOPROJ_FROM_RUBYGEMS'] == '1'),
-                               interactive: true,
-                               seed_config: File.join(scripts_dir, 'seed-config.yml'),
-                               env: Hash.new, display_output: false, copy_from: nil,
-                               **system_options)
-            package_base_dir = File.expand_path(File.join('..', '..'), File.dirname(__FILE__))
+                dir: nil,
+                gemfile_source: nil,
+                use_autoproj_from_rubygems: (ENV['USE_AUTOPROJ_FROM_RUBYGEMS'] == '1'),
+                interactive: true,
+                seed_config: File.join(scripts_dir, 'seed-config.yml'),
+                env: Hash.new, display_output: false, copy_from: nil,
+                **system_options)
+            package_base_dir = File.expand_path(File.join('..', '..'), __dir__)
+
             script = File.expand_path(name, scripts_dir)
-            if !File.file?(script)
+            unless File.file?(script)
                 raise ArgumentError, "no test script #{name} in #{scripts_dir}"
             end
 
-            if seed_config
-                arguments << '--seed-config' << seed_config
-            end
-
+            arguments << '--seed-config' << seed_config if seed_config
             dir ||= make_tmpdir
 
             if gemfile_source || !use_autoproj_from_rubygems
@@ -158,13 +152,13 @@ gem 'autobuild', path: '#{autobuild_dir}'
             result = nil
             stdout, stderr = capture_subprocess_io do
                 default_env = Hash[
-                    'TEST_COMMAND_NAME' => self.to_s.gsub(/[^\w]/, '_'),
+                    'TEST_COMMAND_NAME' => to_s.gsub(/[^\w]/, '_'),
                     'PACKAGE_BASE_DIR' => package_base_dir,
                     'RUBY' => Gem.ruby
                 ]
                 result = Bundler.clean_system(
-                    default_env.merge(env),
-                    script, *arguments, in: :close, **Hash[chdir: dir].merge(system_options))
+                    default_env.merge(env), script, *arguments,
+                    in: :close, **Hash[chdir: dir].merge(system_options))
             end
 
             if !result
@@ -175,7 +169,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
                 puts stdout
                 puts stderr
             end
-            return dir, stdout, stderr
+            [dir, stdout, stderr]
         end
 
         def fixture_gem_home
@@ -184,20 +178,29 @@ gem 'autobuild', path: '#{autobuild_dir}'
 
         def prepare_fixture_gem_home
             FileUtils.rm_rf fixture_gem_home
-            bundled_gems_path = File.expand_path(File.join("..", ".."), find_gem_dir('utilrb').full_gem_path)
+            bundled_gems_path = File.expand_path(File.join("..", ".."),
+                find_gem_dir('utilrb').full_gem_path)
             FileUtils.cp_r bundled_gems_path, fixture_gem_home
 
             vendor = File.join(__dir__, '..', '..', 'vendor')
-            cached_bundler_gem = File.join(vendor, "bundler-#{Bundler::VERSION}.gem")
-            if !File.file?(cached_bundler_gem)
+            bundler_filename = "bundler-#{Bundler::VERSION}.gem"
+            cached_bundler_gem = File.join(vendor, bundler_filename)
+            unless File.file?(cached_bundler_gem)
                 FileUtils.mkdir_p vendor
-                if !system(Ops::Install.guess_gem_program, 'fetch', '-v', Bundler::VERSION, 'bundle', chdir: vendor)
+                Bundler.clean_system(
+                    Ops::Install.guess_gem_program, 'fetch', '-v',
+                    Bundler::VERSION, 'bundler', chdir: vendor)
+
+                unless File.file?(bundler_filename)
                     raise "cannot download the bundler gem"
                 end
             end
 
             capture_subprocess_io do
-                Bundler.clean_system(Hash['GEM_HOME' => fixture_gem_home, 'GEM_PATH' => nil], Ops::Install.guess_gem_program, 'install', '--no-document', cached_bundler_gem)
+                Bundler.clean_system(
+                    Hash['GEM_HOME' => fixture_gem_home, 'GEM_PATH' => nil],
+                    Ops::Install.guess_gem_program, 'install', '--no-document',
+                    cached_bundler_gem)
             end
         end
 
@@ -205,13 +208,18 @@ gem 'autobuild', path: '#{autobuild_dir}'
             require 'socket'
             require 'rubygems/server'
             if @gem_server_pid
-                raise ArgumentError, "#start_gem_server already called, call stop_gem_server before calling start_gem_server again"
+                raise ArgumentError, "#start_gem_server already called, "\
+                    "call stop_gem_server before calling start_gem_server again"
             end
-            @gem_server_pid = spawn(Hash['RUBYOPT' => nil], Gem.ruby, Ops::Install.guess_gem_program, 'server', '--quiet', '--dir', path, out: :close, err: :close)
-            while true
-                begin TCPSocket.new('127.0.0.1', 8808)
+            @gem_server_pid = spawn(
+                Hash['RUBYOPT' => nil],
+                Gem.ruby, Ops::Install.guess_gem_program, 'server',
+                '--quiet', '--dir', path, out: :close, err: :close)
+            loop do
+                begin
+                    TCPSocket.new('127.0.0.1', 8808)
                     break
-                rescue Errno::ECONNREFUSED
+                rescue Errno::ECONNREFUSED # rubocop:disable Lint/HandleExceptions
                 end
             end
         end
@@ -222,7 +230,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
             @gem_server_pid = nil
         end
 
-        def capture_deprecation_message(&block)
+        def capture_deprecation_message
             level = Autoproj.warn_deprecated_level
             Autoproj.warn_deprecated_level = -1
             capture_subprocess_io do
@@ -240,12 +248,12 @@ gem 'autobuild', path: '#{autobuild_dir}'
                 chdir: File.dirname(gemfile))
             out_w.close
             output = out_r.read.chomp
-            assert result, "#{output}"
+            assert result, output.to_s
             output
         end
 
         def workspace_env(varname)
-            _, stdout, _ = invoke_test_script 'display-env.sh', varname, dir: install_dir
+            _, stdout, = invoke_test_script 'display-env.sh', varname, dir: install_dir
             stdout.chomp
         end
 
@@ -263,7 +271,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
                 define_method(:strict?) { strict }
                 define_method(:call_while_empty?) { call_while_empty }
             end
-            manager = flexmock(manager),
+            manager = flexmock(manager)
             ws_package_managers[name] = manager
         end
 
@@ -276,7 +284,8 @@ gem 'autobuild', path: '#{autobuild_dir}'
 
         def ws_create(dir = make_tmpdir, partial_config: false)
             require 'autoproj/ops/main_config_switcher'
-            FileUtils.cp_r Ops::MainConfigSwitcher::MAIN_CONFIGURATION_TEMPLATE, File.join(dir, 'autoproj')
+            FileUtils.cp_r Ops::MainConfigSwitcher::MAIN_CONFIGURATION_TEMPLATE,
+                File.join(dir, 'autoproj')
             FileUtils.mkdir_p File.join(dir, '.autoproj')
 
             ws_create_os_package_resolver
@@ -284,15 +293,15 @@ gem 'autobuild', path: '#{autobuild_dir}'
                 dir, os_package_resolver: ws_os_package_resolver,
                      package_managers: ws_package_managers)
 
-            if !partial_config
+            unless partial_config
                 ws.config.set 'osdeps_mode', 'all'
                 ws.config.set 'apt_dpkg_update', true
             end
             ws.config.set 'GITHUB', 'http,ssh', true
             ws.config.set 'GITORIOUS', 'http,ssh', true
             ws.config.set 'gems_install_path', File.join(dir, 'gems')
-            ws.config.save
             ws.prefix_dir = make_tmpdir
+            ws.config.save
             ws
         end
 
@@ -300,7 +309,8 @@ gem 'autobuild', path: '#{autobuild_dir}'
             ws.manifest.clear_layout
         end
 
-        def ws_define_package_set(name, vcs = VCSDefinition.from_raw(type: 'none'), **options)
+        def ws_define_package_set(name, vcs = VCSDefinition.from_raw(type: 'none'),
+                                  **options)
             package_set = PackageSet.new(ws, vcs, name: name, **options)
             ws.manifest.register_package_set(package_set)
             package_set
@@ -317,7 +327,8 @@ gem 'autobuild', path: '#{autobuild_dir}'
             package_set
         end
 
-        def ws_add_package_set_to_layout(name, vcs = VCSDefinition.from_raw(type: 'none'), **options)
+        def ws_add_package_set_to_layout(name, vcs = VCSDefinition.from_raw(type: 'none'),
+                                         **options)
             package_set = ws_define_package_set(name, vcs, **options)
             ws.manifest.add_package_set_to_layout(package_set)
             package_set
@@ -340,12 +351,12 @@ gem 'autobuild', path: '#{autobuild_dir}'
             end
         end
 
-        def ws_define_package(package_type, package_name, package_set: ws.manifest.main_package_set, create: true)
+        def ws_define_package(package_type, package_name,
+                              package_set: ws.manifest.main_package_set,
+                              create: true)
             package = Autobuild.send(package_type, package_name)
             package.srcdir = File.join(ws.root_dir, package_name.to_s)
-            if create
-                FileUtils.mkdir_p package.srcdir
-            end
+            FileUtils.mkdir_p package.srcdir if create
             autoproj_package = ws.register_package(package, nil, package_set)
             yield(package) if block_given?
             autoproj_package
@@ -359,8 +370,10 @@ gem 'autobuild', path: '#{autobuild_dir}'
             package_set.add_overrides_entry(package.name, vcs_spec)
         end
 
-        def ws_add_package_to_layout(package_type, package_name, package_set: ws.manifest.main_package_set, &block)
-            pkg = ws_define_package(package_type, package_name, package_set: package_set, &block)
+        def ws_add_package_to_layout(package_type, package_name,
+                                     package_set: ws.manifest.main_package_set, &block)
+            pkg = ws_define_package(package_type, package_name,
+                package_set: package_set, &block)
             ws.manifest.add_package_to_layout(pkg)
             pkg
         end
@@ -380,25 +393,31 @@ gem 'autobuild', path: '#{autobuild_dir}'
             elsif File.directory?(srcdir)
                 FileUtils.rm_rf srcdir
             end
-            package.autobuild.builddir = builddir = File.join(ws.root_dir, 'build', package.name)
-            package.autobuild.prefix = prefix = File.join(ws.root_dir, 'prefix', package.name)
-            return srcdir, builddir, prefix
+            package.autobuild.builddir = builddir =
+                File.join(ws.root_dir, 'build', package.name)
+            package.autobuild.prefix = prefix =
+                File.join(ws.root_dir, 'prefix', package.name)
+            [srcdir, builddir, prefix]
         end
 
         def ws_create_git_package_set(name, source_data = Hash.new)
             dir = make_tmpdir
-            if !system('git', 'init', chdir: dir, out: :close)
+            unless system('git', 'init', chdir: dir, out: :close)
                 raise "failed to run git init"
             end
+
             File.open(File.join(dir, 'source.yml'), 'w') do |io|
                 YAML.dump(Hash['name' => name].merge(source_data), io)
             end
-            if !system('git', 'add', 'source.yml', chdir: dir, out: :close)
+            unless system('git', 'add', 'source.yml', chdir: dir, out: :close)
                 raise "failed to add the source.yml"
             end
-            if !system('git', 'commit', '-m', 'add source.yml', chdir: dir, out: :close)
+
+            unless system('git', 'commit', '-m', 'add source.yml',
+                          chdir: dir, out: :close)
                 raise "failed to commit the source.yml"
             end
+
             dir
         end
 
@@ -434,6 +453,6 @@ gem 'autobuild', path: '#{autobuild_dir}'
     end
 end
 
-class Minitest::Test
+class Minitest::Test # rubocop:disable Style/ClassAndModuleChildren
     include Autoproj::SelfTest
 end

@@ -35,7 +35,7 @@ module Autoproj
         end
 
         def run_command(*args, **kwargs)
-            @aruba_api.run(*args, **kwargs)
+            @aruba_api.run_command(*args, **kwargs)
         end
 
         def chmod(*args) # also defined by Rake

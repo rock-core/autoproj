@@ -5,9 +5,7 @@ module Autoproj
     module Ops
         describe Install do
             before do
-                if skip_long_tests?
-                    skip "long test"
-                end
+                skip "long test" if skip_long_tests?
 
                 prepare_fixture_gem_home
                 start_gem_server
@@ -21,7 +19,9 @@ module Autoproj
 gem 'autoproj', path: '#{autoproj_dir}'
 gem 'autobuild', path: '#{autobuild_dir}'"
 
-                invoke_test_script 'install.sh', use_autoproj_from_rubygems: true, env: Hash['HOME' => shared_dir],
+                invoke_test_script 'install.sh',
+                    use_autoproj_from_rubygems: true,
+                    env: Hash['HOME' => shared_dir],
                     gemfile_source: gemfile_source
             end
 
@@ -46,15 +46,18 @@ gem 'autobuild', path: '#{autobuild_dir}'"
                 attr_reader :shared_gem_home, :shared_dir, :install_dir
                 before do
                     @shared_dir = make_tmpdir
-                    @shared_gem_home = File.join(shared_dir, '.autoproj', 'gems', Autoproj::Configuration.gems_path_suffix)
-                    @install_dir, _ = invoke_test_script 'install.sh', env: Hash['HOME' => shared_dir]
+                    @shared_gem_home = File.join(
+                        shared_dir, '.local', 'share', 'autoproj',
+                        'gems', Autoproj::Configuration.gems_path_suffix)
+                    @install_dir, = invoke_test_script 'install.sh',
+                        env: Hash['HOME' => shared_dir]
                 end
 
                 it "saves a shim to the installed bundler" do
                     shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
                     assert File.file?(shim_path)
                     stdout, _stderr = capture_subprocess_io do
-                        if !Bundler.clean_system(shim_path, 'show', 'bundler')
+                        unless Bundler.clean_system(shim_path, 'show', 'bundler')
                             flunk("could not run the bundler shim")
                         end
                     end
@@ -69,7 +72,7 @@ gem 'autobuild', path: '#{autobuild_dir}'"
 
                 it "sets the environment so that the shared bundler is found" do
                     shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
-                    _, stdout, _ = invoke_test_script 'bundler-path.sh', dir: install_dir, chdir: File.join(install_dir, '.autoproj')
+                    _, stdout, = invoke_test_script 'bundler-path.sh', dir: install_dir, chdir: File.join(install_dir, '.autoproj')
                     bundler_bin_path, bundler_gem_path =
                         stdout.chomp.split("\n")
                     assert_equal bundler_bin_path, shim_path
@@ -98,7 +101,7 @@ gem 'autobuild', path: '#{autobuild_dir}'"
                 before do
                     @shared_dir = make_tmpdir
                     @shared_gem_home = File.join(shared_dir, Autoproj::Configuration.gems_path_suffix)
-                    @install_dir, _ = invoke_test_script 'install.sh',
+                    @install_dir, = invoke_test_script 'install.sh',
                         "--gems-path=#{shared_dir}"
                 end
 
@@ -106,7 +109,7 @@ gem 'autobuild', path: '#{autobuild_dir}'"
                     shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
                     assert File.file?(shim_path)
                     stdout, _stderr = capture_subprocess_io do
-                        if !Bundler.clean_system(shim_path, 'show', 'bundler')
+                        unless Bundler.clean_system(shim_path, 'show', 'bundler')
                             flunk("could not run the bundler shim")
                         end
                     end
@@ -121,7 +124,7 @@ gem 'autobuild', path: '#{autobuild_dir}'"
 
                 it "sets the environment so that the shared bundler is found" do
                     shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
-                    _, stdout, _ = invoke_test_script 'bundler-path.sh', dir: install_dir, chdir: File.join(install_dir, '.autoproj')
+                    _, stdout, = invoke_test_script 'bundler-path.sh', dir: install_dir, chdir: File.join(install_dir, '.autoproj')
 
                     bundler_bin_path, bundler_gem_path =
                         stdout.chomp.split("\n")
@@ -151,17 +154,16 @@ gem 'autobuild', path: '#{autobuild_dir}'"
                 attr_reader :install_dir
                 before do
                     shared_gems = make_tmpdir
-                    @install_dir, _ = invoke_test_script 'upgrade_from_v1.sh', "--gems-path=#{shared_gems}", copy_from: 'upgrade_from_v1'
+                    @install_dir, = invoke_test_script 'upgrade_from_v1.sh', "--gems-path=#{shared_gems}", copy_from: 'upgrade_from_v1'
                 end
                 it "saves the original v1 env.sh" do
                     assert_equal "UPGRADE_FROM_V1=1", File.read(File.join(install_dir, 'env.sh-autoproj-v1')).strip
                 end
                 it "merges the existing v1 configuration" do
-                    new_config = YAML.load(File.read(File.join(install_dir, '.autoproj', 'config.yml')))
+                    new_config = YAML.safe_load(File.read(File.join(install_dir, '.autoproj', 'config.yml')))
                     assert_equal true, new_config['test_v1_config']
                 end
             end
         end
     end
 end
-
