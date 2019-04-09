@@ -101,29 +101,42 @@ module Autoproj
 
     # Tries to find a handler automatically for 'full_path'
     def self.package_handler_for(full_path)
+        pyglob = File.join(File.basename(full_path), "*.py")
         if !Dir.enum_for(:glob, File.join(full_path, "*.orogen")).to_a.empty?
-            return "orogen_package", full_path
+            ["orogen_package", full_path]
+        elsif File.file?(File.join(full_path, "Makefile.am"))
+            toplevel_dir = find_topmost_directory_containing(full_path) do |dir|
+                configure_ac = File.join(dir, 'configure.ac')
+                configure_in = File.join(dir, 'configure.in')
+                File.file?(configure_ac) || File.file?(configure_in)
+            end
+            ['autotools_package', toplevel_dir] if toplevel_dir
+        elsif File.file?(File.join(full_path, "configure.ac")) ||
+              File.file?(File.join(full_path, "configure.in"))
+            ['autotools_package', full_path]
         elsif File.file?(File.join(full_path, "CMakeLists.txt"))
             toplevel_dir = find_topmost_directory_containing(full_path) do |dir|
                 cmakelists = File.join(dir, 'CMakeLists.txt')
                 File.file?(cmakelists) &&
                     (File.read(cmakelists) =~ /PROJECT/i)
             end
-            toplevel_dir ||= find_topmost_directory_containing(full_path, 'CMakeLists.txt')
+            toplevel_dir ||= find_topmost_directory_containing(
+                full_path, 'CMakeLists.txt')
 
             manifest_xml = File.join(toplevel_dir, 'manifest.xml')
             package_xml = File.join(toplevel_dir, 'package.xml')
             if File.file?(package_xml) && !File.file?(manifest_xml)
                 return "catkin_package", toplevel_dir
             end
-            return "cmake_package", toplevel_dir
-        elsif dir = find_topmost_directory_containing(full_path, "Rakefile") ||
-            find_topmost_directory_containing(full_path, "lib/*.rb")
 
-            return "ruby_package", dir
-        elsif (dir = find_topmost_directory_containing(full_path, 'setup.py')) ||
-             (dir = find_topmost_directory_containing(full_path, File.join(File.basename(full_path), "*.py")))
-            return 'python_package', dir
+            ["cmake_package", toplevel_dir]
+        elsif (dir = (find_topmost_directory_containing(full_path, "Rakefile") ||
+                      find_topmost_directory_containing(full_path, "lib/*.rb")))
+
+            ["ruby_package", dir]
+        elsif (dir = (find_topmost_directory_containing(full_path, 'setup.py') ||
+                      find_topmost_directory_containing(full_path, pyglob)))
+            ['python_package', dir]
         end
     end
 end
