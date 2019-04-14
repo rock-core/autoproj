@@ -46,7 +46,11 @@ module Autoproj
                 lines = []
                 resolved_selection.each do |pkg_name|
                     pkg = ws.manifest.find_package_definition(pkg_name).autobuild
-                    lines << [pkg.name, pkg.test_utility.enabled?, pkg.test_utility.available?]
+                    lines << [
+                        pkg.name,
+                        pkg.test_utility.enabled?,
+                        pkg.test_utility.available?
+                    ]
                 end
                 lines = lines.sort_by { |name, _| name }
                 w     = lines.map { |name, _| name.length }.max
@@ -60,12 +64,24 @@ module Autoproj
             def run(user_selection, options = {})
                 options[:parallel] ||= ws.config.parallel_build_level
                 initialize_and_load
-                packages, =
-                    finalize_setup(user_selection, recursive: user_selection.empty? || options[:deps])
+
+                packages, = finalize_setup(
+                    user_selection,
+                    recursive: user_selection.empty? || options[:deps]
+                )
+
                 packages.each do |pkg|
-                    ws.manifest.find_autobuild_package(pkg).disable_phases('import', 'prepare', 'install')
+                    ws.manifest.find_autobuild_package(pkg).disable_phases(
+                        'import', 'prepare', 'install'
+                    )
                 end
-                Autobuild.apply(packages, 'autoproj-test', ['test'], parallel: options[:parallel])
+
+                Autobuild.apply(
+                    packages,
+                    'autoproj-test',
+                    ['test'],
+                    parallel: options[:parallel]
+                )
             end
         end
     end
