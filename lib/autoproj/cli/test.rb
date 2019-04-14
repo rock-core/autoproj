@@ -65,10 +65,16 @@ module Autoproj
                 options[:parallel] ||= ws.config.parallel_build_level
                 initialize_and_load
 
-                packages, = finalize_setup(
+                packages, _, resolved_selection = finalize_setup(
                     user_selection,
                     recursive: user_selection.empty? || options[:deps]
                 )
+
+                validate_user_selection(user_selection, resolved_selection)
+                if packages.empty?
+                    raise CLIInvalidArguments, "autoproj: the provided package "\
+                        "is not selected for build"
+                end
 
                 packages.each do |pkg|
                     ws.manifest.find_autobuild_package(pkg).disable_phases(
