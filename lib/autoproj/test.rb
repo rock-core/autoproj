@@ -55,6 +55,9 @@ module Autoproj
         attr_reader :ws
 
         def setup
+            if defined?(Autoproj::CLI::Main)
+                Autoproj::CLI::Main.default_report_on_package_failures = :raise
+            end
             FileUtils.rm_rf fixture_gem_home
             @gem_server_pid = nil
             @tmpdir = Array.new
@@ -78,6 +81,9 @@ module Autoproj
             stop_gem_server if @gem_server_pid
 
             FileUtils.rm_rf fixture_gem_home
+            if defined?(Autoproj::CLI::Main)
+                Autoproj::CLI::Main.default_report_on_package_failures = nil
+            end
         end
 
         def create_bootstrap
