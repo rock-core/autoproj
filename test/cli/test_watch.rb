@@ -28,7 +28,7 @@ module Autoproj
                     cli.setup_notifier
                     flexmock(cli.notifier)
                     cli.notifier.should_receive(:stop).once
-                    cli.callback
+                    cli.callback.join
                 end
             end
 
@@ -81,7 +81,7 @@ module Autoproj
                 describe "main configuration watcher" do
                     it "triggers the callback when the file is modified" do
                         cli.should_receive(:callback).once
-                        open(ws.config.path, 'a') do |file|
+                        File.open(ws.config.path, 'a') do |file|
                             file << "\n"
                         end
                         process_events
@@ -102,7 +102,7 @@ module Autoproj
                 describe "main manifest watcher" do
                     it "triggers the callback when the file is modified" do
                         cli.should_receive(:callback).once
-                        open(ws.manifest_file_path, 'a') do |file|
+                        File.open(ws.manifest_file_path, 'a') do |file|
                             file << "\n"
                         end
                         process_events
@@ -122,6 +122,8 @@ module Autoproj
                 end
                 describe "in-source manifest watcher" do
                     it "triggers the callback when the file is created" do
+                        # The callback stops the watcher ... make it a no-op
+                        def cli.callback; end
                         File.unlink(manifest_file)
                         process_events
                         cli.should_receive(:callback).once
@@ -130,7 +132,7 @@ module Autoproj
                     end
                     it "triggers the callback when the file is modified" do
                         cli.should_receive(:callback).at_least.once
-                        open(manifest_file, 'a') do |file|
+                        File.open(manifest_file, 'a') do |file|
                             file << "\n"
                         end
                         process_events
@@ -150,6 +152,8 @@ module Autoproj
                 end
                 describe "in-source ROS manifest watcher" do
                     it "triggers the callback when the file is created" do
+                        # The callback stops the watcher ... make it a no-op
+                        def cli.callback; end
                         File.unlink(ros_manifest_file)
                         process_events
                         cli.should_receive(:callback).once
@@ -158,7 +162,7 @@ module Autoproj
                     end
                     it "triggers the callback when the file is modified" do
                         cli.should_receive(:callback).at_least.once
-                        open(ros_manifest_file, 'a') do |file|
+                        File.open(ros_manifest_file, 'a') do |file|
                             file << "\n"
                         end
                         process_events
@@ -184,7 +188,7 @@ module Autoproj
                     end
                     it "triggers the callback when an autobuild file is modified" do
                         cli.should_receive(:callback).once
-                        open(autobuild_file, 'a') do |file|
+                        File.open(autobuild_file, 'a') do |file|
                             file << "\n"
                         end
                         process_events
@@ -210,7 +214,7 @@ module Autoproj
                     end
                     it "triggers the callback when a ruby file is modified" do
                         cli.should_receive(:callback).once
-                        open(ruby_file, 'a') do |file|
+                        File.open(ruby_file, 'a') do |file|
                             file << "\n"
                         end
                         process_events
@@ -231,7 +235,7 @@ module Autoproj
                 describe "in-pkg set manifest files watcher" do
                     it "triggers the callback when a manifest file is modified" do
                         cli.should_receive(:callback).once
-                        open(pkg_set_manifest_file, 'a') do |file|
+                        File.open(pkg_set_manifest_file, 'a') do |file|
                             file << "\n"
                         end
                         process_events
