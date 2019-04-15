@@ -686,6 +686,14 @@ module Autoproj
                 assert_equal "test from pkg_set has use_package_xml set, but the package"\
                     " has no package.xml file", e.message
             end
+            it "does not raise if use_package_xml is set but package is not checked out" do
+                flexmock(pkg.autobuild).should_receive(:checked_out?).and_return(false)
+                flexmock(Autoproj).should_receive(:warn).
+                    with("test from pkg_set does not have a manifest").once
+
+                pkg.autobuild.use_package_xml = true
+                manifest.load_package_manifest(pkg)
+            end
             it "applies the dependencies from the manifest to the package" do
                 ws_create_package_file pkg, 'manifest.xml',
                     "<package><depend package=\"dependency\" /></package>"

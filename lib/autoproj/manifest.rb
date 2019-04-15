@@ -994,7 +994,7 @@ module Autoproj
 
             # Look for the package's manifest.xml, but fallback to a manifest in
             # the package set if present
-            if package.use_package_xml?
+            if package.use_package_xml? && package.checked_out?
                 manifest_path = File.join(package.srcdir, "package.xml")
                 raise NoPackageXML.new(package.srcdir), "#{package.name} from "\
                     "#{package_set.name} has use_package_xml set, but the package has "\
