@@ -239,6 +239,9 @@ module Autoproj
                     opt.on '--skip-stage2', 'do not run the stage2 install' do
                         @skip_stage2 = true
                     end
+                    opt.on '--debug', 'Run in debug mode' do
+                        @autoproj_options << '--debug'
+                    end
                     opt.on '--gem-source=URL', String, "use this source for RubyGems "\
                         "instead of rubygems.org" do |url|
                         @gem_source = url
@@ -275,19 +278,25 @@ module Autoproj
                     end
                     opt.on '--[no-]color', 'do not use colored output (enabled by "\
                         "default if the terminal supports it)' do |color|
-                        if color then autoproj_options << "--color"
-                        else autoproj_options << '--no-color'
+                        if color then @autoproj_options << "--color"
+                        else @autoproj_options << '--no-color'
                         end
                     end
                     opt.on '--[no-]progress', 'do not use progress output (enabled by "\
-                        "default if the terminal supports it)' do |color|
-                        if color then autoproj_options << "--progress"
-                        else autoproj_options << '--no-progress'
+                        "default if the terminal supports it)' do |progress|
+                        if progress then @autoproj_options << "--progress"
+                        else @autoproj_options << '--no-progress'
+                        end
+                    end
+                    opt.on '--[no-]interactive', 'if non-interactive, use default "\
+                           "answer for questions' do |flag|
+                        if flag then @autoproj_options << "--interactive"
+                        else @autoproj_options << "--no-interactive"
                         end
                     end
                 end
                 args = options.parse(ARGV)
-                autoproj_options + args
+                @autoproj_options + args
             end
 
             def find_bundler(gem_program)
@@ -677,7 +686,7 @@ require 'bundler/setup'
 
             def run_autoproj(*args)
                 system env_for_child.merge('BUNDLE_GEMFILE' => autoproj_gemfile_path),
-                    Gem.ruby, autoproj_path, *args, *autoproj_options
+                    Gem.ruby, autoproj_path, *args, *@autoproj_options
             end
 
             def v1_workspace?
@@ -701,7 +710,7 @@ require 'bundler/setup'
                 clean_env = env_for_child
                 stage2_vars = clean_env.map { |k, v| "#{k}=#{v}" }
                 puts "starting the newly installed autoproj for stage2 install"
-                if !run_autoproj('install-stage2', root_dir, *stage2_vars)
+                if !run_autoproj('install-stage2', root_dir, *stage2_vars, *@autoproj_options)
                     raise "failed to execute autoproj install-stage2"
                 end
             end
@@ -711,7 +720,7 @@ require 'bundler/setup'
                 puts "saving temporary env.sh and .autoproj/env.sh"
                 save_env_sh(*vars)
                 puts "running 'autoproj envsh' to generate a proper env.sh"
-                if !system(Gem.ruby, autoproj_path, 'envsh', *autoproj_options)
+                if !system(Gem.ruby, autoproj_path, 'envsh', *@autoproj_options)
                     STDERR.puts "failed to run autoproj envsh on the newly installed "\
                         "autoproj (#{autoproj_path})"
                     exit 1
@@ -719,7 +728,7 @@ require 'bundler/setup'
                 # This is really needed on an existing install to install the
                 # gems that were present in the v1 layout
                 puts "running 'autoproj osdeps' to re-install missing gems"
-                if !system(Gem.ruby, autoproj_path, 'osdeps')
+                if !system(Gem.ruby, autoproj_path, 'osdeps', *@autoproj_options)
                     STDERR.puts "failed to run autoproj osdeps on the newly installed "\
                         "autoproj (#{autoproj_path})"
                     exit 1

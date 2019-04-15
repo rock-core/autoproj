@@ -25,6 +25,23 @@ gem 'autobuild', path: '#{autobuild_dir}'"
                     gemfile_source: gemfile_source
             end
 
+            it "may install non-interactively" do
+                shared_dir = make_tmpdir
+                invoke_test_script 'install.sh', env: Hash['HOME' => shared_dir],
+                    interactive: false,
+                    seed_config: nil
+            end
+
+            it "the non-interactive installs also ignore non-empty directories" do
+                shared_dir = make_tmpdir
+                install_dir = make_tmpdir
+                FileUtils.touch File.join(install_dir, "somefile")
+                invoke_test_script 'install.sh', env: Hash['HOME' => shared_dir],
+                    dir: install_dir,
+                    interactive: false,
+                    seed_config: nil
+            end
+
             describe "default shared gems location" do
                 attr_reader :shared_gem_home, :shared_dir, :install_dir
                 before do

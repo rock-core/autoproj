@@ -4,7 +4,7 @@ module Autoproj
         class Envsh < InspectionTool
             def validate_options(_unused, options = Hash.new)
                 _, options = super(_unused, options)
-                options
+                [options]
             end
 
             def run(**options)
