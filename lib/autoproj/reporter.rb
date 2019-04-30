@@ -124,20 +124,22 @@ module Autoproj
                 on_package_failures: on_package_failures,
                 interrupted_by: interrupted)
         end
-
     rescue CLI::CLIException, InvalidWorkspace, ConfigError => e
         if silent_errors
             [e]
         elsif on_package_failures == :raise
             raise e
         elsif on_package_failures == :report
-            Autoproj.error e.message
+            Autoproj.not_silent do
+                Autoproj.error e.message
+            end
             [e]
         elsif on_package_failures == :exit
-            Autoproj.error e.message
+            Autoproj.not_silent do
+                Autoproj.error e.message
+            end
             exit 1
         end
-
     rescue SystemExit
         raise
     ensure
