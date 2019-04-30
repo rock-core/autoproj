@@ -254,7 +254,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
                 chdir: File.dirname(gemfile))
             out_w.close
             output = out_r.read.chomp
-            assert result, output.to_s
+            assert result, "bundler show #{gem_name} failed, output: '#{output}'"
             output
         end
 
