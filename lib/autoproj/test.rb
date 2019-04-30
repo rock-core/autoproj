@@ -55,6 +55,11 @@ module Autoproj
         attr_reader :ws
 
         def setup
+            if ENV['AUTOPROJ_CURRENT_ROOT']
+                raise "cannot have a workspace's env.sh loaded while running the "\
+                      "Autoproj test suite"
+            end
+
             if defined?(Autoproj::CLI::Main)
                 Autoproj::CLI::Main.default_report_on_package_failures = :raise
             end
@@ -83,6 +88,9 @@ module Autoproj
             FileUtils.rm_rf fixture_gem_home
             if defined?(Autoproj::CLI::Main)
                 Autoproj::CLI::Main.default_report_on_package_failures = nil
+            end
+            if ENV.delete('AUTOPROJ_CURRENT_ROOT')
+                raise "AUTOPROJ_CURRENT_ROOT has been set by this test !!!!"
             end
         end
 
