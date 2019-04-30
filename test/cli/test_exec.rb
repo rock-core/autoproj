@@ -17,8 +17,8 @@ module Autoproj
                     #! /bin/sh
                     echo "ARG $@"
                     echo "ENV $TEST_ENV_VAR"
-                    STUB_SCRIPT
-                chmod 0755, 'subdir/test'
+                STUB_SCRIPT
+                chmod 0o755, 'subdir/test'
             end
 
             describe "without using the cache" do

@@ -107,6 +107,7 @@ module Autoproj
 
             def assert_watchers_available
                 return if RbConfig::CONFIG['target_os'] =~ /linux/
+
                 puts 'error: Workspace watching not available on this platform'
                 exit 1
             end

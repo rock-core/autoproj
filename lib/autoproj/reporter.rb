@@ -53,7 +53,7 @@ module Autoproj
             error_lines = error.to_s.split("\n")
             Autoproj.not_silent do
                 Autoproj.message("Command failed", :bold, :red, STDERR)
-                Autoproj.message("#{error_lines.shift}", :bold, :red, STDERR)
+                Autoproj.message(error_lines.shift.to_s, :bold, :red, STDERR)
                 error_lines.each do |line|
                     Autoproj.message line, STDERR
                 end
@@ -66,6 +66,7 @@ module Autoproj
 
         def elapsed_time
             return unless @timer_start
+
             secs = Time.now - @timer_start
             return if secs < 1
 
@@ -73,6 +74,7 @@ module Autoproj
                 if secs > 0
                     secs, n = secs.divmod(count)
                     next if (val = n.to_i) == 0
+
                     "#{val} #{val > 1 ? name + 's' : name}"
                 end
             end.compact.reverse.join(' ')
@@ -80,7 +82,8 @@ module Autoproj
 
         def success
             elapsed_string = elapsed_time ? " (took #{elapsed_time})" : ''
-            Autoproj.message("Command finished successfully at #{Time.now}#{elapsed_string}", :bold, :green)
+            Autoproj.message("Command finished successfully at "\
+                             "{Time.now}#{elapsed_string}", :bold, :green)
             if Autobuild.post_success_message
                 Autoproj.message Autobuild.post_success_message
             end
@@ -89,41 +92,42 @@ module Autoproj
 
     def self.report(root_dir: nil, silent: nil, debug: Autobuild.debug,
                     on_package_success: :report,
-                    on_package_failures: Autobuild::Reporting.default_report_on_package_failures)
+                    on_package_failures: Autobuild::Reporting
+                                         .default_report_on_package_failures)
         reporter = Autoproj::Reporter.new
         Autobuild::Reporting << reporter
         interrupted = nil
 
-        if !silent.nil?
+        unless silent.nil?
             on_package_success = silent ? :silent : :report
         end
-        silent_errors = [:report_silent, :exit_silent].include?(on_package_failures)
+        silent_errors = %I[report_silent exit_silent].include?(on_package_failures)
 
-        package_failures = Autobuild::Reporting.report(on_package_failures: :report_silent) do
-            begin
-                reporter.reset_timer
-                yield
-            rescue Interrupt => e
-                interrupted = e
+        package_failures =
+            Autobuild::Reporting.report(on_package_failures: :report_silent) do
+                begin
+                    reporter.reset_timer
+                    yield
+                rescue Interrupt => e
+                    interrupted = e
+                end
             end
-        end
 
 
         if package_failures.empty?
-            if interrupted
-                raise interrupted
-            elsif on_package_success == :report
-                Autobuild::Reporting.success
-            end
+            raise interrupted if interrupted
+
+            Autobuild::Reporting.success if on_package_success == :report
             return []
         else
-            Autobuild::Reporting.report_finish_on_error(
-                package_failures, on_package_failures: on_package_failures, interrupted_by: interrupted)
+            Autobuild::Reporting.report_finish_on_error(package_failures,
+                on_package_failures: on_package_failures,
+                interrupted_by: interrupted)
         end
 
     rescue CLI::CLIException, InvalidWorkspace, ConfigError => e
         if silent_errors
-            return [e]
+            [e]
         elsif on_package_failures == :raise
             raise e
         elsif on_package_failures == :report
@@ -137,9 +141,7 @@ module Autoproj
     rescue SystemExit
         raise
     ensure
-        if !silent_errors && interrupted
-            report_interrupt
-        end
+        report_interrupt if !silent_errors && interrupted
 
         Autobuild::Reporting.remove(reporter) if reporter
     end
