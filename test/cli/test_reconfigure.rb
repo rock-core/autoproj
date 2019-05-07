@@ -1,40 +1,30 @@
 require 'autoproj/test'
-require 'autoproj/cli/main'
+require 'autoproj/aruba_minitest'
 require 'autoproj/cli/reconfigure'
-require 'timeout'
 
 module Autoproj
     module CLI
         describe Reconfigure do
-            attr_reader :ws
-            before do
-                option_name = "custom-configuration-option"
-                default_value = "option-defaultvalue"
+            include Autoproj::ArubaMinitest
 
+            before do
                 @ws = ws_create(make_tmpdir, partial_config: true)
-            end
-            after do
-                Autoproj.verbose = false
+                set_environment_variable 'AUTOPROJ_CURRENT_ROOT', ws.root_dir
+                @autoproj_bin = File.expand_path(
+                    File.join("..", "..", "bin", "autoproj"), __dir__
+                )
             end
             describe "#reconfigure" do
-                def run_command(*args)
-                    capture_subprocess_io do
-                        ENV['AUTOPROJ_CURRENT_ROOT'] = ws.root_path.to_s
-                        in_ws do
-                            Main.start([*args,"--debug"], debug: true)
-                        end
-                    end
-                end
-
                 it "reconfigure should run interactively" do
-                    assert_raises Timeout::Error do
-                        Timeout.timeout(3) do
-                            run_command 'reconfigure'
-                        end
-                    end
+                    cmd = run_command "#{@autoproj_bin} reconfigure"
+                    cmd.stdin.write("\n" * 100)
+                    cmd.stop
+                    assert_equal 0, cmd.exit_status
                 end
                 it "reconfigure should run non interactively" do
-                    run_command 'reconfigure','--no-interactive'
+                    cmd = run_command_and_stop "#{@autoproj_bin} reconfigure "\
+                                               "--interactive=f"
+                    assert_equal 0, cmd.exit_status
                 end
             end
         end

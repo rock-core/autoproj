@@ -27,7 +27,8 @@ gem 'autobuild', path: '#{autobuild_dir}'"
 
             it "may install non-interactively" do
                 shared_dir = make_tmpdir
-                invoke_test_script 'install.sh', env: Hash['HOME' => shared_dir],
+                invoke_test_script 'install.sh',
+                    env: Hash['HOME' => shared_dir],
                     interactive: false,
                     seed_config: nil
             end
@@ -36,7 +37,8 @@ gem 'autobuild', path: '#{autobuild_dir}'"
                 shared_dir = make_tmpdir
                 install_dir = make_tmpdir
                 FileUtils.touch File.join(install_dir, "somefile")
-                invoke_test_script 'install.sh', env: Hash['HOME' => shared_dir],
+                invoke_test_script 'install.sh',
+                    env: Hash['HOME' => shared_dir],
                     dir: install_dir,
                     interactive: false,
                     seed_config: nil
@@ -54,25 +56,30 @@ gem 'autobuild', path: '#{autobuild_dir}'"
                 end
 
                 it "saves a shim to the installed bundler" do
-                    shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
+                    shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundle')
                     assert File.file?(shim_path)
                     stdout, _stderr = capture_subprocess_io do
                         unless Bundler.clean_system(shim_path, 'show', 'bundler')
                             flunk("could not run the bundler shim")
                         end
                     end
-                    assert stdout.start_with?(shared_gem_home), "expected #{stdout} to start with #{shared_gem_home}"
+                    assert stdout.start_with?(shared_gem_home),
+                           "expected #{stdout} to start with #{shared_gem_home}"
                 end
 
                 it "removes non-autoproj and non-bundler shims from the shim folder" do
                     shim_path = File.join(install_dir, '.autoproj', 'bin')
-                    refute File.file?(File.join(shim_path, 'rake')), "rake is still present in the shim folder"
-                    refute File.file?(File.join(shim_path, 'thor')), "thor is still present in the shim folder"
+                    refute File.file?(File.join(shim_path, 'rake')),
+                           "rake is still present in the shim folder"
+                    refute File.file?(File.join(shim_path, 'thor')),
+                           "thor is still present in the shim folder"
                 end
 
                 it "sets the environment so that the shared bundler is found" do
-                    shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
-                    _, stdout, = invoke_test_script 'bundler-path.sh', dir: install_dir, chdir: File.join(install_dir, '.autoproj')
+                    shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundle')
+                    _, stdout, = invoke_test_script 'bundler-path.sh',
+                        dir: install_dir,
+                        chdir: File.join(install_dir, '.autoproj')
                     bundler_bin_path, bundler_gem_path =
                         stdout.chomp.split("\n")
                     assert_equal bundler_bin_path, shim_path
@@ -89,9 +96,11 @@ gem 'autobuild', path: '#{autobuild_dir}'"
                 end
 
                 it "installs all gems in the shared folder" do
-                    bundler_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
+                    bundler_path = File.join(install_dir, '.autoproj', 'bin', 'bundle')
                     autoproj_gemfile = File.join(install_dir, '.autoproj', 'Gemfile')
-                    utilrb_gem = find_bundled_gem_path(bundler_path, 'utilrb', autoproj_gemfile)
+                    utilrb_gem = find_bundled_gem_path(
+                        bundler_path, 'utilrb', autoproj_gemfile
+                    )
                     assert utilrb_gem.start_with?(shared_gem_home)
                 end
             end
@@ -106,7 +115,7 @@ gem 'autobuild', path: '#{autobuild_dir}'"
                 end
 
                 it "saves a shim to the installed bundler" do
-                    shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
+                    shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundle')
                     assert File.file?(shim_path)
                     stdout, _stderr = capture_subprocess_io do
                         unless Bundler.clean_system(shim_path, 'show', 'bundler')
@@ -118,13 +127,17 @@ gem 'autobuild', path: '#{autobuild_dir}'"
 
                 it "removes non-autoproj and non-bundler shims from the shim folder" do
                     shim_path = File.join(install_dir, '.autoproj', 'bin')
-                    refute File.file?(File.join(shim_path, 'rake')), "rake is still present in the shim folder"
-                    refute File.file?(File.join(shim_path, 'thor')), "thor is still present in the shim folder"
+                    refute File.file?(File.join(shim_path, 'rake')),
+                           "rake is still present in the shim folder"
+                    refute File.file?(File.join(shim_path, 'thor')),
+                           "thor is still present in the shim folder"
                 end
 
                 it "sets the environment so that the shared bundler is found" do
-                    shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
-                    _, stdout, = invoke_test_script 'bundler-path.sh', dir: install_dir, chdir: File.join(install_dir, '.autoproj')
+                    shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundle')
+                    _, stdout, = invoke_test_script 'bundler-path.sh',
+                        dir: install_dir,
+                        chdir: File.join(install_dir, '.autoproj')
 
                     bundler_bin_path, bundler_gem_path =
                         stdout.chomp.split("\n")
@@ -143,9 +156,11 @@ gem 'autobuild', path: '#{autobuild_dir}'"
                 end
 
                 it "installs all gems in the shared folder" do
-                    bundler_path = File.join(install_dir, '.autoproj', 'bin', 'bundler')
+                    bundler_path = File.join(install_dir, '.autoproj', 'bin', 'bundle')
                     autoproj_gemfile = File.join(install_dir, '.autoproj', 'Gemfile')
-                    utilrb_gem = find_bundled_gem_path(bundler_path, 'utilrb', autoproj_gemfile)
+                    utilrb_gem = find_bundled_gem_path(
+                        bundler_path, 'utilrb', autoproj_gemfile
+                    )
                     assert utilrb_gem.start_with?(shared_gem_home)
                 end
             end

@@ -11,7 +11,7 @@ module Autoproj
                 @pkg2 = ws_define_package :cmake, 'pkg2'
                 @pkg3 = ws_define_package :cmake, 'pkg3'
 
-                @build = Build.new(ws.manifest, report_dir: @ws.log_dir)
+                @build = Build.new(ws.manifest, report_path: @ws.build_report_path)
 
                 @pkg1object = ws.manifest.find_autobuild_package('pkg1')
                 @pkg2object = ws.manifest.find_autobuild_package('pkg2')
@@ -41,7 +41,7 @@ module Autoproj
                 @build.build_report([])
                 json = read_report
                 assert_equal Hash['build_report' => {
-                                    'timestamp' => Time.mktime(1970,1,1).to_s, 
+                                    'timestamp' => Time.mktime(1970,1,1).to_s,
                                     'packages' => []
                                 }], json
             end
@@ -78,22 +78,22 @@ module Autoproj
             end
 
             def read_report
-                data = File.read(File.join(@ws.log_dir, "build_report.json"))
-                JSON.load(data)
+                data = File.read(@ws.build_report_path)
+                JSON.parse(data)
             end
 
             def set_success_flags(package)
-                package.instance_variable_set(:@prepared, true) 
-                package.instance_variable_set(:@imported, true) 
-                package.instance_variable_set(:@built, true) 
-                package.instance_variable_set(:@failed, nil) 
+                package.instance_variable_set(:@prepared, true)
+                package.instance_variable_set(:@imported, true)
+                package.instance_variable_set(:@built, true)
+                package.instance_variable_set(:@failed, nil)
             end
 
             def set_failed_flags(package)
-                package.instance_variable_set(:@prepared, false) 
-                package.instance_variable_set(:@imported, false) 
-                package.instance_variable_set(:@built, false) 
-                package.instance_variable_set(:@failed, true) 
+                package.instance_variable_set(:@prepared, false)
+                package.instance_variable_set(:@imported, false)
+                package.instance_variable_set(:@built, false)
+                package.instance_variable_set(:@failed, true)
             end
 
             def expected_successful_package(pkg_name)

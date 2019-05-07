@@ -55,6 +55,14 @@ module Autoproj
         attr_reader :ws
 
         def setup
+            if ENV['AUTOPROJ_CURRENT_ROOT']
+                raise "cannot have a workspace's env.sh loaded while running the "\
+                      "Autoproj test suite"
+            end
+
+            if defined?(Autoproj::CLI::Main)
+                Autoproj::CLI::Main.default_report_on_package_failures = :raise
+            end
             FileUtils.rm_rf fixture_gem_home
             @gem_server_pid = nil
             @tmpdir = Array.new
@@ -78,6 +86,12 @@ module Autoproj
             stop_gem_server if @gem_server_pid
 
             FileUtils.rm_rf fixture_gem_home
+            if defined?(Autoproj::CLI::Main)
+                Autoproj::CLI::Main.default_report_on_package_failures = nil
+            end
+            if ENV.delete('AUTOPROJ_CURRENT_ROOT')
+                raise "AUTOPROJ_CURRENT_ROOT has been set by this test !!!!"
+            end
         end
 
         def create_bootstrap
@@ -248,7 +262,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
                 chdir: File.dirname(gemfile))
             out_w.close
             output = out_r.read.chomp
-            assert result, output.to_s
+            assert result, "bundler show #{gem_name} failed, output: '#{output}'"
             output
         end
 

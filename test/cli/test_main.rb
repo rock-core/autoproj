@@ -32,7 +32,7 @@ module Autoproj
                 def mock_should_snapshot_packages(packages)
                     flexmock(Ops::Snapshot).new_instances.
                         should_receive(:snapshot_packages).
-                        with(['pkg'], nil, only_local: false).
+                        with(['pkg'], nil, fingerprint: false, only_local: false).
                         and_return([])
                 end
 

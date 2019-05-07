@@ -118,7 +118,7 @@ anymore.
 
 To add a gem to the workspace, create or edit `autoproj/Gemfile` and add `gem`
 entries following [the bundler documentation](http://bundler.io/gemfile.html).
-Once the file is edited, run `autoproj osdeps` and reload the updated `env.sh`. 
+Once the file is edited, run `autoproj osdeps` and reload the updated `env.sh`.
 
 To remove gems, remove the corresponding line in `autoproj/Gemfile`, run
 `autoproj osdeps` and reload `env.sh`
@@ -231,22 +231,68 @@ osdep can be excluded or ignored now.
 autoproj update learned --force-reset to reset to the expected commit,
 bypassing any check. Great for CI environments.
 
-# Developing autoproj 2.x
+# Developing Autoproj
+
+The best way to work on Autoproj's own codebase is to check it out from
+git, setup a Bundler environment for it and develop as you would for a
+normal Ruby gem: code, test, rince, repeat.
+
+Once you're happy with your functionality and its unit tests, you can
+work with it on an existing workspace.
+
+## Installing Autoproj dependencies and working on the tests
+
+Run
+
+~~~
+bundle install --path=vendor
+~~~
+
+Note that Autoproj's own test suite assumes that Bundler is setup with
+`--path=vendor`. Keep it that way
+
+To run the test suite,
+
+~~~
+bundle exec rake test
+~~~
+
+Or, for a single file
+
+~~~
+bundle exec ruby PATH_TO_FILE
+~~~
+
+Minitest's `-n` option allows you to select tests based on a match to their
+names:
+
+~~~
+bundle exec rake test TESTOPTS="-n=/build/"
+bundle exec ruby PATH_TO_FILE -n=/build/
+~~~
+
+Note that the TESTOPTS method splits arguments on spaces. Use dots (`.`)
+instead of spaces.
+
+## Using Autoproj git in workspaces
 
 The best way to use autoproj 2.x from git is to checkout autoproj and
 autobuild manually, and write a Gemfile.autoproj-2.0 containing
 
 ```
-   source "https://rubygems.org"
-   gem "autoproj", path: '/home/doudou/dev/gems/autoproj'
-   gem "autobuild", path: '/home/doudou/dev/gems/autobuild'
-   gem "utilrb", ">= 3.0.0.a"
+source "https://rubygems.org"
+gem "autoproj", path: '/home/doudou/dev/gems/autoproj'
+gem "autobuild", path: '/home/doudou/dev/gems/autobuild'
 ```
 Then, pass this gemfile to the --gemfile argument to autoproj_install
 or autoproj_bootstrap. Note that one can re-run autoproj_install in an
 already bootstrapped autoproj workspace, e.g.
 
 ```
-   wget https://raw.githubusercontent.com/rock-core/autoproj/master/bin/autoproj_install
-   ruby autoproj_install --gemfile=../Gemfile.autoproj-2.0
+wget https://raw.githubusercontent.com/rock-core/autoproj/master/bin/autoproj_install
+ruby autoproj_install --gemfile=../Gemfile.autoproj-2.0
 ```
+
+If you work `lib/autoproj/ops/install.rb`, you must re-generate and test the
+`autoproj_install` and `autoproj_bootstrap` scripts which integrate the code
+from `install.rb`.

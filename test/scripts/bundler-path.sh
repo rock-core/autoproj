@@ -1,5 +1,5 @@
 #! /bin/sh
 
 . ./env.sh
-which bundler
+which bundle
 bundler show bundler

@@ -37,6 +37,17 @@ module Autoproj
             stop_on_unknown_option! :exec
             check_unknown_options!  except: :exec
 
+            class << self
+                # @api private
+                #
+                # Override the CLI logic to determine what should be done
+                # on package failure (between raising or exiting)
+                #
+                # This is used mainly in tests, to make sure that the CLI won't
+                # be calling exit(). Set to nil to restore the default behavior
+                attr_accessor :default_report_on_package_failures
+            end
+
             # @api private
             #
             # Run hooks defined for a given hook name
@@ -77,7 +88,9 @@ module Autoproj
 
             no_commands do
                 def default_report_on_package_failures
-                    if options[:debug]
+                    if (override = Main.default_report_on_package_failures)
+                        override
+                    elsif options[:debug]
                         :raise
                     else
                         :exit
