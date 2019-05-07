@@ -83,7 +83,7 @@ module Autoproj
         def success
             elapsed_string = elapsed_time ? " (took #{elapsed_time})" : ''
             Autoproj.message("Command finished successfully at "\
-                             "{Time.now}#{elapsed_string}", :bold, :green)
+                             "#{Time.now}#{elapsed_string}", :bold, :green)
             if Autobuild.post_success_message
                 Autoproj.message Autobuild.post_success_message
             end
