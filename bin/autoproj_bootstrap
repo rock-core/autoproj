@@ -747,7 +747,6 @@ ops.stage1
 if !ops.skip_stage2?
     ops.call_stage2
 end
-puts "OPTS #{bootstrap_options.inspect}"
 if !ops.run_autoproj 'bootstrap', *bootstrap_options
     exit 1
 end
