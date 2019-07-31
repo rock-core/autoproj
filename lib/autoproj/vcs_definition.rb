@@ -113,6 +113,8 @@ module Autoproj
         #
         #   - package_name
         #     branch: value
+        #
+        # @raise ArgumentError if the given spec cannot be normalized
         def self.normalize_vcs_hash(spec, base_dir: nil)
             plain = Array.new
             filtered_spec = Hash.new
@@ -130,7 +132,7 @@ module Autoproj
             end
 
             if plain.size > 1
-                raise ConfigError.new, "invalid syntax"
+                raise ArgumentError, "invalid syntax"
             elsif plain.size == 1
                 short_url = plain.first
                 vcs, *url = short_url.split(':')
@@ -274,7 +276,7 @@ module Autoproj
         end
 
         # Returns a pretty representation of this VCS definition
-        def to_s 
+        def to_s
             if type == "none"
                 "none"
             else
@@ -326,7 +328,7 @@ module Autoproj
     #       - tools/orocos.rb:
     #         github: rock-core/base-types
     #         branch: test
-    # 
+    #
     # @yieldparam [String] url the url given to the handler
     # @yieldparam [Hash] the rest of the VCS hash
     # @return [Hash] a VCS hash with the information expanded

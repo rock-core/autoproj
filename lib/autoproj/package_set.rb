@@ -535,7 +535,9 @@ module Autoproj
 
                 Autoproj.in_file(source_file) do
                     default_vcs_spec, raw = version_control_field(
-                        'default', version_control, file: source_file)
+                        'default', version_control,
+                        file: source_file, section: 'version_control'
+                    )
                     if default_vcs_spec
                         @default_importer = VCSDefinition.from_raw(default_vcs_spec,
                             raw: raw, from: self)
@@ -653,28 +655,30 @@ module Autoproj
         #   package in the form (PackageSet,Hash), where PackageSet is self.
         #   The Hash part is nil if there are no matching entries. Hash keys are
         #   normalized to symbols
-        def version_control_field(package_name, entry_list, validate: true, file: source_file)
+        def version_control_field(package_name, entry_list, validate: true,
+                                  file: source_file, section: nil)
             raw = []
-            vcs_spec = Hash.new
+            vcs_spec = entry_list.inject({}) do |resolved_spec, (name_match, spec)|
+                next(resolved_spec) unless name_match === package_name
 
-            entry_list.each do |name_match, spec|
-                if name_match === package_name
-                    raw << VCSDefinition::RawEntry.new(self, file, spec)
-                    vcs_spec =
-                        begin
-                            VCSDefinition.update_raw_vcs_spec(vcs_spec, spec)
-                        rescue ConfigError => e
-                            raise ConfigError.new, "invalid VCS definition in the #{section_name} section for '#{name}': #{e.message}", e.backtrace
-                        end
+                raw << VCSDefinition::RawEntry.new(self, file, spec)
+                begin
+                    VCSDefinition.update_raw_vcs_spec(resolved_spec, spec)
+                rescue ArgumentError => e
+                    raise ConfigError.new,
+                          'invalid VCS definition while resolving package '\
+                          "'#{package_name}', entry '#{name_match}' of "\
+                          "#{section ? "section '#{section}'" : ''}: "\
+                          "#{e.message}", e.backtrace
                 end
             end
 
-            if vcs_spec.empty?
-                return nil, []
-            end
+            return nil, [] if vcs_spec.empty?
 
-            expansions = Hash["PACKAGE" => package_name,
-                "PACKAGE_BASENAME" => File.basename(package_name)]
+            expansions = {
+                'PACKAGE' => package_name,
+                'PACKAGE_BASENAME' => File.basename(package_name)
+            }
 
             vcs_spec = expand(vcs_spec, expansions)
             vcs_spec.dup.each do |name, value|
@@ -682,7 +686,7 @@ module Autoproj
             end
 
             # Resolve relative paths w.r.t. the workspace root dir
-            if url = (vcs_spec.delete('url') || vcs_spec.delete(:url))
+            if (url = (vcs_spec.delete('url') || vcs_spec.delete(:url)))
                 vcs_spec[:url] = VCSDefinition.to_absolute_url(url, ws.root_dir)
             end
 
@@ -691,11 +695,14 @@ module Autoproj
             if validate
                 begin
                     VCSDefinition.from_raw(vcs_spec)
-                rescue ConfigError => e
-                    raise ConfigError.new, "invalid resulting VCS definition for package #{package_name}: #{e.message}", e.backtrace
+                rescue ArgumentError => e
+                    raise ConfigError.new,
+                          'invalid resulting VCS definition for package '\
+                          "'#{package_name}': #{e.message}",
+                          e.backtrace
                 end
             end
-            return vcs_spec, raw
+            [vcs_spec, raw]
         end
 
         # @api private
@@ -706,15 +713,20 @@ module Autoproj
         end
 
         # Returns the VCS definition for +package_name+ as defined in this
-        # source, or nil if the source does not have any.
+        # package set, or nil if the source does not have any.
         #
         # @param [PackageDefinition] package
         # @return [VCSDefinition] the importer definition, or nil if none
         #   could be found
         def importer_definition_for(package, default: default_importer, require_existing: true)
-            package_name = manifest.validate_package_name_argument(package, require_existing: require_existing)
+            package_name = manifest.validate_package_name_argument(
+                package, require_existing: require_existing
+            )
             importer_definitions_cache[package_name] ||= Autoproj.in_file source_file do
-                vcs_spec, raw = version_control_field(package_name, version_control, file: source_file)
+                vcs_spec, raw = version_control_field(
+                    package_name, version_control,
+                    file: source_file, section: 'version_control'
+                )
                 if vcs_spec
                     VCSDefinition.from_raw(vcs_spec, raw: raw, from: self)
                 else
@@ -729,7 +741,9 @@ module Autoproj
         # @param [VCSDefinition] the vcs to be updated
         # @return [VCSDefinition] the new, updated vcs object
         def overrides_for(package, vcs, require_existing: true)
-            package_name = manifest.validate_package_name_argument(package, require_existing: require_existing)
+            package_name = manifest.validate_package_name_argument(
+                package, require_existing: require_existing
+            )
             resolve_overrides(package_name, vcs)
         end
 
@@ -742,7 +756,10 @@ module Autoproj
             overrides.each do |file, file_overrides|
                 new_spec, new_raw_entry =
                     Autoproj.in_file file do
-                        version_control_field(key, file_overrides, validate: false, file: file)
+                        version_control_field(
+                            key, file_overrides,
+                            validate: false, file: file, section: 'overrides'
+                        )
                     end
 
                 if new_spec
@@ -750,7 +767,9 @@ module Autoproj
                         begin
                             vcs = vcs.update(new_spec, raw: new_raw_entry, from: self)
                         rescue ConfigError => e
-                            raise ConfigError.new, "invalid resulting VCS specification in the overrides section for #{key}: #{e.message}"
+                            raise ConfigError.new, "invalid resulting VCS specification "\
+                                                   "in the overrides section for "\
+                                                   "#{key}: #{e.message}"
                         end
                     end
                 end

@@ -108,7 +108,7 @@ module Autoproj
                     e.message
             end
         end
-        
+
         describe "#repository_id" do
             it "returns the package set path if the set is local" do
                 package_set = PackageSet.new(ws, VCSDefinition.from_raw('type' => 'local', 'url' => '/path/to/set'))
@@ -200,7 +200,7 @@ module Autoproj
                             Hash['package_name' => 'none']
                         ])
             end
-            
+
             it "converts the package name into a regexp if it contains non-standard characters" do
                 assert_equal [[/^test.*/, Hash['type' => 'none']]],
                     package_set.normalize_vcs_list(
@@ -517,6 +517,31 @@ module Autoproj
 
                 assert_equal [VCSDefinition::RawEntry.new(package_set, package_set.source_file, Hash['type' => 'local', 'url' => 'test'])], raw
                 assert_equal Hash[type: 'local', url: File.join(ws.root_dir, 'test')], vcs
+            end
+            it "provides location information to the user when the entries are invalid" do
+                e = assert_raises(ConfigError) do
+                    package_set.version_control_field(
+                        'package', [
+                            [flexmock(to_s: "something", "===": true),
+                                      { 'test url' => 'test' }]
+                        ], section: 'test_section'
+                    )
+                end
+                assert(e.message.start_with?(
+                    "invalid VCS definition while resolving package 'package', "\
+                    "entry 'something' of section 'test_section': "))
+            end
+            it "raises if the resulting VCS is invalid" do
+                e = assert_raises(ConfigError) do
+                    package_set.version_control_field(
+                        'package', [
+                            [flexmock(:to_s => "something", :=== => true), Hash['url' => 'test']]
+                        ]
+                    )
+                end
+                assert(e.message.start_with?(
+                    "invalid resulting VCS definition for package 'package'"),
+                    "unexpected message '#{e.message}'")
             end
         end
     end
