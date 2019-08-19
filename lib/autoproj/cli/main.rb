@@ -1,5 +1,6 @@
 require 'thor'
 require 'tty/color'
+require 'autoproj/cli/main_doc'
 require 'autoproj/cli/main_test'
 require 'autoproj/cli/main_plugin'
 require 'autoproj/cli/main_global'
@@ -183,15 +184,6 @@ module Autoproj
                 run_autoproj_cli(:status, :Status, Hash[], *packages)
             end
 
-            desc 'doc [PACKAGES]', 'generate API documentation for packages that support it'
-            option :deps, type: :boolean, default: true,
-                desc: 'control whether documentation should be generated only for the packages given on the command line, or also for their dependencies. -n is a shortcut for --no-deps'
-            option :no_deps_shortcut, hide: true, aliases: '-n', type: :boolean,
-                desc: 'provide -n for --no-deps'
-            def doc(*packages)
-                run_autoproj_cli(:doc, :Doc, Hash[], *packages)
-            end
-
             desc 'update [PACKAGES]', 'update packages'
             option :aup, default: false, hide: true, type: :boolean,
                 desc: 'behave like aup'
@@ -359,6 +351,9 @@ In this case, the default is false
 
             desc 'test', 'interface for running tests'
             subcommand 'test', MainTest
+
+            desc 'doc', 'interface for generating documentation'
+            subcommand 'doc', MainDoc
 
             desc 'show [PACKAGES]', 'show informations about package(s)'
             option :mainline, type: :string,
