@@ -416,7 +416,7 @@ module Autoproj
                         it "parses the dependency name and mode" do
                             dependency = parse_dependency("<package><#{tag}>test</#{tag}></package>")
                             assert_equal 'test', dependency.name
-                            assert_equal ['test'], dependency.modes
+                            assert_equal [mode], dependency.modes
                         end
                         it "is not optional" do
                             dependency = parse_dependency("<package><#{tag}>test</#{tag}></package>")

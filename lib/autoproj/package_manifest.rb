@@ -242,10 +242,10 @@ module Autoproj
         # REXML stream parser object used to load the XML contents into a
         # {PackageManifest} object
         class RosLoader < Loader
-            SUPPORTED_MODES = ['test'].freeze
+            SUPPORTED_MODES = ['test', 'doc'].freeze
             DEPEND_TAGS = Set['depend', 'build_depend', 'build_export_depend',
                               'buildtool_depend', 'buildtool_export_depend',
-                              'exec_depend', 'test_depend', 'run_depend']
+                              'exec_depend', 'test_depend', 'run_depend', 'doc_depend']
 
             def toplevel_tag_start(name, attributes)
                 if DEPEND_TAGS.include?(name)
