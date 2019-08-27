@@ -45,7 +45,7 @@ Layout/AlignParameters:
 Layout/DotPosition:
     Enabled: false
 
-Layout/FirstParameterIndentation:
+Layout/IndentFirstArgument:
     Enabled: false
 
 Layout/IndentAssignment:
