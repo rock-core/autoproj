@@ -77,7 +77,8 @@ module Autoproj
 
         def short_documentation
             brief_description ||
-                "no documentation available for package '#{package.name}' in its manifest.xml file"
+                "no documentation available for package '#{package.name}' "\
+                "in its manifest.xml file"
         end
 
         def initialize(package, path = nil, null: false)
