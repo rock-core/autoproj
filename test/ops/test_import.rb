@@ -217,7 +217,7 @@ module Autoproj
                     flexmock(base_cmake.autobuild.importer).should_receive(:import).
                         with(base_cmake.autobuild, Hash).once
                     flexmock(ops).should_receive(:post_package_import).
-                        with(any, any, base_cmake.autobuild, any, Hash).
+                        with(any, any, base_cmake, any, Hash).
                         once
                     ops.import_selected_packages(mock_selection(base_cmake))
                 end
@@ -226,7 +226,7 @@ module Autoproj
                     FileUtils.mkdir_p(base_cmake.autobuild.srcdir = File.join(ws.root_dir, 'package'))
                     base_cmake.autobuild.importer = nil
                     flexmock(ops).should_receive(:post_package_import).
-                        with(any, any, base_cmake.autobuild, any, Hash).
+                        with(any, any, base_cmake, any, Hash).
                         once
                     ops.import_selected_packages(mock_selection(base_cmake))
                 end
@@ -243,7 +243,7 @@ module Autoproj
                             end
                         end
                     flexmock(ops).should_receive(:post_package_import).
-                        with(any, any, non_interactive.autobuild, any, Hash).
+                        with(any, any, non_interactive, any, Hash).
                         once.globally.ordered
                     flexmock(base_cmake.autobuild).should_receive(:import).once.globally.ordered.
                         with(hsh(allow_interactive: true)).
@@ -253,7 +253,7 @@ module Autoproj
                             end
                         end
                     flexmock(ops).should_receive(:post_package_import).
-                        with(any, any, base_cmake.autobuild, any, Hash).
+                        with(any, any, base_cmake, any, Hash).
                         once.globally.ordered
 
                     ops.import_selected_packages(mock_selection(non_interactive, base_cmake))
@@ -272,7 +272,7 @@ module Autoproj
                         end
 
                     flexmock(ops).should_receive(:post_package_import).
-                        with(any, any, base_cmake.autobuild, any, Hash).
+                        with(any, any, base_cmake, any, Hash).
                         once.globally.ordered
                     ops.import_selected_packages(mock_selection(base_cmake))
                 end
@@ -403,6 +403,42 @@ module Autoproj
                         assert ws.manifest.excluded?('base/cmake')
                         refute ws.manifest.excluded?('base/types')
                     end
+                end
+            end
+
+            describe '#post_package_import' do
+                it 'enables dependencies needed by utilities enabled by a post-import block' do
+                    pkg_manifest = PackageManifest.parse(@pkg1, <<~END_OF_XML)
+                        <package><blabla_depend name="11" /></package>
+                    END_OF_XML
+                    @pkg1.autobuild.description = pkg_manifest
+                    flexmock(ops).should_receive(:process_post_import_blocks).with(@pkg1)
+                                 .and_return do
+                                     flexmock(@pkg1).should_receive(:modes)
+                                                    .and_return(['blabla'])
+                                 end
+
+                    ops.post_package_import(
+                        PackageSelection.new, ws.manifest, @pkg1, Hash.new { Array.new })
+                    assert @pkg1.autobuild.depends_on?('11')
+                end
+
+                it 'raises if a dependency from the manifest does not exist' do
+                    xml = '<package><depend name="does_not_exist" /></package>'
+                    pkg_manifest = PackageManifest.parse(@pkg1, xml,
+                                                         path: '/path/to/manifest.xml')
+                    @pkg1.autobuild.description = pkg_manifest
+                    e = assert_raises(ConfigError) do
+                        ops.post_package_import(
+                            PackageSelection.new, ws.manifest, @pkg1, Hash.new { Array.new })
+                    end
+                    assert_equal e.message,
+                                 "manifest /path/to/manifest.xml "\
+                                 "of 1 from main configuration lists 'does_not_exist' "\
+                                 "as dependency, but it is neither a normal package nor "\
+                                 "an osdeps package. osdeps reports: cannot resolve "\
+                                 "does_not_exist: does_not_exist is not an osdep "\
+                                 "and it cannot be resolved as a source package"
                 end
             end
 

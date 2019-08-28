@@ -198,14 +198,16 @@ def common_make_based_package_setup(pkg)
     end
 
     unless pkg.test_utility.has_task?
-        unless pkg.test_utility.source_dir
-            test_dir = File.join(pkg.srcdir, 'test')
-            if File.directory?(test_dir)
-                pkg.test_utility.source_dir = File.join(pkg.builddir, 'test', 'results')
+        pkg.post_import do
+            unless pkg.test_utility.source_dir
+                test_dir = File.join(pkg.srcdir, 'test')
+                if File.directory?(test_dir)
+                    pkg.test_utility.source_dir = File.join(pkg.builddir, 'test', 'results')
+                end
             end
-        end
 
-        pkg.with_tests if pkg.test_utility.source_dir
+            pkg.with_tests if pkg.test_utility.source_dir
+        end
     end
 end
 
@@ -284,15 +286,17 @@ def ruby_package(name, workspace: Autoproj.workspace)
         pkg.with_doc if !pkg.has_doc? && pkg.rake_doc_task
 
         unless pkg.test_utility.has_task?
-            unless pkg.test_utility.source_dir
-                test_dir = File.join(pkg.srcdir, 'test')
-                if File.directory?(test_dir)
-                    pkg.test_utility.source_dir = File.join(pkg.srcdir, '.test-results')
-                    FileUtils.mkdir_p pkg.test_utility.source_dir
+            pkg.post_import do
+                unless pkg.test_utility.source_dir
+                    test_dir = File.join(pkg.srcdir, 'test')
+                    if File.directory?(test_dir)
+                        pkg.test_utility.source_dir = File.join(pkg.srcdir, '.test-results')
+                        FileUtils.mkdir_p pkg.test_utility.source_dir
+                    end
                 end
-            end
 
-            pkg.with_tests if pkg.test_utility.source_dir
+                pkg.with_tests if pkg.test_utility.source_dir
+            end
         end
 
         yield(pkg) if block_given?

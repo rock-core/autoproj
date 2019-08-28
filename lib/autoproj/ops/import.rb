@@ -91,15 +91,23 @@ module Autoproj
                 end
             end
 
-            def post_package_import(selection, manifest, pkg, reverse_dependencies, auto_exclude: auto_exclude?)
-                Rake::Task["#{pkg.name}-import"].instance_variable_set(:@already_invoked, true)
+            def post_package_import(selection, manifest, pkg, reverse_dependencies,
+                                    auto_exclude: auto_exclude?)
+                Rake::Task["#{pkg.name}-import"]
+                    .instance_variable_set(:@already_invoked, true)
                 if pkg.checked_out?
                     begin
                         manifest.load_package_manifest(pkg.name)
-                    rescue Exception => e
-                        raise if !auto_exclude
-                        manifest.add_exclusion(pkg.name, "#{pkg.name} failed to import with #{e} and auto_exclude was true")
+                    rescue StandardError => e
+                        raise unless auto_exclude
+
+                        manifest.add_exclusion(pkg.name, "#{pkg.name} failed to import "\
+                            "with #{e} and auto_exclude was true")
                     end
+                end
+
+                if !manifest.excluded?(pkg.name) && !manifest.ignored?(pkg.name)
+                    process_post_import_blocks(pkg) if pkg.checked_out?
                 end
 
                 # The package setup mechanisms might have added an exclusion
@@ -113,10 +121,8 @@ module Autoproj
                 elsif manifest.ignored?(pkg.name)
                     false
                 else
-                    if pkg.checked_out?
-                        process_post_import_blocks(pkg)
-                    end
-                    import_next_step(pkg, reverse_dependencies)
+                    pkg.apply_dependencies_from_manifest
+                    import_next_step(pkg.autobuild, reverse_dependencies)
                 end
             end
 
@@ -220,6 +226,7 @@ module Autoproj
                 all_processed_packages = Set.new
                 main_thread_imports = Array.new
                 package_queue = selected_packages.to_a.sort_by(&:name)
+
                 failures = Array.new
                 missing_vcs = Array.new
                 installed_vcs_packages = Set['none', 'local']
@@ -228,6 +235,7 @@ module Autoproj
                     package_queue.each do |pkg|
                         # Remove packages that have already been processed
                         next if all_processed_packages.include?(pkg)
+
                         if (non_imported_packages != :checkout) && !File.directory?(pkg.autobuild.srcdir)
                             if non_imported_packages == :return
                                 all_processed_packages << pkg
@@ -321,7 +329,7 @@ module Autoproj
                         end
                     else
                         if new_packages = post_package_import(
-                                selection, manifest, pkg.autobuild, reverse_dependencies,
+                                selection, manifest, pkg, reverse_dependencies,
                                 auto_exclude: auto_exclude)
                             # Excluded dependencies might have caused the package to be
                             # excluded as well ... do not add any dependency to the
