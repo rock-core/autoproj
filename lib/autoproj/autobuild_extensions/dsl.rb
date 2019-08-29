@@ -189,6 +189,17 @@ def python_package(name, workspace: Autoproj.workspace)
     end
 end
 
+def common_make_default_test_task(pkg)
+    unless pkg.test_utility.source_dir
+        test_dir = File.join(pkg.srcdir, 'test')
+        if File.directory?(test_dir)
+            pkg.test_utility.source_dir = File.join(pkg.builddir, 'test', 'results')
+        end
+    end
+
+    pkg.with_tests if pkg.test_utility.source_dir
+end
+
 def common_make_based_package_setup(pkg)
     unless pkg.has_doc? && pkg.doc_dir
         pkg.with_doc do
@@ -199,15 +210,10 @@ def common_make_based_package_setup(pkg)
 
     unless pkg.test_utility.has_task?
         pkg.post_import do
-            unless pkg.test_utility.source_dir
-                test_dir = File.join(pkg.srcdir, 'test')
-                if File.directory?(test_dir)
-                    pkg.test_utility.source_dir = File.join(pkg.builddir, 'test', 'results')
-                end
-            end
-
-            pkg.with_tests if pkg.test_utility.source_dir
+            common_make_default_test_task(pkg)
         end
+        # BACKWARD COMPATIBILITY ONLY. REMOVE FOR AUTOPROJ 3.0
+        common_make_default_test_task(pkg)
     end
 end
 
@@ -266,6 +272,18 @@ def env_add(name, value)
     Autoproj.env.add(name, value)
 end
 
+def ruby_package_default_test_task(pkg)
+    unless pkg.test_utility.source_dir
+        test_dir = File.join(pkg.srcdir, 'test')
+        if File.directory?(test_dir)
+            pkg.test_utility.source_dir = File.join(pkg.srcdir, '.test-results')
+            FileUtils.mkdir_p pkg.test_utility.source_dir
+        end
+    end
+
+    pkg.with_tests if pkg.test_utility.source_dir
+end
+
 # Defines a Ruby package
 #
 # Example:
@@ -287,16 +305,10 @@ def ruby_package(name, workspace: Autoproj.workspace)
 
         unless pkg.test_utility.has_task?
             pkg.post_import do
-                unless pkg.test_utility.source_dir
-                    test_dir = File.join(pkg.srcdir, 'test')
-                    if File.directory?(test_dir)
-                        pkg.test_utility.source_dir = File.join(pkg.srcdir, '.test-results')
-                        FileUtils.mkdir_p pkg.test_utility.source_dir
-                    end
-                end
-
-                pkg.with_tests if pkg.test_utility.source_dir
+                ruby_package_default_test_task(pkg)
             end
+            # BACKWARD COMPATIBILITY ONLY. REMOVE FOR AUTOPROJ 3.0
+            ruby_package_default_test_task(pkg)
         end
 
         yield(pkg) if block_given?
