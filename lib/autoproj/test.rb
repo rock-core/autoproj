@@ -316,6 +316,9 @@ gem 'autobuild', path: '#{autobuild_dir}'
             ws.config.set 'gems_install_path', File.join(dir, 'gems')
             ws.prefix_dir = make_tmpdir
             ws.config.save
+
+            # Make a valid (albeit empty) Gemfile
+            File.open(File.join(ws.dot_autoproj_dir, 'Gemfile'), 'w').close
             ws
         end
 
