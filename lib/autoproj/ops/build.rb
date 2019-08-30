@@ -92,11 +92,11 @@ module Autoproj
                 begin
                     Autobuild.apply(all_enabled_packages, "autoproj-build", ['build'], options)
                 ensure
-                    build_report(all_enabled_packages) if @report_path
+                    create_report(all_enabled_packages) if @report_path
                 end
             end
 
-            def build_report(package_list)
+            def create_report(package_list)
                 FileUtils.mkdir_p File.dirname(@report_path)
 
                 packages = package_list.map do |pkg_name|
@@ -114,13 +114,13 @@ module Autoproj
                     }
                 end
 
-                build_report = JSON.pretty_generate({
+                report = JSON.pretty_generate({
                     build_report: {
                         timestamp: Time.now,
                         packages: packages
                     }
                 })
-                IO.write(@report_path, build_report)
+                IO.write(@report_path, report)
             end
         end
     end

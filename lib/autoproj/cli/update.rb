@@ -201,7 +201,7 @@ module Autoproj
                     setup_update_from(from)
                 end
 
-                ops = Autoproj::Ops::Import.new(ws)
+                ops = Autoproj::Ops::Import.new(ws, report_path: ws.import_report_path)
                 source_packages, osdep_packages =
                         ops.import_packages(selected_packages,
                                         checkout_only: checkout_only,

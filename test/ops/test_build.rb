@@ -38,7 +38,7 @@ module Autoproj
             end
 
             it "works even if given no packages to work on" do
-                @build.build_report([])
+                @build.create_report([])
                 json = read_report
                 assert_equal Hash['build_report' => {
                                     'timestamp' => Time.mktime(1970,1,1).to_s,
@@ -47,7 +47,7 @@ module Autoproj
             end
 
             it "works with just one successful package" do
-                @build.build_report(['pkg1'])
+                @build.create_report(['pkg1'])
                 json = read_report
                 assert_equal Hash['build_report' => {
                                     'timestamp' => Time.mktime(1970,1,1).to_s,
@@ -56,7 +56,7 @@ module Autoproj
             end
 
             it "works with just one failed package" do
-                @build.build_report(['pkg2'])
+                @build.create_report(['pkg2'])
                 json = read_report
                 assert_equal Hash['build_report' => {
                                     'timestamp' => Time.mktime(1970,1,1).to_s,
@@ -66,7 +66,7 @@ module Autoproj
 
 
             it "exports the status of several given packages" do
-                @build.build_report(['pkg1','pkg2', 'pkg3'])
+                @build.create_report(['pkg1','pkg2', 'pkg3'])
                 json = read_report
                 assert_equal Hash['build_report' => {
                     'timestamp' => Time.mktime(1970,1,1).to_s,
