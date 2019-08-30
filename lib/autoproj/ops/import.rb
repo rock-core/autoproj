@@ -12,9 +12,10 @@ module Autoproj
             end
             attr_writer :auto_exclude
 
-            def initialize(ws)
+            def initialize(ws, report_path: nil)
                 @ws = ws
                 @auto_exclude = false
+                @report_path = report_path
             end
 
             def mark_exclusion_along_revdeps(pkg_name, revdeps, chain = [], reason = nil)
@@ -466,8 +467,13 @@ module Autoproj
                 end
 
             ensure
-                if ws.config.import_log_enabled? && Autoproj::Ops::Snapshot.update_log_available?(manifest)
-                    update_log_for_processed_packages(all_processed_packages || Array.new, $!)
+                create_report(all_processed_packages || []) if @report_path
+
+                update_log = ws.config.import_log_enabled? &&
+                             Autoproj::Ops::Snapshot.update_log_available?(manifest)
+                if update_log
+                    update_log_for_processed_packages(
+                        all_processed_packages || Array.new, $!)
                 end
             end
 
@@ -475,6 +481,33 @@ module Autoproj
                 Autoproj.each_post_import_block(pkg) do |block|
                     block.call(pkg)
                 end
+            end
+
+            def create_report(package_list)
+                FileUtils.mkdir_p File.dirname(@report_path)
+
+                packages = package_list.map do |pkg_name|
+                    pkg = @ws.manifest.find_autobuild_package(pkg_name)
+
+                    {
+                        name: pkg.name,
+                        import_invoked: pkg.import_invoked?,
+                        prepare_invoked: pkg.prepare_invoked?,
+                        build_invoked: pkg.build_invoked?,
+                        failed: pkg.failed?,
+                        imported: pkg.imported?,
+                        prepared: pkg.prepared?,
+                        built: pkg.built?
+                    }
+                end
+
+                report = JSON.pretty_generate({
+                    import_report: {
+                        timestamp: Time.now,
+                        packages: packages
+                    }
+                })
+                IO.write(@report_path, report)
             end
 
             def update_log_for_processed_packages(all_processed_packages, exception)

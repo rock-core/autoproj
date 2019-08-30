@@ -243,6 +243,15 @@ module Autoproj
             File.join(config_dir, OVERRIDES_DIR)
         end
 
+        IMPORT_REPORT_BASENAME = "import_report.json"
+
+        # The full path to the update report
+        #
+        # @return [String]
+        def import_report_path
+            File.join(log_dir, IMPORT_REPORT_BASENAME)
+        end
+
         BUILD_REPORT_BASENAME = "build_report.json"
 
         # The full path to the build report
