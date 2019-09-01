@@ -30,6 +30,8 @@ module Autoproj
                 type: 'string', default: '>= 0'
             option :git, desc: 'checkout a git repository instead of downloading the gem',
                 type: 'string'
+            option :branch, desc: 'choose the branch that should be checked out with --git',
+                type: 'string', default: 'master'
             option :path, desc: 'use the plugin that is already present on this path',
                 type: 'string'
             def install(name)
@@ -40,6 +42,7 @@ module Autoproj
                     raise CLIInvalidArguments, "you can provide only one of --git or --path"
                 elsif options[:git]
                     gem_options[:git] = options[:git]
+                    gem_options[:branch] = options[:branch]
                 elsif options[:path]
                     gem_options[:path] = options[:path]
                 end
