@@ -442,6 +442,15 @@ module Autoproj
                     assert_kind_of error_t, failure.first
                 end
 
+                # warning: this is important because some package handlers may depend on its contents
+                # to determine its internal dependencies
+                it 'process post import blocks right after importing a package' do
+                    mock_vcs(base_cmake, type: 'git', url: 'https://github.com')
+                    flexmock(base_cmake.autobuild.importer).should_receive(:import).with(base_cmake.autobuild, Hash).once
+                    flexmock(ops).should_receive(:process_post_import_blocks).once.with(base_cmake)
+                    ops.import_selected_packages(mock_selection(base_cmake))
+                end
+
                 it "does not post-processes a package that failed to import" do
                     mock_vcs(base_cmake)
                     base_types = ws_define_package :cmake, 'base/types'
