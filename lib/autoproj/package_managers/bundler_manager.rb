@@ -98,6 +98,16 @@ module Autoproj
                 ws.config.get('bundler.build', {})
             end
 
+            # Add new build configuration arguments for a given gem
+            #
+            # This is meant to be used from the Autoproj configuration files,
+            # e.g. overrides.rb or package configuration
+            def self.add_build_configuration_for(gem_name, build_config, ws: Autoproj.workspace)
+                c = ws.config.get('bundler.build', {})
+                c[gem_name] = [c[gem_name], build_config].compact.join(" ")
+                ws.config.set('bundler.build', c)
+            end
+
             # Set the build configuration for the given gem
             #
             # This is meant to be used from the Autoproj configuration files,

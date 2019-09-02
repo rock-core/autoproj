@@ -60,6 +60,18 @@ module Autoproj
                     end
                     refute lines
                 end
+                it "appends to existing build configuration with add_build_configuration_for" do
+                    BundlerManager.configure_build_for('testgem', '--some=config', ws: @ws)
+                    BundlerManager.apply_build_config(@ws)
+                    BundlerManager.add_build_configuration_for('testgem', '--some=other', ws: @ws)
+                    BundlerManager.apply_build_config(@ws)
+
+                    lines = run_bundler_config.each_cons(2).find do |a, b|
+                        a =~ /build.testgem/
+                    end
+                    assert_match(/Set for your local app.*: "--some=config --some=other"/,
+                                 lines[1])
+                end
             end
         end
     end
