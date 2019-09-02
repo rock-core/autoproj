@@ -171,6 +171,13 @@ python:
   opensuse: python-devel
   default: ignore # will be installed manually by the user
 
+python-setuptools:
+  arch: python2-distribute
+  debian,ubuntu: python-setuptools
+  fedora: python-setuptools
+  gentoo: dev-python/setuptools
+  default: ignore # will be installed manually by the user
+
 sudo:
   macos-brew: ignore
   default: sudo

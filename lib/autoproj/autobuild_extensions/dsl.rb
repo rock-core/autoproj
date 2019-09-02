@@ -185,6 +185,9 @@ end
 def python_package(name, workspace: Autoproj.workspace)
     package_common(:python, name, workspace: workspace) do |pkg|
         pkg.internal_dependency 'python'
+        pkg.post_import do
+            pkg.depends_on 'python-setuptools' if pkg.install_mode?
+        end
         yield(pkg) if block_given?
     end
 end
