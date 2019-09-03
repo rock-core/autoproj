@@ -25,6 +25,17 @@ module Autoproj
             super
         end
 
+        def generate_local_gemfile
+            path = expand_path("Gemfile.local")
+            File.open(path, 'w') do |io|
+                io.write <<~GEMFILE
+                source "https://rubygems.org"
+                gem "autoproj", path: "#{File.expand_path("../../", __dir__)}"
+                GEMFILE
+            end
+            path
+        end
+
         def run_command_and_stop(*args, fail_on_error: true, **kwargs)
             cmd = run_command(*args, **kwargs)
             cmd.stop
@@ -36,6 +47,10 @@ module Autoproj
 
         def run_command(*args, **kwargs)
             @aruba_api.run_command(*args, **kwargs)
+        end
+
+        def cd(*args) # also defined by Rake
+            @aruba_api.cd(*args)
         end
 
         def chmod(*args) # also defined by Rake
