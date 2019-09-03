@@ -500,18 +500,12 @@ module Autoproj
             def create_report(package_list)
                 FileUtils.mkdir_p File.dirname(@report_path)
 
-                packages = package_list.map do |pkg_name|
+                packages = package_list.each_with_object({}) do |pkg_name, h|
                     pkg = @ws.manifest.find_autobuild_package(pkg_name)
 
-                    {
-                        name: pkg.name,
-                        import_invoked: pkg.import_invoked?,
-                        prepare_invoked: pkg.prepare_invoked?,
-                        build_invoked: pkg.build_invoked?,
-                        failed: pkg.failed?,
-                        imported: pkg.imported?,
-                        prepared: pkg.prepared?,
-                        built: pkg.built?
+                    h[pkg.name] = {
+                        invoked: !!pkg.import_invoked?,
+                        success: !!pkg.imported?
                     }
                 end
 
