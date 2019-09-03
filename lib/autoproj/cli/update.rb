@@ -66,7 +66,7 @@ module Autoproj
                 return selection, options
             end
 
-            def run(selected_packages, run_hook: false, **options)
+            def run(selected_packages, run_hook: false, report: true, **options)
                 ws.manifest.accept_unavailable_osdeps = !options[:osdeps]
                 ws.setup
                 ws.autodetect_operating_system(force: true)
@@ -121,7 +121,8 @@ module Autoproj
                         keep_going: options[:keep_going],
                         parallel: options[:parallel] || ws.config.parallel_import_level,
                         retry_count: options[:retry_count],
-                        auto_exclude: options[:auto_exclude])
+                        auto_exclude: options[:auto_exclude],
+                        report: report)
 
                 ws.finalize_setup
                 ws.export_installation_manifest
@@ -195,13 +196,15 @@ module Autoproj
             def update_packages(selected_packages,
                 from: nil, checkout_only: false, only_local: false, reset: false,
                 deps: true, keep_going: false, parallel: 1,
-                retry_count: 0, osdeps: true, auto_exclude: false, osdeps_options: Hash.new)
+                retry_count: 0, osdeps: true, auto_exclude: false, osdeps_options: Hash.new,
+                report: true)
 
                 if from
                     setup_update_from(from)
                 end
 
-                ops = Autoproj::Ops::Import.new(ws, report_path: ws.import_report_path)
+                ops = Autoproj::Ops::Import.new(
+                    ws, report_path: (ws.import_report_path if report))
                 source_packages, osdep_packages =
                         ops.import_packages(selected_packages,
                                         checkout_only: checkout_only,

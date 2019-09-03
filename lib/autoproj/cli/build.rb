@@ -29,6 +29,7 @@ module Autoproj
                     super(selected_packages,
                           ignore_errors: options[:keep_going],
                           checkout_only: true,
+                          report: false,
                           **options)
 
                 parallel = build_options[:parallel] || ws.config.parallel_build_level

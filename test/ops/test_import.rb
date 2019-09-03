@@ -108,6 +108,18 @@ module Autoproj
                     }, json)
                 end
 
+                it "does not export a report if @report_path is unset" do
+                    tmpdir = make_tmpdir
+                    report_path = File.join(tmpdir, 'report.json')
+                    ops = Import.new(ws, report_path: nil)
+                    flexmock(ops).should_receive(:import_selected_packages).
+                        and_return([[@pkg1], []])
+
+                    ws.manifest.should_receive(:load_package_manifest) # to shut up warnings
+                    ops.import_packages(@selection, report: false)
+                    refute File.file?(report_path)
+                end
+
                 describe "auto_exclude: true" do
                     it "excludes packages that have failed to load" do
                         flexmock(ops).should_receive(:import_selected_packages).
