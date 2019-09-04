@@ -88,16 +88,24 @@ module Autoproj
                     end
                 end
 
-                apply_build_config(prefix_gems)
-
                 if (bundle_rubylib = discover_bundle_rubylib(silent_errors: true))
                     update_env_rubylib(bundle_rubylib, system_rubylib)
                 end
             end
 
             # Enumerate the per-gem build configurations
-            def per_gem_build_config
+            def self.per_gem_build_config(ws)
                 ws.config.get('bundler.build', {})
+            end
+
+            # Add new build configuration arguments for a given gem
+            #
+            # This is meant to be used from the Autoproj configuration files,
+            # e.g. overrides.rb or package configuration
+            def self.add_build_configuration_for(gem_name, build_config, ws: Autoproj.workspace)
+                c = ws.config.get('bundler.build', {})
+                c[gem_name] = [c[gem_name], build_config].compact.join(" ")
+                ws.config.set('bundler.build', c)
             end
 
             # Set the build configuration for the given gem
@@ -123,11 +131,12 @@ module Autoproj
             # @api private
             #
             # Apply configured per-gem build configuration options
-            # 
-            # @param [String] root_dir the path of the Bundler workspace root
-            #   directory. In Autoproj workspaces, this is {prefix_dir}/gems by
-            #   default
-            def apply_build_config(root_dir)
+            #
+            # @param [Workspace] ws the workspace whose bundler configuration
+            #   should be updated
+            # @return [void]
+            def self.apply_build_config(ws)
+                root_dir = File.join(ws.prefix_dir, 'gems')
                 current_config_path = File.join(root_dir, ".bundle", "config")
                 current_config =
                     if File.file?(current_config_path)
@@ -137,7 +146,7 @@ module Autoproj
                     end
 
                 build_config = {}
-                per_gem_build_config.each do |name, conf|
+                per_gem_build_config(ws).each do |name, conf|
                     build_config[name.upcase] = conf
                 end
 
@@ -253,6 +262,8 @@ module Autoproj
                 if binstubs
                     options << "--binstubs" << binstubs
                 end
+
+                apply_build_config(ws)
 
                 connections = Set.new
                 run_bundler(ws, 'install', *options, gem_home: gem_home, gemfile: gemfile) do |line|
