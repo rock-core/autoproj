@@ -223,6 +223,13 @@ module Autoproj
                     end
                 end
 
+                it "does not set the reporting path if the report argument is false" do
+                    flexmock(Ops::Import).should_receive(:new)
+                                         .with(any, report_path: nil)
+                                         .once.pass_thru
+                    cli.run([], report: false)
+                end
+
                 describe "keep_going: false" do
                     it "passes exceptions from package set updates" do
                         import_failure = Class.new(ImportFailed)

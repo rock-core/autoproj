@@ -3,6 +3,12 @@ require 'autoproj/cli/inspection_tool'
 module Autoproj
     module CLI
         class Utility < InspectionTool
+            def initialize(ws, name: nil, report_path: nil)
+                @utility_name = name
+                @report_path = report_path
+                super(ws)
+            end
+
             attr_reader :utility_name
             def enable(user_selection, options = {})
                 if user_selection.empty?
@@ -66,29 +72,63 @@ module Autoproj
                 options[:parallel] ||= ws.config.parallel_build_level
                 initialize_and_load
 
-                packages, _, resolved_selection = finalize_setup(
+                package_names, _, resolved_selection = finalize_setup(
                     user_selection,
                     recursive: user_selection.empty? || options[:deps]
                 )
 
                 validate_user_selection(user_selection, resolved_selection)
-                if packages.empty?
+                if package_names.empty?
                     raise CLIInvalidArguments, "autoproj: the provided package "\
                         "is not selected for build"
                 end
 
+                packages = package_names.map do |pkg_name|
+                    ws.manifest.find_package_definition(pkg_name)
+                end
                 packages.each do |pkg|
-                    ws.manifest.find_autobuild_package(pkg).disable_phases(
-                        'import', 'prepare', 'install'
-                    )
+                    pkg.autobuild.disable_phases('import', 'prepare', 'install')
                 end
 
                 Autobuild.apply(
-                    packages,
+                    package_names,
                     "autoproj-#{utility_name}",
                     [utility_name],
                     parallel: options[:parallel]
                 )
+
+            ensure
+                create_report(packages) if packages && @report_path
+            end
+
+            def package_metadata(package)
+                u = package.autobuild.utility(@utility_name)
+                {
+                    'source_dir' => u.source_dir,
+                    'target_dir' => u.target_dir,
+                    'available' => !!u.available?,
+                    'enabled' => !!u.enabled?,
+                    'invoked' => !!u.invoked?,
+                    'success' => !!u.success?,
+                    'installed' => !!u.installed?,
+                }
+            end
+
+            def create_report(packages)
+                info = packages.each_with_object({}) do |p, map|
+                    map[p.name] = package_metadata(p)
+                end
+
+                FileUtils.mkdir_p File.dirname(@report_path)
+                File.open(@report_path, 'w') do |io|
+                    dump = JSON.dump(
+                        "#{@utility_name}_report" => {
+                            'timestamp' => Time.now,
+                            'packages' => info
+                        }
+                    )
+                    io.write dump
+                end
             end
         end
     end

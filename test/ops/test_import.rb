@@ -1,4 +1,5 @@
 require 'autoproj/test'
+require 'timecop'
 
 module Autoproj
     module Ops
@@ -45,6 +46,12 @@ module Autoproj
                 before do
                     @selection = PackageSelection.new
                     flexmock(ws.manifest)
+
+                    Timecop.freeze
+                end
+
+                after do
+                    Timecop.return
                 end
 
                 it "loads information about non-excluded packages that are present on disk but are not required by the build" do
@@ -65,10 +72,17 @@ module Autoproj
                     flexmock(ops).should_receive(:import_selected_packages).
                         and_return([[@pkg1], []])
 
-                    ws.manifest.should_receive(:load_package_manifest)
-                    ops.import_packages(@selection) # to shut up warnings
+                    ws.manifest.should_receive(:load_package_manifest) # to shut up warnings
+                    ops.import_packages(@selection)
                     json = JSON.load(File.read(report_path))
-                    assert_equal ['1'], json['import_report']['packages'].map { |h| h['name'] }
+                    assert_equal({
+                        'import_report' => {
+                            'timestamp' => Time.now.to_s,
+                            'packages' => {
+                                '1' => { 'invoked' => false, 'success' => false }
+                            }
+                        }
+                    }, json)
                 end
 
                 it "exports a report on failure" do
@@ -84,7 +98,26 @@ module Autoproj
                         ops.import_packages(@selection) # to shut up warnings
                     end
                     json = JSON.load(File.read(report_path))
-                    assert_equal ['1'], json['import_report']['packages'].map { |h| h['name'] }
+                    assert_equal({
+                        'import_report' => {
+                            'timestamp' => Time.now.to_s,
+                            'packages' => {
+                                '1' => { 'invoked' => false, 'success' => false }
+                            }
+                        }
+                    }, json)
+                end
+
+                it "does not export a report if @report_path is unset" do
+                    tmpdir = make_tmpdir
+                    report_path = File.join(tmpdir, 'report.json')
+                    ops = Import.new(ws, report_path: nil)
+                    flexmock(ops).should_receive(:import_selected_packages).
+                        and_return([[@pkg1], []])
+
+                    ws.manifest.should_receive(:load_package_manifest) # to shut up warnings
+                    ops.import_packages(@selection, report: false)
+                    refute File.file?(report_path)
                 end
 
                 describe "auto_exclude: true" do
@@ -122,98 +155,81 @@ module Autoproj
                     @pkg2object = ws.manifest.find_autobuild_package('pkg2')
                     @pkg3object = ws.manifest.find_autobuild_package('pkg3')
 
-                    set_success_flags(@pkg1object)
-                    set_failed_flags(@pkg2object)
-                    set_failed_flags(@pkg3object)
+                    Timecop.freeze
 
-                    flexmock(Time).should_receive('now').and_return(Time.mktime(1970,1,1))
-                    flexmock(@pkg1object, prepare_invoked?: true)
-                    flexmock(@pkg1object).should_receive(import_invoked?: true)
-                    flexmock(@pkg1object).should_receive(build_invoked?: true)
+                    flexmock(@pkg1object)
+                    @pkg1object.should_receive(import_invoked?: true)
+                    @pkg1object.should_receive(imported?: true)
 
+                    flexmock(@pkg2object)
+                    @pkg2object.should_receive(import_invoked?: true)
+                    @pkg2object.should_receive(imported?: false)
+
+                    flexmock(@pkg3object)
+                    @pkg3object.should_receive(import_invoked?: false)
+                    @pkg3object.should_receive(imported?: false)
+                end
+
+                after do
+                    Timecop.return
                 end
 
                 it "works even if given no packages to work on" do
                     @ops.create_report([])
                     json = read_report
-                    assert_equal Hash['import_report' => {
-                                        'timestamp' => Time.mktime(1970,1,1).to_s,
-                                        'packages' => []
-                                    }], json
+                    assert_equal({
+                        'import_report' => {
+                            'timestamp' => Time.now.to_s,
+                            'packages' => {}
+                        }
+                    }, json)
                 end
 
                 it "works with just one successful package" do
                     @ops.create_report(['pkg1'])
                     json = read_report
-                    assert_equal Hash['import_report' => {
-                                        'timestamp' => Time.mktime(1970,1,1).to_s,
-                                        'packages' => [expected_successful_package('pkg1')]
-                                    }], json
+                    assert_equal({
+                        'import_report' => {
+                            'timestamp' => Time.now.to_s,
+                            'packages' => {
+                                'pkg1' => { 'invoked' => true, 'success' => true },
+                            }
+                        }
+                    }, json)
                 end
 
                 it "works with just one failed package" do
                     @ops.create_report(['pkg2'])
                     json = read_report
-                    assert_equal Hash['import_report' => {
-                                        'timestamp' => Time.mktime(1970,1,1).to_s,
-                                        'packages' => [expected_failed_package('pkg2')]
-                                    }], json
+                    assert_equal({
+                        'import_report' => {
+                            'timestamp' => Time.now.to_s,
+                            'packages' => {
+                                'pkg2' => { 'invoked' => true, 'success' => false },
+                            }
+                        }
+                    }, json)
                 end
 
 
                 it "exports the status of several given packages" do
                     @ops.create_report(['pkg1','pkg2', 'pkg3'])
                     json = read_report
-                    assert_equal Hash['import_report' => {
-                        'timestamp' => Time.mktime(1970,1,1).to_s,
-                        'packages' => [ expected_successful_package('pkg1'),
-                                        expected_failed_package('pkg2'),
-                                        expected_failed_package('pkg3')
-                                      ]
-                        }], json
+                    assert_equal({
+                        'import_report' => {
+                            'timestamp' => Time.now.to_s,
+                            'packages' => {
+                                'pkg1' => { 'invoked' => true, 'success' => true },
+                                'pkg2' => { 'invoked' => true, 'success' => false },
+                                'pkg3' => { 'invoked' => false, 'success' => false }
+                            }
+                        }
+                    }, json)
                 end
 
                 def read_report
                     data = File.read(@ws.import_report_path)
                     JSON.parse(data)
-                end
-
-                def set_success_flags(package)
-                    package.instance_variable_set(:@prepared, true)
-                    package.instance_variable_set(:@imported, true)
-                    package.instance_variable_set(:@built, true)
-                    package.instance_variable_set(:@failed, nil)
-                end
-
-                def set_failed_flags(package)
-                    package.instance_variable_set(:@prepared, false)
-                    package.instance_variable_set(:@imported, false)
-                    package.instance_variable_set(:@built, false)
-                    package.instance_variable_set(:@failed, true)
-                end
-
-                def expected_successful_package(pkg_name)
-                    Hash[
-                     'name' => pkg_name,
-                     'import_invoked' => true,
-                     'prepare_invoked' => true,
-                     'build_invoked' => true,
-                     'failed' => nil,
-                     'imported'=> true,
-                     'prepared'=> true,
-                     'built'=> true]
-                end
-
-                def expected_failed_package(pkg_name)
-                    Hash[
-                     'name' => pkg_name,
-                     'import_invoked' => false,
-                     'prepare_invoked' => false,
-                     'build_invoked' => false,
-                     'failed' => true,
-                     'imported'=> false,
-                     'prepared'=> false,
-                     'built'=> false]
                 end
             end
 
