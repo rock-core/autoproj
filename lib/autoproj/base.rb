@@ -11,7 +11,6 @@ module Autoproj
     # add that file to both the object and the exception message
     def self.in_file(file, exception_t = ConfigError)
         yield
-
     rescue exception_t => e
         if exception_t != ConfigError
             raise ConfigError.new(file), "in #{file}: #{e.message}", e.backtrace
@@ -58,4 +57,3 @@ module Autoproj
         end
     end
 end
-

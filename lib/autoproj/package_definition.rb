@@ -19,7 +19,9 @@ module Autoproj
         #
         # If the package is set up, its importer as well as all target
         # directories are properly set, and all {user_blocks} have been called.
-        def setup?; !!@setup end
+        def setup?
+            @setup
+        end
 
         # Sets the {setup?} flag
         attr_writer :setup
@@ -29,10 +31,11 @@ module Autoproj
         attr_accessor :vcs
 
         def initialize(autobuild, package_set, file)
-            @autobuild, @package_set, @file =
-                autobuild, package_set, file
+            @autobuild = autobuild
+            @package_set = package_set
+            @file = file
             @user_blocks = []
-            @modes = ['import', 'build']
+            @modes = %w[import build]
             @setup = false
             @vcs = VCSDefinition.none
         end
@@ -44,9 +47,8 @@ module Autoproj
         #
         # @return [Array<String>]
         def modes
-            @modes + autobuild.utilities.values.
-                find_all { |u| u.enabled? }.
-                map(&:name)
+            @modes + autobuild.utilities
+                     .values.find_all(&:enabled?).map(&:name)
         end
 
         # The package name
@@ -65,9 +67,7 @@ module Autoproj
         # @see {user_blocks}
         def add_setup_block(block)
             user_blocks << block
-            if setup?
-                block.call(autobuild)
-            end
+            block.call(autobuild) if setup?
         end
 
         # Whether this package is already checked out
