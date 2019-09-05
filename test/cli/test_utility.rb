@@ -19,6 +19,8 @@ module Autoproj
                 )
 
                 @report_path = @ws.utility_report_path('unittest')
+                @one.autobuild.utility('unittest').task {}
+                @two.autobuild.utility('unittest').task {}
                 @cli = Utility.new(ws, name: 'unittest', report_path: @report_path)
                 flexmock(cli)
             end
@@ -57,18 +59,33 @@ module Autoproj
                     @cli.run(%w[one two])
                 end
 
+                it "creates a valid report incrementally" do
+                    @cli.should_receive(:report_incremental)
+                        .once.with(->(p) { p.name == "one" }).pass_thru do
+                        assert current_report['unittest_report']['packages']['one']
+                    end
+                    @cli.should_receive(:report_incremental)
+                        .once.with(->(p) { p.name == "two" }).pass_thru do
+                        assert current_report['unittest_report']['packages']['two']
+                    end
+                    @cli.run(%w[one two])
+
+                    assert_equal %w[one two].to_set,
+                                 current_report['unittest_report']['packages'].keys.to_set
+                end
+
                 it "creates a report on failure" do
                     @cli.should_receive(:create_report)
                         .with([@one, @two]).once
                     flexmock(Autobuild).should_receive(:apply)
-                                       .and_raise(e = Class.new(Exception))
+                                       .and_raise(e = Class.new(RuntimeError))
                     assert_raises(e) { @cli.run(%w[one two]) }
                 end
 
                 it "does not create a report if the package resolution fails" do
                     flexmock(@cli).should_receive(:create_report).never
                     flexmock(@cli).should_receive(:finalize_setup)
-                                  .and_raise(e = Class.new(Exception))
+                                  .and_raise(e = Class.new(RuntimeError))
                     assert_raises(e) do
                         @cli.run(%w[one two])
                     end
@@ -88,7 +105,7 @@ module Autoproj
                     @cli.create_report([@one])
 
                     Timecop.freeze
-                    report = JSON.load(File.read(@report_path))
+                    report = JSON.parse(File.read(@report_path))
                     assert_equal Time.now.to_s, report['unittest_report']['timestamp']
                     packages = report['unittest_report']['packages']
                     assert_equal 1, packages.size
@@ -101,6 +118,11 @@ module Autoproj
                     assert_same false, one['success']
                     assert_same false, one['installed']
                 end
+            end
+
+            def current_report
+                content = File.read(@report_path)
+                JSON.parse(content)
             end
         end
     end
