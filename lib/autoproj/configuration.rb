@@ -506,6 +506,19 @@ module Autoproj
             end
         end
 
+        # Set the given utility to enabled by default
+        #
+        # Unlike {#utility_enable_all} and {#utility_disable_all}, it does
+        # not touch existing exclusions
+        #
+        # @param [String] utility the utility name (e.g. 'doc' or 'test')
+        # @param [Boolean] enabled whether the utility will be enabled (true) or
+        #   disabled (false)
+        # @return [void]
+        def utility_default(utility, enabled)
+            set("#{utility_key(utility)}_default", enabled ? true : false)
+        end
+
         # Enables a utility for all packages
         #
         # This both sets the default value for all packages and resets all

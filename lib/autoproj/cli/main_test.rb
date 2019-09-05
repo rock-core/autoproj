@@ -22,6 +22,21 @@ module Autoproj
                 end
             end
 
+            desc 'default [on|off]', 'set whether tests are enabled or disabled by default, without touching existing settings'
+            def default(on_or_off)
+                require 'autoproj/cli/test'
+                report(silent: true) do
+                    cli = Test.new
+                    args = cli.validate_options([], options)
+                    enabled = case on_or_off
+                              when 'on' then true
+                              when 'off' then false
+                              else raise ArgumentError, "expected 'on' or 'off'"
+                              end
+                    cli.default(enabled)
+                end
+            end
+
             desc 'enable [PACKAGES]', 'enable tests for the given packages (or for all packages if none are given)'
             option :deps, type: :boolean, default: false,
                 desc: 'controls whether the dependencies of the packages given on the command line should be enabled as well (the default is not)'

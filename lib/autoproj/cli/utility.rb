@@ -10,6 +10,12 @@ module Autoproj
             end
 
             attr_reader :utility_name
+            def default(enabled)
+                ws.load_config
+                ws.config.utility_default(utility_name, enabled)
+                ws.config.save
+            end
+
             def enable(user_selection, options = {})
                 if user_selection.empty?
                     ws.load_config
