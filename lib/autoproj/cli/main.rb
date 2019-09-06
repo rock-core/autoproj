@@ -38,6 +38,10 @@ module Autoproj
             stop_on_unknown_option! :exec
             check_unknown_options!  except: :exec
 
+            def self.exit_on_failure?
+                true
+            end
+
             class << self
                 # @api private
                 #
