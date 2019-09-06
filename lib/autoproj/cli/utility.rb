@@ -78,6 +78,7 @@ module Autoproj
                 options[:parallel] ||= ws.config.parallel_build_level
                 initialize_and_load
 
+                user_selection, = normalize_command_line_package_selection(user_selection)
                 package_names, _, resolved_selection = finalize_setup(
                     user_selection,
                     recursive: user_selection.empty? || options[:deps]
