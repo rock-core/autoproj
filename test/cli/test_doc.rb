@@ -8,7 +8,19 @@ module Autoproj
             attr_reader :cli
             before do
                 ws_create
+                @one = ws_add_package_to_layout :cmake, 'one'
                 @cli = Doc.new(ws)
+                flexmock(cli)
+            end
+
+            describe "#run" do
+                it "executes utility's task" do
+                    flexmock(@one.autobuild.doc_utility).should_receive(:install).once
+                    a = @one.autobuild.doc_utility
+                    a.task {}
+                    cli.run(%w[one])
+                    assert a.invoked?
+                end
             end
 
             describe "-n" do
