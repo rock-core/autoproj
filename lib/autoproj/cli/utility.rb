@@ -92,9 +92,6 @@ module Autoproj
                 packages = package_names.map do |pkg_name|
                     ws.manifest.find_package_definition(pkg_name)
                 end
-                packages.each do |pkg|
-                    pkg.autobuild.disable_phases('import', 'prepare', 'install')
-                end
 
                 Autobuild.apply(
                     package_names,
