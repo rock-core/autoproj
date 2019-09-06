@@ -80,6 +80,7 @@ module Autoproj
             @tmpdir.each do |dir|
                 FileUtils.remove_entry_secure dir
             end
+            Rake::Task.clear
             Autobuild::Package.clear
             Autoproj.silent = false
 

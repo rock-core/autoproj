@@ -89,29 +89,37 @@ module Autoproj
                     raise CLIInvalidArguments, "autoproj: the provided package "\
                         "is not selected for build"
                 end
+                return if package_names.empty?
 
                 packages = package_names.map do |pkg_name|
                     ws.manifest.find_package_definition(pkg_name)
                 end
 
-                return if package_names.empty?
+                apply_to_packages(packages, parallel: options[:parallel])
+            end
 
-                initialize_incremental_report
+            def apply_to_packages(packages, parallel: ws.config.parallel_build_level)
+                if @report_path
+                    reporting = Ops::PhaseReporting.new(
+                        @utility_name, @report_path,
+                        method(:package_metadata)
+                    )
+                end
+
+                reporting&.initialize_incremental_report
                 Autobuild.apply(
-                    package_names, "autoproj-#{utility_name}",
-                    [utility_name], parallel: options[:parallel]
-                ) do |pkg_name, phase|
-                    if phase == utility_name
-                        report_incremental(ws.manifest.find_package_definition(pkg_name))
-                    end
+                    packages.map(&:name), "autoproj-#{@utility_name}",
+                    [@utility_name], parallel: parallel
+                ) do |pkg, phase|
+                    reporting&.report_incremental(pkg) if phase == utility_name
                 end
 
             ensure
-                create_report(packages) if packages && @report_path
+                reporting&.create_report(packages.map(&:autobuild))
             end
 
-            def package_metadata(package)
-                u = package.autobuild.utility(@utility_name)
+            def package_metadata(autobuild_package)
+                u = autobuild_package.utility(@utility_name)
                 {
                     'source_dir' => u.source_dir,
                     'target_dir' => u.target_dir,
@@ -122,42 +130,6 @@ module Autoproj
                     'installed' => !!u.installed?,
                 }
             end
-
-            def create_report(packages)
-                info = packages.each_with_object({}) do |p, map|
-                    map[p.name] = package_metadata(p)
-                end
-
-                FileUtils.mkdir_p File.dirname(@report_path)
-                File.open(@report_path, 'w') do |io|
-                    dump = JSON.dump(
-                        "#{@utility_name}_report" => {
-                            'timestamp' => Time.now,
-                            'packages' => info
-                        }
-                    )
-                    io.write dump
-                end
-            end
-
-            def initialize_incremental_report
-                FileUtils.mkdir_p File.dirname(@report_path)
-                @incremental_report = ""
-            end
-
-            def report_incremental(package)
-                new_metadata = package_metadata(package)
-                prefix = @incremental_report.empty? ? "\n" : ",\n"
-                @incremental_report.concat(
-                    "#{prefix}\"#{package.name}\": #{JSON.dump(new_metadata)}"
-                )
-                File.open(@report_path, 'w') do |io|
-                    io.write "{ \"#{@utility_name}_report\": {\"timestamp\": #{JSON.dump(Time.now)}, \"packages\": {"
-                    io.write(@incremental_report)
-                    io.write "}}}"
-                end
-            end
         end
     end
 end
-

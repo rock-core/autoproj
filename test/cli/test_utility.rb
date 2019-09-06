@@ -22,6 +22,7 @@ module Autoproj
                 @one.autobuild.utility('unittest').task {}
                 @two.autobuild.utility('unittest').task {}
                 @cli = Utility.new(ws, name: 'unittest', report_path: @report_path)
+                @reporting = flexmock(Ops::PhaseReporting).new_instances
                 flexmock(cli)
             end
 
@@ -47,25 +48,25 @@ module Autoproj
                     end
                 end
                 it "generates a report if successful" do
-                    @cli.should_receive(:create_report)
-                        .with([@one, @two]).once
+                    @reporting.should_receive(:create_report)
+                              .with([@one.autobuild, @two.autobuild]).once
                     cli.run(%w[one two])
                 end
 
                 it "creates a report on success" do
-                    @cli.should_receive(:create_report)
-                        .with([@one, @two]).once
+                    @reporting.should_receive(:create_report)
+                              .with([@one.autobuild, @two.autobuild]).once
                     flexmock(Autobuild).should_receive(:apply)
                     @cli.run(%w[one two])
                 end
 
                 it "creates a valid report incrementally" do
-                    @cli.should_receive(:report_incremental)
-                        .once.with(->(p) { p.name == "one" }).pass_thru do
+                    @reporting.should_receive(:report_incremental)
+                              .once.with(->(p) { p.name == "one" }).pass_thru do
                         assert current_report['unittest_report']['packages']['one']
                     end
-                    @cli.should_receive(:report_incremental)
-                        .once.with(->(p) { p.name == "two" }).pass_thru do
+                    @reporting.should_receive(:report_incremental)
+                              .once.with(->(p) { p.name == "two" }).pass_thru do
                         assert current_report['unittest_report']['packages']['two']
                     end
                     @cli.run(%w[one two])
@@ -75,15 +76,15 @@ module Autoproj
                 end
 
                 it "creates a report on failure" do
-                    @cli.should_receive(:create_report)
-                        .with([@one, @two]).once
+                    @reporting.should_receive(:create_report)
+                              .with([@one.autobuild, @two.autobuild]).once
                     flexmock(Autobuild).should_receive(:apply)
                                        .and_raise(e = Class.new(RuntimeError))
                     assert_raises(e) { @cli.run(%w[one two]) }
                 end
 
                 it "does not create a report if the package resolution fails" do
-                    flexmock(@cli).should_receive(:create_report).never
+                    @reporting.should_receive(:create_report).never
                     flexmock(@cli).should_receive(:finalize_setup)
                                   .and_raise(e = Class.new(RuntimeError))
                     assert_raises(e) do
@@ -92,7 +93,7 @@ module Autoproj
                 end
             end
 
-            describe "#create_report" do
+            describe "#apply_to_packages" do
                 after do
                     Timecop.return
                 end
@@ -101,8 +102,9 @@ module Autoproj
                     a = @one.autobuild.unittest_utility
                     a.source_dir = "/some/path"
                     a.target_dir = "/some/other/path"
+                    flexmock(a, install: nil)
                     a.task {}
-                    @cli.create_report([@one])
+                    @cli.apply_to_packages([@one])
 
                     Timecop.freeze
                     report = JSON.parse(File.read(@report_path))
@@ -114,8 +116,8 @@ module Autoproj
                     assert_equal '/some/other/path', one['target_dir']
                     assert_same true, one['available']
                     assert_same true, one['enabled']
-                    assert_same false, one['invoked']
-                    assert_same false, one['success']
+                    assert_same true, one['invoked']
+                    assert_same true, one['success']
                     assert_same false, one['installed']
                 end
             end
