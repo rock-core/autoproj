@@ -371,9 +371,16 @@ gem 'autobuild', path: '#{autobuild_dir}'
 
         def ws_define_package(package_type, package_name,
                               package_set: ws.manifest.main_package_set,
-                              create: true)
+                              create: true, &block)
             package = Autobuild.send(package_type, package_name)
-            package.srcdir = File.join(ws.root_dir, package_name.to_s)
+            ws_setup_package(
+                package, package_set: package_set, create: create, &block
+            )
+        end
+
+        def ws_setup_package(package, package_set: ws.manifest.main_package_set,
+                                      create: true)
+            package.srcdir = File.join(ws.root_dir, package.name.to_s)
             FileUtils.mkdir_p package.srcdir if create
             autoproj_package = ws.register_package(package, nil, package_set)
             yield(package) if block_given?

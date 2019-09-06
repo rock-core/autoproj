@@ -87,34 +87,36 @@ module Autoproj
             #   names of the packages that should be rebuilt
             # @return [void]
             def build_packages(all_enabled_packages, options = Hash.new)
+                if @report_path
+                    reporting = Ops::PhaseReporting.new(
+                        'build', @report_path, method(:package_metadata)
+                    )
+                end
+
                 Autobuild.do_rebuild = false
                 Autobuild.do_forced_build = false
+                reporting&.initialize_incremental_report
                 begin
-                    Autobuild.apply(all_enabled_packages, "autoproj-build", ['build'], options)
+                    Autobuild.apply(
+                        all_enabled_packages,
+                        "autoproj-build", ['build'], options
+                    ) do |pkg, phase|
+                        reporting&.report_incremental(pkg) if phase == 'build'
+                    end
+
                 ensure
-                    create_report(all_enabled_packages) if @report_path
+                    packages = all_enabled_packages.map do |name|
+                        @manifest.find_autobuild_package(name)
+                    end
+                    reporting&.create_report(packages)
                 end
             end
 
-            def create_report(package_list)
-                FileUtils.mkdir_p File.dirname(@report_path)
-
-                packages = package_list.each_with_object({}) do |pkg_name, h|
-                    pkg = manifest.find_autobuild_package(pkg_name)
-
-                    h[pkg.name] = {
-                        invoked: !!pkg.install_invoked?,
-                        success: !!pkg.installed?
-                    }
-                end
-
-                report = JSON.pretty_generate({
-                    build_report: {
-                        timestamp: Time.now,
-                        packages: packages
-                    }
-                })
-                IO.write(@report_path, report)
+            def package_metadata(autobuild_package)
+                {
+                    invoked: !!autobuild_package.install_invoked?,
+                    success: !!autobuild_package.installed?
+                }
             end
         end
     end
