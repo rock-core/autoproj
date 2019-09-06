@@ -232,54 +232,54 @@ module Autoproj
                     opt.on '--debug', 'Run in debug mode' do
                         @autoproj_options << '--debug'
                     end
-                    opt.on '--gem-source=URL', String, "use this source for RubyGems "\
-                        "instead of rubygems.org" do |url|
+                    opt.on '--gem-source=URL', String, 'use this source for RubyGems '\
+                        'instead of rubygems.org' do |url|
                         @gem_source = url
                     end
-                    opt.on '--gems-path=PATH', "install gems under this path instead "\
-                        "of ~/.autoproj/gems" do |path|
+                    opt.on '--gems-path=PATH', 'install gems under this path instead '\
+                        'of ~/.autoproj/gems' do |path|
                         self.gems_install_path     = path
                     end
                     opt.on '--public-gems', "install gems in the default gem location" do
                         self.install_gems_in_gem_user_dir
                     end
-                    opt.on '--version=VERSION_CONSTRAINT', String, 'use the provided "\
-                        "string as a version constraint for autoproj' do |version|
+                    opt.on '--version=VERSION_CONSTRAINT', String, 'use the provided '\
+                        'string as a version constraint for autoproj' do |version|
                         if @gemfile
                             raise "cannot give both --version and --gemfile"
                         end
                         @gemfile = default_gemfile_contents(version)
                     end
-                    opt.on '--gemfile=PATH', String, 'use the given Gemfile to install "\
-                        "autoproj instead of the default' do |path|
+                    opt.on '--gemfile=PATH', String, 'use the given Gemfile to install '\
+                        'autoproj instead of the default' do |path|
                         if @gemfile
                             raise "cannot give both --version and --gemfile"
                         end
                         @gemfile = File.read(path)
                     end
-                    opt.on '--seed-config=PATH', String, 'path to a seed file that "\
-                        "should be used to initialize the configuration' do |path|
+                    opt.on '--seed-config=PATH', String, 'path to a seed file that '\
+                        'should be used to initialize the configuration' do |path|
                         @config.merge!(YAML.load(File.read(path)))
                     end
-                    opt.on '--prefer-os-independent-packages', 'prefer OS-independent "\
-                        "packages (such as a RubyGem) over their OS-packaged equivalent "\
-                        "(e.g. the thor gem vs. the ruby-thor debian package)' do
+                    opt.on '--prefer-os-independent-packages', 'prefer OS-independent '\
+                        'packages (such as a RubyGem) over their OS-packaged equivalent '\
+                        '(e.g. the thor gem vs. the ruby-thor debian package)' do
                         @prefer_indep_over_os_packages = true
                     end
-                    opt.on '--[no-]color', 'do not use colored output (enabled by "\
-                        "default if the terminal supports it)' do |color|
+                    opt.on '--[no-]color', 'do not use colored output (enabled by '\
+                        'default if the terminal supports it)' do |color|
                         if color then @autoproj_options << "--color"
                         else @autoproj_options << '--no-color'
                         end
                     end
-                    opt.on '--[no-]progress', 'do not use progress output (enabled by "\
-                        "default if the terminal supports it)' do |progress|
+                    opt.on '--[no-]progress', 'do not use progress output (enabled by '\
+                        'default if the terminal supports it)' do |progress|
                         if progress then @autoproj_options << "--progress"
                         else @autoproj_options << '--no-progress'
                         end
                     end
-                    opt.on '--[no-]interactive', 'if non-interactive, use default "\
-                           "answer for questions' do |flag|
+                    opt.on '--[no-]interactive', 'if non-interactive, use default '\
+                           'answer for questions' do |flag|
                         if flag then @autoproj_options << "--interactive"
                         else @autoproj_options << "--no-interactive"
                         end
