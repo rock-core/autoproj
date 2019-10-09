@@ -10,7 +10,7 @@ module Autoproj
             end
 
             def package_metadata(package)
-                u = package.autobuild.test_utility
+                u = package.test_utility
                 super.merge(
                     'coverage_available' => !!u.coverage_available?,
                     'coverage_enabled' => !!u.coverage_enabled?,

@@ -44,6 +44,7 @@ require 'autoproj/query_base'
 require 'autoproj/source_package_query'
 require 'autoproj/os_package_query'
 
+require 'autoproj/ops/phase_reporting'
 require 'autoproj/ops/install'
 require 'autoproj/ops/tools'
 require 'autoproj/ops/loader'

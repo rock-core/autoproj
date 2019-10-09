@@ -8,89 +8,57 @@ module Autoproj
         describe Build do
             before do
                 @ws = ws_create
-                @pkg1 = ws_define_package :cmake, 'pkg1'
-                @pkg2 = ws_define_package :cmake, 'pkg2'
-                @pkg3 = ws_define_package :cmake, 'pkg3'
+                @packages = (0...3).map do |i|
+                    pkg = Autobuild::Package.new("pkg#{i}")
+                    ws_setup_package pkg
+                end
 
-                @build = Build.new(ws.manifest, report_path: @ws.build_report_path)
-
-                @pkg1object = ws.manifest.find_autobuild_package('pkg1')
-                @pkg2object = ws.manifest.find_autobuild_package('pkg2')
-                @pkg3object = ws.manifest.find_autobuild_package('pkg3')
+                @reporting = flexmock(Ops::PhaseReporting).new_instances
+                @build = Build.new(@ws.manifest, report_path: @ws.build_report_path)
 
                 Timecop.freeze
 
-                flexmock(@pkg1object)
-                @pkg1object.should_receive(install_invoked?: true)
-                @pkg1object.should_receive(installed?: true)
-
-                flexmock(@pkg2object)
-                @pkg2object.should_receive(install_invoked?: true)
-                @pkg2object.should_receive(installed?: false)
-
-                flexmock(@pkg3object)
-                @pkg3object.should_receive(install_invoked?: false)
-                @pkg3object.should_receive(installed?: false)
+                flexmock(@packages[0].autobuild,
+                         install_invoked?: true, installed?: true)
+                flexmock(@packages[1].autobuild,
+                         install_invoked?: true, installed?: false)
+                flexmock(@packages[2].autobuild,
+                         install_invoked?: false, installed?: false)
             end
 
             after do
                 Timecop.return
             end
 
-            it "works even if given no packages to work on" do
-                @build.create_report([])
-                json = read_report
-                assert_equal({
-                    'build_report' => {
-                        'timestamp' => Time.now.to_s,
-                        'packages' => {}
-                    }
-                }, json)
+            it "writes a report incrementally" do
+                %w[pkg0 pkg1 pkg2].each do |pkg_name|
+                    @reporting.should_receive(:report_incremental)
+                              .once.with(->(p) { p.name == pkg_name }).pass_thru do
+                        assert current_report['build_report']['packages'][pkg_name]
+                    end
+                end
+
+                @build.build_packages(%w[pkg0 pkg1 pkg2])
             end
 
-            it "works with just one successful package" do
-                @build.create_report(['pkg1'])
-                json = read_report
-                assert_equal({
-                    'build_report' => {
-                        'timestamp' => Time.now.to_s,
-                        'packages' => {
-                            'pkg1' => { 'invoked' => true, 'success' => true },
+            it "exports the status the processed packages" do
+                @build.build_packages(%w[pkg0 pkg1 pkg2])
+                json = current_report
+                assert_equal(
+                    {
+                        'build_report' => {
+                            'timestamp' => Time.now.to_s,
+                            'packages' => {
+                                'pkg0' => { 'invoked' => true, 'success' => true },
+                                'pkg1' => { 'invoked' => true, 'success' => false },
+                                'pkg2' => { 'invoked' => false, 'success' => false }
+                            }
                         }
-                    }
-                }, json)
+                    }, json
+                )
             end
 
-            it "works with just one failed package" do
-                @build.create_report(['pkg2'])
-                json = read_report
-                assert_equal({
-                    'build_report' => {
-                        'timestamp' => Time.now.to_s,
-                        'packages' => {
-                            'pkg2' => { 'invoked' => true, 'success' => false },
-                        }
-                    }
-                }, json)
-            end
-
-
-            it "exports the status of several given packages" do
-                @build.create_report(['pkg1','pkg2', 'pkg3'])
-                json = read_report
-                assert_equal({
-                    'build_report' => {
-                        'timestamp' => Time.now.to_s,
-                        'packages' => {
-                            'pkg1' => { 'invoked' => true, 'success' => true },
-                            'pkg2' => { 'invoked' => true, 'success' => false },
-                            'pkg3' => { 'invoked' => false, 'success' => false }
-                        }
-                    }
-                }, json)
-            end
-
-            def read_report
+            def current_report
                 data = File.read(@ws.build_report_path)
                 JSON.parse(data)
             end

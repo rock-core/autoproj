@@ -89,24 +89,37 @@ module Autoproj
                     raise CLIInvalidArguments, "autoproj: the provided package "\
                         "is not selected for build"
                 end
+                return if package_names.empty?
 
                 packages = package_names.map do |pkg_name|
                     ws.manifest.find_package_definition(pkg_name)
                 end
 
-                Autobuild.apply(
-                    package_names,
-                    "autoproj-#{utility_name}",
-                    [utility_name],
-                    parallel: options[:parallel]
-                )
-
-            ensure
-                create_report(packages) if packages && @report_path
+                apply_to_packages(packages, parallel: options[:parallel])
             end
 
-            def package_metadata(package)
-                u = package.autobuild.utility(@utility_name)
+            def apply_to_packages(packages, parallel: ws.config.parallel_build_level)
+                if @report_path
+                    reporting = Ops::PhaseReporting.new(
+                        @utility_name, @report_path,
+                        method(:package_metadata)
+                    )
+                end
+
+                reporting&.initialize_incremental_report
+                Autobuild.apply(
+                    packages.map(&:name), "autoproj-#{@utility_name}",
+                    [@utility_name], parallel: parallel
+                ) do |pkg, phase|
+                    reporting&.report_incremental(pkg) if phase == utility_name
+                end
+
+            ensure
+                reporting&.create_report(packages.map(&:autobuild))
+            end
+
+            def package_metadata(autobuild_package)
+                u = autobuild_package.utility(@utility_name)
                 {
                     'source_dir' => u.source_dir,
                     'target_dir' => u.target_dir,
@@ -116,23 +129,6 @@ module Autoproj
                     'success' => !!u.success?,
                     'installed' => !!u.installed?,
                 }
-            end
-
-            def create_report(packages)
-                info = packages.each_with_object({}) do |p, map|
-                    map[p.name] = package_metadata(p)
-                end
-
-                FileUtils.mkdir_p File.dirname(@report_path)
-                File.open(@report_path, 'w') do |io|
-                    dump = JSON.dump(
-                        "#{@utility_name}_report" => {
-                            'timestamp' => Time.now,
-                            'packages' => info
-                        }
-                    )
-                    io.write dump
-                end
             end
         end
     end
