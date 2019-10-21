@@ -605,6 +605,10 @@ module Autoproj
             current_workspaces = Workspace.registered_workspaces
             existing = current_workspaces.find { |w| w.root_dir == root_dir }
             if existing
+                if existing.prefix_dir == prefix_dir && existing.build_dir == build_dir
+                    return
+                end
+
                 existing.prefix_dir = prefix_dir
                 existing.build_dir  = build_dir
             else
