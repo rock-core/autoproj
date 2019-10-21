@@ -528,5 +528,76 @@ module Autoproj
                 end
             end
         end
+
+        describe "#register_workspace" do
+            before do
+                @data_path = make_tmpdir
+                @workspaces_yml = File.join(@data_path, 'workspaces.yml')
+                flexmock(Workspace).should_receive(:find_user_data_path)
+                                   .with('workspaces.yml')
+                                   .and_return(@workspaces_yml)
+
+                @ws = ws_create
+            end
+
+            it 'adds the current workspace' do
+                @ws.register_workspace
+
+                expected = [
+                    {
+                        'root_dir' => @ws.root_dir,
+                        'build_dir' => @ws.build_dir,
+                        'prefix_dir' => @ws.prefix_dir
+                    }
+                ]
+                assert_equal expected, YAML.safe_load(File.read(@workspaces_yml))
+            end
+
+            it 'updates changed folders' do
+                File.open(@workspaces_yml, 'w') do |io|
+                    io.write(
+                        YAML.dump(
+                            [
+                                'root_dir' => @ws.root_dir,
+                                'build_dir' => '/some/builddir',
+                                'prefix_dir' => '/some/prefix'
+                            ]
+                        )
+                    )
+                end
+                @ws.register_workspace
+
+                expected = [
+                    {
+                        'root_dir' => @ws.root_dir,
+                        'build_dir' => @ws.build_dir,
+                        'prefix_dir' => @ws.prefix_dir
+                    }
+                ]
+                assert_equal expected, YAML.safe_load(File.read(@workspaces_yml))
+            end
+
+            it 'does nothing if the current workspace is already registered' do
+                File.open(@workspaces_yml, 'w') do |io|
+                    io.write(
+                        YAML.dump(
+                            [
+                                'root_dir' => @ws.root_dir,
+                                'build_dir' => @ws.build_dir,
+                                'prefix_dir' => @ws.prefix_dir
+                            ]
+                        )
+                    )
+                end
+                flexmock(Workspace).should_receive(:save_registered_workspaces).never
+                @ws.register_workspace
+            end
+
+            def create_registered_workspaces(*info)
+                File.open(@workspaces_yml, 'w') do |io|
+                    io.write YAML.dump(info)
+                end
+            end
+        end
     end
 end
