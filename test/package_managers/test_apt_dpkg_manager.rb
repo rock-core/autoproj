@@ -63,6 +63,67 @@ module Autoproj
                 end
             end
 
+            describe '#install' do
+                before do
+                    file = File.expand_path('apt-dpkg-status',
+                                            File.dirname(__FILE__))
+                    @mng = AptDpkgManager.new(ws_create, file)
+                    flexmock(ShellScriptManager).should_receive(:execute).by_default
+                    flexmock(@mng)
+                end
+
+                it 'does not call parse_packages_versions if the manager is not '\
+                   'configured to update the packages' do
+                    @mng.keep_uptodate = false
+                    flexmock(AptDpkgManager).should_receive(:parse_packages_versions).never
+                    @mng.install(['non-existent-package'],
+                                 filter_uptodate_packages: true)
+                end
+
+                it 'does not call parse_packages_versions in install_only mode' do
+                    flexmock(AptDpkgManager).should_receive(:parse_packages_versions).never
+                    @mng.install(['non-existent-package'],
+                                 filter_uptodate_packages: true, install_only: true)
+                end
+
+                it 'install packages that are out of date if keep_uptodate? is set' do
+                    flexmock(AptDpkgManager).should_receive(:parse_packages_versions)
+                                            .never
+                    ShellScriptManager.should_receive(:execute)
+                                      .with(->(cmd) { cmd.include?('installed-package') },
+                                            any, any, any).once
+                    AptDpkgManager
+                        .should_receive(:parse_packages_versions)
+                        .with(['installed-package'])
+                        .and_return('installed-package' => DebianVersion.new("2:1.0"))
+                    @mng.install(['installed-package'],
+                                 filter_uptodate_packages: true, install_only: false)
+                end
+
+                it 'install_only overrides keep_uptodate?' do
+                    flexmock(AptDpkgManager).should_receive(:parse_packages_versions)
+                                            .never
+                    ShellScriptManager.should_receive(:execute).never
+                    AptDpkgManager
+                        .should_receive(:parse_packages_versions)
+                        .with(['installed-package'])
+                        .and_return('installed-package' => DebianVersion.new("2:1.0"))
+                    @mng.install(['installed-package'],
+                                 filter_uptodate_packages: true, install_only: true)
+                end
+
+                it 'installs non-installed packages' do
+                    flexmock(AptDpkgManager).should_receive(:parse_packages_versions)
+                                            .never
+                    ShellScriptManager
+                        .should_receive(:execute)
+                        .with(->(cmd) { cmd.include?('noninstalled-package') },
+                              any, any, any).once
+                    @mng.install(['noninstalled-package'],
+                                 filter_uptodate_packages: true, install_only: true)
+                end
+            end
+
             LESS = :<
             EQUAL = :==
             GREATER = :>
