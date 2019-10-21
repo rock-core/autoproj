@@ -130,15 +130,18 @@ module Autoproj
             end
 
             def install(packages, filter_uptodate_packages: false, install_only: false)
-                packages_versions = self.class.parse_packages_versions(packages)
                 if filter_uptodate_packages || install_only
-                    packages = packages.find_all do |package_name|
-                        !installed?(package_name) ||
-                            (
-                                keep_uptodate? &&
-                                !updated?(package_name, packages_versions[package_name])
-                            )
+                    already_installed, missing = packages.partition do |package_name|
+                        installed?(package_name)
                     end
+
+                    if keep_uptodate? && !install_only
+                        packages_versions = self.class.parse_packages_versions(already_installed)
+                        need_update = already_installed.find_all do |package_name|
+                            !updated?(package_name, packages_versions[package_name])
+                        end
+                    end
+                    packages = missing + (need_update || [])
                 end
 
                 if super(packages)
