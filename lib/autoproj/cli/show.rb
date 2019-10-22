@@ -237,12 +237,10 @@ module Autoproj
                     puts "  selected by way of"
                     selections.each do |root_pkg|
                         paths = find_selection_path(root_pkg, pkg_name)
-                        if paths.empty?
-                            puts "    FAILED"
-                        else
-                            paths.sort.uniq.each do |p|
-                                puts "    #{p.join(">")}"
-                            end
+                        next if paths.empty?
+
+                        paths.sort.uniq.each do |p|
+                            puts "    #{p.join('>')}"
                         end
                     end
                 end
