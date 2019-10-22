@@ -13,17 +13,13 @@ module Autoproj
         end
 
         def self.load_plugins
-            finder_name =
-                if Gem.respond_to?(:find_latest_files)
-                    :find_latest_files
-                else
-                    :find_files
-                end
+            require 'autoproj/find_workspace'
+            _, config = Autoproj.find_v2_workspace_config(Autoproj.default_find_base_dir)
+            return unless config
 
-            Gem.send(finder_name, 'autoproj-*', true).each do |path|
-                require path
+            (config['plugins'] || {}).each_key do |plugin_name|
+                require "#{plugin_name}" if plugin_name.start_with?('autoproj-')
             end
         end
     end
 end
-
