@@ -4,11 +4,21 @@ package_sets:
 # Examples from the Rock package set
 #   - github: rock-core/package_set
 
-# The layout section specifies what to build. Can include both whole package sets or single packages.
+# The layout section specifies what to build. Can include both whole package
+# sets or single packages.
 #
 # layout:
 # - rock.core
 #
+
+# Whether Autoproj should auto-add packages that declared as optional
+# dependencies or not. When auto-adding (false, the default), these
+# dependencies will be added to the build unless they are explicitely excluded,
+# by listing them in the exclude_packages section. Otherwise, they will be
+# ignored unless they are added to the build either by being explicitely listed
+# in the layout, or by being added through other dependency chains (metapackages,
+# or as dependency of another package)
+# ignore_optional_dependencies: false
 
 # Package exclusion: packages can be completely excluded from the build. This is
 # an alternative way than using the layout.

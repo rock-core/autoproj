@@ -73,6 +73,7 @@ module Autoproj
             @ignored_packages |= (data['ignore_packages'] || Set.new).to_set
             invalidate_ignored_package_names
             @manifest_exclusions |= (data['exclude_packages'] || Set.new).to_set
+            @ignore_optional_dependencies = data['ignore_optional_dependencies']
 
             normalized_layout = Hash.new
             compute_normalized_layout(
@@ -86,6 +87,24 @@ module Autoproj
                 @constant_definitions =
                     Autoproj.resolve_constant_definitions(data['constants'])
             end
+        end
+
+        # Whether optional dependencies should be auto-added to the build
+        # or not
+        #
+        # If false (the default), Autoproj will auto-add an optional dependency
+        # to the build if the depended-upon package is not excluded
+        #
+        # If true, Autoproj will not auto-add optional dependencies to the build.
+        # However, it will take the dependency into account if the depended-upon
+        # package has been added to the build by other means, as e.g. by adding
+        # it explicitely to the layout, or through another package
+        def ignore_optional_dependencies?
+            @ignore_optional_dependencies
+        end
+
+        def ignore_optional_dependencies=(flag)
+            @ignore_optional_dependencies = flag
         end
 
         # Make an empty layout
@@ -198,6 +217,7 @@ module Autoproj
             @ignored_packages = Set.new
             @manifest_exclusions = Set.new
             @accept_unavailable_osdeps = false
+            @ignore_optional_dependencies = false
 
             @constant_definitions = Hash.new
             @package_sets << LocalPackageSet.new(ws)

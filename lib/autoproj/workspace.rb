@@ -644,11 +644,19 @@ module Autoproj
                                   mainline: mainline)
         end
 
-        def load_packages(selection = manifest.default_packages(false), options = {})
-            options = Hash[warn_about_ignored_packages: true, checkout_only: true].
-                merge(options)
+        def load_packages(
+            selection = manifest.default_packages(false),
+            warn_about_ignored_packages: true,
+            checkout_only: true,
+            **options
+        )
             ops = Ops::Import.new(self)
-            ops.import_packages(selection, options)
+            ops.import_packages(
+                selection,
+                warn_about_ignored_packages: warn_about_ignored_packages,
+                checkout_only: checkout_only,
+                **options
+            )
         end
 
         def load_all_available_package_manifests
@@ -822,7 +830,9 @@ module Autoproj
         #
         # @return [Array<String>] the list of OS packages that can be fed to
         #   {OSPackageManager#install}
-        def all_os_packages(import_missing: false, parallel: config.parallel_import_level)
+        def all_os_packages(import_missing: false,
+                            ignore_optional_dependencies: false,
+                            parallel: config.parallel_import_level)
             if import_missing
                 ops = Autoproj::Ops::Import.new(self)
                 _, all_os_packages =
@@ -830,7 +840,8 @@ module Autoproj
                         manifest.default_packages,
                         checkout_only: true, only_local: true, reset: false,
                         recursive: true, keep_going: true, parallel: parallel,
-                        retry_count: 0
+                        retry_count: 0,
+                        ignore_optional_dependencies: ignore_optional_dependencies
                     )
                 all_os_packages
             else

@@ -290,8 +290,8 @@ module Autoproj
                             installed_vcs_packages.merge(
                                 install_vcs_packages_for(
                                     *missing_vcs,
-                                     install_only: import_options[:checkout_only],
-                                     **install_vcs_packages
+                                    install_only: import_options[:checkout_only],
+                                    **install_vcs_packages
                                 )
                             )
                             package_queue.concat(missing_vcs)
@@ -407,6 +407,10 @@ module Autoproj
 
                     packages, osdeps = pkg.partition_optional_dependencies
                     (packages + osdeps).each do |dep_pkg_name|
+                        dep_pkg_definition = manifest
+                                             .find_package_definition(dep_pkg_name)
+                        next if ignore_optional_dependencies &&
+                                !processed_packages.include?(dep_pkg_definition)
                         next if manifest.ignored?(dep_pkg_name)
                         next if manifest.excluded?(dep_pkg_name)
 
@@ -432,6 +436,7 @@ module Autoproj
                                 keep_going: false,
                                 install_vcs_packages: Hash.new,
                                 auto_exclude: auto_exclude?,
+                                ignore_optional_dependencies: false,
                                 **import_options)
 
                 manifest = ws.manifest
@@ -448,7 +453,11 @@ module Autoproj
                 raise failures.first if !keep_going && !failures.empty?
 
                 install_internal_dependencies_for(*all_processed_packages)
-                finalize_package_load(all_processed_packages, auto_exclude: auto_exclude)
+                finalize_package_load(
+                    all_processed_packages,
+                    auto_exclude: auto_exclude,
+                    ignore_optional_dependencies: ignore_optional_dependencies
+                )
 
                 all_enabled_osdeps = selection.each_osdep_package_name.to_set
                 all_enabled_sources = all_processed_packages.map(&:name)

@@ -138,8 +138,16 @@ module Autoproj
             #   the package selection resolution object
             #
             # @see resolve_user_selection
-            def resolve_selection(user_selection, checkout_only: true, only_local: false, recursive: true, non_imported_packages: :ignore, auto_exclude: false)
-                resolved_selection, _ = resolve_user_selection(user_selection, filter: false)
+            def resolve_selection(
+                user_selection,
+                checkout_only: true,
+                only_local: false,
+                recursive: true,
+                non_imported_packages: :ignore,
+                auto_exclude: false,
+                ignore_optional_dependencies: ws.manifest.ignore_optional_dependencies?
+            )
+                resolved_selection, = resolve_user_selection(user_selection, filter: false)
 
                 ops = Ops::Import.new(ws)
                 source_packages, osdep_packages = ops.import_packages(
@@ -149,7 +157,9 @@ module Autoproj
                     recursive: recursive,
                     warn_about_ignored_packages: false,
                     non_imported_packages: non_imported_packages,
-                    auto_exclude: auto_exclude)
+                    auto_exclude: auto_exclude,
+                    ignore_optional_dependencies: ignore_optional_dependencies
+                )
 
                 [source_packages, osdep_packages, resolved_selection]
             rescue ExcludedSelection => e

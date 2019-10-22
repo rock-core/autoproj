@@ -28,7 +28,13 @@ module Autoproj
             #   selected packages, the PackageSelection representing the
             #   selection resolution itself, and a flag telling whether some of
             #   the arguments were pointing within the configuration area
-            def finalize_setup(packages = [], non_imported_packages: :ignore, recursive: true, auto_exclude: false)
+            def finalize_setup(
+                packages = [],
+                non_imported_packages: :ignore,
+                recursive: true,
+                auto_exclude: false,
+                ignore_optional_dependencies: ws.manifest.ignore_optional_dependencies?
+            )
                 Autoproj.silent do
                     packages, config_selected =
                         normalize_command_line_package_selection(packages)
@@ -37,7 +43,14 @@ module Autoproj
                     resolve_user_selection(packages)
                     ws.finalize_package_setup
                     source_packages, osdep_packages, resolved_selection =
-                        resolve_selection(packages, recursive: recursive, non_imported_packages: non_imported_packages, auto_exclude: auto_exclude)
+                        resolve_selection(
+                            packages,
+                            recursive: recursive,
+                            non_imported_packages: non_imported_packages,
+                            ignore_optional_dependencies: ignore_optional_dependencies,
+                            auto_exclude: auto_exclude
+                        )
+
                     ws.finalize_setup
                     ws.export_installation_manifest
                     [source_packages, osdep_packages, resolved_selection, config_selected]

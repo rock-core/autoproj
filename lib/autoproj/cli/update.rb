@@ -193,27 +193,31 @@ module Autoproj
                 osdeps_options
             end
 
-            def update_packages(selected_packages,
+            def update_packages(
+                selected_packages,
                 from: nil, checkout_only: false, only_local: false, reset: false,
                 deps: true, keep_going: false, parallel: 1,
                 retry_count: 0, osdeps: true, auto_exclude: false, osdeps_options: Hash.new,
-                report: true)
-
+                report: true,
+                ignore_optional_dependencies: ws.manifest.ignore_optional_dependencies?
+            )
                 setup_update_from(from) if from
 
                 ops = Autoproj::Ops::Import.new(
                     ws, report_path: (ws.import_report_path if report))
-                source_packages, osdep_packages =
-                        ops.import_packages(selected_packages,
-                                        checkout_only: checkout_only,
-                                        only_local: only_local,
-                                        reset: reset,
-                                        recursive: deps,
-                                        keep_going: keep_going,
-                                        parallel: parallel,
-                                        retry_count: retry_count,
-                                        install_vcs_packages: (osdeps_options if osdeps),
-                                        auto_exclude: auto_exclude)
+                source_packages, osdep_packages = ops.import_packages(
+                    selected_packages,
+                    checkout_only: checkout_only,
+                    only_local: only_local,
+                    reset: reset,
+                    recursive: deps,
+                    keep_going: keep_going,
+                    parallel: parallel,
+                    retry_count: retry_count,
+                    install_vcs_packages: (osdeps_options if osdeps),
+                    auto_exclude: auto_exclude,
+                    ignore_optional_dependencies: ignore_optional_dependencies
+                )
                 [source_packages, osdep_packages, nil]
             rescue ExcludedSelection => e
                 raise CLIInvalidSelection, e.message, e.backtrace
