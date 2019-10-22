@@ -115,7 +115,7 @@ module Autoproj
 
         def self.from_environment(**workspace_options)
             if (path = Autoproj.find_workspace_dir)
-                from_dir(path, **workspace_options)
+                Workspace.new(path, **workspace_options)
             elsif Autoproj.find_v1_workspace_dir(dir = Autoproj.default_find_base_dir)
                 raise OutdatedWorkspace, "#{dir} looks like a v1 workspace, "\
                     "run autoproj upgrade before continuing"
