@@ -1,5 +1,10 @@
 #! /usr/bin/env ruby
 
+begin
+    require 'yomikomu'
+rescue LoadError # rubocop:disable Lint/HandleExceptions
+end
+
 require 'autoproj/cli'
 require 'autoproj/cli/main'
 argv = Autoproj::CLI.basic_setup
