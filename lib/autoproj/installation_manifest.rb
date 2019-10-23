@@ -1,7 +1,8 @@
 module Autoproj
     # Manifest of installed packages imported from another autoproj installation
     class InstallationManifest
-        Package = Struct.new :name, :type, :vcs, :srcdir, :prefix, :builddir, :logdir, :dependencies
+        Package = Struct.new :name, :type, :vcs, :srcdir, :importdir,
+                             :prefix, :builddir, :logdir, :dependencies
         PackageSet = Struct.new :name, :vcs, :raw_local_dir, :user_local_dir
 
         attr_reader :path
@@ -28,11 +29,11 @@ module Autoproj
         def each_package_set(&block)
             package_sets.each_value(&block)
         end
-            
+
         def each_package(&block)
             packages.each_value(&block)
         end
-            
+
         def load
             @packages = Hash.new
             raw = YAML.load(File.open(path))
@@ -51,8 +52,8 @@ module Autoproj
                         package_sets[pkg_set.name] = pkg_set
                     else
                         pkg = Package.new(
-                            entry['name'], entry['type'], entry['vcs'], entry['srcdir'], entry['prefix'],
-                            entry['builddir'], entry['logdir'], entry['dependencies'])
+                            entry['name'], entry['type'], entry['vcs'], entry['srcdir'], entry['importdir'],
+                            entry['prefix'], entry['builddir'], entry['logdir'], entry['dependencies'])
                         packages[pkg.name] = pkg
                     end
                 end
@@ -74,6 +75,7 @@ module Autoproj
                          'type' => v.class.name,
                          'vcs' => package_def.vcs.to_hash,
                          'srcdir' => v.srcdir,
+                         'importdir' => (v.importdir if v.respond_to?(:importdir)),
                          'builddir' => (v.builddir if v.respond_to?(:builddir)),
                          'logdir' => v.logdir,
                          'prefix' => v.prefix,
