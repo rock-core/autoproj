@@ -41,7 +41,7 @@ module Autoproj
                 end
             end
 
-            describe '#create_report' do
+            describe '#apply_to_packages' do
                 after do
                     Timecop.return
                 end
@@ -54,7 +54,7 @@ module Autoproj
                     a.coverage_enabled = false
                     a.coverage_source_dir = '/coverage/source/path'
                     a.coverage_target_dir = nil
-                    @cli.create_report([@one])
+                    @cli.apply_to_packages([@one])
 
                     Timecop.freeze
                     report = JSON.load(File.read(@report_path))
