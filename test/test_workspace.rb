@@ -289,10 +289,12 @@ module Autoproj
                 pkg = ws_add_package_to_layout :cmake, 'pkg'
                 srcdir = make_tmpdir
                 pkg.autobuild.srcdir = "#{srcdir}/pkg"
+                pkg.autobuild.importdir = "#{srcdir}/pkg"
                 pkg.autobuild.prefix = '/prefix/pkg'
                 pkg.autobuild.builddir = '/builddir/pkg'
                 pkg.autobuild.depends_on 'test_dep'
                 test_dep.autobuild.srcdir = "#{srcdir}/test_dep"
+                test_dep.autobuild.importdir = "#{srcdir}/test_dep"
                 test_dep.autobuild.prefix = '/prefix/test_dep'
                 test_dep.autobuild.builddir = '/builddir/test_dep'
                 FileUtils.mkdir_p(pkg.autobuild.srcdir)
@@ -302,9 +304,13 @@ module Autoproj
                 manifest = InstallationManifest.from_workspace_root(ws.root_dir)
 
                 test_dep = InstallationManifest::Package.new(
-                    'test_dep', 'Autobuild::CMake', Hash[type: 'none', url: nil], "#{srcdir}/test_dep", '/prefix/test_dep', '/builddir/test_dep', test_dep.autobuild.logdir, [])
-                pkg      = InstallationManifest::Package.new(
-                    'pkg', 'Autobuild::CMake', Hash[type: 'none', url: nil], "#{srcdir}/pkg", '/prefix/pkg', '/builddir/pkg', pkg.autobuild.logdir, ['test_dep'])
+                    'test_dep', 'Autobuild::CMake',
+                    Hash[type: 'none', url: nil], "#{srcdir}/test_dep", "#{srcdir}/test_dep",
+                         '/prefix/test_dep', '/builddir/test_dep', test_dep.autobuild.logdir, [])
+                pkg = InstallationManifest::Package.new(
+                    'pkg', 'Autobuild::CMake',
+                    Hash[type: 'none', url: nil], "#{srcdir}/pkg", "#{srcdir}/pkg",
+                    '/prefix/pkg', '/builddir/pkg', pkg.autobuild.logdir, ['test_dep'])
                 packages = manifest.each_package.to_a
                 assert_equal 2, packages.size
                 assert packages.include?(test_dep), "expected #{packages} to include #{test_dep}"
@@ -331,7 +337,7 @@ module Autoproj
                 assert defined?(LOADED_99)
             end
         end
-        
+
         describe "#which" do
             before do
                 ws_create
