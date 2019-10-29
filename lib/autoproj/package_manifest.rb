@@ -8,6 +8,46 @@ module Autoproj
             new(package, null: true)
         end
 
+        class << self
+            attr_accessor :cache_dir
+        end
+        @cache_dir = '/home/doudou/.cache/autoproj'
+
+        def self.try_from_cache(package, path, contents, **options)
+            return unless cache_dir
+
+            digest = Digest::SHA256.new
+            digest.update path
+            digest.update options.to_s
+            digest.update contents
+            digest = digest.hexdigest
+
+            cache_path = File.join(cache_dir, digest)
+            return [nil, digest] unless File.file?(cache_path)
+
+            begin
+                manifest = Marshal.load(File.read(cache_path, mode: 'rb'))
+                manifest.package = package
+                [manifest, digest]
+            rescue StandardError => e
+                FileUtils.rm_f cache_path if cache_path
+                [nil, digest]
+            end
+        end
+
+        def self.try_to_cache(digest, object)
+            return unless cache_dir
+
+            object = object.dup
+            object.package = nil
+            marshalled = Marshal.dump(object)
+
+            FileUtils.mkdir_p cache_dir
+            File.open(File.join(cache_dir, digest), 'wb') do |io|
+                io.write marshalled
+            end
+        end
+
         # Load a manifest.xml file and returns the corresponding PackageManifest
         # object
         #
@@ -18,7 +58,15 @@ module Autoproj
         # @see parse
         def self.load(package, file, ros_manifest: false)
             loader_class = ros_manifest ? RosLoader : Loader
-            parse(package, File.read(file), path: file, loader_class: loader_class)
+
+            contents = File.read(file)
+
+            manifest, digest = try_from_cache(package, file, contents, ros_manifest: ros_manifest)
+            return manifest if manifest
+
+            manifest = parse(package, contents, path: file, loader_class: loader_class)
+            try_to_cache(digest, manifest)
+            manifest
         end
 
         # Create a PackageManifest object from the XML content provided as a
