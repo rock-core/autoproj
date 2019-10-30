@@ -300,13 +300,28 @@ In this case, the default is false
                 end
             end
 
-            desc 'cache CACHE_DIR', 'create or update a cache directory that can be given to AUTOBUILD_CACHE_DIR'
-            option :keep_going, aliases: :k,
-                desc: 'do not stop on errors'
-            option :checkout_only, aliases: :c, type: :boolean, default: false,
-                desc: "only checkout packages, do not update already-cached ones"
-            option :all, type: :boolean, default: true,
-                desc: "cache all defined packages (the default) or only the selected ones"
+            desc 'cache CACHE_DIR', 'create or update a cache directory that '\
+                                    'can be given to AUTOBUILD_CACHE_DIR'
+            option :keep_going,
+                   aliases: :k,
+                   desc: 'do not stop on errors'
+            option :checkout_only,
+                   aliases: :c, type: :boolean, default: false,
+                   desc: 'only checkout packages, do not update already-cached ones'
+            option :all,
+                   type: :boolean, default: true,
+                   desc: 'cache all defined packages (the default), '\
+                         ' or only the selected ones'
+            option :packages,
+                   type: :boolean, default: true,
+                   desc: 'update the package cache'
+            option :gems,
+                   type: :boolean, default: false,
+                   desc: 'update the gems cache'
+            option :gems_compile,
+                   type: :array,
+                   desc: 'pre-compile the following gems. This requires gem-compiler '\
+                         'to be available in the workspace'
             def cache(*args)
                 run_autoproj_cli(:cache, :Cache, Hash[], *args)
             end

@@ -369,6 +369,11 @@ module Autoproj
             get('importer_cache_dir', nil)
         end
 
+        # Set import and gem cache directory
+        def importer_cache_dir=(path)
+            set('importer_cache_dir', path, true)
+        end
+
         # Sets the directory in which packages will be installed
         def prefix_dir=(path)
             set('prefix', path, true)

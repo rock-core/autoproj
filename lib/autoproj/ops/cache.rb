@@ -4,9 +4,10 @@ module Autoproj
             attr_reader :cache_dir
             attr_reader :manifest
 
-            def initialize(cache_dir, manifest)
+            def initialize(cache_dir, ws)
                 @cache_dir = cache_dir
-                @manifest  = manifest
+                @ws = ws
+                @manifest = ws.manifest
             end
 
             def with_retry(count)
@@ -27,29 +28,39 @@ module Autoproj
                 File.join(cache_dir, 'git')
             end
 
-            def cache_git(pkg, options = Hash.new)
+            def cache_git(pkg, checkout_only: false)
                 pkg.importdir = File.join(git_cache_dir, pkg.name)
-                if options[:checkout_only] && File.directory?(pkg.importdir)
-                    return
-                end
+                return if checkout_only && File.directory?(pkg.importdir)
 
                 pkg.importer.local_branch = nil
                 pkg.importer.remote_branch = nil
                 pkg.importer.remote_name = 'autobuild'
 
-                if !File.directory?(pkg.importdir)
+                unless File.directory?(pkg.importdir)
                     FileUtils.mkdir_p File.dirname(pkg.importdir)
-                    Autobuild::Subprocess.run("autoproj-cache", "import", Autobuild.tool(:git), "--git-dir", pkg.importdir, 'init', "--bare")
+                    Autobuild::Subprocess.run(
+                        "autoproj-cache", "import", Autobuild.tool(:git),
+                        "--git-dir", pkg.importdir, 'init', "--bare"
+                    )
                 end
                 pkg.importer.update_remotes_configuration(pkg)
 
                 with_retry(10) do
-                    Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', pkg.importdir, 'remote', 'update', 'autobuild')
+                    Autobuild::Subprocess.run(
+                        'autoproj-cache', :import, Autobuild.tool('git'),
+                        '--git-dir', pkg.importdir, 'remote', 'update', 'autobuild'
+                    )
                 end
                 with_retry(10) do
-                    Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', pkg.importdir, 'fetch', 'autobuild', '--tags')
+                    Autobuild::Subprocess.run(
+                        'autoproj-cache', :import, Autobuild.tool('git'),
+                        '--git-dir', pkg.importdir, 'fetch', 'autobuild', '--tags'
+                    )
                 end
-                Autobuild::Subprocess.run('autoproj-cache', :import, Autobuild.tool('git'), '--git-dir', pkg.importdir, 'gc', '--prune=all')
+                Autobuild::Subprocess.run(
+                    'autoproj-cache', :import, Autobuild.tool('git'),
+                    '--git-dir', pkg.importdir, 'gc', '--prune=all'
+                )
             end
 
             def archive_cache_dir
@@ -63,7 +74,8 @@ module Autoproj
                 end
             end
 
-            def create_or_update(*package_names, all: true, keep_going: false, checkout_only: false)
+            def create_or_update(*package_names, all: true, keep_going: false,
+                                 checkout_only: false)
                 FileUtils.mkdir_p cache_dir
 
                 if package_names.empty?
@@ -75,7 +87,7 @@ module Autoproj
                         end
                 else
                     packages = package_names.map do |name|
-                        if pkg = manifest.find_autobuild_package(name)
+                        if (pkg = manifest.find_autobuild_package(name))
                             pkg
                         else
                             raise PackageNotFound, "no package named #{name}"
@@ -88,7 +100,10 @@ module Autoproj
                 total = packages.size
                 Autoproj.message "Handling #{total} packages"
                 packages.each_with_index do |pkg, i|
-                    next if pkg.srcdir != pkg.importdir # No need to process this one, it is uses another package's import
+                    # No need to process this one, it is uses another package's
+                    # import
+                    next if pkg.srcdir != pkg.importdir
+
                     begin
                         case pkg.importer
                         when Autobuild::Git
@@ -103,27 +118,92 @@ module Autoproj
                     rescue Interrupt
                         raise
                     rescue ::Exception => e
-                        if keep_going
-                            pkg.error "       failed to cache #{pkg.name}, but going on as requested"
-                            lines = e.to_s.split("\n")
-                            if lines.empty?
-                                lines = e.message.split("\n")
+                        raise unless keep_going
+
+                        pkg.error "       failed to cache #{pkg.name}, "\
+                                  'but going on as requested'
+                        lines = e.to_s.split('\n')
+                        lines = e.message.split('\n') if lines.empty?
+                        lines = ['unknown error'] if lines.empty?
+                        pkg.message(lines.shift, :red, :bold)
+                        lines.each do |line|
+                            pkg.message(line)
+                        end
+                        nil
+                    end
+                end
+            end
+
+            def gems_cache_dir
+                File.join(cache_dir, 'package_managers', 'gem')
+            end
+
+            def create_or_update_gems(keep_going: true, compile: [])
+                # Note: this might directly copy into the cache directoy, and
+                # we support it later
+                cache_dir = File.join(@ws.prefix_dir, 'gems', 'vendor', 'cache')
+                PackageManagers::BundlerManager.run_bundler(
+                    @ws, 'cache'
+                )
+
+                FileUtils.mkdir_p(gems_cache_dir) unless File.exist?(gems_cache_dir)
+
+                needs_copy =
+                    if File.exist?(cache_dir)
+                        real_cache_dir = File.realpath(cache_dir)
+                        real_target_dir = File.realpath(gems_cache_dir)
+                        (real_cache_dir != real_target_dir)
+                    end
+
+                synchronize_gems_cache_dirs(real_cache_dir, real_target_dir) if needs_copy
+
+                platform_suffix = "-#{Gem::Platform.local}.gem"
+                failed = []
+                compile.each do |gem_name|
+                    Dir.glob(File.join(cache_dir, "#{gem_name}*.gem")) do |gem|
+                        next if gem.end_with?(platform_suffix)
+
+                        gem_basename = File.basename(gem, ".gem")
+                        expected_platform_gem = File.join(
+                            real_target_dir, "#{gem_basename}#{platform_suffix}"
+                        )
+                        next if File.file?(expected_platform_gem)
+
+                        begin
+                            compile_gem(gem, output: real_target_dir)
+                        rescue CompilationFailed
+                            unless keep_going
+                                raise CompilationFailed, "#{gem} failed to compile"
                             end
-                            if lines.empty?
-                                lines = ["unknown error"]
-                            end
-                            pkg.message(lines.shift, :red, :bold)
-                            lines.each do |line|
-                                pkg.message(line)
-                            end
-                            nil
-                        else
-                            raise
+
+                            failed << gem
                         end
                     end
+                end
+
+                unless failed.empty?
+                    raise CompilationFailed, "#{failed.sort.join(', ')} failed to compile"
+                end
+            end
+
+            class CompilationFailed < RuntimeError; end
+
+            def synchronize_gems_cache_dirs(source, target)
+                Dir.glob(File.join(source, "*.gem")) do |source_file|
+                    basename = File.basename(source_file)
+                    target_file = File.join(target, basename)
+                    next if File.file?(target_file)
+
+                    Autoproj.message "gems: caching #{basename}"
+                    FileUtils.cp source_file, target_file
+                end
+            end
+
+            def compile_gem(gem_path, output:)
+                unless system('gem', 'compile', '--output', output, gem_path)
+                    raise CompilationFailed, "#{gem_path} failed to compile"
                 end
             end
         end
     end
 end
-
