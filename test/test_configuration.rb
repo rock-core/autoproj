@@ -396,6 +396,14 @@ module Autoproj
                     end
                 end
             end
+            it 'properly validates the default value' do
+                option_name = 'custom-configuration-option'
+                default_value = 'no'
+                @config.interactive = false
+                @config.declare(option_name, 'boolean', default: default_value)
+                refute @config.configure(option_name)
+                assert_kind_of FalseClass, @config.configure(option_name)
+            end
             it "skip saving default value" do
                 option_a_name = "custom-configuration-option-a"
                 default_a_value = "option-a-defaultvalue"

@@ -196,7 +196,9 @@ module Autoproj
                     Autoproj.info "       using: #{value} (noninteractive mode)"
                 end
                 @modified = true
-                if !is_default
+                if is_default
+                    value = opt.validate(value)
+                else
                     config[option_name] = [value, true]
                     displayed_options[option_name] = value
                 end
