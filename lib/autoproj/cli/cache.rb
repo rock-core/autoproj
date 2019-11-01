@@ -33,7 +33,7 @@ module Autoproj
             def run(cache_dir, *package_names,
                     keep_going: false,
                     packages: true, all: true, checkout_only: false,
-                    gems: false, gems_compile: [])
+                    gems: false, gems_compile: [], gems_compile_force: false)
                 initialize_and_load
                 finalize_setup
 
@@ -50,7 +50,8 @@ module Autoproj
                     Autoproj.message "caching gems in #{cache_op.gems_cache_dir}"
                     cache_op.create_or_update_gems(
                         keep_going: keep_going,
-                        compile: gems_compile
+                        compile: gems_compile,
+                        compile_force: gems_compile_force
                     )
                 end
             end

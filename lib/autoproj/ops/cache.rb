@@ -138,7 +138,7 @@ module Autoproj
                 File.join(cache_dir, 'package_managers', 'gem')
             end
 
-            def create_or_update_gems(keep_going: true, compile: [])
+            def create_or_update_gems(keep_going: true, compile_force: false, compile: [])
                 # Note: this might directly copy into the cache directoy, and
                 # we support it later
                 cache_dir = File.join(@ws.prefix_dir, 'gems', 'vendor', 'cache')
@@ -167,7 +167,7 @@ module Autoproj
                         expected_platform_gem = File.join(
                             real_target_dir, "#{gem_basename}#{platform_suffix}"
                         )
-                        next if File.file?(expected_platform_gem)
+                        next if !compile_force && File.file?(expected_platform_gem)
 
                         begin
                             compile_gem(gem, artifacts: artifacts, output: real_target_dir)

@@ -318,6 +318,9 @@ In this case, the default is false
             option :gems,
                    type: :boolean, default: false,
                    desc: 'update the gems cache'
+            option :gems_compile_force,
+                   type: :boolean, default: false,
+                   desc: 'with --gems-compile, recompile existing gems as well'
             option :gems_compile,
                    type: :array,
                    desc: 'pre-compile the following gems. This requires gem-compiler '\

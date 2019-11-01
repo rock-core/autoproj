@@ -217,6 +217,20 @@ module Autoproj
                     @ops.create_or_update_gems(compile: ['gemname'])
                 end
 
+                it 'recompiles existing gems if compile_force is set' do
+                    FileUtils.mkdir_p @cache_dir
+                    FileUtils.mkdir_p @target_dir
+                    FileUtils.touch(File.join(@cache_dir, "gemname.gem"))
+                    FileUtils.touch(
+                        File.join(@target_dir, "gemname-#{Gem::Platform.local}.gem")
+                    )
+                    @ops.should_receive(:system).explicitly.once
+                        .with('gem', 'compile',
+                              '--output', @target_dir, "#{@cache_dir}/gemname.gem")
+                        .and_return(true)
+                    @ops.create_or_update_gems(compile: ['gemname'], compile_force: true)
+                end
+
                 it 'stops at first error if keep_going is false' do
                     FileUtils.mkdir_p @cache_dir
                     FileUtils.touch(File.join(@cache_dir, "gem0.gem"))
