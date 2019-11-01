@@ -159,7 +159,7 @@ module Autoproj
 
                 platform_suffix = "-#{Gem::Platform.local}.gem"
                 failed = []
-                compile.each do |gem_name|
+                compile.each do |gem_name, artifacts: []|
                     Dir.glob(File.join(cache_dir, "#{gem_name}*.gem")) do |gem|
                         next if gem.end_with?(platform_suffix)
 
@@ -170,7 +170,7 @@ module Autoproj
                         next if File.file?(expected_platform_gem)
 
                         begin
-                            compile_gem(gem, output: real_target_dir)
+                            compile_gem(gem, artifacts: artifacts, output: real_target_dir)
                         rescue CompilationFailed
                             unless keep_going
                                 raise CompilationFailed, "#{gem} failed to compile"
@@ -199,8 +199,9 @@ module Autoproj
                 end
             end
 
-            def compile_gem(gem_path, output:)
-                unless system('gem', 'compile', '--output', output, gem_path)
+            private def compile_gem(gem_path, output:, artifacts: [])
+                artifacts = artifacts.flat_map { |n| ["--artifact", n] }
+                unless system('gem', 'compile', '--output', output, *artifacts, gem_path)
                     raise CompilationFailed, "#{gem_path} failed to compile"
                 end
             end

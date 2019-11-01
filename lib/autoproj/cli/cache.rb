@@ -20,6 +20,13 @@ module Autoproj
                     argv << default_cache_dirs.first
                 end
 
+                if (compile = options[:gems_compile])
+                    options[:gems_compile] = compile.map do |name|
+                        name, *artifacts = name.split('+')
+                        [name, artifacts: artifacts]
+                    end
+                end
+
                 [File.expand_path(argv.first, ws.root_dir), *argv[1..-1], options]
             end
 

@@ -182,9 +182,28 @@ module Autoproj
                     FileUtils.touch(
                         File.join(@cache_dir, "gemname.gem")
                     )
-                    @ops.should_receive(:compile_gem).once
-                        .with(File.join(@cache_dir, 'gemname.gem'), output: @target_dir)
+                    @ops.should_receive(:system).explicitly.once
+                        .with('gem', 'compile',
+                              '--output', @target_dir, "#{@cache_dir}/gemname.gem")
+                        .and_return(true)
                     @ops.create_or_update_gems(compile: ['gemname'])
+                end
+
+                it 'passes the artifacts argument' do
+                    FileUtils.mkdir_p @cache_dir
+                    FileUtils.touch(
+                        File.join(@cache_dir, "gemname.gem")
+                    )
+                    @ops.should_receive(:system).explicitly.once
+                        .with('gem', 'compile',
+                              '--output', @target_dir,
+                              '--artifact', 'some/lib',
+                              '--artifact', 'some/dir',
+                              "#{@cache_dir}/gemname.gem")
+                        .and_return(true)
+                    @ops.create_or_update_gems(
+                        compile: [['gemname', artifacts: ['some/lib', 'some/dir']]]
+                    )
                 end
 
                 it 'skips already compiled gems' do
@@ -194,7 +213,7 @@ module Autoproj
                     FileUtils.touch(
                         File.join(@target_dir, "gemname-#{Gem::Platform.local}.gem")
                     )
-                    @ops.should_receive(:compile_gem).never
+                    @ops.should_receive(:system).explicitly.never
                     @ops.create_or_update_gems(compile: ['gemname'])
                 end
 
@@ -202,11 +221,8 @@ module Autoproj
                     FileUtils.mkdir_p @cache_dir
                     FileUtils.touch(File.join(@cache_dir, "gem0.gem"))
                     FileUtils.touch(File.join(@cache_dir, "gem1.gem"))
-                    @ops.should_receive(:compile_gem).once
-                        .with(File.join(@cache_dir, 'gem0.gem'), output: @target_dir)
-                        .and_raise(Cache::CompilationFailed)
-                    @ops.should_receive(:compile_gem).never
-                        .with(File.join(@cache_dir, 'gem1.gem'), output: @target_dir)
+                    @ops.should_receive(:system).explicitly.once
+                        .and_return(false)
                     e = assert_raises(Cache::CompilationFailed) do
                         @ops.create_or_update_gems(keep_going: false, compile: %w[gem0 gem1])
                     end
@@ -217,13 +233,10 @@ module Autoproj
                     FileUtils.mkdir_p @cache_dir
                     FileUtils.touch(File.join(@cache_dir, "gem0.gem"))
                     FileUtils.touch(File.join(@cache_dir, "gem1.gem"))
-                    @ops.should_receive(:compile_gem).once
-                        .with(File.join(@cache_dir, 'gem0.gem'), output: @target_dir)
-                        .and_raise(Cache::CompilationFailed)
-                        .globally.ordered
-                    @ops.should_receive(:compile_gem).once
-                        .with(File.join(@cache_dir, 'gem1.gem'), output: @target_dir)
-                        .globally.ordered
+                    @ops.should_receive(:system).explicitly.once
+                        .and_return(false).globally.ordered
+                    @ops.should_receive(:system).explicitly.once
+                        .and_return(true).globally.ordered
                     e = assert_raises(Cache::CompilationFailed) do
                         @ops.create_or_update_gems(compile: %w[gem0 gem1])
                     end
@@ -235,7 +248,7 @@ module Autoproj
                     FileUtils.touch(
                         File.join(@cache_dir, "gemname-#{Gem::Platform.local}.gem")
                     )
-                    @ops.should_receive(:compile_gem).never
+                    @ops.should_receive(:system).explicitly.never
                     @ops.create_or_update_gems(compile: ['gemname'])
                 end
             end
@@ -264,24 +277,6 @@ module Autoproj
                     FileUtils.touch File.join(@target_dir, 'gem1.gem')
                     flexmock(FileUtils).should_receive(:cp).never
                     @ops.synchronize_gems_cache_dirs(@cache_dir, @target_dir)
-                end
-            end
-
-            describe '#compile_gems' do
-                it 'compiles the given gem to the provided output directory' do
-                    flexmock(@ops).should_receive(:system).explicitly.once
-                                  .with('gem', 'compile', '--output',
-                                        '/target/dir', '/some/gem')
-                                  .and_return(true)
-                    @ops.compile_gem('/some/gem', output: '/target/dir')
-                end
-
-                it 'raises if the compile command failed' do
-                    flexmock(@ops).should_receive(:system).explicitly.and_return(false)
-                    e = assert_raises(Cache::CompilationFailed) do
-                        @ops.compile_gem('/some/gem', output: '/target/dir')
-                    end
-                    assert_equal '/some/gem failed to compile', e.message
                 end
             end
         end

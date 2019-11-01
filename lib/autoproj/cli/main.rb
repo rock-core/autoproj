@@ -321,7 +321,10 @@ In this case, the default is false
             option :gems_compile,
                    type: :array,
                    desc: 'pre-compile the following gems. This requires gem-compiler '\
-                         'to be available in the workspace'
+                         'to be available in the workspace. Use GEM_NAME+ARTIFACT'\
+                         '[+ARTIFACT] to add files or directories to the precompiled '\
+                         'gems beyond what gem-compiler auto-adds (which is mostly '\
+                         'dynamic libraries)'
             def cache(*args)
                 run_autoproj_cli(:cache, :Cache, Hash[], *args)
             end
