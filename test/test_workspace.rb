@@ -20,6 +20,29 @@ module Autoproj
                      once
                 ws.setup
             end
+
+            describe 'cache dir setup' do
+                before do
+                    @cache_dir = make_tmpdir
+                    @ws.config.importer_cache_dir = @cache_dir
+                    @ws.config.save
+                    @manager = Struct.new(:cache_dir, :initialize_environment).new
+                    @ws.os_package_installer.package_managers['test_manager'] = @manager
+                end
+
+                it 'sets up cache dirs on package managers if a corresponding dir exists' do
+                    test_manager_cache =
+                        File.join(@cache_dir, 'package_managers', 'test_manager')
+                    FileUtils.mkdir_p test_manager_cache
+                    @ws.setup
+                    assert_equal test_manager_cache, @manager.cache_dir
+                end
+
+                it 'skips cache directories that don\'t match the package manager\'s name' do
+                    @ws.setup
+                    assert_nil @manager.cache_dir
+                end
+            end
         end
 
         describe "#load_package_sets" do

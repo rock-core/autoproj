@@ -73,6 +73,44 @@ module Autoproj
                                  lines[1])
                 end
             end
+
+            describe "#initialize_environment" do
+                before do
+                    @ws = ws_create
+                    @bundler_manager = BundlerManager.new(@ws)
+                    @cache_dir = make_tmpdir
+                    @vendor_cache_path =
+                        File.join(@ws.prefix_dir, 'gems', 'vendor', 'cache')
+                end
+
+                describe "cache setup" do
+                    it 'symlinks the cache dir to vendor/cache if cache_dir is set' do
+                        @bundler_manager.cache_dir = @cache_dir
+                        @bundler_manager.initialize_environment
+
+                        assert_equal @cache_dir, File.readlink(@vendor_cache_path)
+                    end
+
+                    it 'updates an existing symlink to the current cache' do
+                        @bundler_manager.cache_dir = @cache_dir
+                        FileUtils.mkdir_p File.dirname(@vendor_cache_path)
+                        FileUtils.ln_s '/some/path', @vendor_cache_path
+                        @bundler_manager.initialize_environment
+
+                        assert_equal @cache_dir, File.readlink(@vendor_cache_path)
+                    end
+
+                    it 'skips an existing directory' do
+                        @bundler_manager.cache_dir = @cache_dir
+                        FileUtils.mkdir_p @vendor_cache_path
+                        flexmock(Autoproj).should_receive(:warn).once
+                                          .with(/cannot use #{@cache_dir}/)
+                        @bundler_manager.initialize_environment
+
+                        assert File.directory?(@vendor_cache_path)
+                    end
+                end
+            end
         end
     end
 end

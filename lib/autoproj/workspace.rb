@@ -370,6 +370,14 @@ module Autoproj
             Autobuild.logdir = log_dir
             if (cache_dir = config.importer_cache_dir)
                 Autobuild::Importer.default_cache_dirs = cache_dir
+                os_package_installer.each_manager_with_name do |name, manager|
+                    next unless manager.respond_to?(:cache_dir=)
+
+                    manager_cache_path = File.join(cache_dir, 'package_managers', name)
+                    if File.directory?(manager_cache_path)
+                        manager.cache_dir = manager_cache_path
+                    end
+                end
             end
             setup_os_package_installer
             install_ruby_shims

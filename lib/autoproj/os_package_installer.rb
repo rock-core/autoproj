@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'autoproj/package_managers/manager'
 require 'autoproj/package_managers/unknown_os_manager'
 require 'autoproj/package_managers/shell_script_manager'
@@ -37,7 +39,9 @@ module Autoproj
         attr_reader :installed_resolved_packages
 
         attr_writer :silent
-        def silent?; @silent end
+        def silent?
+            @silent
+        end
 
         class << self
             attr_accessor :force_osdeps
@@ -60,12 +64,12 @@ module Autoproj
 
         # Returns the package manager object for the current OS
         def os_package_manager
-            if !@os_package_manager
+            unless @os_package_manager
                 name = os_package_resolver.os_package_manager
                 @os_package_manager = package_managers[name] ||
-                    PackageManagers::UnknownOSManager.new(ws)
+                                      PackageManagers::UnknownOSManager.new(ws)
             end
-            return @os_package_manager
+            @os_package_manager
         end
 
         # Returns the set of package managers
@@ -75,13 +79,17 @@ module Autoproj
             package_managers.each_value(&block)
         end
 
+        def each_manager_with_name(&block)
+            package_managers.each(&block)
+        end
+
         HANDLE_ALL  = 'all'
         HANDLE_RUBY = 'ruby'
         HANDLE_OS   = 'os'
         HANDLE_NONE = 'none'
 
         def osdeps_mode_option_unsupported_os(config)
-            long_doc =<<-EOT
+            long_doc = <<-EOT
 The software packages that autoproj will have to build may require other
 prepackaged softwares (a.k.a. OS dependencies) to be installed (RubyGems
 packages, packages from your operating system/distribution, ...). Autoproj is
@@ -153,9 +161,9 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (all, none or a comma-separated list of: os gem pip) ?", long_doc.strip ]
 
             config.declare 'osdeps_mode', 'string',
-                default: 'all',
-                doc: message,
-                lowercase: true
+                           default: 'all',
+                           doc: message,
+                           lowercase: true
         end
 
         def define_osdeps_mode_option
@@ -171,14 +179,14 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             modes = []
             user_modes.each do |str|
                 case str
-                when 'all'  then modes.concat(['os', 'gem', 'pip'])
+                when 'all'  then modes.concat(%w[os gem pip])
                 when 'ruby' then modes << 'gem'
                 when 'gem'  then modes << 'gem'
                 when 'pip'  then modes << 'pip'
                 when 'os'   then modes << 'os'
                 when 'none' then
                 else
-                    if package_managers.has_key?(str)
+                    if package_managers.key?(str)
                         modes << str
                     else
                         raise ArgumentError, "#{str} is not a known package handler, known handlers are #{package_managers.keys.sort.join(", ")}"
@@ -442,5 +450,5 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             end
         end
     end
-end 
+end
 

@@ -95,6 +95,11 @@ module Autoproj
             end
         end
 
+        def data_path(*args)
+            File.expand_path(File.join(*args),
+                             File.join(__dir__, '..', '..', 'test', 'data'))
+        end
+
         def create_bootstrap
             ws_create
         end

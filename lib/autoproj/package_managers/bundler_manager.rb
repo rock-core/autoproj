@@ -24,6 +24,14 @@ module Autoproj
                 end
             end
 
+            # Directory with cached .gem packages
+            #
+            # The directory must exist, but may be empty.
+            # It is initialized with {BundlerManager.cache_dir}
+            #
+            # @return [String]
+            attr_accessor :cache_dir
+
             # (see Manager#call_while_empty?)
             def call_while_empty?
                 !workspace_configuration_gemfiles.empty?
@@ -49,10 +57,23 @@ module Autoproj
                 gemfile_path = File.join(ws.prefix_dir, 'gems', 'Gemfile')
                 env.set('BUNDLE_GEMFILE', gemfile_path) if File.file?(gemfile_path)
 
-                Autobuild.programs['bundler'] = File.join(ws.dot_autoproj_dir,
-                                                          'bin', 'bundle')
-                Autobuild.programs['bundle'] = File.join(ws.dot_autoproj_dir,
-                                                         'bin', 'bundle')
+                if cache_dir
+                    vendor_dir = File.join(File.dirname(gemfile_path), 'vendor')
+                    FileUtils.mkdir_p vendor_dir
+                    bundler_cache_dir = File.join(vendor_dir, 'cache')
+
+                    if !File.exist?(bundler_cache_dir) || File.symlink?(bundler_cache_dir)
+                        FileUtils.rm_f File.join(vendor_dir, 'cache')
+                        FileUtils.ln_s cache_dir, File.join(vendor_dir, 'cache')
+                    elsif File.exist?(cache_dir)
+                        Autoproj.warn "cannot use #{cache_dir} as gem cache as "\
+                                      "#{bundler_cache_dir} already exists"
+                    end
+                end
+
+                Autobuild.programs['bundler'] =
+                    Autobuild.programs['bundle'] =
+                    File.join(ws.dot_autoproj_dir, 'bin', 'bundle')
 
                 env.init_from_env 'RUBYLIB'
                 env.inherit 'RUBYLIB'
@@ -289,7 +310,9 @@ module Autoproj
                 File.join(ws.dot_autoproj_dir, 'bin', 'bundle')
             end
 
-            def self.run_bundler(ws, *commandline, gem_home: nil, gemfile: nil)
+            def self.run_bundler(ws, *commandline,
+                                 gem_home: ws.config.gems_gem_home,
+                                 gemfile: default_gemfile_path(ws))
                 bundle = Autobuild.programs['bundle'] || default_bundler(ws)
 
                 Bundler.with_clean_env do
@@ -390,9 +413,13 @@ module Autoproj
                 gemfiles
             end
 
+            def self.default_gemfile_path(ws)
+                File.join(ws.prefix_dir, 'gems', 'Gemfile')
+            end
+
             def install(gems, filter_uptodate_packages: false, install_only: false)
-                root_dir     = File.join(ws.prefix_dir, 'gems')
-                gemfile_path = File.join(root_dir, 'Gemfile')
+                gemfile_path = self.class.default_gemfile_path(ws)
+                root_dir = File.dirname(gemfile_path)
                 gemfile_lock_path = "#{gemfile_path}.lock"
                 backups = Hash[
                     gemfile_path => "#{gemfile_path}.orig",
