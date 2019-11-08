@@ -57,17 +57,16 @@ module Autoproj
                 gemfile_path = File.join(ws.prefix_dir, 'gems', 'Gemfile')
                 env.set('BUNDLE_GEMFILE', gemfile_path) if File.file?(gemfile_path)
 
-                if cache_dir
+                if cache_dir && File.exist?(cache_dir)
                     vendor_dir = File.join(File.dirname(gemfile_path), 'vendor')
                     FileUtils.mkdir_p vendor_dir
                     bundler_cache_dir = File.join(vendor_dir, 'cache')
-
-                    if !File.exist?(bundler_cache_dir) || File.symlink?(bundler_cache_dir)
-                        FileUtils.rm_f File.join(vendor_dir, 'cache')
-                        FileUtils.ln_s cache_dir, File.join(vendor_dir, 'cache')
-                    elsif File.exist?(cache_dir)
-                        Autoproj.warn "cannot use #{cache_dir} as gem cache as "\
-                                      "#{bundler_cache_dir} already exists"
+                    if File.writable?(cache_dir)
+                        create_cache_symlink(cache_dir, bundler_cache_dir)
+                    else
+                        Autoproj.warn "BundlerManager: #{cache_dir} is read-only "\
+                                      "copying the cache instead of symlinking it"
+                        create_cache_copy(cache_dir, bundler_cache_dir)
                     end
                 end
 
@@ -114,6 +113,43 @@ module Autoproj
 
                 if (bundle_rubylib = discover_bundle_rubylib(silent_errors: true))
                     update_env_rubylib(bundle_rubylib, system_rubylib)
+                end
+            end
+
+            def create_cache_symlink(cache_dir, bundler_cache_dir)
+                valid = !File.exist?(bundler_cache_dir) ||
+                        File.symlink?(bundler_cache_dir)
+
+                unless valid
+                    Autoproj.warn "cannot use #{cache_dir} as gem cache as "\
+                                  "#{bundler_cache_dir} already exists"
+                    return
+                end
+
+                FileUtils.rm_f bundler_cache_dir
+                FileUtils.ln_s cache_dir, bundler_cache_dir
+            end
+
+            def create_cache_copy(cache_dir, bundler_cache_dir)
+                valid = !File.exist?(bundler_cache_dir) ||
+                        File.directory?(bundler_cache_dir) ||
+                        File.symlink?(bundler_cache_dir)
+
+                unless valid
+                    Autoproj.warn "cannot use #{cache_dir} as gem cache as "\
+                                  "#{bundler_cache_dir} already exists"
+                    return
+                end
+
+                # Gracefully upgrade from the symlinks
+                FileUtils.rm_f bundler_cache_dir if File.symlink?(bundler_cache_dir)
+                FileUtils.mkdir_p bundler_cache_dir
+
+                Dir.glob(File.join(cache_dir, '*.gem')) do |path_src|
+                    path_dest = File.join(bundler_cache_dir, File.basename(path_src))
+                    next if File.exist?(path_dest)
+
+                    FileUtils.cp path_src, path_dest
                 end
             end
 
