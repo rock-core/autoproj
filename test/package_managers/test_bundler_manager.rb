@@ -91,6 +91,49 @@ module Autoproj
                         assert_equal @cache_dir, File.readlink(@vendor_cache_path)
                     end
 
+                    it 'copies the cache dir to vendor/cache if the source is read-only' do
+                        FileUtils.touch File.join(@cache_dir, 'somegem.gem')
+                        FileUtils.chmod 0o500, @cache_dir
+                        @bundler_manager.cache_dir = @cache_dir
+                        @bundler_manager.initialize_environment
+
+                        assert File.directory?(@vendor_cache_path)
+                        assert File.file?(File.join(@vendor_cache_path, 'somegem.gem'))
+                    end
+
+                    it 'copies new gems to an existing vendor/cache' do
+                        FileUtils.touch File.join(@cache_dir, 'somegem.gem')
+                        FileUtils.chmod 0o500, @cache_dir
+                        FileUtils.mkdir_p File.join(@vendor_cache_path)
+                        @bundler_manager.cache_dir = @cache_dir
+                        @bundler_manager.initialize_environment
+
+                        assert File.file?(File.join(@vendor_cache_path, 'somegem.gem'))
+                    end
+
+                    it 'skips gems that have the same name' do
+                        FileUtils.touch File.join(@cache_dir, 'somegem.gem')
+                        FileUtils.chmod 0o500, @cache_dir
+                        FileUtils.mkdir_p File.join(@vendor_cache_path)
+                        FileUtils.touch File.join(@vendor_cache_path, 'somegem.gem')
+                        flexmock(FileUtils).should_receive(:cp).never
+                        @bundler_manager.cache_dir = @cache_dir
+                        @bundler_manager.initialize_environment
+                    end
+
+                    it 'updates an existing symlink to the copied directory' do
+                        FileUtils.mkdir_p File.dirname(@vendor_cache_path)
+                        FileUtils.ln_s '/some/path', @vendor_cache_path
+                        FileUtils.touch File.join(@cache_dir, 'somegem.gem')
+                        FileUtils.chmod 0o500, @cache_dir
+
+                        @bundler_manager.cache_dir = @cache_dir
+                        @bundler_manager.initialize_environment
+
+                        assert File.directory?(@vendor_cache_path)
+                        assert File.file?(File.join(@vendor_cache_path, 'somegem.gem'))
+                    end
+
                     it 'updates an existing symlink to the current cache' do
                         @bundler_manager.cache_dir = @cache_dir
                         FileUtils.mkdir_p File.dirname(@vendor_cache_path)
