@@ -59,7 +59,7 @@ gem 'autobuild', path: '#{autobuild_dir}'"
                     shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundle')
                     assert File.file?(shim_path)
                     stdout, _stderr = capture_subprocess_io do
-                        unless Bundler.clean_system(shim_path, 'show', 'bundler')
+                        unless Autoproj.bundler_unbundled_system(shim_path, 'show', 'bundler')
                             flunk("could not run the bundler shim")
                         end
                     end
@@ -118,7 +118,7 @@ gem 'autobuild', path: '#{autobuild_dir}'"
                     shim_path = File.join(install_dir, '.autoproj', 'bin', 'bundle')
                     assert File.file?(shim_path)
                     stdout, _stderr = capture_subprocess_io do
-                        unless Bundler.clean_system(shim_path, 'show', 'bundler')
+                        unless Autoproj.bundler_unbundled_system(shim_path, 'show', 'bundler')
                             flunk("could not run the bundler shim")
                         end
                     end

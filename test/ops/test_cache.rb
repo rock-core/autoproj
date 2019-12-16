@@ -151,8 +151,52 @@ module Autoproj
                 end
             end
 
+            describe '#guess_gem_program' do
+                before do
+                    @bindir = RbConfig::CONFIG['bindir']
+                    @ruby_install_name = RbConfig::CONFIG['RUBY_INSTALL_NAME']
+                end
+
+                after do
+                    RbConfig::CONFIG['bindir'] = @bindir
+                    RbConfig::CONFIG['RUBY_INSTALL_NAME'] = @ruby_install_name
+                    Autobuild.programs.delete('gem')
+                end
+
+                it 'autodetects the gem program on the machine running the tests' do
+                    detected = @ops.guess_gem_program
+                    assert_match(/gem/, detected)
+                    assert File.executable?(detected)
+                end
+
+                it 'sets the program to the detected program' do
+                    detected = @ops.guess_gem_program
+                    assert_equal detected, Autobuild.tool('gem')
+                end
+
+                it 'looks for "gem" in ruby\'s bindir' do
+                    RbConfig::CONFIG['bindir'] = dir = make_tmpdir
+                    FileUtils.touch File.join(dir, 'gem')
+                    assert_equal File.join(dir, 'gem'), @ops.guess_gem_program
+                end
+
+                it 'looks for "gem$SUFFIX" in ruby\'s bindir when ruby was installed with a suffix' do
+                    RbConfig::CONFIG['bindir'] = dir = make_tmpdir
+                    RbConfig::CONFIG['RUBY_INSTALL_NAME'] = 'ruby-withsomesuffix'
+                    FileUtils.touch File.join(dir, 'gem-withsomesuffix')
+                    assert_equal File.join(dir, 'gem-withsomesuffix'), @ops.guess_gem_program
+                end
+
+                it 'uses the value in programs if there is one' do
+                    Autobuild.programs['gem'] = 'some value'
+                    assert_equal 'some value', @ops.guess_gem_program
+                end
+            end
+
             describe '#create_or_update_gems' do
                 before do
+                    flexmock(Autobuild).should_receive(:tool).with('ruby').and_return('myruby')
+                    flexmock(@ops).should_receive(:guess_gem_program).and_return('mygem')
                     @target_dir = File.join(@cache_dir, 'package_managers', 'gem')
                     @cache_dir = File.join(@ws.prefix_dir, 'gems', 'vendor', 'cache')
                     flexmock(PackageManagers::BundlerManager)
@@ -183,7 +227,7 @@ module Autoproj
                         File.join(@cache_dir, "gemname.gem")
                     )
                     @ops.should_receive(:system).explicitly.once
-                        .with('gem', 'compile',
+                        .with('myruby', '-S', 'mygem', 'compile',
                               '--output', @target_dir, "#{@cache_dir}/gemname.gem")
                         .and_return(true)
                     @ops.create_or_update_gems(compile: ['gemname'])
@@ -195,7 +239,7 @@ module Autoproj
                         File.join(@cache_dir, "gemname.gem")
                     )
                     @ops.should_receive(:system).explicitly.once
-                        .with('gem', 'compile',
+                        .with('myruby', '-S', 'mygem', 'compile',
                               '--output', @target_dir,
                               '--artifact', 'some/lib',
                               '--artifact', 'some/dir',
@@ -225,7 +269,7 @@ module Autoproj
                         File.join(@target_dir, "gemname-#{Gem::Platform.local}.gem")
                     )
                     @ops.should_receive(:system).explicitly.once
-                        .with('gem', 'compile',
+                        .with('myruby', '-S', 'mygem', 'compile',
                               '--output', @target_dir, "#{@cache_dir}/gemname.gem")
                         .and_return(true)
                     @ops.create_or_update_gems(compile: ['gemname'], compile_force: true)

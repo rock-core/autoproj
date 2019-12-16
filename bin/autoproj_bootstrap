@@ -23,6 +23,36 @@ module Autoproj
         class Install
             class UnexpectedBinstub < RuntimeError; end
 
+            RUBYLIB_REINIT = <<~RUBY
+                if defined?(Bundler)
+                    if Bundler.respond_to?(:with_unbundled_env)
+                        Bundler.with_unbundled_env do
+                            exec(Hash['RUBYLIB' => nil], $0, *ARGV)
+                        end
+                    else
+                        Bundler.with_clean_env do
+                            exec(Hash['RUBYLIB' => nil], $0, *ARGV)
+                        end
+                    end
+                elsif ENV['RUBYLIB']
+                    exec(Hash['RUBYLIB' => nil], $0, *ARGV)
+                end
+            RUBY
+
+            WITHOUT_BUNDLER = <<~RUBY
+                if defined?(Bundler)
+                    if Bundler.respond_to?(:with_unbundled_env)
+                        Bundler.with_unbundled_env do
+                            exec($0, *ARGV)
+                        end
+                    else
+                        Bundler.with_clean_env do
+                            exec($0, *ARGV)
+                        end
+                    end
+                end
+            RUBY
+
             # The created workspace's root directory
             attr_reader :root_dir
             # Content of the Gemfile generated to install autoproj itself
@@ -435,11 +465,7 @@ module Autoproj
 #
 
 # Autoproj generated preamble
-if defined?(Bundler)
-    Bundler.with_clean_env do
-        exec($0, *ARGV)
-    end
-end
+#{WITHOUT_BUNDLER}
 ENV['BUNDLE_GEMFILE'] ||= '#{autoproj_gemfile_path}'
 ENV['GEM_HOME'] = '#{gems_gem_home}'
 ENV.delete('GEM_PATH')
@@ -451,12 +477,7 @@ Gem.paths = Hash['GEM_HOME' => '#{gems_gem_home}', 'GEM_PATH' => '']
             def self.shim_bundler_old(ruby_executable, autoproj_gemfile_path, gems_gem_home)
 "#! #{ruby_executable}
 
-if defined?(Bundler)
-    Bundler.with_clean_env do
-        exec($0, *ARGV)
-    end
-end
-
+#{WITHOUT_BUNDLER}
 ENV['BUNDLE_GEMFILE'] ||= '#{autoproj_gemfile_path}'
 ENV['GEM_HOME'] = '#{gems_gem_home}'
 ENV.delete('GEM_PATH')
@@ -481,14 +502,7 @@ load Gem.bin_path('bundler', 'bundler')"
 #
 
 # Autoproj generated preamble, v1
-if defined?(Bundler)
-    Bundler.with_clean_env do
-        exec(Hash['RUBYLIB' => nil], $0, *ARGV)
-    end
-elsif ENV['RUBYLIB']
-    exec(Hash['RUBYLIB' => nil], $0, *ARGV)
-end
-
+#{RUBYLIB_REINIT}
 ENV['BUNDLE_GEMFILE'] = '#{autoproj_gemfile_path}'
 ENV['AUTOPROJ_CURRENT_ROOT'] = '#{root_dir}'
 Gem.paths = Hash['GEM_HOME' => '#{gems_gem_home}', 'GEM_PATH' => '']
@@ -500,14 +514,7 @@ Gem.paths = Hash['GEM_HOME' => '#{gems_gem_home}', 'GEM_PATH' => '']
                 gems_gem_home, load_line)
 "#! #{ruby_executable}
 
-if defined?(Bundler)
-    Bundler.with_clean_env do
-        exec(Hash['RUBYLIB' => nil], $0, *ARGV)
-    end
-elsif ENV['RUBYLIB']
-    exec(Hash['RUBYLIB' => nil], $0, *ARGV)
-end
-
+#{RUBYLIB_REINIT}
 ENV['BUNDLE_GEMFILE'] = '#{autoproj_gemfile_path}'
 ENV['AUTOPROJ_CURRENT_ROOT'] = '#{root_dir}'
 require 'rubygems'

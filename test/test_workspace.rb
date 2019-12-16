@@ -164,7 +164,7 @@ module Autoproj
                 out, err = capture_subprocess_io do
                     system(Hash['__AUTOPROJ_TEST_FAKE_VERSION' => "2.99.90"],
                         "rake", "build")
-                    install_successful = Bundler.clean_system(
+                    install_successful = Autoproj.bundler_unbundled_system(
                         Hash['GEM_HOME' => fixture_gem_home],
                         Ops::Install.guess_gem_program, 'install',
                         '--ignore-dependencies', '--no-document',
@@ -192,7 +192,7 @@ module Autoproj
                 capture_subprocess_io do
                     system(Hash['__AUTOPROJ_TEST_FAKE_VERSION' => "2.99.99"],
                         "rake", "build")
-                    Bundler.clean_system(
+                    Autoproj.bundler_unbundled_system(
                         Hash['GEM_HOME' => fixture_gem_home],
                         Ops::Install.guess_gem_program, 'install',
                         '--ignore-dependencies', '--no-document',
@@ -201,7 +201,7 @@ module Autoproj
 
                 result = nil
                 stdout, stderr = capture_subprocess_io do
-                    result = Bundler.clean_system(
+                    result = Autoproj.bundler_unbundled_system(
                         File.join('.autoproj', 'bin', 'autoproj'), 'update', '--autoproj',
                         chdir: install_dir)
                 end
