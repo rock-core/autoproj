@@ -56,4 +56,22 @@ module Autoproj
             end
         end
     end
+
+    # Shim for a smooth upgrade path to bundler 2.1+
+    def self.bundler_unbundled_system(*args, **options)
+        if Bundler.respond_to?(:unbundled_system)
+            Bundler.unbundled_system(*args, **options)
+        else
+            Bundler.clean_system(*args, **options)
+        end
+    end
+
+    # Shim for a smooth upgrade path to bundler 2.1+
+    def self.bundler_with_unbundled_env(&block)
+        if Bundler.respond_to?(:with_unbundled_env)
+            Bundler.with_unbundled_env(&block)
+        else
+            Bundler.with_clean_env(&block)
+        end
+    end
 end

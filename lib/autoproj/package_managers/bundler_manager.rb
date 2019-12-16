@@ -351,7 +351,7 @@ module Autoproj
                                  gemfile: default_gemfile_path(ws))
                 bundle = Autobuild.programs['bundle'] || default_bundler(ws)
 
-                Bundler.with_clean_env do
+                Autoproj.bundler_with_unbundled_env do
                     target_env = Hash[
                         'GEM_HOME' => gem_home,
                         'GEM_PATH' => nil,
@@ -529,7 +529,7 @@ module Autoproj
             def discover_rubylib
                 require 'bundler'
                 Tempfile.open 'autoproj-rubylib' do |io|
-                    result = Bundler.clean_system(
+                    result = Autoproj.bundler_unbundled_system(
                         Hash['RUBYLIB' => nil],
                         Autobuild.tool('ruby'), '-e', 'puts $LOAD_PATH',
                         out: io,
@@ -553,7 +553,7 @@ module Autoproj
                 silent_redirect[:err] = :close if silent_errors
                 env = ws.env.resolved_env
                 Tempfile.open 'autoproj-rubylib' do |io|
-                    result = Bundler.clean_system(
+                    result = Autoproj.bundler_unbundled_system(
                         Hash['GEM_HOME' => env['GEM_HOME'], 'GEM_PATH' => env['GEM_PATH'],
                              'BUNDLE_GEMFILE' => gemfile, 'RUBYOPT' => nil,
                              'RUBYLIB' => self.class.rubylib_for_bundler],

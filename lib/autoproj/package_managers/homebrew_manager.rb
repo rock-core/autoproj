@@ -15,7 +15,7 @@ module Autoproj
                 # somewhere else
                 packages = packages.uniq
                 command_line = "brew info --json=v1 #{packages.join(' ')}"
-                result = Bundler.with_clean_env do
+                result = Autoproj.bundler_with_unbundled_env do
                     (Autobuild::Subprocess.run 'autoproj', 'osdeps', command_line).first
                 end
 
@@ -30,7 +30,7 @@ module Autoproj
                     end
                     return packages
                 end
-                
+
                 # fall back if something else went wrong
                 if packages.size != result.size
                     Autoproj.warn "brew info returns less or more packages when requested. Falling back to install all packages"

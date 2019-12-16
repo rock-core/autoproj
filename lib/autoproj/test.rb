@@ -176,7 +176,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
                     'PACKAGE_BASE_DIR' => package_base_dir,
                     'RUBY' => Gem.ruby
                 ]
-                result = Bundler.clean_system(
+                result = Autoproj.bundler_unbundled_system(
                     default_env.merge(env), script, *arguments,
                     in: :close, **Hash[chdir: dir].merge(system_options))
             end
@@ -207,7 +207,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
             cached_bundler_gem = File.join(vendor, bundler_filename)
             unless File.file?(cached_bundler_gem)
                 FileUtils.mkdir_p vendor
-                Bundler.clean_system(
+                Autoproj.bundler_unbundled_system(
                     Ops::Install.guess_gem_program, 'fetch', '-v',
                     Bundler::VERSION, 'bundler', chdir: vendor)
 
@@ -217,7 +217,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
             end
 
             capture_subprocess_io do
-                Bundler.clean_system(
+                Autoproj.bundler_unbundled_system(
                     Hash['GEM_HOME' => fixture_gem_home, 'GEM_PATH' => nil],
                     Ops::Install.guess_gem_program, 'install', '--no-document',
                     cached_bundler_gem)
@@ -262,7 +262,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
 
         def find_bundled_gem_path(bundler, gem_name, gemfile)
             out_r, out_w = IO.pipe
-            result = Bundler.clean_system(
+            result = Autoproj.bundler_unbundled_system(
                 bundler, 'show', gem_name,
                 out: out_w,
                 chdir: File.dirname(gemfile))
