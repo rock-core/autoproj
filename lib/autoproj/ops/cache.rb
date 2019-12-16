@@ -199,9 +199,33 @@ module Autoproj
                 end
             end
 
+            def guess_gem_program
+                if Autobuild.programs['gem']
+                    return Autobuild.programs['gem']
+                end
+
+                ruby_bin = RbConfig::CONFIG['RUBY_INSTALL_NAME']
+                ruby_bindir = RbConfig::CONFIG['bindir']
+
+                candidates = ['gem']
+                if ruby_bin =~ /^ruby(.+)$/
+                    candidates << "gem#{$1}"
+                end
+
+                candidates.each do |gem_name|
+                    if File.file?(gem_full_path = File.join(ruby_bindir, gem_name))
+                        Autobuild.programs['gem'] = gem_full_path
+                        return Autobuild.programs['gem']
+                    end
+                end
+
+                raise ArgumentError, "cannot find a gem program (tried #{candidates.sort.join(", ")} in #{ruby_bindir})"
+            end
+
             private def compile_gem(gem_path, output:, artifacts: [])
                 artifacts = artifacts.flat_map { |n| ["--artifact", n] }
-                unless system('gem', 'compile', '--output', output, *artifacts, gem_path)
+                unless system(Autobuild.tool('ruby'), '-S', guess_gem_program,
+                              'compile', '--output', output, *artifacts, gem_path)
                     raise CompilationFailed, "#{gem_path} failed to compile"
                 end
             end
