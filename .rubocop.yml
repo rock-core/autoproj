@@ -17,9 +17,6 @@ Style/TrivialAccessors:
 Naming/PredicateName:
     Enabled: false
 
-Lint/SplatKeywordArguments:
-    Enabled: false
-
 Style/FrozenStringLiteralComment:
     Enabled: false
 
@@ -33,22 +30,22 @@ Naming/FileName:
 Metrics/ParameterLists:
     Enabled: false
 
-Naming/UncommunicativeMethodParamName:
+Naming/MethodParameterName:
     AllowedNames: [io, id, to, by, on, in, at, ip, db, ws]
 
 
 
 
-Layout/AlignParameters:
+Layout/ParameterAlignment:
     Enabled: false
 
 Layout/DotPosition:
     Enabled: false
 
-Layout/IndentFirstArgument:
+Layout/FirstArgumentIndentation:
     Enabled: false
 
-Layout/IndentAssignment:
+Layout/AssignmentIndentation:
     Enabled: false
 
 Layout/IndentationWidth:
@@ -102,7 +99,7 @@ Style/PerlBackrefs:
 Style/StringLiterals:
     Enabled: false
 
-Layout/IndentHeredoc:
+Layout/HeredocIndentation:
     Enabled: false
 
 Metrics/LineLength:
