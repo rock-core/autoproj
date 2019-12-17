@@ -44,6 +44,36 @@ gem 'autobuild', path: '#{autobuild_dir}'"
                     seed_config: nil
             end
 
+            describe 'running autoproj_install in an existing workspace' do
+                before do
+                    @install_dir = make_tmpdir
+                    @config_yml = File.join(@install_dir, '.autoproj', 'config.yml')
+                    FileUtils.mkdir_p File.dirname(@config_yml)
+                    File.open(@config_yml, 'w') { |io| YAML.dump({ 'test' => 'flag' }, io) }
+                end
+
+                it 'seeds the config with the workspace\'s' do
+                    invoke_test_script 'install.sh', dir: @install_dir
+                    assert_equal 'flag', YAML.safe_load(File.read(@config_yml))['test']
+                end
+
+                it 'lets the user override the existing workspace configuration with its own seed' do
+                    seed_config_yml = File.join(make_tmpdir, 'config.yml')
+                    File.open(seed_config_yml, 'w') do |io|
+                        YAML.dump({ 'test' => 'something else' }, io)
+                    end
+                    invoke_test_script 'install.sh', '--seed-config', seed_config_yml,
+                                       dir: @install_dir
+                    assert_equal 'something else',
+                                 YAML.safe_load(File.read(@config_yml))['test']
+                end
+
+                it 'lets the user disable the automatic seeding' do
+                    invoke_test_script 'install.sh', '--no-seed-config', dir: @install_dir
+                    refute YAML.safe_load(File.read(@config_yml)).key?('test')
+                end
+            end
+
             describe "default shared gems location" do
                 attr_reader :shared_gem_home, :shared_dir, :install_dir
                 before do

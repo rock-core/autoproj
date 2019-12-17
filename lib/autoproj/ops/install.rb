@@ -1,7 +1,10 @@
+# frozen_string_literal: true
+
 require 'pathname'
 require 'optparse'
 require 'fileutils'
 require 'yaml'
+require 'English'
 
 module Autoproj
     module Ops
@@ -250,6 +253,10 @@ module Autoproj
                  "gem \"utilrb\", \">= 3.0.1\""].join("\n")
             end
 
+            def add_seed_config(path)
+                @config.merge!(YAML.safe_load(File.read(path)))
+            end
+
             # Parse the provided command line options and returns the non-options
             def parse_options(args = ARGV)
                 options = OptionParser.new do |opt|
@@ -287,9 +294,14 @@ module Autoproj
                         end
                         @gemfile = File.read(path)
                     end
+                    opt.on '--no-seed-config',
+                           'when reinstalling an existing autoproj workspace, do not '\
+                           'use the config in .autoproj/ as seed' do
+                        @config.clear
+                    end
                     opt.on '--seed-config=PATH', String, 'path to a seed file that '\
                         'should be used to initialize the configuration' do |path|
-                        @config.merge!(YAML.load(File.read(path)))
+                        add_seed_config(path)
                     end
                     opt.on '--prefer-os-independent-packages', 'prefer OS-independent '\
                         'packages (such as a RubyGem) over their OS-packaged equivalent '\
@@ -399,7 +411,7 @@ module Autoproj
                     root_dir, autoproj_gemfile_path, gems_gem_home)
             end
 
-            EXCLUDED_FROM_SHIMS = %w{rake thor}
+            EXCLUDED_FROM_SHIMS = %w[rake thor].freeze
 
             def self.rewrite_shims(shim_path, ruby_executable,
                 root_dir, autoproj_gemfile_path, gems_gem_home)
@@ -598,8 +610,11 @@ require 'bundler/setup'
                 #
                 # So, we're calling 'gem' as a subcommand to discovery the
                 # actual bindir
-                bindir = IO.popen(env_for_child,
-                    [Gem.ruby, '-e', 'puts "#{Gem.user_dir}/bin"']).read
+                bindir = IO.popen(
+                    env_for_child,
+                    [Gem.ruby, '-e', 'puts "#{Gem.user_dir}/bin"'], # rubocop:disable Lint/InterpolationCheck
+                    &:read
+                )
                 if bindir
                     @gem_bindir = bindir.chomp
                 else
@@ -610,8 +625,8 @@ require 'bundler/setup'
             def install
                 if ENV['BUNDLER_GEMFILE']
                     raise "cannot run autoproj_install or autoproj_bootstrap while "\
-                        "under a 'bundler exec' subcommand or having loaded an env.sh. "\
-                        "Open a new console and try again"
+                          "under a 'bundler exec' subcommand or having loaded an "\
+                          "env.sh. Open a new console and try again"
                 end
 
                 gem_program  = self.class.guess_gem_program
