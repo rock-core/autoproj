@@ -119,6 +119,7 @@ module Autoproj
 
         def snapshot_packages(packages, target_dir = nil, only_local: true, fingerprint: false)
             result = Array.new
+            fingerprint_memo = Hash.new
             packages.each do |package_name|
                 package  = manifest.find_package_definition(package_name)
                 if !package
@@ -141,7 +142,7 @@ module Autoproj
                     end
 
                 if fingerprint
-                    vcs_info['fingerprint'] = package.autobuild.fingerprint
+                    vcs_info['fingerprint'] = package.autobuild.fingerprint(memo: fingerprint_memo)
                 end
 
                 if vcs_info
