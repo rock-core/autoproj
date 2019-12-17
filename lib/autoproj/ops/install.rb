@@ -280,6 +280,10 @@ module Autoproj
                     opt.on '--public-gems', "install gems in the default gem location" do
                         self.install_gems_in_gem_user_dir
                     end
+                    opt.on '--bundler-version=VERSION_CONSTRAINT', String, 'use the provided '\
+                        'string as a version constraint for bundler' do |version|
+                        @config['bundler_version'] = version
+                    end
                     opt.on '--version=VERSION_CONSTRAINT', String, 'use the provided '\
                         'string as a version constraint for autoproj' do |version|
                         if @gemfile
@@ -331,28 +335,59 @@ module Autoproj
                 @autoproj_options + args
             end
 
-            def find_bundler(gem_program)
-                setup_paths =
-                    IO.popen([env_for_child, Gem.ruby, gem_program, 'which','-a', 'bundler/setup']) do |io|
-                        io.read
-                    end
-                return unless $?.success?
-                bundler_path = File.join(gems_gem_home, 'bin', 'bundle')
-                setup_paths.each_line do |setup_path|
-                    if File.exist?(bundler_path) && setup_path.start_with?(gems_gem_home)
-                        return bundler_path
-                    end
-                end
-                return
+            def bundler_version
+                @config['bundler_version']
             end
 
-            def install_bundler(gem_program, silent: false)
+            def find_bundler(gem_program, version: nil)
+                bundler_path = File.join(gems_gem_home, 'bin', 'bundle')
+                return unless File.exist?(bundler_path)
+
+                setup_paths =
+                    if version
+                        find_versioned_bundler_setup(gem_program, version)
+                    else
+                        find_unversioned_bundler_setup(gem_program)
+                    end
+
+                setup_paths.each do |setup_path|
+                    return bundler_path if setup_path.start_with?(gems_gem_home)
+                end
+                nil
+            end
+
+            def find_versioned_bundler_setup(gem_program, version)
+                contents = IO.popen(
+                    [env_for_child, Gem.ruby, gem_program,
+                     'contents', '-v', version, 'bundler'],
+                    &:readlines
+                )
+                return [] unless $CHILD_STATUS.success?
+
+                contents.grep(%r{bundler/setup.rb$})
+            end
+
+            def find_unversioned_bundler_setup(gem_program)
+                setup_paths = IO.popen(
+                    [env_for_child, Gem.ruby, gem_program,
+                     'which', '-a', 'bundler/setup'],
+                    &:readlines
+                )
+                return [] unless $CHILD_STATUS.success?
+
+                setup_paths
+            end
+
+            def install_bundler(gem_program, version: nil, silent: false)
                 local = ['--local'] if local?
 
                 redirection = Hash.new
                 if silent
                     redirection = Hash[out: :close]
                 end
+
+                version_args = []
+                version_args << '-v' << version if version
 
                 # Shut up the bundler warning about 'bin' not being in PATH
                 env = self.env
@@ -364,14 +399,14 @@ module Autoproj
                         '--clear-sources', '--source', gem_source,
                         '--no-user-install', '--install-dir', gems_gem_home,
                         *local, "--bindir=#{File.join(gems_gem_home, 'bin')}",
-                        'bundler', **redirection)
+                        'bundler', *version_args, **redirection)
 
                 if !result
                     STDERR.puts "FATAL: failed to install bundler in #{gems_gem_home}"
                     nil
                 end
 
-                if (bundler_path = find_bundler(gem_program))
+                if (bundler_path = find_bundler(gem_program, version: version))
                     bundler_path
                 else
                     STDERR.puts "gem install bundler returned successfully, but still "\
@@ -380,7 +415,7 @@ module Autoproj
                 end
             end
 
-            def install_autoproj(bundler)
+            def install_autoproj(bundler, bundler_version: self.bundler_version)
                 # Force bundler to update. If the user does not want this, let
                 # him specify a Gemfile with tighter version constraints
                 lockfile = File.join(dot_autoproj, 'Gemfile.lock')
@@ -395,14 +430,19 @@ module Autoproj
                 opts << "--path=#{gems_install_path}"
                 shims_path = File.join(dot_autoproj, 'bin')
 
-                result = system(clean_env,
-                    Gem.ruby, bundler, 'install',
-                        "--gemfile=#{autoproj_gemfile_path}",
-                        "--shebang=#{Gem.ruby}",
-                        "--binstubs=#{shims_path}",
-                        *opts, chdir: dot_autoproj)
+                version_arg = []
+                version_arg << "_#{bundler_version}_" if bundler_version
 
-                if !result
+                result = system(
+                    clean_env,
+                    Gem.ruby, bundler, *version_arg, 'install',
+                    "--gemfile=#{autoproj_gemfile_path}",
+                    "--shebang=#{Gem.ruby}",
+                    "--binstubs=#{shims_path}",
+                    *opts, chdir: dot_autoproj
+                )
+
+                unless result
                     STDERR.puts "FATAL: failed to install autoproj in #{dot_autoproj}"
                     exit 1
                 end
@@ -622,7 +662,7 @@ require 'bundler/setup'
                 end
             end
 
-            def install
+            def install(bundler_version: self.bundler_version)
                 if ENV['BUNDLER_GEMFILE']
                     raise "cannot run autoproj_install or autoproj_bootstrap while "\
                           "under a 'bundler exec' subcommand or having loaded an "\
@@ -634,13 +674,12 @@ require 'bundler/setup'
                 env['GEM_HOME'] = [gems_gem_home]
                 env['GEM_PATH'] = [gems_gem_home]
 
-                if bundler = find_bundler(gem_program)
+                if (bundler = find_bundler(gem_program, version: bundler_version))
                     puts "Detected bundler at #{bundler}"
                 else
                     puts "Installing bundler in #{gems_gem_home}"
-                    if !(bundler = install_bundler(gem_program))
-                        exit 1
-                    end
+                    bundler = install_bundler(gem_program, version: bundler_version)
+                    exit(1) unless bundler
                 end
                 self.class.rewrite_shims(
                     File.join(dot_autoproj, 'bin'),
@@ -652,7 +691,7 @@ require 'bundler/setup'
                 save_gemfile
 
                 puts "Installing autoproj in #{gems_gem_home}"
-                install_autoproj(bundler)
+                install_autoproj(bundler, bundler_version: bundler_version)
             end
 
             def load_config

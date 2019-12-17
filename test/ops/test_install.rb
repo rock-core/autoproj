@@ -209,6 +209,51 @@ gem 'autobuild', path: '#{autobuild_dir}'"
                     assert_equal true, new_config['test_v1_config']
                 end
             end
+
+            describe 'bundler versioning' do
+                it 'picks a specific bundler version as passed in the seed config' do
+                    seed_config_path = File.join(make_tmpdir, 'config.yml')
+                    File.open(seed_config_path, 'w') do |io|
+                        YAML.dump({ 'bundler_version' => '2.0.1' }, io)
+                    end
+
+                    dir, = invoke_test_script(
+                        'install.sh', '--seed-config', seed_config_path
+                    )
+                    assert_match(/2.0.1/, `#{dir}/.autoproj/bin/bundle --version`.strip)
+                end
+
+                it 'picks a specific bundler version as passed on the command line' do
+                    dir, = invoke_test_script('install.sh', '--bundler-version', '2.0.1')
+                    assert_match(/2.0.1/, `#{dir}/.autoproj/bin/bundle --version`.strip)
+                end
+
+                it 'pins the install to the selected bundler version' do
+                    dir, = invoke_test_script('install.sh', '--bundler-version', '2.0.1')
+                    `#{dir}/.autoproj/bin/autoproj update`
+                    assert_match(/2.0.1/, `#{dir}/.autoproj/bin/bundle --version`.strip)
+                end
+
+                it 'can pin a bundler version on an existing bootstrap' do
+                    dir, = invoke_test_script('install.sh')
+                    refute_match(/2.0.1/, `#{dir}/.autoproj/bin/bundle --version`.strip)
+                    dir, = invoke_test_script('install.sh', '--bundler-version', '2.0.1')
+                    assert_match(/2.0.1/, `#{dir}/.autoproj/bin/bundle --version`.strip)
+                end
+
+                it 'can unpin a bundler version after the bootstrap' do
+                    dir, = invoke_test_script('install.sh', '--bundler-version', '2.0.1')
+
+                    config_yml = File.join(dir, '.autoproj', 'config.yml')
+                    config = YAML.safe_load(File.read(config_yml))
+                    config.delete('bundler_version')
+                    File.open(config_yml, 'w') do |io|
+                        YAML.dump(config, io)
+                    end
+                    `#{dir}/.autoproj/bin/autoproj update`
+                    refute_match(/2.0.1/, `#{dir}/.autoproj/bin/bundle --version`.strip)
+                end
+            end
         end
     end
 end

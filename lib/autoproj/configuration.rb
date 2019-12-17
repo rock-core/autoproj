@@ -355,6 +355,10 @@ module Autoproj
             set 'shell_helpers', flag, true
         end
 
+        def bundler_version
+            get 'bundler_version', nil
+        end
+
         def apply_autobuild_configuration
             if has_value_for?('autobuild')
                 params = get('autobuild')

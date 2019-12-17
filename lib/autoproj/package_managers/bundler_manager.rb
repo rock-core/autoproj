@@ -53,6 +53,11 @@ module Autoproj
                 env.add_path 'PATH', File.join(ws.dot_autoproj_dir, 'bin')
                 env.set 'GEM_HOME', config.gems_gem_home
                 env.clear 'GEM_PATH'
+                if (bundler_version = config.bundler_version)
+                    env.set 'BUNDLER_VERSION', bundler_version
+                else
+                    env.clear 'BUNDLER_VERSION'
+                end
 
                 gemfile_path = File.join(ws.prefix_dir, 'gems', 'Gemfile')
                 env.set('BUNDLE_GEMFILE', gemfile_path) if File.file?(gemfile_path)
@@ -305,10 +310,13 @@ module Autoproj
                 end
             end
 
-            def self.run_bundler_install(ws, gemfile, *options,
-                                         update: true, binstubs: nil,
-                                         gem_home: ws.config.gems_gem_home,
-                                         gem_path: ws.config.gems_install_path)
+            def self.run_bundler_install(
+                ws, gemfile, *options,
+                update: true, binstubs: nil,
+                bundler_version: ws.config.bundler_version,
+                gem_home: ws.config.gems_gem_home,
+                gem_path: ws.config.gems_install_path
+            )
                 FileUtils.rm "#{gemfile}.lock" if update && File.file?("#{gemfile}.lock")
 
                 options << '--path' << gem_path
@@ -319,6 +327,7 @@ module Autoproj
 
                 connections = Set.new
                 run_bundler(ws, 'install', *options,
+                            bundler_version: bundler_version,
                             gem_home: gem_home, gemfile: gemfile) do |line|
                     case line
                     when /Installing (.*)/
@@ -333,11 +342,13 @@ module Autoproj
                 end
             end
 
-            def self.bundle_gem_path(ws, gem_name, gem_home: nil, gemfile: nil)
+            def self.bundle_gem_path(ws, gem_name,
+                                     bundler_version: ws.config.bundler_version,
+                                     gem_home: nil, gemfile: nil)
                 path = String.new
-                PackageManagers::BundlerManager.run_bundler(
+                run_bundler(
                     ws, 'show', gem_name,
-                    gem_home: gem_home,
+                    bundler_version: bundler_version, gem_home: gem_home,
                     gemfile: gemfile) { |line| path << line }
                 path.chomp
             end
@@ -347,18 +358,25 @@ module Autoproj
             end
 
             def self.run_bundler(ws, *commandline,
+                                 bundler_version: ws.config.bundler_version,
                                  gem_home: ws.config.gems_gem_home,
                                  gemfile: default_gemfile_path(ws))
                 bundle = Autobuild.programs['bundle'] || default_bundler(ws)
 
                 Autoproj.bundler_with_unbundled_env do
+                    bundler_version_env =
+                        if bundler_version
+                            { 'BUNDLER_VERSION' => bundler_version }
+                        else
+                            {}
+                        end
                     target_env = Hash[
                         'GEM_HOME' => gem_home,
                         'GEM_PATH' => nil,
                         'BUNDLE_GEMFILE' => gemfile,
                         'RUBYOPT' => nil,
-                        'RUBYLIB' => rubylib_for_bundler
-                    ]
+                        'RUBYLIB' => rubylib_for_bundler,
+                    ].merge(bundler_version_env)
                     ws.run('autoproj', 'osdeps',
                            bundle, *commandline,
                            working_directory: File.dirname(gemfile),
