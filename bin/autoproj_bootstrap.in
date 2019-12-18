@@ -13,12 +13,14 @@ require 'autoproj/ops/install'
 ENV.delete('BUNDLE_GEMFILE')
 ENV.delete('RUBYLIB')
 ops = Autoproj::Ops::Install.new(Dir.pwd)
+
+existing_config = File.join(Dir.pwd, '.autoproj', 'config.yml')
+if File.file?(existing_config)
+    puts "Found existing configuration, using it as seed"
+    puts "use --no-seed-config to avoid this behavior"
+    ops.add_seed_config(existing_config)
+end
 bootstrap_options = ops.parse_options(ARGV)
 ops.stage1
-if !ops.skip_stage2?
-    ops.call_stage2
-end
-if !ops.run_autoproj 'bootstrap', *bootstrap_options
-    exit 1
-end
-
+ops.call_stage2 unless ops.skip_stage2?
+exit 1 unless ops.run_autoproj('bootstrap', *bootstrap_options)

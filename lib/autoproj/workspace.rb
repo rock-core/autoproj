@@ -424,7 +424,11 @@ module Autoproj
             gem_program = Ops::Install.guess_gem_program
             install = Ops::Install.new(root_dir)
             Autoproj.message "  updating bundler"
-            install.install_bundler(gem_program, silent: true)
+            install.install_bundler(
+                gem_program,
+                version: config.bundler_version,
+                silent: true
+            )
         end
 
         def update_autoproj(restart_on_update: true)
@@ -438,18 +442,21 @@ module Autoproj
             binstubs = File.join(dot_autoproj_dir, 'bin')
             if restart_on_update
                 old_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(
-                    self, 'autoproj', gem_home: config.gems_gem_home, gemfile: gemfile)
+                    self, 'autoproj', gemfile: gemfile
+                )
             end
             begin
                 Autoproj.message "  updating autoproj"
                 PackageManagers::BundlerManager.run_bundler_install(
-                    self, gemfile, binstubs: binstubs)
+                    self, gemfile, binstubs: binstubs
+                )
             ensure
                 rewrite_shims
             end
             if restart_on_update
                 new_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(
-                    self, 'autoproj', gem_home: config.gems_gem_home, gemfile: gemfile)
+                    self, 'autoproj', gemfile: gemfile
+                )
             end
 
             # First things first, see if we need to update ourselves

@@ -11,6 +11,7 @@ module Autoproj
                       .with(any, any, '/some/path/bin/bundle', 'some', 'program', Hash, Proc)
                       .once
                     BundlerManager.run_bundler(ws, 'some', 'program',
+                                               bundler_version: nil,
                                                gem_home: '/gem/home',
                                                gemfile: '/gem/path/Gemfile')
                 end
