@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'autoproj/package_managers/debian_version'
 
 module Autoproj
@@ -32,7 +34,9 @@ module Autoproj
                 ws.config.set('apt_dpkg_update', flag, true)
             end
 
-            def self.parse_package_status(installed_packages, installed_versions, paragraph)
+            def self.parse_package_status(
+                installed_packages, installed_versions, paragraph, virtual: true
+            )
                 if paragraph =~ /^Status: install ok installed$/
                     if paragraph =~ /^Package: (.*)$/
                         package_name = $1
@@ -41,13 +45,13 @@ module Autoproj
                             installed_versions[package_name] = DebianVersion.new($1)
                         end
                     end
-                    if paragraph =~ /^Provides: (.*)$/
+                    if virtual && paragraph =~ /^Provides: (.*)$/
                         installed_packages.merge($1.split(',').map(&:strip))
                     end
                 end
             end
 
-            def self.parse_dpkg_status(status_file)
+            def self.parse_dpkg_status(status_file, virtual: true)
                 installed_packages = Set.new
                 installed_versions = {}
                 dpkg_status = File.read(status_file)
@@ -60,9 +64,11 @@ module Autoproj
 
                 while paragraph_end = dpkg_status.scan_until(/Package: /)
                     paragraph = "Package: #{paragraph_end[0..-10]}"
-                    parse_package_status(installed_packages, installed_versions, paragraph)
+                    parse_package_status(installed_packages, installed_versions,
+                                         paragraph, virtual: virtual)
                 end
-                parse_package_status(installed_packages, installed_versions, "Package: #{dpkg_status.rest}")
+                parse_package_status(installed_packages, installed_versions,
+                                     "Package: #{dpkg_status.rest}", virtual: virtual)
                 [installed_packages, installed_versions]
             end
 

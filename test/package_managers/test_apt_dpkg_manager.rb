@@ -11,6 +11,13 @@ module Autoproj
                 assert !mng.installed?('noninstalled-package')
             end
 
+            it 'reports provided packages as installed' do
+                file = File.expand_path("apt-dpkg-status", __dir__)
+                ws = flexmock
+                mng = Autoproj::PackageManagers::AptDpkgManager.new(ws, file)
+                assert mng.installed?('xorg-driver-input')
+            end
+
             def test_status_file_parsing_is_robust_to_invalid_utf8
                 Tempfile.open 'osdeps_aptdpkg' do |io|
                     io.puts "Package: \x80\nStatus: installed ok install\n\nPackage: installed\nStatus: installed ok install"
@@ -36,6 +43,24 @@ module Autoproj
                 file = File.expand_path("apt-dpkg-status.noninstalled-last", File.dirname(__FILE__))
                 mng = Autoproj::PackageManagers::AptDpkgManager.new(flexmock, file)
                 assert !mng.installed?('non-existent-package')
+            end
+
+            describe 'parse_dpkg_status' do
+                it 'reports virtual packages as installed if \'virtual\' is true' do
+                    file = File.expand_path("apt-dpkg-status", __dir__)
+                    installed, = AptDpkgManager.parse_dpkg_status(
+                        file, virtual: true
+                    )
+                    assert_equal %w[installed-package xorg-driver-input].to_set, installed
+                end
+
+                it 'does not report virtual packages if \'virtual\' is false' do
+                    file = File.expand_path("apt-dpkg-status", __dir__)
+                    installed, = AptDpkgManager.parse_dpkg_status(
+                        file, virtual: false
+                    )
+                    assert_equal %w[installed-package].to_set, installed
+                end
             end
 
             LESS = :<
