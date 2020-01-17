@@ -35,24 +35,30 @@ module Autoproj
     # @deprecated use Autoproj.workspace.in_package_set or add a proper Loader
     #   object to your class
     def self.in_package_set(package_set, path, &block)
-        Autoproj.warn_deprecated __method__,
+        Autoproj.warn_deprecated(
+            __method__,
             "use Autoproj.workspace.in_package_set instead"
+        )
         Autoproj.workspace.in_package_set(package_set, path, &block)
     end
 
     # @deprecated use Autoproj.workspace.current_file or add a proper Loader
     #   object to your class
     def self.current_file
-        Autoproj.warn_deprecated __method__,
+        Autoproj.warn_deprecated(
+            __method__,
             "use AUtoproj.workspace.current_file instead"
+        )
         Autoproj.workspace.current_file
     end
 
     # @deprecated use Autoproj.workspace.current_package_set or add a proper
     #   Loader object to your class
     def self.current_package_set
-        Autoproj.warn_deprecated __method__,
+        Autoproj.warn_deprecated(
+            __method__,
             "use Autoproj.workspace.current_package_set instead"
+        )
         Autoproj.workspace.current_package_set
     end
 
@@ -60,22 +66,27 @@ module Autoproj
     #   Beware that the return value changed from Autobuild::Package to
     #   Autoproj::PackageDefinition
     def self.define(package_type, spec, &block)
-        Autoproj.warn_deprecated __method__, "use Autoproj.workspace.define_package "\
+        Autoproj.warn_deprecated(
+            __method__, "use Autoproj.workspace.define_package "\
             "instead (and beware that the return value changed from "\
             "Autobuild::Package to Autoproj::PackageDefinition)"
+        )
         workspace.define_package(package_type, spec, block, *current_file).
             autobuild
     end
 
     def self.loaded_autobuild_files
-        Autoproj.warn_deprecated __method__,
-            "use Autoproj.workspace.loaded_autobuild_files"
+        Autoproj.warn_deprecated(
+            __method__, "use Autoproj.workspace.loaded_autobuild_files"
+        )
         Autoproj.workspace.loaded_autobuild_files
     end
 
     def self.import_autobuild_file(package_set, path)
-        Autoproj.warn_deprecated __method__,
+        Autoproj.warn_deprecated(
+            __method__,
             "use Autoproj.workspace.import_autobuild_file"
+        )
         Autoproj.workspace.import_autobuild_file(package_set, path)
     end
 
@@ -490,11 +501,13 @@ def renamed_package(current_name, old_name, options)
         explicitely_selected_in_layout?(old_name)
     if options[:obsolete] && !explicit_selection
         import_package old_name
-        Autoproj.workspace.manifest.exclude_package old_name,
+        Autoproj.workspace.manifest.exclude_package(
+            old_name,
             "#{old_name} has been renamed to #{current_name}, you still have "\
             "the option of using the old name by adding '- #{old_name}' explicitely "\
             "in the layout in autoproj/manifest, but be warned that the name will "\
             "stop being usable at all in the near future"
+        )
     else
         metapackage old_name, current_name
     end

@@ -151,7 +151,7 @@ module Autoproj
                     non_imported_packages: non_imported_packages,
                     auto_exclude: auto_exclude)
 
-                return source_packages, osdep_packages, resolved_selection
+                [source_packages, osdep_packages, resolved_selection]
             rescue ExcludedSelection => e
                 raise CLIInvalidSelection, e.message, e.backtrace
             end

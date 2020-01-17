@@ -7,8 +7,10 @@ module Autoproj
                 if with_locking
                     File.open('/tmp/autoproj_osdeps_lock', 'w') do |lock_io|
                         begin
-                            while !lock_io.flock(File::LOCK_EX | File::LOCK_NB)
-                                Autoproj.message "  waiting for other autoproj instances to finish their osdeps installation"
+                            until lock_io.flock(File::LOCK_EX | File::LOCK_NB)
+                                Autoproj.message "  waiting for other autoproj "\
+                                                 "instances to finish their osdeps "\
+                                                 "installation"
                                 sleep 5
                             end
                             return execute(command_line, false, with_root, env: env)
@@ -17,7 +19,7 @@ module Autoproj
                         end
                     end
                 end
-                
+
                 if with_root
                     sudo = Autobuild.tool_in_path('sudo', env: env)
                     command_line = [sudo, *command_line]
@@ -34,10 +36,12 @@ module Autoproj
             # This declares if this package manager cannot be used concurrently.
             # If it is the case, autoproj will ensure that there is no two
             # autoproj instances running this package manager at the same time
-            # 
+            #
             # @return [Boolean]
             # @see needs_locking=
-            def needs_locking?; !!@needs_locking end
+            def needs_locking?
+                @needs_locking
+            end
 
             # Overrides the {#needs_root?} flag
             attr_writer :needs_root
@@ -45,10 +49,12 @@ module Autoproj
             #
             # This declares if the command line(s) for this package manager
             # should be started as root. Root access is provided using sudo
-            # 
+            #
             # @return [Boolean]
             # @see needs_root=
-            def needs_root?; !!@needs_root end
+            def needs_root?
+                @needs_root
+            end
 
             # Command line used by autoproj to install packages
             #
@@ -83,10 +89,13 @@ module Autoproj
             #   itself, see {#auto_install_cmd}.
             # @param [Boolean] needs_root if the command lines should be started
             #   as root or not. See {#needs_root?}
-            def initialize(ws, needs_locking, user_install_cmd, auto_install_cmd,needs_root=true)
+            def initialize(ws, needs_locking, user_install_cmd,
+                           auto_install_cmd, needs_root = true)
                 super(ws)
-                @needs_locking, @user_install_cmd, @auto_install_cmd,@needs_root =
-                    needs_locking, user_install_cmd, auto_install_cmd, needs_root
+                @needs_locking = needs_locking
+                @user_install_cmd = user_install_cmd
+                @auto_install_cmd = auto_install_cmd
+                @needs_root = needs_root
             end
 
             # Generate the shell script that would allow the user to install
@@ -98,7 +107,8 @@ module Autoproj
             #   command-line pattern that should be used to generate the script.
             #   If given, it overrides the default value stored in
             #   {#user_install_cmd]
-            def generate_user_os_script(os_packages, user_install_cmd: self.user_install_cmd)
+            def generate_user_os_script(os_packages,
+                                        user_install_cmd: self.user_install_cmd)
                 if user_install_cmd
                     user_install_cmd.join(" ") + " " + os_packages.join("' '")
                 else generate_auto_os_script(os_packages)
@@ -114,7 +124,8 @@ module Autoproj
             #   command-line pattern that should be used to generate the script.
             #   If given, it overrides the default value stored in
             #   {#auto_install_cmd]
-            def generate_auto_os_script(os_packages, auto_install_cmd: self.auto_install_cmd)
+            def generate_auto_os_script(os_packages,
+                                        auto_install_cmd: self.auto_install_cmd)
                 auto_install_cmd.join(" ") + " " + os_packages.join("' '")
             end
 
@@ -139,9 +150,9 @@ module Autoproj
                 # anyway, do so now
                 puts <<-EOMSG
 
-                #{Autoproj.color("The build process and/or the packages require some other software to be installed", :bold)}
-                #{Autoproj.color("and you required autoproj to not install them itself", :bold)}
-                #{Autoproj.color("\nIf these packages are already installed, simply ignore this message\n", :red) if !respond_to?(:filter_uptodate_packages)}
+                #{Autoproj.color('The build process and/or the packages require some other software to be installed', :bold)}
+                #{Autoproj.color('and you required autoproj to not install them itself', :bold)}
+                #{Autoproj.color('\nIf these packages are already installed, simply ignore this message\n', :red) unless respond_to?(:filter_uptodate_packages)}
     The following packages are available as OS dependencies, i.e. as prebuilt
     packages provided by your distribution / operating system. You will have to
     install them manually if they are not already installed
@@ -152,8 +163,8 @@ module Autoproj
 
                 #{shell_script.split("\n").join("\n|   ")}
 
-            EOMSG
-                print "    #{Autoproj.color("Press ENTER to continue ", :bold)}"
+                EOMSG
+                print "    #{Autoproj.color('Press ENTER to continue ', :bold)}"
                 STDOUT.flush
                 STDIN.readline
                 puts
@@ -172,23 +183,33 @@ module Autoproj
             #   packages. See the option in {#generate_auto_os_script}
             # @return [Boolean] true if packages got installed, false otherwise
             def install(packages, filter_uptodate_packages: false, install_only: false,
-                        auto_install_cmd: self.auto_install_cmd, user_install_cmd: self.user_install_cmd)
+                        auto_install_cmd: self.auto_install_cmd,
+                        user_install_cmd: self.user_install_cmd)
                 return if packages.empty?
 
                 handled_os = ws.supported_operating_system?
                 if handled_os
-                    shell_script = generate_auto_os_script(packages, auto_install_cmd: auto_install_cmd)
-                    user_shell_script = generate_user_os_script(packages, user_install_cmd: user_install_cmd)
+                    shell_script = generate_auto_os_script(
+                        packages, auto_install_cmd: auto_install_cmd
+                    )
+                    user_shell_script = generate_user_os_script(
+                        packages, user_install_cmd: user_install_cmd
+                    )
                 end
                 if osdeps_interaction(packages, user_shell_script)
-                    Autoproj.message "  installing OS packages: #{packages.sort.join(", ")}"
+                    Autoproj.message "  installing OS packages: "\
+                                     "#{packages.sort.join(', ')}"
 
                     if Autoproj.verbose
-                        Autoproj.message "Generating installation script for non-ruby OS dependencies"
+                        Autoproj.message "Generating installation script for "\
+                                         "non-ruby OS dependencies"
                         Autoproj.message shell_script
                     end
 
-                    ShellScriptManager.execute([*auto_install_cmd, *packages], needs_locking?, needs_root?, env: ws.env)
+                    ShellScriptManager.execute(
+                        [*auto_install_cmd, *packages], needs_locking?,
+                        needs_root?, env: ws.env
+                    )
                     return true
                 end
                 false
@@ -196,4 +217,3 @@ module Autoproj
         end
     end
 end
-

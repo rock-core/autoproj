@@ -50,12 +50,14 @@ module Autoproj
 
         # Load the manifest data contained in +file+
         def load(file)
-            if !File.exist?(file)
-                raise ConfigError.new(File.dirname(file)), "expected an autoproj configuration in #{File.dirname(file)}, but #{file} does not exist"
+            unless File.exist?(file)
+                raise ConfigError.new(File.dirname(file)),
+                      "expected an autoproj configuration in #{File.dirname(file)}, "\
+                      "but #{file} does not exist"
             end
 
             data = Autoproj.in_file(file, Autoproj::YAML_LOAD_ERROR) do
-                YAML.load(File.read(file)) || Hash.new
+                YAML.safe_load(File.read(file)) || {}
             end
 
             @file = file
@@ -81,7 +83,8 @@ module Autoproj
             @has_layout = !!data['layout']
 
             if data['constants']
-                @constant_definitions = Autoproj.resolve_constant_definitions(data['constants'])
+                @constant_definitions =
+                    Autoproj.resolve_constant_definitions(data['constants'])
             end
         end
 

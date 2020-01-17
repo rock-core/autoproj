@@ -4,7 +4,7 @@ module Autoproj
     module PackageManagers
         describe AptDpkgManager do
             def test_status_file_parsing
-                file = File.expand_path("apt-dpkg-status", File.dirname(__FILE__))
+                file = File.expand_path("apt-dpkg-status", __dir__)
                 ws = flexmock
                 mng = Autoproj::PackageManagers::AptDpkgManager.new(ws, file)
                 assert mng.installed?('installed-package')
@@ -28,19 +28,19 @@ module Autoproj
             end
 
             def test_status_file_parsing_last_entry_installed
-                file = File.expand_path("apt-dpkg-status.installed-last", File.dirname(__FILE__))
+                file = File.expand_path("apt-dpkg-status.installed-last", __dir__)
                 mng = Autoproj::PackageManagers::AptDpkgManager.new(flexmock, file)
                 assert mng.installed?('installed-package')
             end
 
             def test_status_file_parsing_last_entry_not_installed
-                file = File.expand_path("apt-dpkg-status.noninstalled-last", File.dirname(__FILE__))
+                file = File.expand_path("apt-dpkg-status.noninstalled-last", __dir__)
                 mng = Autoproj::PackageManagers::AptDpkgManager.new(flexmock, file)
                 assert !mng.installed?('noninstalled-package')
             end
 
             def test_status_file_parsing_not_there_means_not_installed
-                file = File.expand_path("apt-dpkg-status.noninstalled-last", File.dirname(__FILE__))
+                file = File.expand_path("apt-dpkg-status.noninstalled-last", __dir__)
                 mng = Autoproj::PackageManagers::AptDpkgManager.new(flexmock, file)
                 assert !mng.installed?('non-existent-package')
             end
@@ -112,7 +112,7 @@ module Autoproj
                 assert_version '57:1.2.3abYZ+~-4-5', EQUAL, '57:1.2.3abYZ+~-4-5' # and those too
                 assert_version '1.2.3', EQUAL, '0:1.2.3' # zero epoch
                 assert_version '1.2.3', EQUAL, '1.2.3-0' # zero revision
-                assert_version '009', EQUAL, '9' # zeroes…
+                assert_version '009', EQUAL, '9' # zeroes
                 assert_version '009ab5', EQUAL, '9ab5' # there as well
                 assert_version '1.2.3', LESS, '1.2.3-1' # added non-zero revision
                 assert_version '1.2.3', LESS, '1.2.4' # just bigger
@@ -143,4 +143,3 @@ module Autoproj
         end
     end
 end
-

@@ -18,12 +18,14 @@ module Autoproj
             end
 
             def run(selected_packages, **options)
-                build_options, options = filter_options options,
+                build_options, options = filter_options(
+                    options,
                     force: false,
                     rebuild: false,
                     parallel: nil,
                     confirm: true,
                     not: Array.new
+                )
 
                 command_line_selection, source_packages, _osdep_packages =
                     super(selected_packages,
@@ -41,6 +43,7 @@ module Autoproj
                 # Disable all packages that are not selected
                 ws.manifest.each_autobuild_package do |pkg|
                     next if active_packages.include?(pkg.name)
+
                     pkg.disable
                 end
 
@@ -61,11 +64,13 @@ module Autoproj
                                     else 'force-build'
                                     end
                         if build_options[:confirm] != false
-                            opt = BuildOption.new("", "boolean",
+                            opt = BuildOption.new(
+                                "", "boolean",
                                 {
                                     doc: "this is going to trigger a #{mode_name} "\
                                         "of all packages. Is that really what you want ?"
-                                }, nil)
+                                }, nil
+                            )
                             raise Interrupt unless opt.ask(false)
                         end
 

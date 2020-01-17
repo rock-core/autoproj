@@ -30,13 +30,15 @@ module Autoproj
         # @param [Boolean] ros_manifest whether the file follows the ROS format
         # @return [PackageManifest]
         # @see load
-        def self.parse(package, contents, path: '<loaded from string>', loader_class: Loader)
+        def self.parse(package, contents,
+                       path: '<loaded from string>', loader_class: Loader)
             manifest = PackageManifest.new(package, path)
             loader = loader_class.new(path, manifest)
             begin
                 REXML::Document.parse_stream(contents, loader)
             rescue REXML::ParseException => e
-                raise Autobuild::PackageException.new(package.name, 'prepare'), "invalid #{file}: #{e.message}"
+                raise Autobuild::PackageException.new(package.name, 'prepare'),
+                      "invalid #{file}: #{e.message}"
             end
             manifest
         end
@@ -45,7 +47,7 @@ module Autoproj
         Dependency  = Struct.new :name, :optional, :modes
 
         # The Autobuild::Package instance this manifest applies on
-        attr_reader :package
+        attr_accessor :package
         attr_reader :path
         attr_accessor :description
         attr_accessor :brief_description
@@ -64,7 +66,7 @@ module Autoproj
         end
 
         def has_documentation?
-            !!description
+            description
         end
 
         def documentation
@@ -72,7 +74,7 @@ module Autoproj
         end
 
         def has_short_documentation?
-            !!brief_description
+            brief_description
         end
 
         def short_documentation
@@ -95,11 +97,12 @@ module Autoproj
         # Whether this is a null manifest (used for packages that have actually
         # no manifest) or not
         def null?
-            !!@null
+            @null
         end
 
-        def each_dependency(in_modes = Array.new, &block)
-            return enum_for(__method__, in_modes) if !block_given?
+        def each_dependency(in_modes = [])
+            return enum_for(__method__, in_modes) unless block_given?
+
             dependencies.each do |dep|
                 if dep.modes.empty? || in_modes.any? { |m| dep.modes.include?(m) }
                     yield(dep.name, dep.optional)
@@ -108,24 +111,28 @@ module Autoproj
         end
 
         def each_os_dependency(modes = Array.new, &block)
-            Autoproj.warn_deprecated "#{self.class}##{__method__}", "call #each_dependency instead"
-            return each_dependency(modes, &block)
+            Autoproj.warn_deprecated "#{self.class}##{__method__}",
+                                     "call #each_dependency instead"
+            each_dependency(modes, &block)
         end
 
         def each_package_dependency(modes = Array.new, &block)
-            Autoproj.warn_deprecated "#{self.class}##{__method__}", "call #each_dependency instead"
-            return each_dependency(modes, &block)
+            Autoproj.warn_deprecated "#{self.class}##{__method__}",
+                                     "call #each_dependency instead"
+            each_dependency(modes, &block)
         end
 
         def each_rock_maintainer
-            return enum_for(__method__) if !block_given?
+            return enum_for(__method__) unless block_given?
+
             rock_maintainers.each do |m|
                 yield(m.name, m.email)
             end
         end
 
         def each_maintainer
-            return enum_for(__method__) if !block_given?
+            return enum_for(__method__) unless block_given?
+
             maintainers.each do |m|
                 yield(m.name, m.email)
             end
@@ -134,7 +141,8 @@ module Autoproj
         # Enumerates the name and email of each author. If no email is present,
         # yields (name, nil)
         def each_author
-            return enum_for(__method__) if !block_given?
+            return enum_for(__method__) unless block_given?
+
             authors.each do |m|
                 yield(m.name, m.email)
             end
@@ -178,11 +186,13 @@ module Autoproj
 
             def parse_depend_tag(tag_name, attributes, modes: [], optional: false)
                 package = attributes['package'] || attributes['name']
-                if !package
-                    raise InvalidPackageManifest, "found '#{tag_name}' tag in #{path} without a 'package' attribute"
+                unless package
+                    raise InvalidPackageManifest,
+                          "found '#{tag_name}' tag in #{path} "\
+                          "without a 'package' attribute"
                 end
 
-                if tag_modes = attributes['modes']
+                if (tag_modes = attributes['modes'])
                     modes += tag_modes.split(',')
                 end
 
@@ -195,7 +205,7 @@ module Autoproj
             def parse_contact_field(text)
                 text.strip.split(',').map do |str|
                     name, email = str.split('/').map(&:strip)
-                    email = nil if email && email.empty?
+                    email = nil if email&.empty?
                     ContactInfo.new(name, email)
                 end
             end
@@ -213,7 +223,7 @@ module Autoproj
                 elsif name =~ /^(\w+)_depend$/
                     parse_depend_tag(name, attributes, modes: [$1])
                 elsif name == 'description'
-                    if brief = attributes['brief']
+                    if (brief = attributes['brief'])
                         manifest.brief_description = brief
                     end
                     @tag_text = ''
@@ -225,14 +235,13 @@ module Autoproj
                     @tag_text = nil
                 end
             end
+
             def toplevel_tag_end(name)
                 if AUTHOR_FIELDS.include?(name)
                     manifest.send("#{name}s").concat(parse_contact_field(@tag_text))
                 elsif TEXT_FIELDS.include?(name)
                     field = @tag_text.strip
-                    if !field.empty?
-                        manifest.send("#{name}=", field)
-                    end
+                    manifest.send("#{name}=", field) unless field.empty?
                 elsif name == 'tags'
                     manifest.tags.concat(@tag_text.strip.split(',').map(&:strip))
                 end
@@ -245,10 +254,10 @@ module Autoproj
         # REXML stream parser object used to load the XML contents into a
         # {PackageManifest} object
         class RosLoader < Loader
-            SUPPORTED_MODES = ['test', 'doc'].freeze
-            DEPEND_TAGS = Set['depend', 'build_depend', 'build_export_depend',
-                              'buildtool_depend', 'buildtool_export_depend',
-                              'exec_depend', 'test_depend', 'run_depend', 'doc_depend']
+            SUPPORTED_MODES = %w[test doc].freeze
+            DEPEND_TAGS = %w[depend build_depend build_export_depend
+                             buildtool_depend buildtool_export_depend
+                             exec_depend test_depend run_depend doc_depend].to_set.freeze
 
             def toplevel_tag_start(name, attributes)
                 if DEPEND_TAGS.include?(name)
@@ -265,18 +274,21 @@ module Autoproj
 
             def toplevel_tag_end(name)
                 if DEPEND_TAGS.include?(name)
-                    raise InvalidPackageManifest, "found '#{name}' tag in #{path} without content" if @tag_text.strip.empty?
+                    if @tag_text.strip.empty?
+                        raise InvalidPackageManifest, "found '#{name}' tag in #{path} "\
+                                                      "without content"
+                    end
 
                     mode = []
-                    if name =~ /^(\w+)_depend$/
-                        mode = SUPPORTED_MODES & [$1]
+                    if (m = /^(\w+)_depend$/.match(name))
+                        mode = SUPPORTED_MODES & [m[1]]
                     end
 
                     manifest.add_dependency(@tag_text, modes: mode)
                 elsif AUTHOR_FIELDS.include?(name)
                     author_name = @tag_text.strip
                     email = @author_email ? @author_email.strip : nil
-                    email = nil if email && email.empty?
+                    email = nil if email&.empty?
                     contact = ContactInfo.new(author_name, email)
                     manifest.send("#{name}s").concat([contact])
                 elsif TEXT_FIELDS.include?(name)

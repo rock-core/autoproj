@@ -9,7 +9,7 @@ module Autoproj
         def self.load_cached_env(root_dir)
             path = cached_env_path(root_dir)
             if File.file?(path)
-                env = YAML.load(File.read(path))
+                env = YAML.safe_load(File.read(path))
                 Autobuild::Environment::ExportedEnvironment.new(
                     env['set'], env['unset'], env['update'])
             end
@@ -20,7 +20,7 @@ module Autoproj
             path = cached_env_path(root_dir)
             existing =
                 begin
-                    YAML.load(File.read(path))
+                    YAML.safe_load(File.read(path))
                 rescue Exception
                 end
 
