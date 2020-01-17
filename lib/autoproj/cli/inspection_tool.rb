@@ -8,9 +8,7 @@ module Autoproj
             def initialize_and_load(mainline: nil)
                 Autoproj.silent do
                     ws.setup
-                    if mainline == 'mainline' || mainline == 'true'
-                        mainline = true
-                    end
+                    mainline = true if %w[mainline true].include?(mainline)
                     ws.load_package_sets(mainline: mainline)
                     ws.config.save
                     ws.setup_all_package_directories
@@ -22,7 +20,7 @@ module Autoproj
             # @param [Array<String>] packages the list of package names
             # @param [Symbol] non_imported_packages whether packages that are
             #   not yet imported should be ignored (:ignore) or returned
-            #   (:return). 
+            #   (:return).
             # @option options recursive (true) whether the package resolution
             #   should return the package(s) and their dependencies
             #
@@ -32,7 +30,8 @@ module Autoproj
             #   the arguments were pointing within the configuration area
             def finalize_setup(packages = [], non_imported_packages: :ignore, recursive: true, auto_exclude: false)
                 Autoproj.silent do
-                    packages, config_selected = normalize_command_line_package_selection(packages)
+                    packages, config_selected =
+                        normalize_command_line_package_selection(packages)
                     # Call resolve_user_selection once to auto-add packages, so
                     # that they're available to e.g. overrides.rb
                     resolve_user_selection(packages)
@@ -41,7 +40,7 @@ module Autoproj
                         resolve_selection(packages, recursive: recursive, non_imported_packages: non_imported_packages, auto_exclude: auto_exclude)
                     ws.finalize_setup
                     ws.export_installation_manifest
-                    return source_packages, osdep_packages, resolved_selection, config_selected
+                    [source_packages, osdep_packages, resolved_selection, config_selected]
                 end
             end
         end

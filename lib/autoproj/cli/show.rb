@@ -17,7 +17,8 @@ module Autoproj
                     source_packages, osdep_packages, * =
                         finalize_setup(user_selection, recursive: recursive, non_imported_packages: :return)
                 else
-                    source_packages, osdep_packages = Array.new, Array.new
+                    source_packages = []
+                    osdep_packages = []
                 end
 
                 all_matching_osdeps = osdep_packages.map { |pkg| [pkg, true] }
@@ -232,7 +233,7 @@ module Autoproj
                     end
                 end
 
-                if !selections.empty?
+                unless selections.empty?
                     puts "  selected by way of"
                     selections.each do |root_pkg|
                         paths = find_selection_path(root_pkg, pkg_name)
@@ -248,9 +249,7 @@ module Autoproj
             end
 
             def find_selection_path(from, to)
-                if from == to
-                    return [[from]]
-                end
+                return [[from]] if from == to
 
                 all_paths = Array.new
                 ws.manifest.resolve_package_name(from).each do |pkg_type, pkg_name|
@@ -262,19 +261,17 @@ module Autoproj
 
                     pkg = ws.manifest.find_autobuild_package(pkg_name)
                     pkg.dependencies.each do |dep_pkg_name|
-                        if result = find_selection_path(dep_pkg_name, to)
+                        if (result = find_selection_path(dep_pkg_name, to))
                             all_paths.concat(result.map { |p| path + p })
                         end
                     end
-                    if pkg.os_packages.include?(to)
-                        all_paths << (path + [to])
-                    end
+                    all_paths << (path + [to]) if pkg.os_packages.include?(to)
                 end
 
                 # Now filter common trailing subpaths
                 all_paths = all_paths.sort_by(&:size)
                 filtered_paths = Array.new
-                while !all_paths.empty?
+                until all_paths.empty?
                     path = all_paths.shift
                     filtered_paths << path
                     size = path.size
@@ -290,19 +287,15 @@ module Autoproj
                     options = vcs.dup
                     type = options.delete('type')
                     url  = options.delete('url')
-                else 
+                else
                     options = vcs.options
                     type = vcs.type
                     url = vcs.url
                 end
 
                 fields = []
-                if type
-                    fields << ['type', type]
-                end
-                if url
-                    fields << ['url', url]
-                end
+                fields << ['type', type] if type
+                fields << ['url', url] if url
                 fields = fields.concat(options.to_a.sort_by { |k, _| k.to_s })
                 fields.map do |key, value|
                     if value.respond_to?(:to_str) && File.file?(value) && value =~ /^\//
@@ -315,9 +308,10 @@ module Autoproj
             def compute_all_revdeps(pkg_revdeps, revdeps)
                 pkg_revdeps = pkg_revdeps.dup
                 all_revdeps = Array.new
-                while !pkg_revdeps.empty?
+                until pkg_revdeps.empty?
                     parent_name = pkg_revdeps.shift
                     next if all_revdeps.include?(parent_name)
+
                     all_revdeps << parent_name
                     pkg_revdeps.concat(revdeps[parent_name].to_a)
                 end

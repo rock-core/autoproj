@@ -199,9 +199,7 @@ module Autoproj
                 retry_count: 0, osdeps: true, auto_exclude: false, osdeps_options: Hash.new,
                 report: true)
 
-                if from
-                    setup_update_from(from)
-                end
+                setup_update_from(from) if from
 
                 ops = Autoproj::Ops::Import.new(
                     ws, report_path: (ws.import_report_path if report))
@@ -216,14 +214,15 @@ module Autoproj
                                         retry_count: retry_count,
                                         install_vcs_packages: (osdeps_options if osdeps),
                                         auto_exclude: auto_exclude)
-                return source_packages, osdep_packages, nil
+                [source_packages, osdep_packages, nil]
             rescue ExcludedSelection => e
                 raise CLIInvalidSelection, e.message, e.backtrace
             rescue PackageImportFailed => import_failure
-                if !keep_going
-                    raise
-                end
-                return import_failure.source_packages, import_failure.osdep_packages, import_failure
+                raise unless keep_going
+
+                [import_failure.source_packages,
+                 import_failure.osdep_packages,
+                 import_failure]
             end
 
             def setup_update_from(other_root)

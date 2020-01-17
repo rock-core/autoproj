@@ -366,7 +366,9 @@ module Autoproj
                 end
             end
 
-            def finalize_package_load(processed_packages, auto_exclude: auto_exclude?)
+            def finalize_package_load(processed_packages,
+                                      ignore_optional_dependencies: false,
+                                      auto_exclude: auto_exclude?)
                 manifest = ws.manifest
 
                 all = Set.new

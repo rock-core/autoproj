@@ -60,14 +60,15 @@ module Autoproj
                     YAML.dump(Hash['version_control' => Array.new, 'overrides' => Array.new], io)
                 end
                 @workspace = Workspace.new(test_dir)
-                workspace.os_package_resolver.operating_system = [['debian', 'tests'], ['test_version']]
+                workspace.os_package_resolver.operating_system =
+                    [%w[debian tests], %w[test_version]]
                 workspace.load_config
             end
 
             def add_in_osdeps(entry, suffix: '')
                 test_osdeps = File.join(test_autoproj_dir, "test.osdeps#{suffix}")
                 FileUtils.touch test_osdeps
-                current = YAML.load(File.read(test_osdeps)) || Hash.new
+                current = YAML.safe_load(File.read(test_osdeps)) || Hash.new
                 File.open(test_osdeps, 'w') do |io|
                     YAML.dump(current.merge!(entry), io)
                 end
@@ -80,7 +81,7 @@ module Autoproj
             end
 
             def add_version_control(package_name, type: 'local', url: package_name, **vcs)
-                overrides_yml = YAML.load(File.read(File.join(test_autoproj_dir, 'overrides.yml')))
+                overrides_yml = YAML.safe_load(File.read(File.join(test_autoproj_dir, 'overrides.yml')))
                 overrides_yml['version_control'] << Hash[
                     package_name =>
                         vcs.merge(type: type, url: url)
@@ -161,22 +162,23 @@ module Autoproj
                 # First, we need to package autoproj as-is so that we can
                 # install while using the gem server
                 install_successful = false
-                out, err = capture_subprocess_io do
+                _out, err = capture_subprocess_io do
                     system(Hash['__AUTOPROJ_TEST_FAKE_VERSION' => "2.99.90"],
-                        "rake", "build")
+                           "rake", "build")
                     install_successful = Autoproj.bundler_unbundled_system(
                         Hash['GEM_HOME' => fixture_gem_home],
                         Ops::Install.guess_gem_program, 'install',
                         '--ignore-dependencies', '--no-document',
                         File.join('pkg', "autoproj-2.99.90.gem"))
                 end
-                if !install_successful
+                unless install_successful
                     flunk("failed to install the autoproj gem in the mock repository:\n"\
                         "#{err}")
                 end
 
-                autobuild_full_path  = find_gem_dir('autobuild').full_gem_path
-                install_dir, _ = invoke_test_script 'install.sh',
+                autobuild_full_path = find_gem_dir('autobuild').full_gem_path
+                install_dir, = invoke_test_script(
+                    'install.sh',
                     "--gems-path=#{gems_path}",
                     '--gem-source', 'http://localhost:8808',
                     gemfile_source: <<-AUTOPROJ_GEMFILE
@@ -185,18 +187,20 @@ module Autoproj
                         gem 'autoproj', '>= 2.99.90'
                         gem 'autobuild', path: '#{autobuild_full_path}'
                     AUTOPROJ_GEMFILE
+                )
 
                 # We create a fake high-version gem and put it in the
                 # vendor/cache (since we rely on a self-started server to serve
                 # our gems)
                 capture_subprocess_io do
-                    system(Hash['__AUTOPROJ_TEST_FAKE_VERSION' => "2.99.99"],
-                        "rake", "build")
+                    system({ '__AUTOPROJ_TEST_FAKE_VERSION' => "2.99.99" },
+                           "rake", "build")
                     Autoproj.bundler_unbundled_system(
                         Hash['GEM_HOME' => fixture_gem_home],
                         Ops::Install.guess_gem_program, 'install',
                         '--ignore-dependencies', '--no-document',
-                        File.join('pkg', 'autoproj-2.99.99.gem'))
+                        File.join('pkg', 'autoproj-2.99.99.gem')
+                    )
                 end
 
                 result = nil
@@ -205,7 +209,7 @@ module Autoproj
                         File.join('.autoproj', 'bin', 'autoproj'), 'update', '--autoproj',
                         chdir: install_dir)
                 end
-                if !result
+                unless result
                     puts stdout
                     puts stderr
                     flunk("autoproj update --autoproj terminated")
@@ -220,6 +224,7 @@ module Autoproj
                 FileUtils.mkdir_p File.join(workspace_dir, 'autoproj')
                 workspace_dir
             end
+
             def make_v2_workspace
                 workspace_dir = make_tmpdir
                 FileUtils.mkdir_p File.join(workspace_dir, '.autoproj')
@@ -297,8 +302,11 @@ module Autoproj
                 flexmock(pkg_set).should_receive(:user_local_dir).and_return('/user/dir')
                 ws.export_installation_manifest
                 manifest = InstallationManifest.from_workspace_root(ws.root_dir)
-                assert_equal [InstallationManifest::PackageSet.new('rock.core', Hash[type: 'none', url: nil], pkg_set_dir, '/user/dir')],
-                    manifest.each_package_set.to_a
+
+                expected = [InstallationManifest::PackageSet.new(
+                    'rock.core', Hash[type: 'none', url: nil], pkg_set_dir, '/user/dir'
+                )]
+                assert_equal expected, manifest.each_package_set.to_a
             end
             it "ignores selected osdeps" do
                 ws_add_osdep_entries_to_layout 'package' => 'gem'
@@ -373,19 +381,19 @@ module Autoproj
             def create_test_directory(path = target_test_path)
                 FileUtils.mkdir_p path
                 FileUtils.chmod 0o755, path
-                return path
+                path
             end
 
             def create_test_file(path = target_test_path)
                 FileUtils.mkdir_p(File.dirname(path))
                 FileUtils.touch path
-                return path
+                path
             end
 
             def create_test_executable(path = target_test_path)
                 create_test_file(path)
                 FileUtils.chmod 0o755, path
-                return path
+                path
             end
 
             describe "when given a full path" do
@@ -404,7 +412,7 @@ module Autoproj
                         ws.which(path)
                     end
                     assert_equal "given command `#{path}` does not exist, an executable file was expected",
-                        e.message
+                                 e.message
                 end
 
                 it "raises if the file exists but does not point to an executable file" do
@@ -413,7 +421,7 @@ module Autoproj
                         ws.which(path)
                     end
                     assert_equal "given command `#{path}` exists but is not an executable file",
-                        e.message
+                                 e.message
                 end
 
                 it "raises if the path does not point to a file" do
@@ -422,7 +430,7 @@ module Autoproj
                         ws.which(path)
                     end
                     assert_equal "given command `#{path}` exists but is not an executable file",
-                        e.message
+                                 e.message
                 end
             end
 
@@ -442,16 +450,16 @@ module Autoproj
                         ws.which('autoproj_which_test')
                     end
                     assert_equal "`autoproj_which_test` resolves to #{path} which is not executable",
-                        e.message
+                                 e.message
                 end
 
                 it "raises if the file exists but is not a file" do
-                    path = create_test_directory
+                    create_test_directory
                     e = assert_raises(ExecutableNotFound) do
                         ws.which('autoproj_which_test')
                     end
                     assert_equal "cannot resolve `autoproj_which_test` to an executable in the workspace",
-                        e.message
+                                 e.message
                 end
 
                 it "raises if the file does not exist" do
@@ -459,7 +467,7 @@ module Autoproj
                         ws.which('autoproj_which_test')
                     end
                     assert_equal "cannot resolve `autoproj_which_test` to an executable in the workspace",
-                        e.message
+                                 e.message
                 end
 
                 it "ignores paths that are not executable" do
@@ -522,4 +530,3 @@ module Autoproj
         end
     end
 end
-
