@@ -7,7 +7,7 @@ module Autoproj
 
             no_commands do
                 def report(report_options = Hash.new)
-                    options = self.options.merge(parent_options)
+                    options = self.options.merge(parent_options).transform_keys(&:to_sym)
                     extra_options = Hash.new
                     if Autobuild::Subprocess.transparent_mode = options[:tool]
                         Autobuild.silent = true
@@ -73,11 +73,11 @@ module Autoproj
                 desc: 'enables or disables progress display (enabled by default if the terminal supports it)'
             def exec(*packages)
                 require 'autoproj/cli/doc'
-                options = self.options.merge(parent_options)
+                options = self.options.merge(parent_options).transform_keys(&:to_sym)
                 report do |extra_options|
                     cli = Doc.new
                     options.delete(:tool)
-                    args = cli.validate_options(packages, options.merge(extra_options))
+                    args = cli.validate_options(packages, **options.merge(extra_options))
                     cli.run(*args)
                 end
             end

@@ -21,19 +21,32 @@ module Autoproj
         end
 
         class Main < Thor
-            class_option :verbose, type: :boolean, default: false,
-                desc: 'turns verbose output'
-            class_option :debug, type: :boolean, default: false,
-                desc: 'turns debugging output'
-            class_option :silent, type: :boolean, default: false,
-                desc: 'tell autoproj to not display anything'
-            class_option :color, type: :boolean, default: TTY::Color.color?,
-                desc: 'enables or disables colored display (enabled by default if the terminal supports it)'
-            class_option :progress, type: :boolean, default: TTY::Color.color?,
-                desc: 'enables or disables progress display (enabled by default if the terminal supports it)'
-            class_option 'interactive', type: :boolean,
-                default: (ENV['AUTOPROJ_NONINTERACTIVE'] != '1'),
-                desc: 'tell autoproj to run (non)interactively'
+            class_option :verbose,
+                         type: :boolean, default: false, desc: 'turns verbose output'
+            class_option :debug,
+                         type: :boolean, default: false, desc: 'turns debugging output'
+            class_option :silent,
+                         type: :boolean, default: false,
+                         desc: 'tell autoproj to not display anything'
+            class_option :color,
+                         type: :boolean, default: TTY::Color.color?,
+                         desc: 'enables or disables colored display '\
+                               '(enabled by default if the terminal supports it)'
+            class_option :progress,
+                         type: :boolean,
+                         desc: 'deprecated. Use --progress_mode=off to disable'
+            class_option :progress_mode,
+                         type: :string, default: TTY::Color.color? ? 'single_line' : 'off',
+                         desc: 'whether the progress messages should replace each other '\
+                               '(single_line), be displayed on a new line (newline) or '\
+                               'be disabled altogether (off)'
+            class_option :progress_period,
+                         type: :numeric, default: 0.1,
+                         desc: 'minimum time between two progress messages'
+            class_option :interactive,
+                         type: :boolean,
+                         default: (ENV['AUTOPROJ_NONINTERACTIVE'] != '1'),
+                         desc: 'tell autoproj to run (non)interactively'
 
             stop_on_unknown_option! :exec
             check_unknown_options!  except: :exec
@@ -129,15 +142,19 @@ module Autoproj
                         options = self.options.dup
                         # We use --local on the CLI but the APIs are expecting
                         # only_local
-                        if options.has_key?('local')
+                        if options.key?('local')
                             options[:only_local] = options.delete('local')
                         end
+
                         cli = CLI.const_get(classname).new
                         begin
-                            run_args = cli.validate_options(args, options.merge(extra_options))
+                            all_options = options.merge(extra_options).to_sym_keys
+                            run_args = cli.validate_options(args, **all_options)
                             cli.run(*run_args)
                         ensure
-                            cli.notify_env_sh_updated if cli.respond_to?(:notify_env_sh_updated)
+                            if cli.respond_to?(:notify_env_sh_updated)
+                                cli.notify_env_sh_updated
+                            end
                         end
                     end
                 end
