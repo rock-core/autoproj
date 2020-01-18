@@ -180,27 +180,44 @@ module Autoproj
                 self.class.validate_options(args, options)
             end
 
+            def self.default_color_enabled?
+                TTY::Color.color?
+            end
+
+            def self.default_progress_mode
+                TTY::Color.color? ? 'single_line' : 'off'
+            end
+
             def self.validate_options(args, options)
-                options, remaining = filter_options options,
-                    silent: false,
-                    verbose: false,
-                    debug: false,
-                    color: TTY::Color.color?,
-                    progress: TTY::Color.color?,
-                    parallel: nil
+                validate_options_kw(args, **options)
+            end
 
-                Autoproj.silent = options[:silent]
-                Autobuild.color = options[:color]
-                Autobuild.progress_display_enabled = options[:progress]
+            def self.validate_options_kw(args, silent: false, verbose: false,
+                                               debug: false, parallel: nil,
+                                               color: default_color_enabled?,
+                                               progress: nil, progress_mode: nil,
+                                               progress_period: 0.1,
+                                               **remaining)
+                Autoproj.silent = silent
+                Autobuild.color = color
 
-                if options[:verbose]
+                if !progress.nil?
+                    Autobuild.progress_display_mode = progress ? 'single_line' : 'off'
+                else
+                    Autobuild.progress_display_mode =
+                        progress_mode || default_progress_mode
+                end
+
+                Autobuild.progress_display_period = progress_period
+
+                if verbose
                     Autoproj.verbose  = true
                     Autobuild.verbose = true
                     Rake.application.options.trace = false
                     Autobuild.debug = false
                 end
 
-                if options[:debug]
+                if debug
                     Autoproj.verbose  = true
                     Autobuild.verbose = true
                     Rake.application.options.trace = true
@@ -208,12 +225,12 @@ module Autoproj
                 end
 
 
-                if level = options[:parallel]
+                if level = parallel
                     Autobuild.parallel_build_level = Integer(level)
                     remaining[:parallel] = Integer(level)
                 end
 
-                return args, remaining.to_sym_keys
+                [args, remaining]
             end
 
             def export_env_sh(shell_helpers: ws.config.shell_helpers?)

@@ -4,7 +4,7 @@ require 'autoproj/ops/build'
 module Autoproj
     module CLI
         class Build < Update
-            def validate_options(selected_packages, options)
+            def validate_options(selected_packages, **options)
                 selected_packages, options =
                     super(selected_packages, options.merge(
                         checkout_only: true, aup: options[:amake]))

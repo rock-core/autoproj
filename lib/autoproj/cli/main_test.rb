@@ -6,6 +6,14 @@ module Autoproj
             default_command 'exec'
 
             no_commands do
+                def options
+                    super.transform_keys(&:to_sym)
+                end
+
+                def parent_options
+                    super.transform_keys(&:to_sym)
+                end
+
                 def report(report_options = Hash.new)
                     options = self.options.merge(parent_options)
                     extra_options = Hash.new

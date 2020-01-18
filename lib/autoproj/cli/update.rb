@@ -5,7 +5,7 @@ require 'autoproj/ops/import'
 module Autoproj
     module CLI
         class Update < Base
-            def validate_options(selection, options)
+            def validate_options(selection, **options)
                 selection, options = super
 
                 if from = options[:from]
