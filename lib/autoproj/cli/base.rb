@@ -201,14 +201,22 @@ module Autoproj
                 Autoproj.silent = silent
                 Autobuild.color = color
 
-                if !progress.nil?
-                    Autobuild.progress_display_mode = progress ? 'single_line' : 'off'
+                if Autobuild.respond_to?(:progress_display_mode)
+                    if !progress.nil?
+                        Autobuild.progress_display_mode = progress ? 'single_line' : 'off'
+                    else
+                        Autobuild.progress_display_mode =
+                            progress_mode || default_progress_mode
+                    end
+                    Autobuild.progress_display_period = progress_period
                 else
-                    Autobuild.progress_display_mode =
-                        progress_mode || default_progress_mode
+                    if !progress.nil?
+                        Autobuild.progress_display_enabled = progress != 'off'
+                    else
+                        Autobuild.progress_display_enabled =
+                            (progress_mode || default_progress_mode) != 'off'
+                    end
                 end
-
-                Autobuild.progress_display_period = progress_period
 
                 if verbose
                     Autoproj.verbose  = true
