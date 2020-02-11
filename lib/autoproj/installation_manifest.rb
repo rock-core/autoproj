@@ -2,8 +2,23 @@ module Autoproj
     # Manifest of installed packages imported from another autoproj installation
     class InstallationManifest
         Package = Struct.new :name, :type, :vcs, :srcdir, :importdir,
-                             :prefix, :builddir, :logdir, :dependencies
-        PackageSet = Struct.new :name, :vcs, :raw_local_dir, :user_local_dir
+                             :prefix, :builddir, :logdir, :dependencies do
+            def self.from_package_definition(pkg)
+                v = pkg.autobuild
+                new(v.name, v.class.name, pkg.vcs.to_hash,
+                    v.srcdir,
+                    (v.importdir if v.respond_to?(:importdir)),
+                    v.prefix, 
+                    (v.builddir if v.respond_to?(:builddir)),
+                    v.logdir, v.dependencies)
+            end
+        end
+
+        PackageSet = Struct.new :name, :vcs, :raw_local_dir, :user_local_dir do
+            def self.from_package_set(pkg_set)
+                new(pkg_set.name, pkg_set.vcs.to_hash, pkg_set.raw_local_dir, pkg_set.user_local_dir)
+            end
+        end
 
         attr_reader :path
         attr_reader :packages
@@ -50,6 +65,10 @@ module Autoproj
                         pkg_set = PackageSet.new(
                             entry['package_set'], entry['vcs'], entry['raw_local_dir'], entry['user_local_dir'])
                         package_sets[pkg_set.name] = pkg_set
+                    elsif entry['type'] == 'PackageSet'
+                        pkg_set = PackageSet.new(
+                            entry['name'], entry['vcs'], entry['raw_local_dir'], entry['user_local_dir'])
+                        package_sets[pkg_set.name] = pkg_set
                     else
                         pkg = Package.new(
                             entry['name'], entry['type'], entry['vcs'], entry['srcdir'], entry['importdir'],
@@ -63,23 +82,13 @@ module Autoproj
         # Save the installation manifest
         def save(path = self.path)
             Ops.atomic_write(path) do |io|
-                marshalled_package_sets = each_package_set.map do |v|
-                    Hash['package_set' => v.name,
-                         'vcs' => v.vcs.to_hash,
-                         'raw_local_dir' => v.raw_local_dir,
-                         'user_local_dir' => v.user_local_dir]
+                marshalled_package_sets = each_package_set.map do |pkg_set|
+                    h = PackageSet.from_package_set(pkg_set).to_h.transform_keys(&:to_s)
+                    h['type'] = 'PackageSet'
+                    h
                 end
                 marshalled_packages = each_package.map do |package_def|
-                    v = package_def.autobuild
-                    Hash['name' => v.name,
-                         'type' => v.class.name,
-                         'vcs' => package_def.vcs.to_hash,
-                         'srcdir' => v.srcdir,
-                         'importdir' => (v.importdir if v.respond_to?(:importdir)),
-                         'builddir' => (v.builddir if v.respond_to?(:builddir)),
-                         'logdir' => v.logdir,
-                         'prefix' => v.prefix,
-                         'dependencies' => v.dependencies]
+                    Package.from_package_definition(package_def).to_h.transform_keys(&:to_s)
                 end
                 io.write YAML.dump(marshalled_package_sets + marshalled_packages)
             end
