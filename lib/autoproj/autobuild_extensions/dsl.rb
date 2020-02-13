@@ -149,11 +149,13 @@ end
 
 # Adds a new setup block to an existing package
 def setup_package(package_name, workspace: Autoproj.workspace, &block)
-    raise ConfigError.new, "you must give a block to #setup_package" unless block
+    unless block
+        raise Autoproj::ConfigError.new, 'you must give a block to #setup_package'
+    end
 
     package_definition = workspace.manifest.find_package_definition(package_name)
     if !package_definition
-        raise ConfigError.new, "#{package_name} is not a known package"
+        raise Autoproj::ConfigError.new, "#{package_name} is not a known package"
     elsif package_definition.autobuild.kind_of?(Autobuild::DummyPackage)
         # Nothing to do!
     else

@@ -115,4 +115,20 @@ module Autoproj
             assert_nil Autoproj.package_handler_for(@dir)
         end
     end
+
+    describe '#setup_package' do
+        it 'raises if no block is given' do
+            ws_create.set_as_main_workspace
+            assert_raises(Autoproj::ConfigError) do
+                setup_package 'does_not_exist'
+            end
+        end
+        it 'raises if the package does not exist' do
+            ws_create.set_as_main_workspace
+            assert_raises(Autoproj::ConfigError) do
+                setup_package 'does_not_exist' do
+                end
+            end
+        end
+    end
 end
