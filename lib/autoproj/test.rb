@@ -71,6 +71,7 @@ module Autoproj
             Autobuild.logdir = make_tmpdir
             ws_define_package_manager 'os'
             ws_define_package_manager 'os_indep'
+            Autobuild.progress_display_period = 0
 
             super
         end

@@ -41,7 +41,7 @@ ENV SOME_VALUE
                     cmd = run_command_and_stop "#{@autoproj_bin} exec does_not_exist --some --arg",
                         fail_on_error: false
                     assert_equal 1, cmd.exit_status
-                    assert_equal "#{@cursor.column(1)}#{@cursor.clear_screen_down}  ERROR: cannot resolve `does_not_exist` to an executable in the workspace\n",
+                    assert_equal "#{@cursor.clear_screen_down}  ERROR: cannot resolve `does_not_exist` to an executable in the workspace\n",
                         cmd.stderr
                 end
             end
@@ -69,7 +69,7 @@ ENV SOME_VALUE
                     cmd = run_command_and_stop "#{@autoproj_bin} exec --use-cache does_not_exist --some --arg",
                         fail_on_error: false
                     assert_equal 1, cmd.exit_status
-                    assert_equal "#{@cursor.column(1)}#{@cursor.clear_screen_down}  ERROR: cannot resolve `does_not_exist` to an executable in the workspace\n",
+                    assert_equal "#{@cursor.clear_screen_down}  ERROR: cannot resolve `does_not_exist` to an executable in the workspace\n",
                         cmd.stderr
                 end
             end
