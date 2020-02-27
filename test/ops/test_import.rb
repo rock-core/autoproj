@@ -649,7 +649,7 @@ module Autoproj
             end
 
             def mock_vcs(package, type: :git, url: 'https://github.com', interactive: false)
-                package.vcs = VCSDefinition.from_raw(type: type, url: url)
+                package.vcs = VCSDefinition.from_raw({ type: type, url: url })
                 package.autobuild.importer = flexmock(interactive?: interactive)
             end
 

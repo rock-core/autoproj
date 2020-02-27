@@ -6,8 +6,8 @@ module Autoproj
         describe Configuration do
             attr_reader :ops
 
-            def mock_package_set(name, create: false, exclude: [], **vcs)
-                vcs = VCSDefinition.from_raw(**vcs)
+            def mock_package_set(name, create: false, **vcs)
+                vcs = VCSDefinition.from_raw(vcs)
                 raw_local_dir = File.join(make_tmpdir, 'package_set')
                 flexmock(PackageSet).should_receive(:name_of).with(any, vcs, any).
                     and_return(name).by_default
@@ -19,7 +19,7 @@ module Autoproj
                         YAML.dump(Hash['name' => name], io)
                     end
                 end
-                return vcs, raw_local_dir
+                [vcs, raw_local_dir]
             end
 
             def make_root_package_set(*package_sets)
@@ -51,8 +51,13 @@ module Autoproj
                 it "applies the package set overrides using the pkg_set:repository_id keys" do
                     package_set_dir = File.join(ws.root_dir, 'package_set')
                     root_package_set = ws.manifest.main_package_set
-                    root_package_set.add_raw_imported_set VCSDefinition.from_raw('type' => 'local', 'url' => '/test')
-                    root_package_set.add_overrides_entry 'pkg_set:local:/test', 'url' => package_set_dir
+                    root_package_set.add_raw_imported_set(
+                        VCSDefinition.from_raw({ 'type' => 'local', 'url' => '/test' })
+                    )
+                    root_package_set.add_overrides_entry(
+                        'pkg_set:local:/test',
+                        { 'url' => package_set_dir }
+                    )
                     FileUtils.mkdir_p package_set_dir
                     File.open(File.join(package_set_dir, 'source.yml'), 'w') do |io|
                         YAML.dump(Hash['name' => 'imported_package_set'], io)
@@ -62,7 +67,7 @@ module Autoproj
 
                 it "passes a failure to update" do
                     test_vcs, _ = mock_package_set 'test', type: 'git', url: '/test',
-                        create: true
+                                                           create: true
                     ops.should_receive(:update_remote_package_set).
                         with(test_vcs, Hash).once.and_raise(e_klass = Class.new(RuntimeError))
                     root_package_set = make_root_package_set(test_vcs)
@@ -86,19 +91,23 @@ module Autoproj
                 describe "keep_going: true" do
                     it "does pass an interrupt" do
                         mock_package_set 'test', type: 'git', url: '/test'
-                        test0_vcs, _ = mock_package_set 'test0', type: 'git', url: '/test0',
-                            create: true
-                        test1_vcs, _ = mock_package_set 'test1', type: 'git', url: '/test1',
-                            create: true
-                        ops.should_receive(:update_remote_package_set).
-                            with(test0_vcs, Hash).once.
-                            and_raise(Interrupt)
-                        ops.should_receive(:update_remote_package_set).
-                            with(test1_vcs, Hash).never
+                        test0_vcs, = mock_package_set(
+                            'test0', type: 'git', url: '/test0', create: true
+                        )
+                        test1_vcs, = mock_package_set(
+                            'test1', type: 'git', url: '/test1', create: true
+                        )
+                        ops.should_receive(:update_remote_package_set)
+                           .with(test0_vcs, Hash).once
+                           .and_raise(Interrupt)
+                        ops.should_receive(:update_remote_package_set)
+                           .with(test1_vcs, Hash).never
                         root_package_set = make_root_package_set(test0_vcs, test1_vcs)
 
                         assert_raises(Interrupt) do
-                            ops.load_and_update_package_sets(root_package_set, keep_going: true)
+                            ops.load_and_update_package_sets(
+                                root_package_set, keep_going: true
+                            )
                         end
                     end
                     it "still raises if a checkout failed" do
@@ -181,15 +190,25 @@ module Autoproj
                     end
 
                     it "redirects following imports to the first as well" do
-                        importing_pkg_set = ws_create_git_package_set 'importing.pkg.set',
+                        importing_pkg_set = ws_create_git_package_set(
+                            'importing.pkg.set',
                             'imports' => Array['type' => 'git', 'url' => pkg_set_1]
-                        other_importing_pkg_set = ws_create_git_package_set 'other_importing.pkg.set',
+                        )
+                        other_importing_pkg_set = ws_create_git_package_set(
+                            'other_importing.pkg.set',
                             'imports' => Array['type' => 'git', 'url' => pkg_set_1]
-                        root_package_set.add_raw_imported_set \
-                            VCSDefinition.from_raw('type' => 'git', 'url' => importing_pkg_set)
-                        root_package_set.add_raw_imported_set \
-                            VCSDefinition.from_raw('type' => 'git', 'url' => other_importing_pkg_set)
-                        package_sets, _ = ops.load_and_update_package_sets(root_package_set)
+                        )
+                        root_package_set.add_raw_imported_set(
+                            VCSDefinition.from_raw(
+                                { 'type' => 'git', 'url' => importing_pkg_set }
+                            )
+                        )
+                        root_package_set.add_raw_imported_set(
+                            VCSDefinition.from_raw(
+                                { 'type' => 'git', 'url' => other_importing_pkg_set }
+                            )
+                        )
+                        package_sets, = ops.load_and_update_package_sets(root_package_set)
 
                         assert_equal 4, package_sets.size
                         assert_same  root_package_set, package_sets[0]
@@ -256,7 +275,9 @@ module Autoproj
                 it "has only one main package set in the resulting manifest" do
                     package_set_dir = File.join(ws.root_dir, 'package_set')
                     root_package_set = ws.manifest.main_package_set
-                    root_package_set.add_raw_imported_set VCSDefinition.from_raw('type' => 'local', 'url' => package_set_dir)
+                    root_package_set.add_raw_imported_set VCSDefinition.from_raw(
+                        { 'type' => 'local', 'url' => package_set_dir }
+                    )
                     FileUtils.mkdir_p package_set_dir
                     File.open(File.join(package_set_dir, 'source.yml'), 'w') do |io|
                         YAML.dump(Hash['name' => 'imported_package_set'], io)
@@ -265,7 +286,11 @@ module Autoproj
                     package_sets = ws.manifest.each_package_set.to_a
                     assert_equal 2, package_sets.size
                     assert_same root_package_set, package_sets[1]
-                    assert_equal VCSDefinition.from_raw('type' => 'local', 'url' => package_set_dir), package_sets[0].vcs
+
+                    expected = VCSDefinition.from_raw(
+                        { 'type' => 'local', 'url' => package_set_dir }
+                    )
+                    assert_equal expected, package_sets[0].vcs
                 end
             end
 

@@ -244,10 +244,10 @@ module Autoproj
             @modified = false
         end
 
-        def each_reused_autoproj_installation
+        def each_reused_autoproj_installation(&block)
             if has_value_for?('reused_autoproj_installations')
-                get('reused_autoproj_installations').each(&proc)
-            else [].each(&proc)
+                get('reused_autoproj_installations').each(&block)
+            else [].each(&block)
             end
         end
 

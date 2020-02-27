@@ -1237,7 +1237,7 @@ module Autoproj
         workspace.config
     end
 
-    def self.add_osdeps_overrides(*args, &block)
-        manifest.add_osdeps_overrides(*args, &block)
+    def self.add_osdeps_overrides(*args, **kw, &block)
+        manifest.add_osdeps_overrides(*args, **kw, &block)
     end
 end

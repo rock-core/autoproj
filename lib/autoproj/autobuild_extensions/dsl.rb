@@ -421,9 +421,9 @@ def source_package(options, workspace: Autoproj.workspace)
 end
 
 # @deprecated use Autoproj.config.declare instead
-def configuration_option(*opts, &block)
+def configuration_option(*opts, **kw, &block)
     Autoproj.warn_deprecated __method__, "use Autoproj.config.declare instead"
-    Autoproj.config.declare(*opts, &block)
+    Autoproj.config.declare(*opts, **kw, &block)
 end
 
 # @deprecated use Autoproj.config.get instead

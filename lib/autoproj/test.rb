@@ -333,8 +333,9 @@ gem 'autobuild', path: '#{autobuild_dir}'
             ws.manifest.clear_layout
         end
 
-        def ws_define_package_set(name, vcs = VCSDefinition.from_raw(type: 'none'),
-                                  **options)
+        def ws_define_package_set(
+            name, vcs = VCSDefinition.from_raw({ type: 'none' }), **options
+        )
             package_set = PackageSet.new(ws, vcs, name: name, **options)
             ws.manifest.register_package_set(package_set)
             package_set
@@ -351,8 +352,9 @@ gem 'autobuild', path: '#{autobuild_dir}'
             package_set
         end
 
-        def ws_add_package_set_to_layout(name, vcs = VCSDefinition.from_raw(type: 'none'),
-                                         **options)
+        def ws_add_package_set_to_layout(
+            name, vcs = VCSDefinition.from_raw({ type: 'none' }), **options
+        )
             package_set = ws_define_package_set(name, vcs, **options)
             ws.manifest.add_package_set_to_layout(package_set)
             package_set

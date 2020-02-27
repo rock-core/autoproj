@@ -282,7 +282,8 @@ module Autoproj
                     if (raw_vcs = config.get('manifest_source', nil))
                         VCSDefinition.from_raw(raw_vcs)
                     else
-                        VCSDefinition.from_raw(type: 'local', url: config_dir)
+                        local_vcs = { type: 'local', url: config_dir }
+                        VCSDefinition.from_raw(local_vcs)
                     end
 
                 if config.source_dir && Pathname.new(config.source_dir).absolute?

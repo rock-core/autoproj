@@ -5,7 +5,7 @@ module Autoproj
         attr_reader :package_set, :raw_local_dir, :vcs
         before do
             ws_create
-            @vcs = VCSDefinition.from_raw(type: 'local', url: '/path/to/set')
+            @vcs = VCSDefinition.from_raw({ type: 'local', url: '/path/to/set' })
             @raw_local_dir = File.join(ws.root_dir, 'package_set')
             @package_set = PackageSet.new(
                 ws, vcs, raw_local_dir: raw_local_dir)
@@ -40,21 +40,25 @@ module Autoproj
 
         describe ".raw_local_dir_of" do
             it "returns the local path if the VCS is local" do
-                assert_equal '/path/to/package_set', PackageSet.raw_local_dir_of(ws,
-                    VCSDefinition.from_raw('type' => 'local', 'url' => '/path/to/package_set'))
+                vcs = VCSDefinition.from_raw(
+                    { 'type' => 'local', 'url' => '/path/to/package_set' }
+                )
+                assert_equal '/path/to/package_set', PackageSet.raw_local_dir_of(ws, vcs)
             end
             it "returns a normalized subdirectory of the workspace's remotes dir the VCS is remote" do
                 vcs = VCSDefinition.from_raw(
-                    'type' => 'git',
-                    'url' => 'https://github.com/test/url',
-                    'branch' => 'test_branch')
+                    { 'type' => 'git',
+                      'url' => 'https://github.com/test/url',
+                      'branch' => 'test_branch' }
+                )
                 repository_id = Autobuild.git(
                     'https://github.com/test/url',
-                    branch: 'test_branch').repository_id
+                    branch: 'test_branch'
+                ).repository_id
                 path = PackageSet.raw_local_dir_of(ws, vcs)
                 assert path.start_with?(ws.remotes_dir)
                 assert_equal repository_id.gsub(/[^\w]/, '_'),
-                    path[(ws.remotes_dir.size + 1)..-1]
+                             path[(ws.remotes_dir.size + 1)..-1]
             end
         end
 
@@ -63,7 +67,7 @@ module Autoproj
                 resolver = package_set.os_package_resolver
                 # Values are from Autoproj::Test#ws_create_os_package_resolver
                 assert_equal [['test_os_family'], ['test_os_version']],
-                    resolver.operating_system
+                             resolver.operating_system
                 assert_equal 'os', resolver.os_package_manager
                 assert_equal ws_package_managers.keys, resolver.package_managers
             end
@@ -111,17 +115,22 @@ module Autoproj
 
         describe "#repository_id" do
             it "returns the package set path if the set is local" do
-                package_set = PackageSet.new(ws, VCSDefinition.from_raw('type' => 'local', 'url' => '/path/to/set'))
+                package_set = PackageSet.new(
+                    ws,
+                    VCSDefinition.from_raw({ 'type' => 'local', 'url' => '/path/to/set' })
+                )
                 assert_equal '/path/to/set', package_set.repository_id
             end
             it "returns the importer's repository_id if there is one" do
                 vcs = VCSDefinition.from_raw(
-                    'type' => 'git',
-                    'url' => 'https://github.com/test/url',
-                    'branch' => 'test_branch')
+                    { 'type' => 'git',
+                      'url' => 'https://github.com/test/url',
+                      'branch' => 'test_branch' }
+                )
                 repository_id = Autobuild.git(
                     'https://github.com/test/url',
-                    branch: 'test_branch').repository_id
+                    branch: 'test_branch'
+                ).repository_id
 
                 package_set = PackageSet.new(ws, vcs)
                 assert_equal repository_id, package_set.repository_id
@@ -129,9 +138,10 @@ module Autoproj
 
             it "returns the vcs as string if the importer has no repository_id" do
                 vcs = VCSDefinition.from_raw(
-                    'type' => 'git',
-                    'url' => 'https://github.com/test/url',
-                    'branch' => 'test_branch')
+                    { 'type' => 'git',
+                      'url' => 'https://github.com/test/url',
+                      'branch' => 'test_branch' }
+                )
                 importer = vcs.create_autobuild_importer
                 flexmock(importer).should_receive(:respond_to?).with(:repository_id).and_return(false)
                 flexmock(vcs).should_receive(:create_autobuild_importer).and_return(importer)
@@ -297,9 +307,11 @@ module Autoproj
             attr_reader :package_set
             before do
                 @package_set = PackageSet.new(
-                    ws, VCSDefinition.from_raw('type' => 'git', 'url' => 'https://url'),
+                    ws,
+                    VCSDefinition.from_raw({ 'type' => 'git', 'url' => 'https://url' }),
                     raw_local_dir: '/path/to/package_set',
-                    name: 'name_of_package_set')
+                    name: 'name_of_package_set'
+                )
             end
 
             # The expected behaviour of #parse_source_definition is to override
@@ -328,7 +340,7 @@ module Autoproj
             end
 
             it "loads the imports" do
-                original_vcs = VCSDefinition.from_raw(type: 'git', url: 'https://github.com')
+                original_vcs = VCSDefinition.from_raw({ type: 'git', url: 'https://github.com' })
                 package_set.add_raw_imported_set(original_vcs, auto_imports: false)
                 assert_loads_value 'imports_vcs',
                     [[VCSDefinition.from_raw('type' => 'local', 'url' => 'path/to/package'), Hash[auto_imports: false]]],
