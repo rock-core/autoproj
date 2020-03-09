@@ -288,8 +288,12 @@ module Autoproj
                     if completion_queue.empty? && pending_packages.empty?
                         unless missing_vcs.empty?
                             installed_vcs_packages.merge(
-                                install_vcs_packages_for(*missing_vcs,
-                                                         **install_vcs_packages))
+                                install_vcs_packages_for(
+                                    *missing_vcs,
+                                     install_only: import_options[:checkout_only],
+                                     **install_vcs_packages
+                                )
+                            )
                             package_queue.concat(missing_vcs)
                             missing_vcs.clear
                             next
@@ -366,7 +370,9 @@ module Autoproj
                 end
             end
 
-            def finalize_package_load(processed_packages, auto_exclude: auto_exclude?)
+            def finalize_package_load(processed_packages,
+                                      ignore_optional_dependencies: false,
+                                      auto_exclude: auto_exclude?)
                 manifest = ws.manifest
 
                 all = Set.new

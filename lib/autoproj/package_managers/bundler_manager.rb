@@ -89,6 +89,7 @@ module Autoproj
                             Bundler.rubygems.gem_path
                                    .none? { |gem_p| p.start_with?(gem_p) }
                     end
+
                 # And discover the system's rubylib
                 if (system_rubylib = discover_rubylib)
                     # Do not explicitely add the system rubylib to the

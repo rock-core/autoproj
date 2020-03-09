@@ -243,7 +243,7 @@ module Autoproj
             File.join(config_dir, OVERRIDES_DIR)
         end
 
-        IMPORT_REPORT_BASENAME = "import_report.json"
+        IMPORT_REPORT_BASENAME = "import_report.json".freeze
 
         # The full path to the update report
         #
@@ -252,7 +252,7 @@ module Autoproj
             File.join(log_dir, IMPORT_REPORT_BASENAME)
         end
 
-        BUILD_REPORT_BASENAME = "build_report.json"
+        BUILD_REPORT_BASENAME = "build_report.json".freeze
 
         # The full path to the build report
         #
@@ -306,14 +306,18 @@ module Autoproj
         def autodetect_operating_system(force: false)
             if force || !os_package_resolver.operating_system
                 begin
-                    Autobuild.progress_start :operating_system_autodetection,
+                    Autobuild.progress_start(
+                        :operating_system_autodetection,
                         "autodetecting the operating system"
+                    )
                     names, versions = OSPackageResolver.autodetect_operating_system
                     os_package_resolver.operating_system = [names, versions]
                     os_repository_resolver.operating_system = [names, versions]
-                    Autobuild.progress :operating_system_autodetection,
+                    Autobuild.progress(
+                        :operating_system_autodetection,
                         "operating system: #{(names - ['default']).join(',')} -"\
                         " #{(versions - ['default']).join(',')}"
+                    )
                 ensure
                     Autobuild.progress_done :operating_system_autodetection
                 end
@@ -416,7 +420,7 @@ module Autoproj
             gemfile  = File.join(dot_autoproj_dir, 'Gemfile')
             binstubs = File.join(dot_autoproj_dir, 'bin')
             Ops::Install.rewrite_shims(binstubs, config.ruby_executable,
-                root_dir, gemfile, config.gems_gem_home)
+                                       root_dir, gemfile, config.gems_gem_home)
         end
 
         def update_bundler
@@ -601,6 +605,10 @@ module Autoproj
             current_workspaces = Workspace.registered_workspaces
             existing = current_workspaces.find { |w| w.root_dir == root_dir }
             if existing
+                if existing.prefix_dir == prefix_dir && existing.build_dir == build_dir
+                    return
+                end
+
                 existing.prefix_dir = prefix_dir
                 existing.build_dir  = build_dir
             else
@@ -818,10 +826,12 @@ module Autoproj
             if import_missing
                 ops = Autoproj::Ops::Import.new(self)
                 _, all_os_packages =
-                    ops.import_packages(manifest.default_packages,
-                                    checkout_only: true, only_local: true, reset: false,
-                                    recursive: true, keep_going: true, parallel: parallel,
-                                    retry_count: 0)
+                    ops.import_packages(
+                        manifest.default_packages,
+                        checkout_only: true, only_local: true, reset: false,
+                        recursive: true, keep_going: true, parallel: parallel,
+                        retry_count: 0
+                    )
                 all_os_packages
             else
                 manifest.all_selected_osdep_packages

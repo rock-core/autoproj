@@ -6,6 +6,6 @@ argv = Autoproj::CLI.basic_setup
 
 begin
     Autoproj::CLI::Main.start(argv)
-rescue Interrupt
+rescue Interrupt # rubocop:disable Lint/HandleExceptions
     # Already notified in the reporting infrastructure
 end

@@ -298,6 +298,12 @@ module Autoproj
                         with([:git], Hash).once
                     ops.import_selected_packages(mock_selection(base_cmake))
                 end
+                it "sets install_only if checkout_only is true" do
+                    flexmock(base_cmake.autobuild).should_receive(:import).once
+                    flexmock(ws.os_package_installer).should_receive(:install).
+                        with([:git], hsh(install_only: true)).once
+                    ops.import_selected_packages(mock_selection(base_cmake), checkout_only: true)
+                end
                 it "queues the package's dependencies after it loaded the manifest" do
                     base_depends = ws_define_package :cmake, 'base/depends'
                     mock_vcs(base_depends)

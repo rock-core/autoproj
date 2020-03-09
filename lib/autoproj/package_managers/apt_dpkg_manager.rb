@@ -14,15 +14,17 @@ module Autoproj
                 @installed_packages = nil
                 @installed_versions = nil
                 super(ws, true,
-                      %w{apt-get install},
-                      %w{DEBIAN_FRONTEND=noninteractive apt-get install -y})
+                      %w[apt-get install],
+                      %w[DEBIAN_FRONTEND=noninteractive apt-get install -y])
             end
 
             def configure_manager
                 super
-                ws.config.declare 'apt_dpkg_update', 'boolean',
+                ws.config.declare(
+                    'apt_dpkg_update', 'boolean',
                     default: 'yes',
                     doc: ['Would you like autoproj to keep apt packages up-to-date?']
+                )
                 keep_uptodate?
             end
 
@@ -58,11 +60,12 @@ module Autoproj
                 dpkg_status << "\n"
 
                 dpkg_status = StringScanner.new(dpkg_status)
-                if !dpkg_status.scan(/Package: /)
-                    raise ArgumentError, "expected #{status_file} to have Package: lines but found none"
+                unless dpkg_status.scan(/Package: /)
+                    raise ArgumentError, "expected #{status_file} to have Package: "\
+                                         "lines but found none"
                 end
 
-                while paragraph_end = dpkg_status.scan_until(/Package: /)
+                while (paragraph_end = dpkg_status.scan_until(/Package: /))
                     paragraph = "Package: #{paragraph_end[0..-10]}"
                     parse_package_status(installed_packages, installed_versions,
                                          paragraph, virtual: virtual)
@@ -74,11 +77,10 @@ module Autoproj
 
             def self.parse_apt_cache_paragraph(paragraph)
                 version = '0'
-                if paragraph =~ /^Package: (.*)$/
-                    package_name = $1
-                    if paragraph =~ /^Version: (.*)$/
-                        version = $1
-                    end
+                if (paragraph_m = /^Package: (.*)$/.match(paragraph))
+                    package_name = paragraph_m[1]
+                    version_m = /^Version: (.*)$/.match(paragraph)
+                    version = version_m[1] if version_m
                 end
                 [package_name, version]
             end
@@ -87,23 +89,24 @@ module Autoproj
                 packages_versions = {}
                 apt_cache_show = `apt-cache show --no-all-versions #{packages.join(' ')}`
                 apt_cache_show = StringScanner.new(apt_cache_show)
-                if !apt_cache_show.scan(/Package: /)
-                    return packages_versions
-                end
+                return packages_versions unless apt_cache_show.scan(/Package: /)
 
-                while paragraph_end = apt_cache_show.scan_until(/Package: /)
+                while (paragraph_end = apt_cache_show.scan_until(/Package: /))
                     paragraph = "Package: #{paragraph_end[0..-10]}"
                     package_name, version = parse_apt_cache_paragraph(paragraph)
                     packages_versions[package_name] = DebianVersion.new(version)
                 end
-                package_name, version = parse_apt_cache_paragraph("Package: #{apt_cache_show.rest}")
+                package_name, version = parse_apt_cache_paragraph(
+                    "Package: #{apt_cache_show.rest}"
+                )
                 packages_versions[package_name] = DebianVersion.new(version)
                 packages_versions
             end
 
             def updated?(package, available_version)
-                # Consider up-to-date if the package is provided by another package (purely virtual)
-                # Ideally, we should check the version of the package that provides it
+                # Consider up-to-date if the package is provided by another
+                # package (purely virtual) Ideally, we should check the version
+                # of the package that provides it
                 return true unless available_version && @installed_versions[package]
 
                 (available_version <= @installed_versions[package])
@@ -111,8 +114,13 @@ module Autoproj
 
             # On a dpkg-enabled system, checks if the provided package is installed
             # and returns true if it is the case
-            def installed?(package_name, filter_uptodate_packages: false, install_only: false)
-                @installed_packages, @installed_versions = self.class.parse_dpkg_status(status_file) unless @installed_packages && @installed_versions
+            def installed?(package_name, filter_uptodate_packages: false,
+                                         install_only: false)
+                unless @installed_packages && @installed_versions
+                    @installed_packages, @installed_versions =
+                        self.class.parse_dpkg_status(status_file)
+                end
+
                 if package_name =~ /^(\w[a-z0-9+-.]+)/
                     @installed_packages.include?($1)
                 else
@@ -122,11 +130,18 @@ module Autoproj
             end
 
             def install(packages, filter_uptodate_packages: false, install_only: false)
-                packages_versions = self.class.parse_packages_versions(packages)
                 if filter_uptodate_packages || install_only
-                    packages = packages.find_all do |package_name|
-                        !installed?(package_name) || (keep_uptodate? && !updated?(package_name, packages_versions[package_name]))
+                    already_installed, missing = packages.partition do |package_name|
+                        installed?(package_name)
                     end
+
+                    if keep_uptodate? && !install_only
+                        packages_versions = self.class.parse_packages_versions(already_installed)
+                        need_update = already_installed.find_all do |package_name|
+                            !updated?(package_name, packages_versions[package_name])
+                        end
+                    end
+                    packages = missing + (need_update || [])
                 end
 
                 if super(packages)
