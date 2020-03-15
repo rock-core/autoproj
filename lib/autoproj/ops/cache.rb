@@ -223,7 +223,13 @@ module Autoproj
             end
 
             private def compile_gem(gem_path, output:, artifacts: [])
-                artifacts = artifacts.flat_map { |n| ["--artifact", n] }
+                artifacts = artifacts.flat_map do |include, n|
+                    if include
+                        ["--include", n]
+                    else
+                        ["--exclude", n]
+                    end
+                end
                 unless system(Autobuild.tool('ruby'), '-S', guess_gem_program,
                               'compile', '--output', output, *artifacts, gem_path)
                     raise CompilationFailed, "#{gem_path} failed to compile"

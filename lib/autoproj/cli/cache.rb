@@ -22,7 +22,16 @@ module Autoproj
 
                 if (compile = options[:gems_compile])
                     options[:gems_compile] = compile.map do |name|
-                        name, *artifacts = name.split('+')
+                        scanner = StringScanner.new(name)
+                        name = scanner.scan(/[^+-]+/)
+
+                        artifacts = []
+                        until scanner.eos?
+                            include = (scanner.getch == '+')
+                            glob = scanner.scan(/[^+-]+/)
+                            artifacts << [include, glob]
+                        end
+
                         [name, artifacts: artifacts]
                     end
                 end
