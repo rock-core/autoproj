@@ -1,9 +1,54 @@
+# frozen_string_literal: true
+
 require 'autoproj/cli/inspection_tool'
 require 'autoproj/ops/cache'
 
 module Autoproj
     module CLI
         class Cache < InspectionTool
+            def parse_gem_compile(string)
+                scanner = StringScanner.new(string)
+                name = scanner.scan(/[^\[]+/)
+
+                level = 0
+                artifacts = []
+                artifact_include = nil
+                artifact_name = ''.dup
+                until scanner.eos?
+                    c = scanner.getch
+                    if level == 0
+                        raise ArgumentError, "expected '[' but got '#{c}'" unless c == '['
+
+                        level = 1
+                        include_c = scanner.getch
+                        if %w[+ -].include?(include_c)
+                            artifact_include = (include_c == '+')
+                        elsif include_c == ']'
+                            raise ArgumentError, "empty [] found in '#{string}'"
+                        else
+                            raise ArgumentError,
+                                  "expected '+' or '-' but got '#{c}' in '#{string}'"
+                        end
+                        next
+                    end
+
+                    if c == ']'
+                        level -= 1
+                        if level == 0
+                            artifacts << [artifact_include, artifact_name]
+                            artifact_name = ''.dup
+                            next
+                        end
+                    end
+
+                    artifact_name << c
+                end
+
+                raise ArgumentError, "missing closing ']' in #{string}" if level != 0
+
+                [name, artifacts: artifacts]
+            end
+
             def validate_options(argv, options = Hash.new)
                 argv, options = super
 
@@ -22,17 +67,7 @@ module Autoproj
 
                 if (compile = options[:gems_compile])
                     options[:gems_compile] = compile.map do |name|
-                        scanner = StringScanner.new(name)
-                        name = scanner.scan(/[^+-]+/)
-
-                        artifacts = []
-                        until scanner.eos?
-                            include = (scanner.getch == '+')
-                            glob = scanner.scan(/[^+-]+/)
-                            artifacts << [include, glob]
-                        end
-
-                        [name, artifacts: artifacts]
+                        parse_gem_compile(name)
                     end
                 end
 
@@ -67,4 +102,3 @@ module Autoproj
         end
     end
 end
-
