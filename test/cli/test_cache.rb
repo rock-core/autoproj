@@ -4,12 +4,12 @@ require 'autoproj/cli/cache'
 module Autoproj
     module CLI
         describe Cache do
-            describe '#validate_options' do
-                before do
-                    @ws = ws_create
-                    @cli = Cache.new(@ws)
-                end
+            before do
+                @ws = ws_create
+                @cli = Cache.new(@ws)
+            end
 
+            describe '#validate_options' do
                 after do
                     Autobuild::Importer.default_cache_dirs = nil
                 end
@@ -27,20 +27,76 @@ module Autoproj
                     end
                 end
 
-                it 'passes through plain packages names in gems_compile' do
+                it 'parses the gem compile option' do
+                    flexmock(@cli).should_receive(:parse_gem_compile)
+                                  .with(name = flexmock)
+                                  .and_return(parsed_gem = flexmock)
                     _, options = @cli.validate_options(
-                        ['/cache/path'], gems_compile: ['some_gem']
+                        ['/cache/path'], gems_compile: [name]
                     )
-                    assert_equal [['some_gem', artifacts: []]],
-                                 options[:gems_compile]
+                    assert_equal [parsed_gem], options[:gems_compile]
                 end
 
                 it 'interprets the + signs in the gems_compile option' do
                     _, options = @cli.validate_options(
-                        ['/cache/path'], gems_compile: ['some_gem+artifact/path']
+                        ['/cache/path'], gems_compile: ['some_gem[+artifact/path][-some/other]']
                     )
-                    assert_equal [['some_gem', artifacts: ['artifact/path']]],
+                    assert_equal [['some_gem', artifacts: [[true, 'artifact/path'], [false, 'some/other']]]],
                                  options[:gems_compile]
+                end
+
+            end
+
+            describe '#parse_gem_compile' do
+                it 'handles a plain gem' do
+                    assert_equal ['some_gem', artifacts: []],
+                                 @cli.parse_gem_compile('some_gem')
+                end
+
+                it 'handles a single artifact inclusion specification' do
+                    assert_equal ['some_gem', artifacts: [[true, 'some/artifact']]],
+                                 @cli.parse_gem_compile('some_gem[+some/artifact]')
+                end
+
+                it 'handles a single artifact exclusion specification' do
+                    assert_equal ['some_gem', artifacts: [[false, 'some/artifact']]],
+                                 @cli.parse_gem_compile('some_gem[-some/artifact]')
+                end
+
+                it 'handles a sequence of artifact specification' do
+                    string = 'some_gem[+bla/bla][-some/artifact]'
+                    expected = [
+                        'some_gem',
+                        artifacts: [
+                            [true, 'bla/bla'],
+                            [false, 'some/artifact']
+                        ]
+                    ]
+                    assert_equal expected, @cli.parse_gem_compile(string)
+                end
+
+                it 'detects a missing closing bracket' do
+                    e = assert_raises(ArgumentError) do
+                       @cli.parse_gem_compile('some_gem[+some')
+                    end
+                end
+
+                it 'detects a single opening bracket at the end' do
+                    e = assert_raises(ArgumentError) do
+                       @cli.parse_gem_compile('some_gem[')
+                    end
+                end
+
+                it 'detects a missing +/-' do
+                    e = assert_raises(ArgumentError) do
+                       @cli.parse_gem_compile('some_gem[bla]')
+                    end
+                end
+
+                it 'detects an empty [] specification' do
+                    e = assert_raises(ArgumentError) do
+                       @cli.parse_gem_compile('some_gem[]')
+                    end
                 end
             end
         end

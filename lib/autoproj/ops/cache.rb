@@ -107,13 +107,20 @@ module Autoproj
                     begin
                         case pkg.importer
                         when Autobuild::Git
-                            Autoproj.message "  [#{i}/#{total}] caching #{pkg.name} (git)"
+                            Autoproj.message(
+                                "  [#{i}/#{total}] caching #{pkg.name} (git)"
+                            )
                             cache_git(pkg, checkout_only: checkout_only)
                         when Autobuild::ArchiveImporter
-                            Autoproj.message "  [#{i}/#{total}] caching #{pkg.name} (archive)"
+                            Autoproj.message(
+                                "  [#{i}/#{total}] caching #{pkg.name} (archive)"
+                            )
                             cache_archive(pkg)
                         else
-                            Autoproj.message "  [#{i}/#{total}] not caching #{pkg.name} (cannot cache #{pkg.importer.class})"
+                            Autoproj.message(
+                                "  [#{i}/#{total}] not caching #{pkg.name} "\
+                                "(cannot cache #{pkg.importer.class})"
+                            )
                         end
                     rescue Interrupt
                         raise
@@ -170,7 +177,9 @@ module Autoproj
                         next if !compile_force && File.file?(expected_platform_gem)
 
                         begin
-                            compile_gem(gem, artifacts: artifacts, output: real_target_dir)
+                            compile_gem(
+                                gem, artifacts: artifacts, output: real_target_dir
+                            )
                         rescue CompilationFailed
                             unless keep_going
                                 raise CompilationFailed, "#{gem} failed to compile"
@@ -200,17 +209,13 @@ module Autoproj
             end
 
             def guess_gem_program
-                if Autobuild.programs['gem']
-                    return Autobuild.programs['gem']
-                end
+                return Autobuild.programs['gem'] if Autobuild.programs['gem']
 
                 ruby_bin = RbConfig::CONFIG['RUBY_INSTALL_NAME']
                 ruby_bindir = RbConfig::CONFIG['bindir']
 
                 candidates = ['gem']
-                if ruby_bin =~ /^ruby(.+)$/
-                    candidates << "gem#{$1}"
-                end
+                candidates << "gem#{$1}" if ruby_bin =~ /^ruby(.+)$/
 
                 candidates.each do |gem_name|
                     if File.file?(gem_full_path = File.join(ruby_bindir, gem_name))
@@ -219,11 +224,19 @@ module Autoproj
                     end
                 end
 
-                raise ArgumentError, "cannot find a gem program (tried #{candidates.sort.join(", ")} in #{ruby_bindir})"
+                raise ArgumentError,
+                      'cannot find a gem program (tried '\
+                      "#{candidates.sort.join(', ')} in #{ruby_bindir})"
             end
 
             private def compile_gem(gem_path, output:, artifacts: [])
-                artifacts = artifacts.flat_map { |n| ["--artifact", n] }
+                artifacts = artifacts.flat_map do |include, n|
+                    if include
+                        ["--include", n]
+                    else
+                        ["--exclude", n]
+                    end
+                end
                 unless system(Autobuild.tool('ruby'), '-S', guess_gem_program,
                               'compile', '--output', output, *artifacts, gem_path)
                     raise CompilationFailed, "#{gem_path} failed to compile"

@@ -59,7 +59,6 @@ module Autoproj
                     @gitrepo_path = File.join(root, 'cache-git')
 
                     @pkg = ws_define_package 'cmake', 'pkg'
-
                 end
 
                 it 'raises if given an invalid package name' do
@@ -69,7 +68,7 @@ module Autoproj
                 end
 
                 it 'resolves package names if given as argument' do
-                    packages = (1..5).map do |i|
+                    (1..5).each do |i|
                         pkg = ws_define_package 'cmake', "pkg#{i}"
                         pkg.autobuild.importer = Autobuild.git(@gitrepo_path)
 
@@ -81,7 +80,6 @@ module Autoproj
                         else
                             expectation.never
                         end
-                        pkg
                     end
 
                     Autoproj.should_receive(:message)
@@ -241,12 +239,17 @@ module Autoproj
                     @ops.should_receive(:system).explicitly.once
                         .with('myruby', '-S', 'mygem', 'compile',
                               '--output', @target_dir,
-                              '--artifact', 'some/lib',
-                              '--artifact', 'some/dir',
+                              '--include', 'some/lib',
+                              '--exclude', 'some/dir',
                               "#{@cache_dir}/gemname.gem")
                         .and_return(true)
                     @ops.create_or_update_gems(
-                        compile: [['gemname', artifacts: ['some/lib', 'some/dir']]]
+                        compile: [
+                            [
+                                'gemname',
+                                artifacts: [[true, 'some/lib'], [false, 'some/dir']]
+                            ]
+                        ]
                     )
                 end
 
