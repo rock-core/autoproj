@@ -229,6 +229,8 @@ module Autoproj
                 desc: "compare to the given baseline. if 'true', the comparison will ignore any override, otherwise it will take into account overrides only up to the given package set"
             option :auto_exclude, type: :boolean,
                 desc: 'if true, packages that fail to import will be excluded from the build'
+            option :ask, type: :boolean, default: false,
+                desc: 'ask whether each package should or should not be updated'
             def update(*packages)
                 report_options = Hash[silent: false, on_package_failures: default_report_on_package_failures]
                 if options[:auto_exclude]

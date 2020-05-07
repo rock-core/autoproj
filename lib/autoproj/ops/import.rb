@@ -199,6 +199,7 @@ module Autoproj
                                          install_vcs_packages: Hash.new,
                                          non_imported_packages: :checkout,
                                          auto_exclude: auto_exclude?,
+                                         filter: ->(package) { true },
                                          **import_options)
 
                 unless %i[checkout ignore return].include?(non_imported_packages)
@@ -235,6 +236,11 @@ module Autoproj
                 missing_vcs = Array.new
                 installed_vcs_packages = Set['none', 'local']
                 while failures.empty? || keep_going
+                    # Allow 'filter' to parallelize as well
+                    if filter.respond_to?(:lookahead)
+                        package_queue.each { |pkg| filter.lookahead(pkg) }
+                    end
+
                     # Queue work for all packages in the queue
                     package_queue.each do |pkg|
                         # Remove packages that have already been processed
@@ -255,6 +261,11 @@ module Autoproj
                         end
                         all_processed_packages << pkg
 
+                        unless filter.call(pkg)
+                            completion_queue << [pkg, Time.now]
+                            next
+                        end
+
                         importer = pkg.autobuild.importer
                         if !pre_package_import(selection, manifest, pkg.autobuild,
                                                reverse_dependencies)
@@ -272,8 +283,8 @@ module Autoproj
                             next
                         end
 
-                        pending_packages << pkg
                         begin
+                            pending_packages << pkg
                             queue_import_work(
                                 executor, completion_queue, pkg,
                                 retry_count: retry_count,
@@ -432,6 +443,7 @@ module Autoproj
                                 keep_going: false,
                                 install_vcs_packages: Hash.new,
                                 auto_exclude: auto_exclude?,
+                                filter: ->(pkg) { true },
                                 **import_options)
 
                 manifest = ws.manifest
@@ -443,6 +455,7 @@ module Autoproj
                     recursive: recursive,
                     install_vcs_packages: install_vcs_packages,
                     auto_exclude: auto_exclude,
+                    filter: filter,
                     **import_options)
 
                 raise failures.first if !keep_going && !failures.empty?
