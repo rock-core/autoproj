@@ -50,7 +50,9 @@ module Autoproj
                     end
                     it "filters out non-imported packages if only_present is true" do
                         base_cmake = ws_add_package_to_layout :cmake, 'base/cmake'
-                        base_cmake.vcs = VCSDefinition.from_raw(type: 'git', url: 'github.com')
+                        base_cmake.vcs = VCSDefinition.from_raw(
+                            { type: 'git', url: 'github.com' }
+                        )
                         base_cmake.autobuild.srcdir = File.join(ws.root_dir, 'base-cmake')
                         base_types = ws_add_package_to_layout :cmake, 'base/types'
                         base_types.autobuild.srcdir = File.join(ws.root_dir, 'base-types')
@@ -62,7 +64,7 @@ module Autoproj
                         cli.run([], only_present: true)
                     end
                     it "parses the query and gives it to match" do
-                        expected_query = ->(q) { 
+                        expected_query = ->(q) {
                             assert_equal ['autobuild', 'name'], q.fields
                             assert_equal 'test', q.value
                         }
@@ -111,7 +113,7 @@ module Autoproj
                         cli.run([], search_all: true, osdeps: true)
                     end
                     it "parses the query and gives it to match" do
-                        expected_query = ->(q) { 
+                        expected_query = ->(q) {
                             assert_equal ['name'], q.fields
                             assert_equal 'test', q.value
                         }
@@ -178,13 +180,20 @@ TEST FORMAT pkg os_indep test3
             describe "#format_source_package" do
                 it "expands the fields in the format string to the package's values" do
                     package = ws_define_package :cmake, 'base/cmake'
-                    package.autobuild.srcdir = srcdir = File.join(ws.root_dir, 'src')
-                    package.autobuild.builddir = builddir = File.join(ws.root_dir, 'build')
-                    package.autobuild.prefix = prefix = File.join(ws.root_dir, 'prefix')
-                    package.vcs = VCSDefinition.from_raw(type: 'local', url: '/test')
-                    assert_equal "base/cmake #{srcdir} #{builddir} #{prefix} 0 /test false",
-                        cli.format_source_package("$NAME $SRCDIR $BUILDDIR $PREFIX $PRIORITY $URL $PRESENT",
-                                          0, package)
+                    srcdir = File.join(ws.root_dir, 'src')
+                    builddir = File.join(ws.root_dir, 'build')
+                    prefix = File.join(ws.root_dir, 'prefix')
+                    package.autobuild.srcdir = srcdir
+                    package.autobuild.builddir = builddir
+                    package.autobuild.prefix = prefix
+                    package.vcs = VCSDefinition.from_raw({ type: 'local', url: '/test' })
+
+                    expected = "base/cmake #{srcdir} #{builddir} #{prefix} 0 /test false"
+                    actual = cli.format_source_package(
+                        "$NAME $SRCDIR $BUILDDIR $PREFIX $PRIORITY "\
+                        "$URL $PRESENT", 0, package
+                    )
+                    assert_equal expected, actual
                 end
 
                 it "ignores if a package does not have a #builddir" do

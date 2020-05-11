@@ -79,7 +79,7 @@ module Autoproj
                         user_selection = flexmock(empty?: false)
                         user_selection.should_receive(:to_set).and_return(user_selection)
                         flexmock(ws.manifest).should_receive(:expand_package_selection).
-                            once.with(user_selection, Hash).
+                            once.with(user_selection, any).
                             and_return([expanded_selection = flexmock, []])
                         assert_equal [expanded_selection, []], base.resolve_user_selection(user_selection) 
                     end

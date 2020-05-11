@@ -134,8 +134,9 @@ module Autoproj
                         end
                         cli = CLI.const_get(classname).new
                         begin
-                            run_args = cli.validate_options(args, options.merge(extra_options))
-                            cli.run(*run_args)
+                            *run_args, kw = cli.validate_options(args, options.merge(extra_options))
+                            kw = (kw || {}).transform_keys(&:to_sym)
+                            cli.run(*run_args, **kw)
                         ensure
                             cli.notify_env_sh_updated if cli.respond_to?(:notify_env_sh_updated)
                         end

@@ -9,6 +9,8 @@ require 'backports/2.4.0/fixnum/dup'
 require 'backports/2.4.0/nil_class/dup'
 require 'backports/2.4.0/false_class/dup'
 require 'backports/2.4.0/true_class/dup'
+require 'backports/2.4.0/hash/transform_values'
+require 'backports/2.5.0/hash/transform_keys'
 
 require 'autobuild'
 require 'autoproj/autobuild'

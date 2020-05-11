@@ -168,7 +168,7 @@ module Autoproj
             @version_control = Array.new
             @overrides = Array.new
             @raw_local_dir = raw_local_dir
-            @default_importer = VCSDefinition.from_raw(type: 'none')
+            @default_importer = VCSDefinition.from_raw({ type: 'none' })
 
             @imports  = Set.new
             @imports_vcs  = Array.new

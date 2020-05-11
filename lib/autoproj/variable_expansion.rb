@@ -80,7 +80,9 @@ module Autoproj
     end
 
     # True if the given string contains expansions
-    def self.contains_expansion?(string); string =~ /\$/ end
+    def self.contains_expansion?(string)
+        string.respond_to?(:to_str) && string.to_str =~ /\$/
+    end
 
     def self.resolve_one_constant(name, value, result, definitions)
         result[name] ||= single_expansion(value, result) do |missing_name|

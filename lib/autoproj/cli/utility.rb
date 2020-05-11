@@ -70,7 +70,7 @@ module Autoproj
                 out_format = "%-#{w}s %-7s %-9s"
                 puts format(out_format, 'Package Name', 'Enabled', 'Available')
                 lines.each do |name, enabled, available|
-                    puts(format(out_format, name, (!!enabled).to_s, (!!available).to_s))
+                    puts(format(out_format, name, (!!enabled).to_s, (!!available).to_s)) # rubocop:disable Style/DoubleNegation
                 end
             end
 
@@ -113,12 +113,12 @@ module Autoproj
                 ) do |pkg, phase|
                     reporting&.report_incremental(pkg) if phase == utility_name
                 end
-
             ensure
                 reporting&.create_report(packages.map(&:autobuild))
             end
 
             def package_metadata(autobuild_package)
+                # rubocop:disable Style/DoubleNegation
                 u = autobuild_package.utility(@utility_name)
                 {
                     'source_dir' => u.source_dir,
@@ -127,8 +127,9 @@ module Autoproj
                     'enabled' => !!u.enabled?,
                     'invoked' => !!u.invoked?,
                     'success' => !!u.success?,
-                    'installed' => !!u.installed?,
+                    'installed' => !!u.installed?
                 }
+                # rubocop:enable Style/DoubleNegation
             end
         end
     end

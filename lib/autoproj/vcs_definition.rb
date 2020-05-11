@@ -33,7 +33,7 @@ module Autoproj
         HistoryEntry  = Struct.new :package_set, :vcs
         RawEntry      = Struct.new :package_set, :file, :vcs
 
-        def initialize(type, url, vcs_options, from: nil, raw: Array.new, history: Array.new)
+        def initialize(type, url, vcs_options, from: nil, raw: [], history: [])
             if !raw.respond_to?(:to_ary)
                 raise ArgumentError, "wrong format for the raw field (#{raw.inspect})"
             end
@@ -49,7 +49,7 @@ module Autoproj
 
         # Create a null VCS object
         def self.none
-            from_raw(type: 'none')
+            from_raw({ type: 'none' })
         end
 
         # Whether there is actually a version control definition
@@ -151,10 +151,14 @@ module Autoproj
                         elsif base_dir
                             File.expand_path(short_url, base_dir)
                         else
-                            raise ArgumentError, "VCS path '#{short_url}' is relative and no base_dir was given"
+                            raise ArgumentError,
+                                  "VCS path '#{short_url}' is relative and no "\
+                                  "base_dir was given"
                         end
                     if !File.directory?(source_dir)
-                        raise ArgumentError, "'#{short_url}' is neither a remote source specification, nor an existing local directory"
+                        raise ArgumentError,
+                              "'#{short_url}' is neither a remote source "\
+                              'specification, nor an existing local directory'
                     end
                     spec.merge!(type: 'local', url: source_dir)
                 end
@@ -195,17 +199,26 @@ module Autoproj
         # @return [VCSDefinition]
         # @raise ArgumentError if the raw specification does not match an
         #   expected format
-        def self.from_raw(spec, from: nil, raw: Array.new, history: Array.new)
+        def self.from_raw(spec, from: nil, raw: [], history: [])
             normalized_spec = normalize_vcs_hash(spec)
             if !(type = normalized_spec.delete(:type))
-                raise ArgumentError, "the source specification #{raw_spec_to_s(spec)} normalizes into #{raw_spec_to_s(normalized_spec)}, which does not have a VCS type"
-            elsif !(url  = normalized_spec.delete(:url))
-                if type != 'none'
-                    raise ArgumentError, "the source specification #{raw_spec_to_s(spec)} normalizes into #{raw_spec_to_s(normalized_spec)}, which does not have a URL. Only VCS of type 'none' do not require one"
-                end
+                raise ArgumentError,
+                      "the source specification #{raw_spec_to_s(spec)} normalizes "\
+                      "into #{raw_spec_to_s(normalized_spec)}, "\
+                      'which does not have a VCS type'
             end
 
-            VCSDefinition.new(type, url, normalized_spec, from: from, history: history, raw: raw)
+            if !(url  = normalized_spec.delete(:url)) && type != 'none'
+                raise ArgumentError,
+                      "the source specification #{raw_spec_to_s(spec)} normalizes "\
+                      "into #{raw_spec_to_s(normalized_spec)}, "\
+                      'which does not have a URL. '\
+                      'Only VCS of type \'none\' do not require one'
+            end
+
+            VCSDefinition.new(
+                type, url, normalized_spec, from: from, history: history, raw: raw
+            )
         end
 
         def ==(other_vcs)
@@ -307,7 +320,7 @@ module Autoproj
         if !handler
             raise ArgumentError, "there is no source handler for #{vcs}"
         else
-            return handler.call(url, options)
+            handler.call(url, **options)
         end
     end
 

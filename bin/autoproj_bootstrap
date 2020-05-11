@@ -264,7 +264,7 @@ module Autoproj
             end
 
             def add_seed_config(path)
-                @config.merge!(YAML.safe_load(File.read(path)))
+                @config.merge!(YAML.safe_load(File.read(path), [Symbol]))
             end
 
             # Parse the provided command line options and returns the non-options

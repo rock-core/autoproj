@@ -93,15 +93,17 @@ module Autoproj
 
         describe "#create_autobuild_importer" do
             it "does not create an importer if type is none" do
-                vcs = Autoproj::VCSDefinition.from_raw(type: 'none', url: nil)
+                vcs = Autoproj::VCSDefinition.from_raw({ type: 'none', url: nil })
                 assert !vcs.create_autobuild_importer
             end
             it "does not create an importer if type is local" do
-                vcs = Autoproj::VCSDefinition.from_raw(type: 'local', url: '/test')
+                vcs = Autoproj::VCSDefinition.from_raw({ type: 'local', url: '/test' })
                 assert !vcs.create_autobuild_importer
             end
             it "creates an importer of the required type and options" do
-                vcs = Autoproj::VCSDefinition.from_raw(type: 'git', url: 'https://github.com')
+                vcs = Autoproj::VCSDefinition.from_raw(
+                    { type: 'git', url: 'https://github.com' }
+                )
                 importer = vcs.create_autobuild_importer
                 assert_kind_of Autobuild::Git, importer
                 assert_equal 'https://github.com', importer.repository
@@ -124,16 +126,16 @@ module Autoproj
             end
             it "adds one" do
                 recorder = flexmock
-                recorder.should_receive(:called).with('url', expected_options = flexmock).
+                recorder.should_receive(:called).with('url', expected_options = {}).
                     once
                 ret = flexmock
-                Autoproj.add_source_handler 'custom_handler' do |url, options|
+                Autoproj.add_source_handler 'custom_handler' do |url, **options|
                     recorder.called(url, options)
                     ret
                 end
                 assert Autoproj.has_source_handler?('custom_handler')
                 assert_equal ret, Autoproj.call_source_handler('custom_handler', 'url', expected_options)
-            end 
+            end
             it "raises ArgumentError if attempting to call a handler that does not exist" do
                 refute Autoproj.has_source_handler?('custom_handler')
                 e = assert_raises(ArgumentError) do
@@ -150,14 +152,14 @@ module Autoproj
                 assert_raises(ArgumentError) do
                     Autoproj.call_source_handler('custom_handler', flexmock, flexmock)
                 end
-            end 
+            end
         end
 
         describe "#==" do
             it "returns false if given an arbitrary object" do
                 refute_equal Object.new, VCSDefinition.none
             end
-            
+
             describe "null definitions" do
                 attr_reader :left
                 before do
