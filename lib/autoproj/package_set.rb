@@ -239,7 +239,7 @@ module Autoproj
             else
                 package = create_autobuild_package
                 if package.importer.respond_to?(:snapshot)
-                    package.importer.snapshot(package, target_dir, options)
+                    package.importer.snapshot(package, target_dir, **options)
                 end
             end
         end
