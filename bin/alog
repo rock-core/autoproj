@@ -23,6 +23,7 @@ Autoproj.report(silent: true) do
 
     if log_files.size == 1
         logfile = log_files.first
+        puts File.read(logfile)
     elsif log_files.size > 1
         begin
             logfile = cli.select_log_file(log_files)
