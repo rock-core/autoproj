@@ -73,7 +73,7 @@ module Autoproj
                 end
             end
 
-            def report_exception(package_status, msg, e)
+            def self.report_exception(package_status, msg, e)
                 package_status.msg << Autoproj.color("  #{msg} (#{e})", :red)
                 if Autobuild.debug
                     package_status.msg.concat(e.backtrace.map do |line|
@@ -96,7 +96,7 @@ module Autoproj
                 else
                     begin status = importer.status(pkg, only_local: only_local)
                     rescue StandardError => e
-                        report_exception(package_status, "failed to fetch status information", e)
+                        self.report_exception(package_status, "failed to fetch status information", e)
                         return package_status
                     end
 
@@ -108,7 +108,7 @@ module Autoproj
                             rescue Autobuild::PackageException
                                 Hash.new
                             rescue StandardError => e
-                                report_exception(package_status, "failed to fetch snapshotting information", e)
+                                self.report_exception(package_status, "failed to fetch snapshotting information", e)
                                 return package_status
                             end
                         if snapshot_overrides_vcs?(importer, package_description.vcs, snapshot_version)
