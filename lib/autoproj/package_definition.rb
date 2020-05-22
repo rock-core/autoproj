@@ -90,7 +90,7 @@ module Autoproj
                         autobuild.depends_on name
                     end
                 rescue ConfigError => e
-                    raise ConfigError.new(manifest.path),
+                    raise PackageNotFound.new(manifest.path),
                           "manifest #{manifest.path} of #{self.name} from "\
                           "#{package_set.name} lists '#{name}' as dependency, "\
                           'but it is neither a normal package nor an osdeps '\

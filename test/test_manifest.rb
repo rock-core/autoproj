@@ -714,7 +714,7 @@ module Autoproj
                 "if it refers to a package that does not exist" do
                 manifest_path = ws_create_package_file pkg, "manifest.xml",
                     "<package><depend package=\"dependency\" /></package>"
-                e = assert_raises(ConfigError) do
+                e = assert_raises(PackageNotFound) do
                     manifest.load_package_manifest(pkg)
                 end
                 assert_equal "manifest #{manifest_path} of test from pkg_set lists "\
