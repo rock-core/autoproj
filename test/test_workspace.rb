@@ -274,18 +274,55 @@ module Autoproj
                 @pkg0         = ws_add_package_to_layout :cmake, :pkg0
                 @pkg1         = ws_define_package :cmake, :pkg1
                 flexmock(ws.env).should_receive(:dup).once.and_return(@env = flexmock)
+                @env.should_receive(:export_env_sh).by_default
+                @env.should_receive(:each_env_filename).by_default
                 @env.should_receive(:exported_environment).and_return(
                     Autobuild::Environment::ExportedEnvironment.new(Hash.new, Array.new, Hash.new))
             end
-            it "aggregates the environment of all the selected packages" do
+            it "aggregates the environment only of the selected packages" do
                 flexmock(pkg0.autobuild).should_receive(:apply_env).with(env).once.globally.ordered
                 flexmock(pkg1.autobuild).should_receive(:apply_env).with(env).never
                 env.should_receive(:export_env_sh).once.globally.ordered
                 ws.export_env_sh
             end
+            it "creates files in the prefix dir" do
+                dir = make_tmpdir
+                env1 = File.join(dir, "1.sh")
+                env2 = File.join(dir, "2.sh")
+                env.should_receive(:each_env_filename)
+                   .and_iterates([nil, env1], [nil, env2])
+                ws.export_env_sh
+                assert_equal "source \"#{env1}\"",
+                             File.read(File.join(ws.prefix_dir, "1.sh")).strip
+                assert_equal "source \"#{env2}\"",
+                             File.read(File.join(ws.prefix_dir, "2.sh")).strip
+            end
+            it "does not create files in the build dir if it is relative" do
+                dir = make_tmpdir
+                env1 = File.join(dir, "1.sh")
+                env2 = File.join(dir, "2.sh")
+                env.should_receive(:each_env_filename)
+                   .and_iterates([nil, env1], [nil, env2])
+                ws.export_env_sh
+                refute File.exist?(File.join(ws.build_dir, "1.sh"))
+                refute File.exist?(File.join(ws.build_dir, "2.sh"))
+            end
+            it "creates files in the build dir if it is absolute" do
+                ws.build_dir = make_tmpdir
+                dir = make_tmpdir
+                env1 = File.join(dir, "1.sh")
+                env2 = File.join(dir, "2.sh")
+                env.should_receive(:each_env_filename)
+                   .and_iterates([nil, env1], [nil, env2])
+                ws.export_env_sh
+                assert_equal "source \"#{env1}\"",
+                             File.read(File.join(ws.build_dir, "1.sh")).strip
+                assert_equal "source \"#{env2}\"",
+                             File.read(File.join(ws.build_dir, "2.sh")).strip
+            end
             it "ignores OS dependencies" do
-                ws_define_osdep_entries 'root_osdep' => 'ignore'
-                ws_define_osdep_entries 'dep_osdep' => 'ignore'
+                ws_define_osdep_entries({ 'root_osdep' => 'ignore' })
+                ws_define_osdep_entries({ 'dep_osdep' => 'ignore' })
                 pkg0.autobuild.depends_on 'dep_osdep'
 
                 flexmock(pkg0.autobuild).should_receive(:apply_env).with(env).once.globally.ordered

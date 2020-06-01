@@ -17,6 +17,22 @@ module Autoproj
             Autoproj.filter_out_paths_in_workspace(env)
         end
 
+        def env_filename(shell, *subdir)
+            env_filename = if shell == 'sh'
+                               ENV_FILENAME
+                           else
+                               (Pathname(ENV_FILENAME).sub_ext '').to_s.concat(".#{shell}")
+                           end
+
+            File.join(root_dir, *subdir, env_filename)
+        end
+
+        def each_env_filename(*subdir)
+            (['sh'] + Autoproj.workspace.config.user_shells).to_set.each do |shell|
+                yield shell, env_filename(shell, *subdir)
+            end
+        end
+
         def export_env_sh(subdir = nil, options = Hash.new)
             if subdir.kind_of?(Hash)
                 subdir, options = nil, subdir
@@ -28,19 +44,7 @@ module Autoproj
             completion_dir = File.join(shell_dir, 'completion')
             env_updated = false
 
-            (['sh'] + Autoproj.workspace.config.user_shells).to_set.each do |shell|
-                env_filename = if shell == 'sh'
-                                   ENV_FILENAME
-                               else
-                                   (Pathname(ENV_FILENAME).sub_ext '').to_s.concat(".#{shell}")
-                               end
-
-                filename = if subdir
-                    File.join(root_dir, subdir, env_filename)
-                else
-                    File.join(root_dir, env_filename)
-                end
-
+            each_env_filename(*[subdir].compact) do |shell, filename|
                 helper = File.join(shell_dir, "autoproj_#{shell}")
                 if options[:shell_helpers]
                     source_after(helper, shell: shell) if File.file?(helper)
