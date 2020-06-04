@@ -138,15 +138,19 @@ archive:
   debian,ubuntu:
   - tar
   - unzip
+  - ca-certificates
   gentoo:
   - app-arch/tar
   - app-arch/unzip
+  - app-misc/ca-certificates
   arch:
   - tar
   - unzip
+  - ca-certificates
   fedora:
   - tar
   - unzip
+  - ca-certificates
   macos-port:
   - gnutar
   - unzip
@@ -155,6 +159,7 @@ archive:
   opensuse:
   - tar
   - unzip
+  - ca-certificates
   default: ignore
 
 cvs:
