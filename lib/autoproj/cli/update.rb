@@ -1,5 +1,6 @@
 require 'autoproj/cli'
 require 'autoproj/cli/base'
+require 'autoproj/cli/status'
 require 'autoproj/ops/import'
 
 module Autoproj
@@ -66,16 +67,19 @@ module Autoproj
                 return selection, options
             end
 
-            def run(selected_packages, run_hook: false, report: true, **options)
+            def run(selected_packages, run_hook: false, report: true, ask: false, **options)
                 ws.manifest.accept_unavailable_osdeps = !options[:osdeps]
                 ws.setup
                 ws.autodetect_operating_system(force: true)
-                if options[:bundler]
-                    ws.update_bundler
+
+                if ask
+                    prompt = TTY::Prompt.new
+                    options[:bundler] &&= prompt.yes?("Update bundler ?")
+                    options[:autoproj] &&= prompt.yes?("Update autoproj ?")
                 end
-                if options[:autoproj]
-                    ws.update_autoproj
-                end
+
+                ws.update_bundler if options[:bundler]
+                ws.update_autoproj if options[:autoproj]
 
                 begin
                     ws.load_package_sets(
@@ -84,7 +88,8 @@ module Autoproj
                         checkout_only: !options[:config] || options[:checkout_only],
                         reset: options[:reset],
                         keep_going: options[:keep_going],
-                        retry_count: options[:retry_count])
+                        retry_count: options[:retry_count]
+                    )
                 rescue ImportFailed => configuration_import_failure
                     if !options[:keep_going]
                         raise
@@ -122,6 +127,7 @@ module Autoproj
                         parallel: options[:parallel] || ws.config.parallel_import_level,
                         retry_count: options[:retry_count],
                         auto_exclude: options[:auto_exclude],
+                        ask: ask,
                         report: report)
 
                 ws.finalize_setup
@@ -193,13 +199,62 @@ module Autoproj
                 osdeps_options
             end
 
+            class AskUpdateFilter
+                def initialize(prompt, parallel: 1, only_local: false)
+                    @prompt = prompt
+                    @only_local = only_local
+                    @executor = Concurrent::FixedThreadPool.new(parallel, max_length: 0)
+
+                    @parallel = parallel
+                    @futures = {}
+                    @lookahead_queue = []
+                end
+
+                def call(pkg)
+                    unless (status = @futures.delete(pkg).value)
+                        raise v.reason
+                    end
+
+                    clean = !status.unexpected &&
+                            (status.sync || (status.local && !status.remote))
+                    if clean
+                        msg = Autobuild.color('already up-to-date', :green)
+                        pkg.autobuild.message "#{msg} %s"
+                        return false
+                    end
+
+                    Autobuild.progress_display_synchronize do
+                        status.msg.each { |m| puts m }
+                        @prompt.yes?("Update #{pkg.name} ?")
+                    end
+                end
+
+                def lookahead(pkg)
+                    @futures[pkg] = Concurrent::Future.execute(executor: @executor) do
+                        Status.status_of_package(
+                            pkg, snapshot: false, only_local: @only_local
+                        )
+                    end
+                end
+            end
+
             def update_packages(selected_packages,
                 from: nil, checkout_only: false, only_local: false, reset: false,
                 deps: true, keep_going: false, parallel: 1,
                 retry_count: 0, osdeps: true, auto_exclude: false, osdeps_options: Hash.new,
-                report: true)
+                report: true, ask: false)
 
                 setup_update_from(from) if from
+
+                filter =
+                    if ask
+                        prompt = TTY::Prompt.new
+                        filter = AskUpdateFilter.new(
+                            prompt, parallel: parallel, only_local: only_local
+                        )
+                    else
+                        ->(pkg) { true }
+                    end
 
                 ops = Autoproj::Ops::Import.new(
                     ws, report_path: (ws.import_report_path if report))
@@ -213,7 +268,8 @@ module Autoproj
                                         parallel: parallel,
                                         retry_count: retry_count,
                                         install_vcs_packages: (osdeps_options if osdeps),
-                                        auto_exclude: auto_exclude)
+                                        auto_exclude: auto_exclude,
+                                        filter: filter)
                 [source_packages, osdep_packages, nil]
             rescue ExcludedSelection => e
                 raise CLIInvalidSelection, e.message, e.backtrace

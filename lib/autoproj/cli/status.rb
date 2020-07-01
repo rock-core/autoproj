@@ -73,7 +73,7 @@ module Autoproj
                 end
             end
 
-            def report_exception(package_status, msg, e)
+            def self.report_exception(package_status, msg, e)
                 package_status.msg << Autoproj.color("  #{msg} (#{e})", :red)
                 if Autobuild.debug
                     package_status.msg.concat(e.backtrace.map do |line|
@@ -82,8 +82,8 @@ module Autoproj
                 end
             end
 
-            PackageStatus = Struct.new :msg, :sync, :uncommitted, :local, :remote
-            def status_of_package(package_description, only_local: false, snapshot: false)
+            PackageStatus = Struct.new :msg, :sync, :unexpected, :uncommitted, :local, :remote
+            def self.status_of_package(package_description, only_local: false, snapshot: false)
                 pkg = package_description.autobuild
                 importer = pkg.importer
                 package_status = PackageStatus.new(Array.new, false, false, false, false)
@@ -96,7 +96,7 @@ module Autoproj
                 else
                     begin status = importer.status(pkg, only_local: only_local)
                     rescue StandardError => e
-                        report_exception(package_status, "failed to fetch status information", e)
+                        self.report_exception(package_status, "failed to fetch status information", e)
                         return package_status
                     end
 
@@ -108,7 +108,7 @@ module Autoproj
                             rescue Autobuild::PackageException
                                 Hash.new
                             rescue StandardError => e
-                                report_exception(package_status, "failed to fetch snapshotting information", e)
+                                self.report_exception(package_status, "failed to fetch snapshotting information", e)
                                 return package_status
                             end
                         if snapshot_overrides_vcs?(importer, package_description.vcs, snapshot_version)
@@ -122,6 +122,7 @@ module Autoproj
                     end
 
                     status.unexpected_working_copy_state.each do |msg|
+                        package_status.unexpected = true
                         package_status.msg << Autoproj.color("  #{msg}", :red, :bold)
                     end
 
@@ -173,13 +174,15 @@ module Autoproj
                 end
                 noninteractive = noninteractive.map do |pkg|
                     future = Concurrent::Future.execute(executor: executor) do
-                        status_of_package(pkg, snapshot: snapshot, only_local: only_local)
+                        Status.status_of_package(
+                            pkg, snapshot: snapshot, only_local: only_local
+                        )
                     end
                     [pkg, future]
                 end
 
                 (noninteractive + interactive).each do |pkg, future|
-                    if future 
+                    if future
                         if progress
                             wait_timeout = 1
                             while true
@@ -196,7 +199,10 @@ module Autoproj
                         if !(status = future.value)
                             raise future.reason
                         end
-                    else status = status_of_package(pkg, snapshot: snapshot, only_local: only_local)
+                    else
+                        status = Status.status_of_package(
+                            pkg, snapshot: snapshot, only_local: only_local
+                        )
                     end
 
                     result.uncommitted ||= status.uncommitted
@@ -263,7 +269,7 @@ module Autoproj
                         sync_packages = ""
                     end
 
-                    STDERR.print 
+                    STDERR.print
 
                     if status.msg.size == 1
                         Autoproj.message "#{pkg_name}: #{status.msg.first}"
