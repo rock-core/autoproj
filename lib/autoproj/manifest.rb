@@ -231,11 +231,11 @@ module Autoproj
                 validate_package_in_self(package)
                 package.name
             else
-		begin
+                begin
                     package = package.to_str
-		rescue NoMethodError
-		    raise ArgumentError, "no package name specified. check your manifest file for lines containing only a dash"
-		end
+                rescue NoMethodError
+                    raise ArgumentError, "no package name specified. check your manifest file for lines containing only a dash"
+                end
                 if require_existing && !has_package?(package)
                     raise PackageNotFound, "no package named #{package} in #{self}"
                 end
