@@ -60,6 +60,10 @@ module Autoproj
                 YAML.safe_load(File.read(file)) || {}
             end
 
+            if data["layout"].member?(nil)
+                data["layout"] = data["layout"].compact
+            end
+
             @file = file
             initialize_from_hash(data)
         end
@@ -231,11 +235,7 @@ module Autoproj
                 validate_package_in_self(package)
                 package.name
             else
-                begin
-                    package = package.to_str
-                rescue NoMethodError
-                    raise ArgumentError, "no package name specified. check your manifest file for lines containing only a dash"
-                end
+                package = package.to_str
                 if require_existing && !has_package?(package)
                     raise PackageNotFound, "no package named #{package} in #{self}"
                 end
