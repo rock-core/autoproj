@@ -61,6 +61,7 @@ module Autoproj
             end
 
             if data["layout"].member?(nil)
+                Autoproj.warn "There is an empty entry in your layout in #{file}. All empty entries are ignored."
                 data["layout"] = data["layout"].compact
             end
 
