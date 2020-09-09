@@ -60,6 +60,11 @@ module Autoproj
                 YAML.safe_load(File.read(file)) || {}
             end
 
+            if data["layout"].member?(nil)
+                Autoproj.warn "There is an empty entry in your layout in #{file}. All empty entries are ignored."
+                data["layout"] = data["layout"].compact
+            end
+
             @file = file
             initialize_from_hash(data)
         end
