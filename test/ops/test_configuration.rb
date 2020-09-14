@@ -424,6 +424,30 @@ module Autoproj
                 end
             end
 
+            describe "#load_no_packages_layout" do
+                it "load no layout" do
+                    FileUtils.mkdir_p ws.config_dir
+                    manifest_path = File.join(ws.config_dir, 'manifest')
+                    FileUtils.touch(manifest_path)
+                    ws.manifest.load manifest_path
+                    refute ws.manifest.has_layout?
+                end
+
+                it "load empty layout entry" do
+                    FileUtils.mkdir_p ws.config_dir
+                    manifest_path = File.join(ws.config_dir, 'manifest')
+                    File.open(manifest_path, 'w') do |io|
+                        YAML.dump(Hash['layout' => [nil]], io)
+                    end
+                    flexmock(Autoproj).should_receive(:warn).
+                        with("There is an empty entry in your layout in "/
+                            "#{manifest_path}. All empty entries are ignored.").
+                        once
+                    ws.manifest.load manifest_path
+                    assert ws.manifest.has_layout?
+                end
+            end
+
             describe "#load_package_set_information" do
                 before do
                     FileUtils.mkdir_p ws.config_dir
