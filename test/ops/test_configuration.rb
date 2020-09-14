@@ -440,7 +440,7 @@ module Autoproj
                         YAML.dump(Hash['layout' => [nil]], io)
                     end
                     flexmock(Autoproj).should_receive(:warn).
-                        with("There is an empty entry in your layout in "/
+                        with("There is an empty entry in your layout in "\
                             "#{manifest_path}. All empty entries are ignored.").
                         once
                     ws.manifest.load manifest_path
