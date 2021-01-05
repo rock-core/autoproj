@@ -34,12 +34,12 @@ module Autoproj
                     test_manager_cache =
                         File.join(@cache_dir, 'package_managers', 'test_manager')
                     FileUtils.mkdir_p test_manager_cache
-                    @ws.setup
+                    @ws.setup(load_global_configuration: false)
                     assert_equal test_manager_cache, @manager.cache_dir
                 end
 
                 it 'skips cache directories that don\'t match the package manager\'s name' do
-                    @ws.setup
+                    @ws.setup(load_global_configuration: false)
                     assert_nil @manager.cache_dir
                 end
             end

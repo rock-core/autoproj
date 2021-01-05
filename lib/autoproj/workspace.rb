@@ -348,7 +348,11 @@ module Autoproj
             osdep_suffixes << ruby_version_keyword
         end
 
-        def setup
+        # Perform initial configuration load and workspace setup
+        #
+        # @param [Boolean] load_global_configuration if true, load the global
+        #   autoprojrc file if it exists. Otherwise, ignore it.
+        def setup(load_global_configuration: true)
             setup_ruby_version_handling
             migrate_bundler_and_autoproj_gem_layout
             load_config
@@ -358,7 +362,7 @@ module Autoproj
             config.validate_ruby_executable
             Autobuild.programs['ruby'] = config.ruby_executable
             config.apply_autobuild_configuration
-            load_autoprojrc
+            load_autoprojrc if load_global_configuration
             load_main_initrb
             config.each_reused_autoproj_installation do |p|
                 manifest.reuse(p)
