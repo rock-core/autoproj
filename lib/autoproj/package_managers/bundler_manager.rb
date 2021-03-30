@@ -123,13 +123,14 @@ module Autoproj
             end
 
             def create_cache_symlink(cache_dir, bundler_cache_dir)
-                valid = !File.exist?(bundler_cache_dir) ||
-                        File.symlink?(bundler_cache_dir)
-
-                unless valid
-                    Autoproj.warn "cannot use #{cache_dir} as gem cache as "\
-                                  "#{bundler_cache_dir} already exists"
-                    return
+                if File.exist?(bundler_cache_dir)
+                    if !File.symlink?(bundler_cache_dir)
+                        Autoproj.warn "cannot use #{cache_dir} as gem cache as "\
+                                      "#{bundler_cache_dir} already exists"
+                        return
+                    elsif File.readlink(bundler_cache_dir) == cache_dir
+                        return
+                    end
                 end
 
                 FileUtils.rm_f bundler_cache_dir
