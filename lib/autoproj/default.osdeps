@@ -166,7 +166,12 @@ cvs:
   default: cvs
 
 pip:
-  debian,ubuntu: python-pip
+  debian:
+    '8,jessie,9,stretch': python-pip
+    default: python3-pip
+  ubuntu:
+    '16.04,18.04': python-pip
+    default: python3-pip
   arch: python2-pip
   opensuse: python-pip
   fedora: python-pip
@@ -175,7 +180,12 @@ pip:
 
 python:
   arch: python2
-  debian,ubuntu: python-dev
+  debian:
+    '8,jessie,9,stretch': python-dev
+    default: python3-dev
+  ubuntu:
+    '16.04,18.04': python-dev
+    default: python3-dev
   fedora: python-devel
   freebsd: python-devel
   gentoo: dev-lang/python
@@ -184,7 +194,12 @@ python:
 
 python-setuptools:
   arch: python2-distribute
-  debian,ubuntu: python-setuptools
+  debian:
+     '8,jessie,9,stretch': python-setuptools
+     default: python3-setuptools
+  ubuntu:
+    '16.04,18.04': python-setuptools
+    default: python3-setuptools
   fedora: python-setuptools
   gentoo: dev-python/setuptools
   default: ignore # will be installed manually by the user
