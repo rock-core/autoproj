@@ -320,6 +320,19 @@ module Autoproj
                 assert_equal "source \"#{env2}\"",
                              File.read(File.join(ws.build_dir, "2.sh")).strip
             end
+            it "creates the build dir first" do
+                ws.build_dir = File.join(make_tmpdir, "build")
+                dir = make_tmpdir
+                env1 = File.join(dir, "1.sh")
+                env2 = File.join(dir, "2.sh")
+                env.should_receive(:each_env_filename)
+                   .and_iterates([nil, env1], [nil, env2])
+                ws.export_env_sh
+                assert_equal "source \"#{env1}\"",
+                             File.read(File.join(ws.build_dir, "1.sh")).strip
+                assert_equal "source \"#{env2}\"",
+                             File.read(File.join(ws.build_dir, "2.sh")).strip
+            end
             it "ignores OS dependencies" do
                 ws_define_osdep_entries({ 'root_osdep' => 'ignore' })
                 ws_define_osdep_entries({ 'dep_osdep' => 'ignore' })

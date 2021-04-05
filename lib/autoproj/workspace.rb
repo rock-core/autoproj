@@ -808,14 +808,15 @@ module Autoproj
             changed = save_cached_env(full_env)
             full_env.export_env_sh(shell_helpers: shell_helpers)
 
-            build_dir_is_absolute = Pathname(build_dir).absolute?
+            build_dir = Pathname(self.build_dir)
             full_env.each_env_filename do |_, filename|
                 basename = File.basename(filename)
                 File.open(File.join(prefix_dir, basename), "w") do |io|
                     io.puts "source \"#{filename}\""
                 end
-                if build_dir_is_absolute
-                    File.open(File.join(build_dir, basename), "w") do |io|
+                if build_dir.absolute?
+                    build_dir.mkpath
+                    (build_dir + basename).open("w") do |io|
                         io.puts "source \"#{filename}\""
                     end
                 end
