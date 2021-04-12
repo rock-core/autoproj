@@ -1,8 +1,11 @@
+require_relative 'python'
+
 module Autoproj
     module PackageManagers
         # Using pip to install python packages
         class PipManager < Manager
             attr_reader :installed_pips
+            attr_reader :use_python_venv
 
             def initialize_environment
                 ws.env.set 'PYTHONUSERBASE', pip_home
@@ -25,10 +28,21 @@ module Autoproj
             end
 
             def guess_pip_program
+                if ws.config.has_value_for?('USE_PYTHON')
+                    if !ws.config.get('USE_PYTHON')
+                        raise ValueError, "The use of pip is required, but" \
+                          " the use of python has been denied, see " \
+                          " setting of USE_PYTHON in your configuration." \
+                          " Call 'autoproj reconfigure' to change the setting"
+                    end
+                else
+                    Autoproj::Python.setup_python_configuration_options(ws: ws)
+                    @use_python_venv = ws.config.get("USE_PYTHON_VENV",nil)
+                end
+
                 if Autobuild.programs['pip']
                     return Autobuild.programs['pip']
                 end
-
                 Autobuild.programs['pip'] = "pip"
             end
 
@@ -38,7 +52,8 @@ module Autoproj
                     pips = [pips]
                 end
 
-                base_cmdline = [Autobuild.tool('pip'), 'install','--user']
+                base_cmdline = [Autobuild.tool('pip'), 'install']
+                base_cmdline << "--user" unless use_python_venv
 
                 cmdlines = [base_cmdline + pips]
 
