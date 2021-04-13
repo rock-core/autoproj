@@ -57,7 +57,7 @@ module Autoproj
 
                 cmdlines = [base_cmdline + pips]
 
-                if pips_interaction(pips, cmdlines)
+                if pips_interaction(cmdlines)
                     Autoproj.message "  installing/updating Python dependencies: "+
                         "#{pips.sort.join(", ")}"
 
@@ -72,7 +72,7 @@ module Autoproj
                 end
             end
             
-            def pips_interaction(pips, cmdlines)
+            def pips_interaction(cmdlines)
                 if OSPackageInstaller.force_osdeps
                     return true
                 elsif enabled?

@@ -108,8 +108,7 @@ module Autoproj
             end
         end
 
-        def self.custom_resolve_python(ws: Autoproj.workspace,
-                                       bin: nil,
+        def self.custom_resolve_python(bin: nil,
                                        version: nil)
             version, valid = validate_python_version(bin, version)
             if valid
@@ -133,7 +132,7 @@ module Autoproj
             resolvers.each do |resolver|
                 begin
                     bin, version = resolver.call
-                    if bin && File.exists?(bin) && version
+                    if bin && File.exist?(bin) && version
                         Autoproj.debug "Autoproj::Python.resolve_python: found python '#{bin}'"\
                             " version '#{version}'"
                         break
@@ -163,10 +162,8 @@ module Autoproj
         def self.resolve_python(ws: Autoproj.workspace,
                                 bin: nil,
                                 version: nil)
-            version_constraint = version
-            # Custom selection of python version
             if bin
-                return custom_resolve_python(ws: ws, bin: bin, version: version)
+                return custom_resolve_python(bin: bin, version: version)
             else
                 return auto_resolve_python(ws: ws, version: version)
             end
@@ -174,14 +171,14 @@ module Autoproj
 
         def self.remove_python_shims(root_dir)
             shim_path = File.join(root_dir, "install","bin","python")
-            if File.exists?(shim_path)
+            if File.exist?(shim_path)
                 FileUtils.rm shim_path
             end
         end
 
         def self.remove_pip_shims(root_dir)
             shim_path = File.join(root_dir, "install","bin","pip")
-            if File.exists?(shim_path)
+            if File.exist?(shim_path)
                 FileUtils.rm shim_path
             end
         end
