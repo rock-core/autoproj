@@ -286,6 +286,7 @@ module Autoproj
                   " virtual env '#{venv_name}' failed: '#{msg}'"
           end
 
+          ws.env.set('VIRTUAL_ENV_DISABLE_PROMPT',1)
           ws.env.source_after File.join(Autoproj.root_dir, venv_name, "bin","activate")
           return File.join(Autoproj.root_dir, venv_name)
         end
