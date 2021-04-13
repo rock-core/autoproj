@@ -27,7 +27,7 @@ module Autoproj
                 pip_manager.install(packages)
             end
 
-            def test_install_packaes_disabled_and_not_silent
+            def test_install_packages_disabled_and_not_silent
                 subprocess = flexmock(Autobuild::Subprocess)
 
                 pip_manager.enabled = false
