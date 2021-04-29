@@ -47,6 +47,7 @@ module Autoproj
                 Autobuild.programs['pip'] = "pip"
             end
 
+            # rubocop:disable Lint/UnusedMethodArgument
             def install(pips, filter_uptodate_packages: false, install_only: false)
                 guess_pip_program
                 pips = [pips] if pips.is_a?(String)
@@ -70,6 +71,7 @@ module Autoproj
                     end
                 end
             end
+            # rubocop:enable Lint/UnusedMethodArgument
 
             def pips_interaction(cmdlines)
                 if OSPackageInstaller.force_osdeps

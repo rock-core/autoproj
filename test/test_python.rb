@@ -103,9 +103,11 @@ module Autoproj
 
                 assert(op.type == :add_path)
                 assert(op.name == "PYTHONPATH")
+                # rubocop:disable Style/HashEachMethods
                 op.values.each do |p|
                     found_path = true if p =~ /#{path_pattern}/
                 end
+                # rubocop:enable Style/HashEachMethods
                 assert(found_path)
                 assert(!@ws.config.has_value_for?('python_executable'))
                 assert(!@ws.config.has_value_for?('python_version'))
