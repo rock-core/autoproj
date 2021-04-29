@@ -29,10 +29,13 @@ module Autoproj
             def guess_pip_program
                 if ws.config.has_value_for?('USE_PYTHON')
                     unless ws.config.get('USE_PYTHON')
-                        raise ValueError, "The use of pip is required, but" \
-                          " the use of python has been denied, see " \
-                          " setting of USE_PYTHON in your configuration." \
-                          " Call 'autoproj reconfigure' to change the setting"
+                        raise ConfigError, "Your current package selection" \
+                          " requires the use of pip is required, but" \
+                          " the use of python has been denied, see" \
+                          " setting of USE_PYTHON in your workspace configuration." \
+                          " Either remove all packages depending on pip packages " \
+                          " from the workspace layout (manifest) or " \
+                          " call 'autoproj reconfigure' to change the setting."
                     end
                 else
                     Autoproj::Python.setup_python_configuration_options(ws: ws)

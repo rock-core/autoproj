@@ -9,6 +9,8 @@ module Autoproj
                 super
 
                 ws_create
+                ws.config.set("USE_PYTHON", true)
+
                 @pip_manager = PipManager.new(ws)
                 Autobuild.programs['pip'] = 'mypip'
             end
@@ -35,6 +37,12 @@ module Autoproj
                 subprocess.should_receive(:run).never
                 flexmock($stdin).should_receive(:readline).once.and_return
                 pip_manager.install([['pkg0']])
+            end
+
+            def test_no_use_python
+                ws.config.set("USE_PYTHON", false)
+                assert_raises(ConfigError) { pip_manager.guess_pip_program }
+                ws.config.set("USE_PYTHON", true)
             end
         end
     end
