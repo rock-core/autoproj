@@ -24,7 +24,7 @@ module Autoproj
                 subprocess = flexmock(Autobuild::Subprocess)
 
                 packages = %w[pkg0 pkg1 pkg2]
-                subprocess.should_receive(:run).
+                subprocess.should_receive(:run).explicitly.
                     with(any, any, 'mypip', 'install', '--user', 'pkg0', 'pkg1', 'pkg2', any).once
                 pip_manager.install(packages)
             end
@@ -34,7 +34,7 @@ module Autoproj
 
                 pip_manager.enabled = false
                 pip_manager.silent = false
-                subprocess.should_receive(:run).never
+                subprocess.should_receive(:run).explicitly.never
                 flexmock($stdin).should_receive(:readline).once.and_return
                 pip_manager.install([['pkg0']])
             end
