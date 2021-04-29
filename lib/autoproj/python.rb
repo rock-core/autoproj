@@ -289,7 +289,7 @@ module Autoproj
                               doc: ["Do you want to activate python?"]
 
             if ws.config.get("USE_PYTHON")
-                ws.os_package_installer.install(['python','pip'])
+                ws.os_package_installer.install(%w[python pip])
 
                 unless ws.config.has_value_for?('python_executable')
                     remove_python_shims(ws.root_dir)

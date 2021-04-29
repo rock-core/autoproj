@@ -7,6 +7,7 @@ module Autoproj
             before do
                 @pkg = Autobuild::Package.new
                 @ws = ws_create
+                @ws.os_package_resolver.load_default
                 flexmock(@pkg)
                 @pkg.prefix = "/tmp/install/foo/"
                 @env = flexmock(base: Autobuild::Environment)
@@ -152,6 +153,7 @@ module Autoproj
                 @ws.config.reset
                 @ws.config.set('interactive', false)
                 @ws.config.set('USE_PYTHON', true)
+                @ws.config.set("osdeps_mode", "all")
                 Autoproj::Python.setup_python_configuration_options(ws: @ws)
                 assert(@ws.config.get('USE_PYTHON'))
                 assert(@ws.config.get('python_executable'))
