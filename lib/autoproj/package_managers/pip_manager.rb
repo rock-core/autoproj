@@ -1,4 +1,4 @@
-require_relative 'python'
+require 'autoproj/python'
 
 module Autoproj
     module PackageManagers

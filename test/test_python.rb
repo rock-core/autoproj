@@ -1,4 +1,4 @@
-require 'autoproj/package_managers/python'
+require 'autoproj/python'
 require 'autoproj/test'
 
 module Autoproj
