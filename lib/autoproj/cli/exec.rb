@@ -32,8 +32,8 @@ module Autoproj
                     require 'autoproj/cli/inspection_tool'
                     ws = Workspace.from_dir(@root_dir)
                     loader = InspectionTool.new(ws)
-                    loader.initialize_and_load
-                    loader.finalize_setup(Array.new)
+                    loader.initialize_and_load(read_only: true)
+                    loader.finalize_setup(read_only: true)
                     env = ws.full_env.resolved_env
                 end
 
@@ -55,5 +55,3 @@ module Autoproj
         end
     end
 end
-
-
