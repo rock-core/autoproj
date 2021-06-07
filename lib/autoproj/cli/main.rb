@@ -605,8 +605,12 @@ The format is a string in which special values can be expanded using a $VARNAME 
                       "loading the whole configuration"
             def exec(*args)
                 require 'autoproj/cli/exec'
-                Autoproj.report(on_package_failures: default_report_on_package_failures, debug: options[:debug], silent: true) do
-                    opts = Hash.new
+                Autoproj.report(
+                    on_package_failures: default_report_on_package_failures,
+                    debug: options[:debug],
+                    silent: true
+                ) do
+                    opts = {}
                     use_cache = options[:use_cache]
                     opts[:interactive] = options[:interactive]
                     opts[:chdir] = options[:chdir]

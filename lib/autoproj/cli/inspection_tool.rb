@@ -5,12 +5,12 @@ module Autoproj
         # Base class for CLI tools that do not change the state of the installed
         # system
         class InspectionTool < Base
-            def initialize_and_load(mainline: nil)
+            def initialize_and_load(mainline: nil, read_only: false)
                 Autoproj.silent do
-                    ws.setup
+                    ws.setup(read_only: read_only)
                     mainline = true if %w[mainline true].include?(mainline)
                     ws.load_package_sets(mainline: mainline)
-                    ws.config.save
+                    ws.config.save unless read_only
                     ws.setup_all_package_directories
                 end
             end
@@ -28,7 +28,13 @@ module Autoproj
             #   selected packages, the PackageSelection representing the
             #   selection resolution itself, and a flag telling whether some of
             #   the arguments were pointing within the configuration area
-            def finalize_setup(packages = [], non_imported_packages: :ignore, recursive: true, auto_exclude: false)
+            def finalize_setup(
+                packages = [],
+                non_imported_packages: :ignore,
+                recursive: true,
+                auto_exclude: false,
+                read_only: false
+            )
                 Autoproj.silent do
                     packages, config_selected =
                         normalize_command_line_package_selection(packages)
@@ -38,8 +44,8 @@ module Autoproj
                     ws.finalize_package_setup
                     source_packages, osdep_packages, resolved_selection =
                         resolve_selection(packages, recursive: recursive, non_imported_packages: non_imported_packages, auto_exclude: auto_exclude)
-                    ws.finalize_setup
-                    ws.export_installation_manifest
+                    ws.finalize_setup(read_only: read_only)
+                    ws.export_installation_manifest unless read_only
                     [source_packages, osdep_packages, resolved_selection, config_selected]
                 end
             end

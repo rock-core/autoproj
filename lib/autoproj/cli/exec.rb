@@ -66,8 +66,8 @@ module Autoproj
                     ws = Workspace.from_dir(@root_dir)
                     ws.config.interactive = interactive unless interactive.nil?
                     loader = InspectionTool.new(ws)
-                    loader.initialize_and_load
-                    loader.finalize_setup(Array.new)
+                    loader.initialize_and_load(read_only: true)
+                    loader.finalize_setup(read_only: true)
                     env = ws.full_env.resolved_env
                     manifest = ws.installation_manifest if package
                 end
@@ -97,5 +97,3 @@ module Autoproj
         end
     end
 end
-
-

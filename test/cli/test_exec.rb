@@ -7,6 +7,7 @@ module Autoproj
     module CLI
         describe Exec do
             include Autoproj::ArubaMinitest
+
             before do
                 @cursor = TTY::Cursor
                 ws_create(expand_path('.'))
@@ -19,6 +20,11 @@ module Autoproj
                     echo "ENV $TEST_ENV_VAR"
                 STUB_SCRIPT
                 chmod 0o755, 'subdir/test'
+            end
+
+            after do
+                FileUtils.chmod_R "a+w", expand_path(".")
+                FileUtils.rm_rf expand_path(".")
             end
 
             describe "without using the cache" do
@@ -138,6 +144,31 @@ ENV SOME_VALUE
                         "ERROR: package subdir has no builddir",
                         cmd.stderr.strip
                     )
+                end
+            end
+
+            describe "in a read-only workspace" do
+                before do
+                    append_to_file "autoproj/packages.autobuild", <<~INIT
+                        import_package "subdir"
+                    INIT
+                    append_to_file "autoproj/overrides.yml", <<~YML
+                        packages:
+                            subdir:
+                                type: none
+                    YML
+                end
+
+                it "runs normally" do
+                    FileUtils.chmod_R "a-w", expand_path(".")
+                    dir = make_tmpdir
+                    cmd = run_command_and_stop(
+                        "#{@autoproj_bin} exec --package subdir test --some --arg"
+                    )
+                    assert_equal <<~OUTPUT.strip, cmd.stdout.strip
+                        ARG --some --arg
+                        ENV
+                    OUTPUT
                 end
             end
         end
