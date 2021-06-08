@@ -24,13 +24,18 @@ module Autoproj
                     environment_from_export(env, ENV)
             end
 
-            def run(cmd, *args, use_cached_env: Ops.watch_running?(@root_dir))
+            def run(
+                cmd, *args,
+                use_cached_env: Ops.watch_running?(@root_dir),
+                interactive: nil
+            )
                 env = load_cached_env if use_cached_env
 
                 unless env
                     require 'autoproj'
                     require 'autoproj/cli/inspection_tool'
                     ws = Workspace.from_dir(@root_dir)
+                    ws.config.interactive = interactive unless interactive.nil?
                     loader = InspectionTool.new(ws)
                     loader.initialize_and_load
                     loader.finalize_setup(Array.new)
