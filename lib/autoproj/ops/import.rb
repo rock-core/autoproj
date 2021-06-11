@@ -173,20 +173,20 @@ module Autoproj
             # @param [Hash] import_options options passed to {Autobuild::Importer#import}
             def queue_import_work(executor, completion_queue, pkg,
                                   retry_count: nil, **import_options)
-                import_future = Concurrent::Future
-                                .new(executor: executor, args: [pkg]) do |import_pkg|
-                    ## COMPLETELY BYPASS RAKE HERE
-                    # The reason is that the ordering of import/prepare between
-                    # packages is not important BUT the ordering of import vs.
-                    # prepare in one package IS important: prepare is the method
-                    # that takes into account dependencies.
-                    import_pkg.autobuild.importer.retry_count = retry_count if retry_count
-                    import_pkg.autobuild.import(**import_options)
-                end
-                import_future.add_observer do |time, result, reason|
+                import_future =
+                    Concurrent::Promises.future_on(executor) do
+                        ## COMPLETELY BYPASS RAKE HERE
+                        # The reason is that the ordering of import/prepare between
+                        # packages is not important BUT the ordering of import vs.
+                        # prepare in one package IS important: prepare is the method
+                        # that takes into account dependencies.
+                        pkg.autobuild.importer.retry_count = retry_count if retry_count
+                        pkg.autobuild.import(**import_options)
+                    end
+
+                import_future.on_resolution! do |time, result, reason|
                     completion_queue << [pkg, time, result, reason]
                 end
-                import_future.execute
             end
 
             # Import all packages from the given selection, and their

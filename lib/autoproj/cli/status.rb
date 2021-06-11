@@ -163,7 +163,11 @@ module Autoproj
                 package_status
             end
 
-            def each_package_status(packages, parallel: ws.config.parallel_import_level, snapshot: false, only_local: false, progress: nil)
+            def each_package_status(
+                packages,
+                parallel: ws.config.parallel_import_level,
+                snapshot: false, only_local: false, progress: nil
+            )
                 return enum_for(__method__) if !block_given?
 
                 result = StatusResult.new
@@ -173,7 +177,7 @@ module Autoproj
                     pkg.autobuild.importer && pkg.autobuild.importer.interactive?
                 end
                 noninteractive = noninteractive.map do |pkg|
-                    future = Concurrent::Future.execute(executor: executor) do
+                    future = Concurrent::Promises.future_on(executor) do
                         Status.status_of_package(
                             pkg, snapshot: snapshot, only_local: only_local
                         )
@@ -186,8 +190,8 @@ module Autoproj
                         if progress
                             wait_timeout = 1
                             while true
-                                future.wait(wait_timeout)
-                                if future.complete?
+                                future.wait!(wait_timeout)
+                                if future.resolved?
                                     break
                                 else
                                     wait_timeout = 0.2

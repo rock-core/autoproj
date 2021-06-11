@@ -230,7 +230,7 @@ module Autoproj
                 end
 
                 def lookahead(pkg)
-                    @futures[pkg] = Concurrent::Future.execute(executor: @executor) do
+                    @futures[pkg] = Concurrent::Promises.future_on(@executor) do
                         Status.status_of_package(
                             pkg, snapshot: false, only_local: @only_local
                         )
