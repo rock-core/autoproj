@@ -130,7 +130,7 @@ module Autoproj
                 assert(!@ws.config.has_value_for?('python_executable'))
                 assert(!@ws.config.has_value_for?('python_version'))
 
-                bin, version, path = Autoproj::Python.activate_python_path(pkg)
+                bin, version, path = Autoproj::Python.activate_python_path(pkg, ws: @ws)
                 assert(!(bin || version || path))
             end
 
