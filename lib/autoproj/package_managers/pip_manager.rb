@@ -27,24 +27,22 @@ module Autoproj
             end
 
             def guess_pip_program
-                if ws.config.has_value_for?('USE_PYTHON')
-                    unless ws.config.get('USE_PYTHON')
-                        raise ConfigError, "Your current package selection" \
-                          " requires the use of pip is required, but" \
-                          " the use of python has been denied, see" \
-                          " setting of USE_PYTHON in your workspace configuration." \
-                          " Either remove all packages depending on pip packages " \
-                          " from the workspace layout (manifest) or " \
-                          " call 'autoproj reconfigure' to change the setting."
-                    end
-                else
-                    Autoproj::Python.setup_python_configuration_options(ws: ws)
-                    @use_python_venv = ws.config.get("USE_PYTHON_VENV", nil)
+                unless ws.config.has_value_for?('USE_PYTHON')
+                  Autoproj::Python.setup_python_configuration_options(ws: ws)
+                end
+                unless ws.config.get('USE_PYTHON')
+                  raise ConfigError, "Your current package selection" \
+                    " requires the use of pip, but" \
+                    " the use of python is either unspecified or has been denied, see" \
+                    " setting of USE_PYTHON in your workspace configuration." \
+                    " Either remove all packages depending on pip packages " \
+                    " from the workspace layout (manifest) or " \
+                    " call 'autoproj reconfigure' to change the setting."
+
                 end
 
-                return Autobuild.programs['pip'] if Autobuild.programs['pip']
-
-                Autobuild.programs['pip'] = "pip"
+                Autobuild.programs['pip'] = "pip" unless Autobuild.programs['pip']
+                Autobuild.programs['pip']
             end
 
             # rubocop:disable Lint/UnusedMethodArgument
