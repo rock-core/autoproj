@@ -4,7 +4,7 @@ module Autoproj
     module PackageManagers
         # Using pip to install python packages
         class PipManager < Manager
-            attr_reader :installed_pips, :use_python_venv
+            attr_reader :installed_pips
 
             def initialize_environment
                 ws.env.set 'PYTHONUSERBASE', pip_home
@@ -52,8 +52,7 @@ module Autoproj
                 guess_pip_program
                 pips = [pips] if pips.is_a?(String)
 
-                base_cmdline = [Autobuild.tool('pip'), 'install']
-                base_cmdline << "--user" unless use_python_venv
+                base_cmdline = [Autobuild.tool('pip'), 'install', '--user']
 
                 cmdlines = [base_cmdline + pips]
 

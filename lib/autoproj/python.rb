@@ -260,29 +260,6 @@ module Autoproj
             [bin, version, path]
         end
 
-        def self.prepare_venv(ws: Autoproj.workspace, bin: nil, version: nil,
-                              venv_name: ".autoproj_python_venv")
-
-          python_bin, = resolve_python(ws: ws, bin: bin, version: version)
-          cmd = "#{python_bin} -m pip install --user -U virtualenv"
-          msg, status = Open3.capture2e(cmd)
-          unless status.success?
-              raise "Autoproj::Python.prepare_venv installation of "\
-                  " virtualenv failed: '#{msg}'"
-          end
-
-          cmd = "#{python_bin} -m virtualenv #{venv_name}"
-          msg, status = Open3.capture2e(cmd)
-          unless status.success?
-              raise "Autoproj::Python.prepare_venv preparation of"\
-                  " virtual env '#{venv_name}' failed: '#{msg}'"
-          end
-
-          ws.env.set('VIRTUAL_ENV_DISABLE_PROMPT', 1)
-          ws.env.source_after File.join(Autoproj.root_dir, venv_name, "bin", "activate")
-          File.join(Autoproj.root_dir, venv_name)
-        end
-
         def self.setup_python_configuration_options(ws: Autoproj.workspace)
             ws.config.declare 'USE_PYTHON', 'boolean',
                               default: 'no',
@@ -302,13 +279,6 @@ module Autoproj
                                   doc: ["Select the path to the python executable"]
 
                 activate_python(ws: ws)
-
-                ws.config.declare 'USE_PYTHON_VENV', 'boolean',
-                                  default: 'no',
-                                  doc: ["Do you want to use a virtual" \
-                                        "environment for python?"]
-
-                prepare_venv(ws: ws) if ws.config.get("USE_PYTHON_VENV")
             else
                 deactivate_python(ws: ws)
             end
