@@ -44,6 +44,16 @@ module Autoproj
                 assert_raises(ConfigError) { pip_manager.guess_pip_program }
                 ws.config.set("USE_PYTHON", true)
             end
+
+            def test_unspecified_python
+                ws.config.reset("USE_PYTHON")
+                assert(!ws.config.has_value_for?("USE_PYTHON"))
+                interactive = ws.config.interactive
+                ws.config.interactive = false
+                assert_raises(ConfigError) { pip_manager.guess_pip_program }
+                ws.config.set("USE_PYTHON", true)
+                ws.config.interactive = interactive
+            end
         end
     end
 end
