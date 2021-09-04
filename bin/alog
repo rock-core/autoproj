@@ -31,6 +31,6 @@ Autoproj.report(silent: true) do
         rescue Interrupt
         end
     elsif log_files.empty?
-        raise "no logs found for #{string}"
+        raise "no logs found for #{arg}"
     end
 end
