@@ -73,6 +73,73 @@ ENV SOME_VALUE
                         cmd.stderr
                 end
             end
+
+            describe "--chdir and --package" do
+                before do
+                    append_to_file "autoproj/packages.autobuild", <<~INIT
+                        import_package "subdir"
+                    INIT
+                    append_to_file "autoproj/overrides.yml", <<~YML
+                        packages:
+                            subdir:
+                                type: none
+                    YML
+                end
+                it "executes the command in the directory given to --chdir" do
+                    dir = make_tmpdir
+                    cmd = run_command_and_stop(
+                        "#{@autoproj_bin} exec --chdir #{dir} pwd"
+                    )
+                    assert_equal dir, cmd.stdout.strip
+                end
+
+                it "executes the command in the package's source directory "\
+                   "when a plain package is given to --package" do
+                    cmd = run_command_and_stop(
+                        "#{@autoproj_bin} exec --package subdir pwd"
+                    )
+                    assert_equal expand_path("subdir"), cmd.stdout.strip
+                end
+
+                it "executes the command in the package's source directory "\
+                   "given to --package" do
+                    cmd = run_command_and_stop(
+                        "#{@autoproj_bin} exec --package srcdir:subdir pwd"
+                    )
+                    assert_equal expand_path("subdir"), cmd.stdout.strip
+                end
+
+                it "searches for the executable within the --chdir" do
+                    cmd = run_command_and_stop(
+                        "#{@autoproj_bin} exec --package subdir test --some --arg"
+                    )
+                    assert_equal <<~OUTPUT.strip, cmd.stdout.strip
+                        ARG --some --arg
+                        ENV
+                    OUTPUT
+                end
+
+                it "resolves a relative chdir when --package is also given" do
+                    target_dir = expand_path("subdir/bla")
+                    FileUtils.mkdir_p target_dir
+                    cmd = run_command_and_stop(
+                        "#{@autoproj_bin} exec --chdir bla --package srcdir:subdir pwd"
+                    )
+                    assert_equal target_dir, cmd.stdout.strip
+                end
+
+                it "errors if the package has no builddir but a builddir is requested" do
+                    cmd = run_command_and_stop(
+                        "#{@autoproj_bin} exec --no-color --package builddir:subdir pwd",
+                        fail_on_error: false
+                    )
+                    assert_equal(
+                        "#{@cursor.clear_screen_down}  "\
+                        "ERROR: package subdir has no builddir",
+                        cmd.stderr.strip
+                    )
+                end
+            end
         end
     end
 end

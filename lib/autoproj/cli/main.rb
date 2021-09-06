@@ -591,6 +591,15 @@ The format is a string in which special values can be expanded using a $VARNAME 
             end
 
             desc 'exec', "runs a command, applying the workspace's environment first"
+            option :chdir, type: :string, default: nil,
+                desc: "change to this directory first. This is interpreted relatively "\
+                      "to the folder specified by --package (if given)"
+            option :package, type: :string, default: nil,
+                desc: "interpret --chdir with respect to a package directory (or, "\
+                      "if --chdir is not given, chdir to the package directory). Use "\
+                      "PACKAGE or srcdir:PACKAGE for the source dir, builddir:PACKAGE "\
+                      "for the build dir and prefix:PACKAGE for the prefix. If --chdir "\
+                      "is not given, autoproj will chdir to this folder"
             option :use_cache, type: :boolean, default: nil,
                 desc: "use the cached environment instead of "\
                       "loading the whole configuration"
@@ -600,6 +609,8 @@ The format is a string in which special values can be expanded using a $VARNAME 
                     opts = Hash.new
                     use_cache = options[:use_cache]
                     opts[:interactive] = options[:interactive]
+                    opts[:chdir] = options[:chdir]
+                    opts[:package] = options[:package]
                     opts[:use_cached_env] = use_cache unless use_cache.nil?
                     CLI::Exec.new.run(*args, **opts)
                 end
