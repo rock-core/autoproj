@@ -200,6 +200,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
 
         def prepare_fixture_gem_home
             FileUtils.rm_rf fixture_gem_home
+            FileUtils.mkdir_p File.dirname(fixture_gem_home)
             bundled_gems_path = File.expand_path(File.join("..", ".."),
                                                  find_gem_dir("utilrb").full_gem_path)
             FileUtils.cp_r bundled_gems_path, fixture_gem_home
