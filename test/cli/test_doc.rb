@@ -6,6 +6,7 @@ module Autoproj
     module CLI
         describe Doc do
             attr_reader :cli
+
             before do
                 ws_create
                 @one = ws_add_package_to_layout :cmake, "one"
@@ -25,8 +26,8 @@ module Autoproj
 
             describe "-n" do
                 it "turns dependencies off" do
-                    flexmock(Doc).new_instances.
-                        should_receive(:run).with([], hsh(deps: false)).once
+                    flexmock(Doc).new_instances
+                                 .should_receive(:run).with([], hsh(deps: false)).once
                     in_ws do
                         Main.start(["doc", "-n"])
                     end

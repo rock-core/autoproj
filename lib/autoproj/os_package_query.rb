@@ -76,17 +76,11 @@ module Autoproj
                 v.send(field_name)
             end
 
-            if pkg_value.include?(value)
-                return EXACT
-            end
+            return EXACT if pkg_value.include?(value)
 
-            if !partial?
-                return
-            end
+            return unless partial?
 
-            if pkg_value.any? { |v| @value_rx === v }
-                PARTIAL
-            end
+            PARTIAL if pkg_value.any? { |v| @value_rx === v }
         end
 
         # Parse a single field in a query (i.e. a FIELD[=~]VALUE string)

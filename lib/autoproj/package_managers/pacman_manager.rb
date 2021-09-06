@@ -5,8 +5,8 @@ module Autoproj
         class PacmanManager < ShellScriptManager
             def initialize(ws)
                 super(ws, true,
-                        %w{pacman -Sy --needed},
-                        %w{pacman -Sy --needed --noconfirm})
+                        %w[pacman -Sy --needed],
+                        %w[pacman -Sy --needed --noconfirm])
             end
         end
     end

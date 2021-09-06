@@ -13,6 +13,7 @@ module Autoproj
             attr_reader :package_sets
 
             class NotFound < CLIException; end
+
             class NoSuchDir < CLIException; end
 
             # Create the locate CLI interface
@@ -74,9 +75,9 @@ module Autoproj
 
             def find_packages_with_directory_shortnames(selection)
                 *directories, basename = *selection.split("/")
-                dirname_rx = directories.
-                             map { |d| "#{Regexp.quote(d)}\\w*" }.
-                             join("/")
+                dirname_rx = directories
+                             .map { |d| "#{Regexp.quote(d)}\\w*" }
+                             .join("/")
 
                 rx        = Regexp.new("#{dirname_rx}/#{Regexp.quote(basename)}")
                 rx_strict = Regexp.new("#{dirname_rx}/#{Regexp.quote(basename)}$")
@@ -85,12 +86,8 @@ module Autoproj
                 candidates_strict = []
                 packages.each do |pkg|
                     name = pkg.name
-                    if name =~ rx
-                        candidates << pkg
-                    end
-                    if name =~ rx_strict
-                        candidates_strict << pkg
-                    end
+                    candidates << pkg if name =~ rx
+                    candidates_strict << pkg if name =~ rx_strict
                 end
 
                 if candidates.size > 1 && candidates_strict.size == 1
@@ -114,18 +111,14 @@ module Autoproj
                            :build_dir
                        elsif options.delete(:prefix)
                            :prefix_dir
-                       elsif log_type = options[:log]
-                           if log_type == "log"
-                               options.delete(:log)
-                           end
+                       elsif (log_type = options[:log])
+                           options.delete(:log) if log_type == "log"
                            :log
                        else
                            :source_dir
                        end
                 options[:mode] ||= mode
-                if selections.empty?
-                    selections << ws.root_dir
-                end
+                selections << ws.root_dir if selections.empty?
                 [selections, options]
             end
 
@@ -139,9 +132,7 @@ module Autoproj
                 end
 
                 selections.each do |string|
-                    if File.directory?(string)
-                        string = "#{File.expand_path(string)}/"
-                    end
+                    string = "#{File.expand_path(string)}/" if File.directory?(string)
                     if mode == :source_dir
                         puts source_dir_of(string)
                     elsif mode == :build_dir
@@ -149,7 +140,7 @@ module Autoproj
                     elsif mode == :prefix_dir
                         puts prefix_dir_of(string)
                     elsif mode == :log
-                        if all_logs = (log == "all")
+                        if (all_logs = (log == "all"))
                             log = nil
                         end
                         result = logs_of(string, log: log)
@@ -179,9 +170,7 @@ module Autoproj
                     # If there is more than one candidate, check if there are some that are not
                     # present on disk
                     present = matching_packages.find_all { |pkg| File.directory?(pkg.srcdir) }
-                    if present.size == 1
-                        matching_packages = present
-                    end
+                    matching_packages = present if present.size == 1
                 end
 
                 if matching_packages.empty?
@@ -203,7 +192,7 @@ module Autoproj
             def source_dir_of(selection)
                 if workspace_dir?(selection)
                     ws.root_dir
-                elsif pkg_set = find_package_set(selection)
+                elsif (pkg_set = find_package_set(selection))
                     pkg_set.user_local_dir
                 else
                     resolve_package(selection).srcdir
@@ -249,9 +238,8 @@ module Autoproj
             # If 'log' is nil and multiple logs are available,
             def logs_of(selection, log: nil)
                 if workspace_dir?(selection) || (pkg_set = find_package_set(selection))
-                    if log && log != "import"
-                        return []
-                    end
+                    return [] if log && log != "import"
+
                     name = if pkg_set then pkg_set.name
                            else "autoproj main configuration"
                            end

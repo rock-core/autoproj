@@ -10,6 +10,7 @@ module Autoproj
         attr_reader :fields
         # The expected value
         attr_reader :value
+
         # Whether the match can be partial
         attr_predicate :partial?, true
 
@@ -63,8 +64,9 @@ module Autoproj
         # This is NOT meant to be used directly. Subclasses are supposed to
         # redefine .parse to create the relevant match object.
         def self.parse(str, allowed_fields: [], default_fields: Hash.new)
-            if parsed = /[=~]/.match(str)
-                field, value = parsed.pre_match, parsed.post_match
+            if (parsed = /[=~]/.match(str))
+                field = parsed.pre_match
+                value = parsed.post_match
                 partial = (parsed[0] == "~")
             else
                 raise ArgumentError, "invalid query string '#{str}', expected FIELD and VALUE separated by either = or ~"
@@ -73,7 +75,7 @@ module Autoproj
             field = default_fields[field] || field
 
             # Validate the query key
-            if !allowed_fields.include?(field)
+            unless allowed_fields.include?(field)
                 raise ArgumentError, "'#{field}' is not a known query key"
             end
 
@@ -99,9 +101,11 @@ module Autoproj
             def initialize(submatches)
                 @submatches = submatches
             end
+
             def each_subquery(&block)
                 @submatches.each(&block)
             end
+
             def match(pkg)
                 @submatches.map { |m| m.match(pkg) }.compact.max
             end
@@ -112,15 +116,16 @@ module Autoproj
             def initialize(submatches)
                 @submatches = submatches
             end
+
             def each_subquery(&block)
                 @submatches.each(&block)
             end
+
             def match(pkg)
                 matches = @submatches.map do |m|
-                    if p = m.match(pkg)
-                        p
-                    else return
-                    end
+                    return unless (p = m.match(pkg))
+
+                    p
                 end
                 matches.min
             end

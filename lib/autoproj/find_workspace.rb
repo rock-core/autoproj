@@ -55,17 +55,18 @@ module Autoproj
     #   there's none
     def self.find_v2_root_dir(base_dir, config_field_name)
         path, config = find_v2_workspace_config(base_dir)
-        return if !path
+        return unless path
+
         result = config[config_field_name] || path.to_s
         result = File.expand_path(result, path.to_s)
-        if result == path.to_s
-            return result
-        end
+        return result if result == path.to_s
+
         resolved = find_v2_root_dir(result, config_field_name)
 
         if !resolved || (resolved != result)
             raise ArgumentError, "found #{path} as possible workspace root for #{base_dir}, but it contains a configuration file that points to #{result} and #{result} is not an autoproj workspace root"
         end
+
         resolved
     end
 
@@ -81,7 +82,7 @@ module Autoproj
                 ws_path, ws_config = find_v2_workspace_config(p)
                 if ws_path
                     known_workspace_dirs << "#{ws_path}/"
-                    if ws_dir = ws_config["workspace"]
+                    if (ws_dir = ws_config["workspace"])
                         known_workspace_dirs << "#{ws_dir}/"
                     end
                     false

@@ -27,13 +27,13 @@ module Autoproj
 
             desc "install NAME", "install or upgrade an autoproj plugin"
             option :version, desc: "a gem version constraint",
-                type: "string", default: ">= 0"
+                             type: "string", default: ">= 0"
             option :git, desc: "checkout a git repository instead of downloading the gem",
-                type: "string"
+                         type: "string"
             option :branch, desc: "choose the branch that should be checked out with --git",
-                type: "string", default: "master"
+                            type: "string", default: "master"
             option :path, desc: "use the plugin that is already present on this path",
-                type: "string"
+                          type: "string"
             def install(name)
                 require "autoproj"
 

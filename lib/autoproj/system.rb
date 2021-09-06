@@ -22,6 +22,7 @@ module Autoproj
         if @workspace && dir != @workspace.root_dir
             raise WorkspaceAlreadyCreated, "cannot switch global root directory after a workspace object got created"
         end
+
         @root_dir = dir
     end
 
@@ -36,10 +37,10 @@ module Autoproj
             @root_dir = ni
             return
         end
+
         path = Autoproj.find_workspace_dir(dir)
-        if !path
-            raise UserError, "not in a Autoproj installation"
-        end
+        raise UserError, "not in a Autoproj installation" unless path
+
         path
     end
 
@@ -49,12 +50,14 @@ module Autoproj
         caller.each { |l| Autoproj.warn "  #{l}" }
         workspace.config_dir
     end
+
     # @deprecated use workspace.overrides_dir instead
     def self.overrides_dir
         Autoproj.warn "#{__method__} is deprecated, use workspace.overrides_dir instead"
         caller.each { |l| Autoproj.warn "  #{l}" }
         workspace.overrides_dir
     end
+
     # @deprecated use Autobuild.find_in_path instead
     #
     # Warning: the autobuild method returns nil (instead of raising) if the
@@ -62,61 +65,70 @@ module Autoproj
     def self.find_in_path(name)
         Autoproj.warn "#{__method__} is deprecated, use Autobuild.find_in_path instead"
         caller.each { |l| Autoproj.warn "  #{l}" }
-        if path = Autobuild.find_in_path(name)
-            path
-        else raise ArgumentError, "cannot find #{name} in PATH (#{ENV['PATH']})"
+        unless (path = Autobuild.find_in_path(name))
+            raise ArgumentError, "cannot find #{name} in PATH (#{ENV['PATH']})"
         end
+
+        path
     end
+
     # @deprecated use workspace.prefix_dir instead
     def self.prefix
         Autoproj.warn_deprecated(__method__, "workspace.prefix_dir")
         workspace.prefix_dir
     end
+
     # @deprecated use workspace.prefix_dir= instead
     def self.prefix=(path)
         Autoproj.warn_deprecated(__method__, "workspace.prefix_dir=")
         workspace.prefix_dir = path
     end
+
     # @deprecated use workspace.prefix_dir instead
     def self.build_dir
         Autoproj.warn_deprecated(__method__, "workspace.prefix_dir")
         workspace.prefix_dir
     end
+
     # @deprecated compute the full path with File.join(config_dir, file)
     #   directly instead
     def self.config_file(file)
         Autoproj.warn_deprecated(__method__, "compute the full path with File.join(config_dir, ...) instead")
         File.join(config_dir, file)
     end
+
     # @deprecated use workspace.remotes_dir instead
     def self.remotes_dir
         Autoproj.warn_deprecated(__method__, "use workspace.remotes_dir instead")
         workspace.remotes_dir
     end
+
     # @deprecated use workspace.load or add a separate Loader object to your class
     def self.load(package_set, *path)
         Autoproj.warn_deprecated(
             __method__,
-            "use workspace.load or add a separate Loader object to your class")
+            "use workspace.load or add a separate Loader object to your class"
+        )
         workspace.load(package_set, *path)
     end
+
     # @deprecated use workspace.load_if_present or add a separate Loader object to your class
     def self.load_if_present(package_set, *path)
         Autoproj.warn_deprecated(
             __method__,
-            "use workspace.load_if_present or add a separate Loader object to your class")
+            "use workspace.load_if_present or add a separate Loader object to your class"
+        )
         workspace.load_if_present(package_set, *path)
     end
 
     # Run the provided command as user
     def self.run_as_user(*args)
-        if !system(*args)
-            raise "failed to run #{args.join(' ')}"
-        end
+        raise "failed to run #{args.join(' ')}" unless system(*args)
     end
+
     # Run the provided command as root, using sudo to gain root access
     def self.run_as_root(*args, env: workspace.env)
-        if !system(Autobuild.tool_in_path("sudo", env: env), *args)
+        unless system(Autobuild.tool_in_path("sudo", env: env), *args)
             raise "failed to run #{args.join(' ')} as root"
         end
     end

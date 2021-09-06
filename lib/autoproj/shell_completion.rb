@@ -19,6 +19,7 @@ module Autoproj
 
             generate_metadata
             return unless command
+
             @cli_metadata = subcommand_by_name(*command)
             @cli_metadata[:name] = "__#{name}"
         end
@@ -83,8 +84,10 @@ module Autoproj
 
             command_metadata[:subcommands].each do |subcommand|
                 next if subcommand[:name] == "help"
+
                 populate_help_subcommands(subcommand)
                 next unless help_subcommand
+
                 help_subcommand[:subcommands] << { name: subcommand[:name],
                                                    aliases: [],
                                                    description: subcommand[:description],

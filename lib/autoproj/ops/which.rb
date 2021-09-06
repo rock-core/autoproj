@@ -22,22 +22,25 @@ module Autoproj
                 if path.file? && path.executable?
                     cmd
                 elsif path.exist?
-                    raise ExecutableNotFound.new(cmd), "given command `#{cmd}` exists but is not an executable file"
+                    raise ExecutableNotFound.new(cmd),
+                          "given command `#{cmd}` exists but is not an executable file"
                 else
-                    raise ExecutableNotFound.new(cmd), "given command `#{cmd}` does not exist, an executable file was expected"
+                    raise ExecutableNotFound.new(cmd),
+                          "given command `#{cmd}` does not exist, "\
+                          "an executable file was expected"
                 end
             else
-                if path_entries.respond_to?(:call)
-                    path_entries = path_entries.call
-                end
+                path_entries = path_entries.call if path_entries.respond_to?(:call)
                 absolute = Autobuild::Environment.find_executable_in_path(cmd, path_entries)
 
                 if absolute
                     absolute
-                elsif file = Autobuild::Environment.find_in_path(cmd, path_entries)
-                    raise ExecutableNotFound.new(cmd), "`#{cmd}` resolves to #{file} which is not executable"
+                elsif (file = Autobuild::Environment.find_in_path(cmd, path_entries))
+                    raise ExecutableNotFound.new(cmd),
+                          "`#{cmd}` resolves to #{file} which is not executable"
                 else
-                    raise ExecutableNotFound.new(cmd), "cannot resolve `#{cmd}` to an executable in the workspace"
+                    raise ExecutableNotFound.new(cmd),
+                          "cannot resolve `#{cmd}` to an executable in the workspace"
                 end
             end
         end

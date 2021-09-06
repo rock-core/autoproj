@@ -29,9 +29,7 @@ module Autoproj
                 else
                     osdeps = osdeps.to_set
                     osdeps -= @installed_osdeps
-                    if !osdeps.empty?
-                        result = osdeps_interaction_unknown_os(osdeps)
-                    end
+                    result = osdeps_interaction_unknown_os(osdeps) unless osdeps.empty?
                     @installed_osdeps |= osdeps
                     result
                 end

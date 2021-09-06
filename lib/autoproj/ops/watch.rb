@@ -17,9 +17,10 @@ module Autoproj
 
         def self.watch_create_marker(root_dir)
             io = File.open(watch_marker_path(root_dir), "a+")
-            if !io.flock(File::LOCK_EX | File::LOCK_NB)
+            unless io.flock(File::LOCK_EX | File::LOCK_NB)
                 raise WatchAlreadyRunning, "autoproj watch is already running as PID #{io.read.strip}"
             end
+
             io.truncate(0)
             io.puts Process.pid
             io.flush

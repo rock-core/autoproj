@@ -8,16 +8,17 @@ module Autoproj
 
             before do
                 @autoproj_bin_dir = File.expand_path(
-                    File.join("..", "..", "bin"), __dir__)
+                    File.join("..", "..", "bin"), __dir__
+                )
                 gemfile = generate_local_gemfile
                 run_command_and_stop "#{Gem.ruby} "\
                     "#{File.join(@autoproj_bin_dir, 'autoproj_install')} "\
                     "--no-interactive --gemfile=#{gemfile}",
-                    exit_timeout: 120
+                                     exit_timeout: 120
                 @bundle_bin = File.join(expand_path("."),
-                    ".autoproj", "bin", "bundle")
+                                        ".autoproj", "bin", "bundle")
                 @autoproj_bin = File.join(expand_path("."),
-                    ".autoproj", "bin", "autoproj")
+                                          ".autoproj", "bin", "autoproj")
             end
 
             it "installs a new plugin on the wokspace" do
@@ -54,7 +55,7 @@ module Autoproj
                 run_command_and_stop "#{@autoproj_bin} plugin install autoproj-ci"
                 run_command_and_stop "#{@autoproj_bin} plugin remove autoproj-ci"
                 cmd = run_command "#{@autoproj_bin} help git",
-                    fail_on_error: false
+                                  fail_on_error: false
                 assert cmd.exit_status != 0
             end
         end

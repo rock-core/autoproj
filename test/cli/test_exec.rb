@@ -31,9 +31,10 @@ module Autoproj
             describe "without using the cache" do
                 before do
                     append_to_file "autoproj/init.rb",
-                        "Autoproj.env.set 'TEST_ENV_VAR', 'SOME_VALUE'\n"
+                                   "Autoproj.env.set 'TEST_ENV_VAR', 'SOME_VALUE'\n"
                     append_to_file "autoproj/init.rb",
-                        "Autoproj.env.add_path 'PATH', '#{expand_path('subdir')}'\n"
+                                   "Autoproj.env.add_path 'PATH',
+                                   '#{expand_path('subdir')}'\n"
                 end
 
                 it "resolves the command and execs "\

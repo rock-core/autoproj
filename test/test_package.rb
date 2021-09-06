@@ -4,6 +4,7 @@ require "autoproj/autobuild"
 describe Autobuild::Package do
     describe "#remove_dependency" do
         attr_reader :pkg
+
         before do
             @pkg = Autobuild.import("pkg")
             Autobuild.import("dep")

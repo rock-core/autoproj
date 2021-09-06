@@ -5,8 +5,8 @@ module Autoproj
         class PkgManager < ShellScriptManager
             def initialize(ws)
                 super(ws, true,
-                        %w{pkg install -y},
-                        %w{pkg install -y})
+                        %w[pkg install -y],
+                        %w[pkg install -y])
             end
         end
     end

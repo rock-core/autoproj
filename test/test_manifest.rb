@@ -4,6 +4,7 @@ require "set"
 module Autoproj
     describe Manifest do
         attr_reader :manifest
+
         before do
             ws_create
             @manifest = ws.manifest
@@ -95,7 +96,7 @@ module Autoproj
                 assert manifest.excluded?(package)
                 assert manifest.excluded_in_manifest?(package)
                 assert_equal "test is listed in the exclude_packages section of the manifest",
-                    manifest.exclusion_reason(package)
+                             manifest.exclusion_reason(package)
             end
             it "is initialized by a package set name listed in the exclude_packages list in the manifest file" do
                 manifest.initialize_from_hash("exclude_packages" => ["test"])
@@ -104,7 +105,7 @@ module Autoproj
                 assert manifest.excluded?(package)
                 assert manifest.excluded_in_manifest?(package)
                 assert_equal "test is a metapackage listed in the exclude_packages section of the manifest, and it includes pkg",
-                    manifest.exclusion_reason(package)
+                             manifest.exclusion_reason(package)
             end
             it "can clear the exclusions specified in the manifest file" do
                 manifest.initialize_from_hash("exclude_packages" => ["test"])
@@ -164,7 +165,7 @@ module Autoproj
                 assert manifest.excluded?(package)
                 refute manifest.excluded_in_manifest?(package)
                 assert_equal "test is an excluded metapackage, and it includes pkg: for testing",
-                    manifest.exclusion_reason(package)
+                             manifest.exclusion_reason(package)
             end
             it "raises PackageNotFound if a package name cannot be resolved into a package object" do
                 assert_raises(PackageNotFound) do
@@ -181,7 +182,8 @@ module Autoproj
                 ws.define_package :cmake, "packtest"
                 manifest.initialize_from_hash(
                     "layout" => ["package"],
-                    "exclude_packages" => ["pack.*"])
+                    "exclude_packages" => ["pack.*"]
+                )
                 refute manifest.excluded?("package")
                 assert manifest.excluded?("packtest")
             end
@@ -189,7 +191,8 @@ module Autoproj
                 ws.define_package :cmake, "package"
                 ws.define_package :cmake, "packtest"
                 manifest.initialize_from_hash(
-                    "layout" => ["package"])
+                    "layout" => ["package"]
+                )
                 manifest.add_exclusion("package", "failed because of missed dependencies")
                 assert manifest.excluded?("package")
             end
@@ -245,64 +248,64 @@ module Autoproj
             it "resolves OS packages into its overrides on OSes where the package is not available" do
                 manifest.register_package(Autobuild::Package.new("test_src"))
                 manifest.add_osdeps_overrides "test", package: "test_src"
-                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test").
-                    and_return(OSPackageResolver::WRONG_OS)
+                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test")
+                                                      .and_return(OSPackageResolver::WRONG_OS)
                 assert_equal [[:package, "test_src"]], manifest.resolve_package_name("test")
             end
             it "resolves to the OS package if both an OS and source package are available at the same time" do
                 manifest.register_package(Autobuild::Package.new("test_src"))
-                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test").
-                    and_return(OSPackageResolver::AVAILABLE)
+                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test")
+                                                      .and_return(OSPackageResolver::AVAILABLE)
                 assert_equal [[:osdeps, "test"]], manifest.resolve_package_name("test")
             end
             it "automatically resolves OS packages into a source package with the same name if the package is not available" do
                 manifest.register_package(Autobuild::Package.new("test"))
-                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test").
-                    and_return(OSPackageResolver::WRONG_OS)
+                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test")
+                                                      .and_return(OSPackageResolver::WRONG_OS)
                 assert_equal [[:package, "test"]], manifest.resolve_package_name("test")
             end
             it "resolves OS packages into its overrides if the override is forced" do
                 manifest.register_package(Autobuild::Package.new("test"))
-                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test").
-                    and_return(OSPackageResolver::AVAILABLE)
+                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test")
+                                                      .and_return(OSPackageResolver::AVAILABLE)
                 manifest.add_osdeps_overrides "test", force: true
                 assert_equal [[:package, "test"]], manifest.resolve_package_name("test")
             end
             it "resolves OS packages into its overrides if the override is forced" do
                 manifest.register_package(Autobuild::Package.new("test_src"))
                 manifest.add_osdeps_overrides "test", package: "test_src", force: true
-                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test").
-                    and_return(OSPackageResolver::AVAILABLE)
+                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test")
+                                                      .and_return(OSPackageResolver::AVAILABLE)
                 assert_equal [[:package, "test_src"]], manifest.resolve_package_name("test")
             end
             it "resolves an OS package that is explicitely marked as ignored" do
-                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test").
-                    and_return(OSPackageResolver::IGNORE)
+                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test")
+                                                      .and_return(OSPackageResolver::IGNORE)
                 assert_equal [[:osdeps, "test"]], manifest.resolve_package_name("test")
             end
             it "raises if a package is undefined" do
-                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test").
-                    and_return(OSPackageResolver::NO_PACKAGE)
+                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test")
+                                                      .and_return(OSPackageResolver::NO_PACKAGE)
                 e = assert_raises(PackageNotFound) { manifest.resolve_package_name("test") }
                 assert_match(/test is not an osdep and it cannot be resolved as a source package/, e.message)
             end
             it "raises if a package is defined as an osdep but it is not available on the local operating system" do
-                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test").
-                    and_return(OSPackageResolver::WRONG_OS)
+                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test")
+                                                      .and_return(OSPackageResolver::WRONG_OS)
                 e = assert_raises(PackageUnavailable) { manifest.resolve_package_name("test") }
                 assert_match(/#{Regexp.quote("test is an osdep, but it is not available for this operating system ([[\"test_os_family\"], [\"test_os_version\"]]) and it cannot be resolved as a source package")}/, e.message)
             end
             it "raises if a package is defined as an osdep but it is explicitely marked as non existent" do
-                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test").
-                    and_return(OSPackageResolver::NONEXISTENT)
+                flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test")
+                                                      .and_return(OSPackageResolver::NONEXISTENT)
                 e = assert_raises(PackageUnavailable) { manifest.resolve_package_name("test") }
                 assert_match(/#{Regexp.quote("test is an osdep, but it is explicitely marked as 'nonexistent' for this operating system ([[\"test_os_family\"], [\"test_os_version\"]]) and it cannot be resolved as a source package")}/, e.message)
             end
 
             describe "include_unavailable: true" do
                 it "returns unavailable packages as osdep entries" do
-                    flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test").
-                        and_return(OSPackageResolver::WRONG_OS)
+                    flexmock(manifest.os_package_resolver).should_receive(:availability_of).with("test")
+                                                          .and_return(OSPackageResolver::WRONG_OS)
                     assert_equal [[:osdeps, "test"]], manifest.resolve_package_name("test", include_unavailable: true)
                 end
             end
@@ -310,6 +313,7 @@ module Autoproj
 
         describe "#layout_packages" do
             attr_reader :meta
+
             before do
                 ws_define_package :cmake, "test"
                 @meta = manifest.metapackage "pkg", "test"
@@ -358,7 +362,7 @@ module Autoproj
                 end
 
                 assert_equal Set["direct_package", "dependency_package", "dependency_os_package", "direct_os_package"],
-                    manifest.all_selected_packages.to_set
+                             manifest.all_selected_packages.to_set
             end
         end
 
@@ -373,7 +377,7 @@ module Autoproj
                 end
 
                 assert_equal Set["direct_package", "direct_os_package"],
-                    manifest.default_packages.each_package_name.to_set
+                             manifest.default_packages.each_package_name.to_set
             end
 
             it "returns the set of defined source packages if no layout is given" do
@@ -385,7 +389,7 @@ module Autoproj
                 end
 
                 assert_equal Set["direct_package", "dependency_package"],
-                    manifest.default_packages.each_package_name.to_set
+                             manifest.default_packages.each_package_name.to_set
             end
         end
 
@@ -397,15 +401,17 @@ module Autoproj
                         Hash["sub" => Array[
                             "child_pkg"
                         ]]
-                    ])
+                    ]
+                )
                 assert_equal Hash["root_pkg" => "/", "child_pkg" => "/sub/"],
-                    manifest.normalized_layout
+                             manifest.normalized_layout
             end
         end
 
         describe "#importer_definition_for" do
             attr_reader :root_pkg_set, :base_pkg_set, :overrides_pkg_set
             attr_reader :package
+
             before do
                 @root_pkg_set      = ws_define_package_set "root"
                 @base_pkg_set      = ws_define_package_set "base"
@@ -425,10 +431,12 @@ module Autoproj
                 before do
                     ws_define_package_vcs(
                         package,
-                        Hash[type: "git", url: "https://github.com/test"])
+                        Hash[type: "git", url: "https://github.com/test"]
+                    )
                     ws_define_package_overrides(
                         package, overrides_pkg_set,
-                        Hash[type: "git", url: "https://github.com/test/fork", branch: "wip"])
+                        Hash[type: "git", url: "https://github.com/test/fork", branch: "wip"]
+                    )
                 end
                 it "applies the overrides from the following package sets" do
                     vcs = manifest.importer_definition_for(package)
@@ -450,7 +458,8 @@ module Autoproj
                     further_pkg_set = ws_define_package_set "further"
                     ws_define_package_overrides(
                         package, further_pkg_set,
-                        Hash[type: "local", url: "/local/path"])
+                        Hash[type: "local", url: "/local/path"]
+                    )
                     vcs = manifest.importer_definition_for(package, mainline: overrides_pkg_set)
                     assert_equal "git", vcs.type
                     assert_equal "https://github.com/test/fork", vcs.url
@@ -462,12 +471,15 @@ module Autoproj
                 it "handles package names if the package set is explicitely given" do
                     ws_define_package_vcs(
                         package,
-                        Hash[type: "git", url: "https://github.com/test"])
+                        Hash[type: "git", url: "https://github.com/test"]
+                    )
                     ws_define_package_overrides(
                         package, overrides_pkg_set,
-                        Hash[type: "git", url: "https://github.com/test/fork", branch: "wip"])
+                        Hash[type: "git", url: "https://github.com/test/fork", branch: "wip"]
+                    )
                     vcs = manifest.importer_definition_for(
-                        package.name, package_set: package.package_set)
+                        package.name, package_set: package.package_set
+                    )
                     assert_equal "git", vcs.type
                     assert_equal "https://github.com/test/fork", vcs.url
                     assert_equal "wip", vcs.options[:branch]
@@ -475,23 +487,28 @@ module Autoproj
                 it "validates the existence of the package by default" do
                     assert_raises(PackageNotFound) do
                         manifest.importer_definition_for(
-                            "does_not_exist", mainline: overrides_pkg_set, package_set: package.package_set)
+                            "does_not_exist", mainline: overrides_pkg_set, package_set: package.package_set
+                        )
                     end
                 end
                 it "handles package names if the package set is explicitely given" do
                     base_pkg_set.add_version_control_entry(
                         "does_not_exist",
-                        Hash[type: "git", url: "https://remote"])
+                        Hash[type: "git", url: "https://remote"]
+                    )
                     vcs = manifest.importer_definition_for(
-                        "does_not_exist", package_set: base_pkg_set, require_existing: false)
+                        "does_not_exist", package_set: base_pkg_set, require_existing: false
+                    )
                     assert_equal "git", vcs.type
                     assert_equal "https://remote", vcs.url
 
                     overrides_pkg_set.add_overrides_entry(
                         "does_not_exist",
-                        Hash[url: "https://remote/fork"])
+                        Hash[url: "https://remote/fork"]
+                    )
                     vcs = manifest.importer_definition_for(
-                        "does_not_exist", package_set: base_pkg_set, require_existing: false)
+                        "does_not_exist", package_set: base_pkg_set, require_existing: false
+                    )
                     assert_equal "git", vcs.type
                     assert_equal "https://remote/fork", vcs.url
                 end
@@ -617,54 +634,55 @@ module Autoproj
 
         describe "#load_package_manifest" do
             attr_reader :pkg, :pkg_set
+
             before do
                 @pkg_set = ws_define_package_set "pkg_set",
-                    raw_local_dir: File.join(ws.root_dir, "pkg_set")
+                                                 raw_local_dir: File.join(ws.root_dir, "pkg_set")
                 @pkg = ws_add_package_to_layout :cmake, "test",
-                    package_set: pkg_set
+                                                package_set: pkg_set
             end
             it "warns if no package set can be found" do
-                flexmock(Autoproj).should_receive(:warn).
-                    with("test from pkg_set does not have a manifest").
-                    once
+                flexmock(Autoproj).should_receive(:warn)
+                                  .with("test from pkg_set does not have a manifest")
+                                  .once
                 assert manifest.load_package_manifest(pkg).null?
             end
             it "loads the package's manifest.xml file if present" do
                 manifest_path = ws_create_package_file pkg, "manifest.xml", "<package />"
-                flexmock(PackageManifest).should_receive(:load).
-                    with(pkg.autobuild, manifest_path, ros_manifest: false).
-                    once.pass_thru
+                flexmock(PackageManifest).should_receive(:load)
+                                         .with(pkg.autobuild, manifest_path, ros_manifest: false)
+                                         .once.pass_thru
                 manifest.load_package_manifest(pkg)
             end
             it "falls back on the package set's manifest if it has one" do
                 manifest_path = ws_create_package_set_file pkg_set,
-                    "manifests/test.xml", "<package />"
-                flexmock(PackageManifest).should_receive(:load).
-                    with(pkg.autobuild, manifest_path, ros_manifest: false).
-                    once.pass_thru
+                                                           "manifests/test.xml", "<package />"
+                flexmock(PackageManifest).should_receive(:load)
+                                         .with(pkg.autobuild, manifest_path, ros_manifest: false)
+                                         .once.pass_thru
                 manifest.load_package_manifest(pkg)
             end
             it "favors the package's manifest.xml over the packag set one" do
                 manifest_path = ws_create_package_file pkg, "manifest.xml", "<package />"
                 ws_create_package_set_file pkg_set, "manifests/test.xml", "<package />"
-                flexmock(PackageManifest).should_receive(:load).
-                    with(pkg.autobuild, manifest_path, ros_manifest: false).
-                    once.pass_thru
+                flexmock(PackageManifest).should_receive(:load)
+                                         .with(pkg.autobuild, manifest_path, ros_manifest: false)
+                                         .once.pass_thru
                 manifest.load_package_manifest(pkg)
             end
             it "ignores a package.xml if it is not explicitely enabled" do
                 manifest_path = ws_create_package_file pkg, "package.xml", "<package />"
-                flexmock(Autoproj).should_receive(:warn).
-                    with("test from pkg_set does not have a manifest").
-                    once
+                flexmock(Autoproj).should_receive(:warn)
+                                  .with("test from pkg_set does not have a manifest")
+                                  .once
                 manifest.load_package_manifest(pkg)
             end
             it "loads a package's package.xml if it is explicitely enabled" do
                 pkg.autobuild.use_package_xml = true
                 manifest_path = ws_create_package_file pkg, "package.xml", "<package />"
-                flexmock(PackageManifest).should_receive(:load).
-                    with(pkg.autobuild, manifest_path, ros_manifest: true).
-                    once.pass_thru
+                flexmock(PackageManifest).should_receive(:load)
+                                         .with(pkg.autobuild, manifest_path, ros_manifest: true)
+                                         .once.pass_thru
                 manifest.load_package_manifest(pkg)
             end
             it "ignores in-package and in-set manifests if use_package_xml is set" do
@@ -672,10 +690,10 @@ module Autoproj
                 ws_create_package_file pkg, "manifest.xml", "<package />"
                 ws_create_package_set_file pkg_set, "manifests/test.xml", "<package />"
                 manifest_path = ws_create_package_file pkg,
-                    "package.xml", "<package />"
-                flexmock(PackageManifest).should_receive(:load).
-                    with(pkg.autobuild, manifest_path, ros_manifest: true).
-                    once.pass_thru
+                                                       "package.xml", "<package />"
+                flexmock(PackageManifest).should_receive(:load)
+                                         .with(pkg.autobuild, manifest_path, ros_manifest: true)
+                                         .once.pass_thru
                 manifest.load_package_manifest(pkg)
             end
             it "raises if use_package_xml is set but there is no package.xml" do
@@ -688,32 +706,32 @@ module Autoproj
             end
             it "does not raise if use_package_xml is set but package is not checked out" do
                 flexmock(pkg.autobuild).should_receive(:checked_out?).and_return(false)
-                flexmock(Autoproj).should_receive(:warn).
-                    with("test from pkg_set does not have a manifest").once
+                flexmock(Autoproj).should_receive(:warn)
+                                  .with("test from pkg_set does not have a manifest").once
 
                 pkg.autobuild.use_package_xml = true
                 manifest.load_package_manifest(pkg)
             end
             it "applies the dependencies from the manifest to the package" do
                 ws_create_package_file pkg, "manifest.xml",
-                    "<package><depend package=\"dependency\" /></package>"
+                                       "<package><depend package=\"dependency\" /></package>"
                 ws_define_package :cmake, "dependency"
-                flexmock(pkg.autobuild).should_receive(:depends_on).
-                    with("dependency").once.pass_thru
+                flexmock(pkg.autobuild).should_receive(:depends_on)
+                                       .with("dependency").once.pass_thru
                 manifest.load_package_manifest(pkg)
             end
             it "applies the optional dependencies from the manifest to the package" do
                 ws_create_package_file pkg, "manifest.xml",
-                    "<package><depend_optional package=\"dependency\" /></package>"
+                                       "<package><depend_optional package=\"dependency\" /></package>"
                 ws_define_package :cmake, "dependency"
-                flexmock(pkg.autobuild).should_receive(:optional_dependency).
-                    with("dependency").once.pass_thru
+                flexmock(pkg.autobuild).should_receive(:optional_dependency)
+                                       .with("dependency").once.pass_thru
                 manifest.load_package_manifest(pkg)
             end
             it "adds a reference to the manifest file in the error message "\
                 "if it refers to a package that does not exist" do
                 manifest_path = ws_create_package_file pkg, "manifest.xml",
-                    "<package><depend package=\"dependency\" /></package>"
+                                                       "<package><depend package=\"dependency\" /></package>"
                 e = assert_raises(PackageNotFound) do
                     manifest.load_package_manifest(pkg)
                 end
@@ -744,7 +762,7 @@ module Autoproj
                     manifest.load_importers
                 end
                 assert_equal "package set pkg.set defines the package 'test', but does not provide a version control definition for it",
-                    e.message
+                             e.message
             end
 
             it "allows the main package set to have no definition for a package" do
@@ -771,12 +789,12 @@ module Autoproj
                 pkg_set_b = ws_define_package_set "pkg_set_b"
                 pkg_b = ws_define_package :cmake, "pkg_b", package_set: pkg_set_b
                 ws_set_version_control_entry pkg_b, Hash["type" => "local", "url" => "test"]
-                flexmock(manifest).should_receive(:importer_definition_for).once.
-                    with(pkg_a, mainline: pkg_set_a).
-                    pass_thru
-                flexmock(manifest).should_receive(:importer_definition_for).once.
-                    with(pkg_b, mainline: pkg_set_b).
-                    pass_thru
+                flexmock(manifest).should_receive(:importer_definition_for).once
+                                  .with(pkg_a, mainline: pkg_set_a)
+                                  .pass_thru
+                flexmock(manifest).should_receive(:importer_definition_for).once
+                                  .with(pkg_b, mainline: pkg_set_b)
+                                  .pass_thru
                 manifest.load_importers(mainline: true)
             end
         end

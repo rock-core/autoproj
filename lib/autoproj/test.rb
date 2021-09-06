@@ -179,7 +179,8 @@ gem 'autobuild', path: '#{autobuild_dir}'
                 ]
                 result = Autoproj.bundler_unbundled_system(
                     default_env.merge(env), script, *arguments,
-                    in: :close, **Hash[chdir: dir].merge(system_options))
+                    in: :close, **Hash[chdir: dir].merge(system_options)
+                )
             end
 
             if !result
@@ -200,7 +201,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
         def prepare_fixture_gem_home
             FileUtils.rm_rf fixture_gem_home
             bundled_gems_path = File.expand_path(File.join("..", ".."),
-                find_gem_dir("utilrb").full_gem_path)
+                                                 find_gem_dir("utilrb").full_gem_path)
             FileUtils.cp_r bundled_gems_path, fixture_gem_home
 
             vendor = File.join(__dir__, "..", "..", "vendor")
@@ -210,7 +211,8 @@ gem 'autobuild', path: '#{autobuild_dir}'
                 FileUtils.mkdir_p vendor
                 Autoproj.bundler_unbundled_system(
                     Ops::Install.guess_gem_program, "fetch", "-v",
-                    Bundler::VERSION, "bundler", chdir: vendor)
+                    Bundler::VERSION, "bundler", chdir: vendor
+                )
 
                 unless File.file?(bundler_filename)
                     raise "cannot download the bundler gem"
@@ -221,7 +223,8 @@ gem 'autobuild', path: '#{autobuild_dir}'
                 Autoproj.bundler_unbundled_system(
                     Hash["GEM_HOME" => fixture_gem_home, "GEM_PATH" => nil],
                     Ops::Install.guess_gem_program, "install", "--no-document",
-                    cached_bundler_gem)
+                    cached_bundler_gem
+                )
             end
         end
 
@@ -235,7 +238,8 @@ gem 'autobuild', path: '#{autobuild_dir}'
             @gem_server_pid = spawn(
                 Hash["RUBYOPT" => nil],
                 Gem.ruby, Ops::Install.guess_gem_program, "server",
-                "--quiet", "--dir", path, out: :close, err: :close)
+                "--quiet", "--dir", path, out: :close, err: :close
+            )
             loop do
                 TCPSocket.new("127.0.0.1", 8808)
                 break
@@ -264,7 +268,8 @@ gem 'autobuild', path: '#{autobuild_dir}'
             result = Autoproj.bundler_unbundled_system(
                 bundler, "show", gem_name,
                 out: out_w,
-                chdir: File.dirname(gemfile))
+                chdir: File.dirname(gemfile)
+            )
             out_w.close
             output = out_r.read.chomp
             assert result, "bundler show #{gem_name} failed, output: '#{output}'"
@@ -298,19 +303,21 @@ gem 'autobuild', path: '#{autobuild_dir}'
             @ws_os_package_resolver = OSPackageResolver.new(
                 operating_system: [["test_os_family"], ["test_os_version"]],
                 package_managers: ws_package_managers.keys,
-                os_package_manager: "os")
+                os_package_manager: "os"
+            )
         end
 
         def ws_create(dir = make_tmpdir, partial_config: false)
             require "autoproj/ops/main_config_switcher"
             FileUtils.cp_r Ops::MainConfigSwitcher::MAIN_CONFIGURATION_TEMPLATE,
-                File.join(dir, "autoproj")
+                           File.join(dir, "autoproj")
             FileUtils.mkdir_p File.join(dir, ".autoproj")
 
             ws_create_os_package_resolver
             @ws = Workspace.new(
                 dir, os_package_resolver: ws_os_package_resolver,
-                     package_managers: ws_package_managers)
+                     package_managers: ws_package_managers
+            )
 
             unless partial_config
                 ws.config.set "osdeps_mode", "all"
@@ -408,7 +415,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
         def ws_add_package_to_layout(package_type, package_name,
             package_set: ws.manifest.main_package_set, &block)
             pkg = ws_define_package(package_type, package_name,
-                package_set: package_set, &block)
+                                    package_set: package_set, &block)
             ws.manifest.add_package_to_layout(pkg)
             pkg
         end

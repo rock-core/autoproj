@@ -15,6 +15,7 @@ module Autoproj
         # @return [String] path to the file that contains this package's
         #   definition
         attr_reader :file
+
         # Whether this package is completely setup
         #
         # If the package is set up, its importer as well as all target

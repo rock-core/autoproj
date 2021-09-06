@@ -5,6 +5,7 @@ module Autoproj
     module CLI
         describe Show do
             attr_reader :cli
+
             before do
                 ws_create
                 @cli = CLI::Show.new(ws)
@@ -42,29 +43,29 @@ module Autoproj
                     it "displays the source package information" do
                         Autoproj.silent = true
                         ws_define_package(:cmake, "base/cmake")
-                        flexmock(cli).should_receive(:display_source_package).
-                            with("base/cmake", PackageSelection, Hash, env: false).once
+                        flexmock(cli).should_receive(:display_source_package)
+                                     .with("base/cmake", PackageSelection, Hash, env: false).once
                         cli.run(["base/cmake"])
                     end
                     it "passes the set of default packages to the display method" do
                         Autoproj.silent = true
                         ws_define_package(:cmake, "base/cmake")
                         ws_add_package_to_layout(:cmake, "base/types")
-                        flexmock(cli).should_receive(:display_source_package).
-                            with("base/cmake",
-                                 ->(sel) { sel.each_source_package_name.find("base/types") },
-                                 Hash,
-                                 env: false).once
+                        flexmock(cli).should_receive(:display_source_package)
+                                     .with("base/cmake",
+                                           ->(sel) { sel.each_source_package_name.find("base/types") },
+                                           Hash,
+                                           env: false).once
                         cli.run(["base/cmake"])
                     end
                     it "passes the reverse dependencies to the display method" do
                         Autoproj.silent = true
                         ws_define_package(:cmake, "base/cmake")
-                        flexmock(ws.manifest).should_receive(:compute_revdeps).
-                            once.and_return(revdeps = flexmock)
-                        flexmock(cli).should_receive(:display_source_package).
-                            with("base/cmake", any, revdeps,
-                                 env: false).once
+                        flexmock(ws.manifest).should_receive(:compute_revdeps)
+                                             .once.and_return(revdeps = flexmock)
+                        flexmock(cli).should_receive(:display_source_package)
+                                     .with("base/cmake", any, revdeps,
+                                           env: false).once
                         cli.run(["base/cmake"])
                     end
                 end
@@ -72,8 +73,8 @@ module Autoproj
                 describe "handling of osdep packages" do
                     it "displays the package information" do
                         ws_define_osdep_entries("base/cmake" => "gem")
-                        flexmock(cli).should_receive(:display_osdep_package).
-                            with("base/cmake", PackageSelection, Hash, true).once
+                        flexmock(cli).should_receive(:display_osdep_package)
+                                     .with("base/cmake", PackageSelection, Hash, true).once
                         cli.run(["base/cmake"])
                     end
                     it "displays both the source and the osdep if there is a souce override" do
@@ -81,37 +82,37 @@ module Autoproj
                         ws_add_package_to_layout :cmake, "base/cmake"
                         ws.manifest.add_osdeps_overrides "base/cmake", force: true
                         ws_define_osdep_entries("base/cmake" => "gem")
-                        flexmock(cli).should_receive(:display_source_package).
-                            with("base/cmake", PackageSelection, Hash, env: false).once
-                        flexmock(cli).should_receive(:display_osdep_package).
-                            with("base/cmake", PackageSelection, Hash, false).once
+                        flexmock(cli).should_receive(:display_source_package)
+                                     .with("base/cmake", PackageSelection, Hash, env: false).once
+                        flexmock(cli).should_receive(:display_osdep_package)
+                                     .with("base/cmake", PackageSelection, Hash, false).once
                         cli.run(["base/cmake"])
                     end
                     it "displays both the source and the osdep if the osdep is marked as nonexistent and there is a source package" do
                         Autoproj.silent = true
                         ws_add_package_to_layout :cmake, "base/cmake"
                         ws_define_osdep_entries("base/cmake" => "nonexistent")
-                        flexmock(cli).should_receive(:display_source_package).
-                            with("base/cmake", PackageSelection, Hash, env: false).once
-                        flexmock(cli).should_receive(:display_osdep_package).
-                            with("base/cmake", PackageSelection, Hash, false).once
+                        flexmock(cli).should_receive(:display_source_package)
+                                     .with("base/cmake", PackageSelection, Hash, env: false).once
+                        flexmock(cli).should_receive(:display_osdep_package)
+                                     .with("base/cmake", PackageSelection, Hash, false).once
                         cli.run(["base/cmake"])
                     end
                     it "passes the set of default packages to the display method" do
                         ws_define_osdep_entries("base/cmake" => "gem")
                         ws_add_osdep_entries_to_layout("base/types" => "gem")
-                        flexmock(cli).should_receive(:display_osdep_package).
-                            with("base/cmake",
-                                 ->(sel) { sel.each_source_package_name.find("base/types") },
-                                 Hash, true).once
+                        flexmock(cli).should_receive(:display_osdep_package)
+                                     .with("base/cmake",
+                                           ->(sel) { sel.each_source_package_name.find("base/types") },
+                                           Hash, true).once
                         cli.run(["base/cmake"])
                     end
                     it "passes the reverse dependencies to the display method" do
                         ws_define_osdep_entries("base/cmake" => "gem")
-                        flexmock(ws.manifest).should_receive(:compute_revdeps).
-                            once.and_return(revdeps = flexmock)
-                        flexmock(cli).should_receive(:display_osdep_package).
-                            with("base/cmake", any, revdeps, true).once
+                        flexmock(ws.manifest).should_receive(:compute_revdeps)
+                                             .once.and_return(revdeps = flexmock)
+                        flexmock(cli).should_receive(:display_osdep_package)
+                                     .with("base/cmake", any, revdeps, true).once
                         cli.run(["base/cmake"])
                     end
                 end
@@ -119,6 +120,7 @@ module Autoproj
 
             describe "#display_package_set" do
                 attr_reader :pkg_set
+
                 before do
                     Autobuild.color = false
                     @pkg_set = ws_define_package_set "rock.core", raw_local_dir: File.join(ws.root_dir, "dir")
@@ -148,8 +150,8 @@ module Autoproj
                     flexmock(pkg_set).should_receive(:raw_local_dir).and_return("/raw/dir")
                     flexmock(pkg_set).should_receive(:user_local_dir).and_return("/user/dir")
                     assert_displays "rock.core",
-                        "  checkout dir: /raw/dir",
-                        "  symlinked to: /user/dir"
+                                    "  checkout dir: /raw/dir",
+                                    "  symlinked to: /user/dir"
                 end
                 it "displays the only one dir if the raw and user dirs are the same" do
                     flexmock(pkg_set).should_receive(:raw_local_dir).and_return("/raw/dir")
@@ -179,12 +181,13 @@ module Autoproj
                     ws_define_package :cmake, "bbb", package_set: pkg_set
                     ws_define_package :cmake, "aaa", package_set: pkg_set
                     assert_displays "rock.core", "  refers to 2 packages", "    aaa,", "    bbb",
-                        package_per_line: 1
+                                    package_per_line: 1
                 end
             end
 
             describe "#display_osdep_package" do
                 attr_reader :pkg_set
+
                 before do
                     Autobuild.color = false
                 end
@@ -193,9 +196,9 @@ module Autoproj
                 end
 
                 def assert_displays(name, selected, *messages)
-                    flexmock(cli).should_receive(:display_common_information).
-                        with(name, default_packages = flexmock, revdeps = flexmock).
-                        once
+                    flexmock(cli).should_receive(:display_common_information)
+                                 .with(name, default_packages = flexmock, revdeps = flexmock)
+                                 .once
 
                     out, = capture_subprocess_io do
                         cli.display_osdep_package(name, default_packages, revdeps, selected)
@@ -226,11 +229,11 @@ module Autoproj
                     ws_define_osdep_entries Hash["test" => "gem"], file: "first"
                     ws_define_osdep_entries Hash["test" => Hash["test_os_family" => "apt_test"]], file: "second"
                     assert_displays "test", true,
-                        "  2 matching entries:",
-                        "    in first:",
-                        "        gem",
-                        "    in second:",
-                        "        test_os_family: apt_test"
+                                    "  2 matching entries:",
+                                    "    in first:",
+                                    "        gem",
+                                    "    in second:",
+                                    "        test_os_family: apt_test"
                 end
             end
         end

@@ -249,26 +249,60 @@ module Autoproj
             #     url: 'http://packages.osrfoundation.org/gazebo.key'
             #
             def validate_definitions(definitions)
-                invalid_string = "Invalid apt repository definition"
                 definitions.each do |definition|
-                    raise ConfigError, "#{invalid_string} type: #{definition['type']}" unless %w[repo key].include?(definition["type"])
-
-                    if definition["type"] == "repo"
-                        raise ConfigError, "#{invalid_string}: 'repo' key missing" if definition["repo"].nil?
-                        raise ConfigError, "#{invalid_string}: 'repo' should be a String" unless definition["repo"].is_a?(String)
-                        raise ConfigError, "#{invalid_string}: 'file' should be a String" if definition["file"] && !definition["file"].is_a?(String)
-                        if definition["file"] && Pathname.new(definition["file"]).absolute?
-                            raise ConfigError, "#{invalid_string}: 'file' should be a relative to #{File.join(SOURCES_DIR, 'sources.list.d')}"
-                        end
+                    case definition["type"]
+                    when "repo"
+                        validate_repo_definition(definition)
+                    when "key"
+                        validate_key_definition(definition)
                     else
-                        raise ConfigError, "#{invalid_string}: 'id' key missing" if definition["id"].nil?
-                        raise ConfigError, "#{invalid_string}: 'id' should be a String" unless definition["id"].is_a?(String)
-                        raise ConfigError, "#{invalid_string}: 'url' conflicts with 'keyserver'" if definition["url"] && definition["keyserver"]
-                        raise ConfigError, "#{invalid_string}: 'url' should be a String" if definition["url"] && !definition["url"].is_a?(String)
-                        raise ConfigError, "#{invalid_string}: 'keyserver' should be a String" if definition["keyserver"] && !definition["keyserver"].is_a?(String)
+                        raise ConfigError,
+                              "#{INVALID_REPO_MESSAGE} type: #{definition['type']}"
                     end
                 end
             end
+
+            INVALID_REPO_MESSAGE = "Invalid apt repository definition".freeze
+
+            # rubocop:disable Style/GuardClause
+
+            def validate_repo_definition(definition)
+                if definition["repo"].nil?
+                    raise ConfigError, "#{INVALID_REPO_MESSAGE}: 'repo' key missing"
+                elsif !definition["repo"].is_a?(String)
+                    raise ConfigError,
+                          "#{INVALID_REPO_MESSAGE}: 'repo' should be a String"
+                elsif definition["file"] && !definition["file"].is_a?(String)
+                    raise ConfigError,
+                          "#{INVALID_REPO_MESSAGE}: 'file' should be a String"
+                elsif definition["file"] && Pathname.new(definition["file"]).absolute?
+                    raise ConfigError,
+                          "#{INVALID_REPO_MESSAGE}: 'file' should be relative "\
+                          "to #{File.join(SOURCES_DIR, 'sources.list.d')}"
+                end
+
+                nil
+            end
+
+            def validate_key_definition(definition)
+                if definition["id"].nil?
+                    raise ConfigError, "#{INVALID_REPO_MESSAGE}: 'id' key missing"
+                elsif !definition["id"].is_a?(String)
+                    raise ConfigError, "#{INVALID_REPO_MESSAGE}: 'id' should be a String"
+                elsif definition["url"] && definition["keyserver"]
+                    raise ConfigError,
+                          "#{INVALID_REPO_MESSAGE}: 'url' conflicts with 'keyserver'"
+                elsif definition["url"] && !definition["url"].is_a?(String)
+                    raise ConfigError, "#{INVALID_REPO_MESSAGE}: 'url' should be a String"
+                elsif definition["keyserver"] && !definition["keyserver"].is_a?(String)
+                    raise ConfigError,
+                          "#{INVALID_REPO_MESSAGE}: 'keyserver' should be a String"
+                end
+
+                nil
+            end
+
+            # rubocop:enable Style/GuardClause
 
             def install(definitions)
                 super

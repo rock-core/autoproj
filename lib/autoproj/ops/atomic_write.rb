@@ -19,7 +19,8 @@ module Autoproj
             rescue Errno::ENOENT
                 # No old permissions, write a temp file to determine the defaults
                 check_name = File.join(
-                    File.dirname(file_name), ".permissions_check.#{Thread.current.object_id}.#{Process.pid}.#{rand(1000000)}")
+                    File.dirname(file_name), ".permissions_check.#{Thread.current.object_id}.#{Process.pid}.#{rand(1000000)}"
+                )
                 File.open(check_name, "w") {}
                 old_stat = File.stat(check_name)
                 File.unlink(check_name)

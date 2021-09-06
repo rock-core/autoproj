@@ -32,17 +32,17 @@ module Autoproj
 
             describe "#bootstrap" do
                 it "calls check_root_dir_empty by default" do
-                    flexmock(@ops).should_receive(:check_root_dir_empty).
-                        and_throw(:bypass)
+                    flexmock(@ops).should_receive(:check_root_dir_empty)
+                                  .and_throw(:bypass)
                     assert_throws(:bypass) { @ops.bootstrap({}) }
                 end
 
                 it "does not checks the root dir if check_root_dir_empty? returns false" do
-                    flexmock(@ops).should_receive(:check_root_dir_empty?).
-                        and_return(false)
+                    flexmock(@ops).should_receive(:check_root_dir_empty?)
+                                  .and_return(false)
                     flexmock(@ops).should_receive(:check_root_dir_empty).never
-                    flexmock(@ops).should_receive(:validate_autoproj_current_root).
-                        and_throw(:bypass)
+                    flexmock(@ops).should_receive(:validate_autoproj_current_root)
+                                  .and_throw(:bypass)
                     assert_throws(:bypass) { @ops.bootstrap({}) }
                 end
             end

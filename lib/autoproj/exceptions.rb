@@ -3,11 +3,13 @@ require "autobuild/exceptions"
 module Autoproj
     class ConfigError < RuntimeError
         attr_accessor :file
+
         def initialize(file = nil)
             super
             @file = file
         end
     end
+
     class InternalError < RuntimeError; end
 
     class ImportFailed < Autobuild::CompositeException
@@ -48,6 +50,7 @@ module Autoproj
     # Exception raised when a caller requires to use an excluded package
     class ExcludedPackage < ConfigError
         attr_reader :name
+
         def initialize(name)
             @name = name
 
@@ -67,6 +70,7 @@ module Autoproj
     # selection is completely excluded
     class ExcludedSelection < ConfigError
         attr_reader :selection
+
         def initialize(selection)
             @selection = selection
 

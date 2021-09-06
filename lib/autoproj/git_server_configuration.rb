@@ -1,11 +1,10 @@
 module Autoproj
-    GIT_SERVER_CONFIG_VARS = %w{_ROOT _PUSH_ROOT _PRIVATE_ROOT}
+    GIT_SERVER_CONFIG_VARS = %w[_ROOT _PUSH_ROOT _PRIVATE_ROOT]
 
     GIT_SERVER_ACCESS_METHODS = Hash[
         "git" => "git,ssh",
         "ssh" => "ssh,ssh",
         "http" => "http,http"]
-
 
     # @api private
     #
@@ -91,30 +90,26 @@ module Autoproj
             git_server_validate_config_value(base_url, value, disabled_methods: disabled_methods)
         end
 
-        if !lazy
+        unless lazy
             pull, push, private_pull = git_server_resolve_master_config(name, config,
-                base_url: base_url,
-                git_url: git_url,
-                http_url: http_url,
-                ssh_url: ssh_url,
-                disabled_methods: disabled_methods)
+                                                                        base_url: base_url,
+                                                                        git_url: git_url,
+                                                                        http_url: http_url,
+                                                                        ssh_url: ssh_url,
+                                                                        disabled_methods: disabled_methods)
         end
 
         Autoproj.add_source_handler name.downcase do |url, private: false, **vcs_options|
-            if url !~ /\.git$/
-                url += ".git"
-            end
-            if url !~ /^\//
-                url = "/#{url}"
-            end
+            url += ".git" if url !~ /\.git$/
+            url = "/#{url}" if url !~ /^\//
 
-            if !GIT_SERVER_CONFIG_VARS.all? { |v| config.has_value_for?("#{name}#{v}") }
+            unless GIT_SERVER_CONFIG_VARS.all? { |v| config.has_value_for?("#{name}#{v}") }
                 pull, push, private_pull = git_server_resolve_master_config(name, config,
-                    base_url: base_url,
-                    git_url: git_url,
-                    http_url: http_url,
-                    ssh_url: ssh_url,
-                    disabled_methods: disabled_methods)
+                                                                            base_url: base_url,
+                                                                            git_url: git_url,
+                                                                            http_url: http_url,
+                                                                            ssh_url: ssh_url,
+                                                                            disabled_methods: disabled_methods)
             end
             pull_base_url =
                 if private
@@ -134,14 +129,14 @@ module Autoproj
 
     def self.gitorious_server_configuration(name, base_url, **options)
         Autoproj.warn_deprecated "gitorious_server_configuration",
-            "use require 'git_server_configuration' and
+                                 "use require 'git_server_configuration' and
             Autoproj.git_server_configuration instead. note that the method call
             interface has not changed, you just have to change the name(s)"
         git_server_configuration(name, base_url, **options)
     end
 end
 
-if !$autoproj_disable_github_gitorious_definitions
+unless $autoproj_disable_github_gitorious_definitions
     Autoproj.git_server_configuration("GITORIOUS", "gitorious.org", default: "http,ssh", disabled_methods: "git", lazy: true)
     Autoproj.git_server_configuration("GITHUB", "github.com", http_url: "https://github.com", default: "http,ssh")
 end

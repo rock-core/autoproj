@@ -29,13 +29,14 @@ module Autoproj
 
         describe "deprecated methods" do
             attr_reader :manifest
+
             before do
                 @manifest = PackageManifest.new(pkg)
             end
             it "calls #each_dependency from #each_package_dependency" do
                 block = proc {}
-                flexmock(manifest).should_receive(:each_dependency).once.
-                    with(modes = flexmock, block)
+                flexmock(manifest).should_receive(:each_dependency).once
+                                  .with(modes = flexmock, block)
                 _, err = capture_deprecation_message do
                     manifest.each_package_dependency(modes, &block)
                 end
@@ -43,8 +44,8 @@ module Autoproj
             end
             it "calls #each_dependency from #each_os_dependency" do
                 block = proc {}
-                flexmock(manifest).should_receive(:each_dependency).once.
-                    with(modes = flexmock, block)
+                flexmock(manifest).should_receive(:each_dependency).once
+                                  .with(modes = flexmock, block)
                 _, err = capture_deprecation_message do
                     manifest.each_os_dependency(modes, &block)
                 end
@@ -55,11 +56,11 @@ module Autoproj
         describe "tags" do
             it "parses a single tags block" do
                 manifest = Autoproj::PackageManifest.parse(pkg, "<package><tags>tag1,tag2</tags></package>")
-                assert_equal %w{tag1 tag2}, manifest.tags
+                assert_equal %w[tag1 tag2], manifest.tags
             end
             it "parses concatenates the content of multiple tags blocks" do
                 manifest = Autoproj::PackageManifest.parse(pkg, "<package><tags>tag1,tag2</tags><tags>tag3</tags></package>")
-                assert_equal %w{tag1 tag2 tag3}, manifest.tags
+                assert_equal %w[tag1 tag2 tag3], manifest.tags
             end
         end
 
@@ -91,7 +92,7 @@ module Autoproj
             it "returns a default string if there is no documentation at all" do
                 manifest = Autoproj::PackageManifest.parse(pkg, "<package></package>")
                 assert_equal "no documentation available for package 'test' in its manifest.xml file",
-                    manifest.documentation
+                             manifest.documentation
             end
 
             it "loads the content of the short documentation attribute" do
@@ -101,7 +102,7 @@ module Autoproj
             it "returns a default string if there is no brief documentation" do
                 manifest = Autoproj::PackageManifest.parse(pkg, "<package><documentation>long</documentation></package>")
                 assert_equal "no documentation available for package 'test' in its manifest.xml file",
-                    manifest.short_documentation
+                             manifest.short_documentation
             end
             it "reports if there is no brief documentation" do
                 manifest = Autoproj::PackageManifest.parse(pkg, "<package><documentation>long</documentation></package>")
@@ -310,6 +311,7 @@ module Autoproj
 
         describe "#each_dependency" do
             attr_reader :manifest
+
             before do
                 @manifest = PackageManifest.new(pkg)
             end
@@ -317,24 +319,24 @@ module Autoproj
                 manifest.add_dependency "mandatory"
                 manifest.add_dependency "optional", optional: true
                 assert_equal Set[["mandatory", false], ["optional", true]],
-                    manifest.each_dependency.to_set
+                             manifest.each_dependency.to_set
             end
             it "does not yield dependencies restricted to certain modes if the mode is not provided" do
                 manifest.add_dependency "test", modes: ["doc"]
                 assert_equal Set[],
-                    manifest.each_dependency.to_set
+                             manifest.each_dependency.to_set
             end
             it "does yield dependencies that have no mode restriction a mode is provided" do
                 manifest.add_dependency "general"
                 manifest.add_dependency "doc", modes: ["doc"]
                 assert_equal Set[["general", false], ["doc", false]],
-                    manifest.each_dependency(["doc"]).to_set
+                             manifest.each_dependency(["doc"]).to_set
             end
             it "does yield dependencies restricted to certain modes if the mode is provided" do
                 manifest.add_dependency "test", modes: ["test"]
                 manifest.add_dependency "doc_and_test", modes: %w[doc test]
                 assert_equal Set[["test", false], ["doc_and_test", false]],
-                    manifest.each_dependency(["test"]).to_set
+                             manifest.each_dependency(["test"]).to_set
             end
         end
 
@@ -367,12 +369,12 @@ module Autoproj
                 it "returns a default string if there is no documentation at all" do
                     manifest = subject_parse("<package></package>")
                     assert_equal "no documentation available for package 'test' in its manifest.xml file",
-                        manifest.documentation
+                                 manifest.documentation
                 end
                 it "returns a default string if there is no brief documentation" do
                     manifest = subject_parse("<package><documentation>long</documentation></package>")
                     assert_equal "no documentation available for package 'test' in its manifest.xml file",
-                        manifest.short_documentation
+                                 manifest.short_documentation
                 end
                 it "reports if there is no brief documentation" do
                     manifest = subject_parse("<package><documentation>long</documentation></package>")

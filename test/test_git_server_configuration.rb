@@ -17,7 +17,8 @@ module Autoproj
                     ssh_url: "mygit-ssh-url",
                     http_url: "mygit-http-url",
                     config: @config,
-                    lazy: lazy)
+                    lazy: lazy
+                )
                 @expected = Hash[
                     type: "git",
                     push_to: "mygit-git-url/repo.git",
@@ -80,31 +81,31 @@ module Autoproj
             it "does not add an extra .git at the end of the url if there is one already" do
                 expected = @expected.merge(url: "mygit-http-url/repo.git", interactive: false)
                 assert_equal expected,
-                    Autoproj.call_source_handler("mygit", "repo.git", Hash.new)
+                             Autoproj.call_source_handler("mygit", "repo.git", Hash.new)
             end
 
             it "handles urls that start with a leading slash" do
                 expected = @expected.merge(url: "mygit-http-url/repo.git", interactive: false)
                 assert_equal expected,
-                    Autoproj.call_source_handler("mygit", "/repo.git", Hash.new)
+                             Autoproj.call_source_handler("mygit", "/repo.git", Hash.new)
             end
 
             it "adds a .git at the end of the repository if it does not have one" do
                 expected = @expected.merge(url: "mygit-http-url/repo.git", interactive: false)
                 assert_equal expected,
-                    Autoproj.call_source_handler("mygit", "repo", Hash.new)
+                             Autoproj.call_source_handler("mygit", "repo", Hash.new)
             end
 
             it "resolves public URLs according to the first two entries of the configuration" do
                 expected = @expected.merge(url: "mygit-http-url/repo.git", interactive: false)
                 assert_equal expected,
-                    Autoproj.call_source_handler("mygit", "repo", Hash.new)
+                             Autoproj.call_source_handler("mygit", "repo", Hash.new)
             end
 
             it "resolves private URLs according to the last and second entries of the configuration" do
                 expected = @expected.merge(url: "mygit-ssh-url/repo.git", interactive: false)
                 assert_equal expected,
-                    Autoproj.call_source_handler("mygit", "repo", private: true)
+                             Autoproj.call_source_handler("mygit", "repo", private: true)
             end
 
             it "sets interactive to false if the private access URL is ssh" do

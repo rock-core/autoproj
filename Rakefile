@@ -17,9 +17,9 @@ task "bootstrap" do
     # we have to quote all \
     autoproj_ops_install.gsub!(/\\/, "\\\\\\\\")
 
-    %w{bootstrap install}.each do |install_script|
-        bootstrap_code = File.read(File.join(Dir.pwd, "bin", "autoproj_#{install_script}.in")).
-                         gsub("require 'autoproj/ops/install'", autoproj_ops_install)
+    %w[bootstrap install].each do |install_script|
+        bootstrap_code = File.read(File.join(Dir.pwd, "bin", "autoproj_#{install_script}.in"))
+                             .gsub("require 'autoproj/ops/install'", autoproj_ops_install)
         File.open(File.join(Dir.pwd, "bin", "autoproj_#{install_script}"), "w") do |io|
             io.write bootstrap_code
         end

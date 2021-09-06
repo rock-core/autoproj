@@ -7,6 +7,7 @@ module Autoproj
         describe Test do
             attr_reader :cli
             attr_reader :ws
+
             before do
                 @ws = ws_create
                 @one = ws_add_package_to_layout :cmake, "one"

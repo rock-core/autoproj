@@ -351,7 +351,8 @@ module Autoproj
                 run_bundler(
                     ws, "show", gem_name,
                     bundler_version: bundler_version, gem_home: gem_home,
-                    gemfile: gemfile) { |line| path << line }
+                    gemfile: gemfile
+                ) { |line| path << line }
                 path.chomp
             end
 
@@ -553,7 +554,8 @@ module Autoproj
                         Hash["RUBYLIB" => nil],
                         Autobuild.tool("ruby"), "-e", "puts $LOAD_PATH",
                         out: io,
-                        err: "/dev/null")
+                        err: "/dev/null"
+                    )
                     if result
                         io.rewind
                         io.readlines.map(&:chomp).find_all { |l| !l.empty? }
@@ -579,7 +581,8 @@ module Autoproj
                              "RUBYLIB" => self.class.rubylib_for_bundler],
                         Autobuild.tool("ruby"), "-rbundler/setup",
                         "-e", "puts $LOAD_PATH",
-                        out: io, **silent_redirect)
+                        out: io, **silent_redirect
+                    )
 
                     if result
                         io.rewind

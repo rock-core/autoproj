@@ -5,6 +5,7 @@ module Autoproj
     module CLI
         describe Base do
             attr_reader :ws, :base
+
             before do
                 @cursor = TTY::Cursor
                 @ws = ws_create
@@ -33,7 +34,7 @@ module Autoproj
                             import.import_packages(selection)
                         end
                         assert_match(/WARN: pkg0, which was selected for pkg0, is ignored/,
-                            err, "Warning on ignored package should be reported to user. Error output was: #{err}")
+                                     err, "Warning on ignored package should be reported to user. Error output was: #{err}")
                     end
 
                     it "raises CLIInvalidSelection if a package set that depends on an excluded package is being selected" do
@@ -78,9 +79,9 @@ module Autoproj
                     it "uses the manifest to resolve the user strings into package names" do
                         user_selection = flexmock(empty?: false)
                         user_selection.should_receive(:to_set).and_return(user_selection)
-                        flexmock(ws.manifest).should_receive(:expand_package_selection).
-                            once.with(user_selection, any).
-                            and_return([expanded_selection = flexmock, []])
+                        flexmock(ws.manifest).should_receive(:expand_package_selection)
+                                             .once.with(user_selection, any)
+                                             .and_return([expanded_selection = flexmock, []])
                         assert_equal [expanded_selection, []], base.resolve_user_selection(user_selection)
                     end
                     it "returns the list of unmatched strings" do
@@ -101,6 +102,7 @@ module Autoproj
 
                 describe "auto-adding packages" do
                     attr_reader :package_path, :package_relative_path
+
                     before do
                         package_path =
                             Pathname.new(ws.root_dir).join("path", "to", "package")
@@ -118,9 +120,9 @@ module Autoproj
                         assert_equal Set[package_relative_path], non_resolved
                     end
                     it "defines and auto-adds a package if the selection string is a path to a package" do
-                        flexmock(Autoproj).should_receive(:package_handler_for).
-                            with(package_path).
-                            and_return(["cmake_package", package_path])
+                        flexmock(Autoproj).should_receive(:package_handler_for)
+                                          .with(package_path)
+                                          .and_return(["cmake_package", package_path])
                         selection = nil
                         out, err = capture_subprocess_io do
                             selection, = base.resolve_user_selection([package_relative_path])

@@ -10,7 +10,7 @@ module Autoproj
 
             def find_all_matches(query, packages)
                 matches = packages.map do |pkg|
-                    if priority = query.match(pkg)
+                    if (priority = query.match(pkg))
                         [priority, pkg]
                     end
                 end.compact
@@ -112,7 +112,7 @@ module Autoproj
                 fields["PREFIX"]   = autobuild_package.prefix
                 fields["NAME"]     = package.name
                 fields["PRIORITY"] = priority
-                fields["URL"]      = (package.vcs.url if !package.vcs.none?)
+                fields["URL"]      = (package.vcs.url unless package.vcs.none?)
                 fields["PRESENT"]  = File.directory?(autobuild_package.srcdir)
                 Autoproj.expand(format, fields)
             end

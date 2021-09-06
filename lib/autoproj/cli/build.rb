@@ -7,7 +7,8 @@ module Autoproj
             def validate_options(selected_packages, options)
                 selected_packages, options =
                     super(selected_packages, options.merge(
-                        checkout_only: true, aup: options[:amake]))
+                        checkout_only: true, aup: options[:amake]
+                    ))
 
                 options[:deps] = false if options[:no_deps_shortcut]
                 if options[:deps].nil?

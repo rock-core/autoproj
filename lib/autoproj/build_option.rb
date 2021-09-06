@@ -8,20 +8,22 @@ module Autoproj
 
         attr_reader :validator
 
-        TRUE_STRINGS = %w{on yes y true}
-        FALSE_STRINGS = %w{off no n false}
+        TRUE_STRINGS = %w[on yes y true]
+        FALSE_STRINGS = %w[off no n false]
         def initialize(name, type, options, validator)
-            @name, @type, @options = name.to_str, type.to_str, options.to_hash
+            @name = name.to_str
+            @type = type.to_str
+            @options = options.to_hash
             @validator = validator.to_proc if validator
-            if !BuildOption.respond_to?("validate_#{type}")
+            unless BuildOption.respond_to?("validate_#{type}")
                 raise ConfigError.new, "invalid option type #{type}"
             end
         end
 
         def short_doc
-            if short_doc = options[:short_doc]
+            if (short_doc = options[:short_doc])
                 short_doc
-            elsif doc = options[:doc]
+            elsif (doc = options[:doc])
                 if doc.respond_to?(:to_ary) then doc.first
                 else doc
                 end
@@ -72,9 +74,7 @@ module Autoproj
             STDOUT.print "  #{doc || self.doc} [#{value}] "
             STDOUT.flush
             answer = STDIN.readline.chomp
-            if answer == ""
-                answer = value
-            end
+            answer = value if answer == ""
             validate(answer)
         rescue InputError => e
             Autoproj.message("invalid value: #{e.message}", :red)
@@ -83,9 +83,7 @@ module Autoproj
 
         def validate(value)
             value = BuildOption.send("validate_#{type}", value, options)
-            if validator
-                value = validator[value]
-            end
+            value = validator[value] if validator
             value
         end
 
@@ -100,14 +98,14 @@ module Autoproj
         end
 
         def self.validate_string(value, options)
-            if possible_values = options[:possible_values]
+            if (possible_values = options[:possible_values])
                 if options[:lowercase]
                     value = value.downcase
                 elsif options[:uppercase]
                     value = value.upcase
                 end
 
-                if !possible_values.include?(value)
+                unless possible_values.include?(value)
                     raise InputError, "invalid value '#{value}', accepted values are '#{possible_values.join("', '")}' (without the quotes)"
                 end
             end

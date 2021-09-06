@@ -71,8 +71,8 @@ module Autoproj
             "instead (and beware that the return value changed from "\
             "Autobuild::Package to Autoproj::PackageDefinition)"
         )
-        workspace.define_package(package_type, spec, block, *current_file).
-            autobuild
+        workspace.define_package(package_type, spec, block, *current_file)
+                 .autobuild
     end
 
     def self.loaded_autobuild_files
@@ -132,7 +132,8 @@ module Autoproj
                     (File.read(cmakelists) =~ /PROJECT/i)
             end
             toplevel_dir ||= find_topmost_directory_containing(
-                full_path, "CMakeLists.txt")
+                full_path, "CMakeLists.txt"
+            )
 
             manifest_xml = File.join(toplevel_dir, "manifest.xml")
             package_xml = File.join(toplevel_dir, "package.xml")
@@ -407,7 +408,8 @@ def not_on(*architectures)
 
     new_packages.each do |pkg_name|
         manifest.exclude_package(
-            pkg_name, "#{pkg_name} is disabled on this operating system")
+            pkg_name, "#{pkg_name} is disabled on this operating system"
+        )
     end
 end
 
@@ -497,8 +499,8 @@ def remove_from_default(*names)
 end
 
 def renamed_package(current_name, old_name, options)
-    explicit_selection = Autoproj.workspace.manifest.
-                         explicitely_selected_in_layout?(old_name)
+    explicit_selection = Autoproj.workspace.manifest
+                                 .explicitely_selected_in_layout?(old_name)
     if options[:obsolete] && !explicit_selection
         import_package old_name
         Autoproj.workspace.manifest.exclude_package(

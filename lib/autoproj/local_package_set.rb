@@ -28,7 +28,7 @@ module Autoproj
         end
 
         def overrides_file_path
-            if d = local_dir
+            if (d = local_dir)
                 File.join(d, "overrides.yml")
             end
         end
@@ -72,15 +72,16 @@ module Autoproj
                     YAML.load(File.read(overrides_file_path)) || Hash.new
                 end
                 overrides_data = PackageSet.validate_and_normalize_source_file(
-                    overrides_file_path, overrides_data)
+                    overrides_file_path, overrides_data
+                )
                 description = description.merge(overrides_data)
             end
 
             manifest_data = Autoproj.in_file(manifest_path, Autoproj::YAML_LOAD_ERROR) do
                 YAML.load(File.read(manifest_path)) || Hash.new
             end
-            description["imports"] = description["imports"].
-                                     concat(manifest_data["package_sets"] || Array.new)
+            description["imports"] = description["imports"]
+                                     .concat(manifest_data["package_sets"] || Array.new)
             description["name"] = name
             description
         end

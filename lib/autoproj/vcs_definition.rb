@@ -34,11 +34,13 @@ module Autoproj
         RawEntry      = Struct.new :package_set, :file, :vcs
 
         def initialize(type, url, vcs_options, from: nil, raw: [], history: [])
-            if !raw.respond_to?(:to_ary)
+            unless raw.respond_to?(:to_ary)
                 raise ArgumentError, "wrong format for the raw field (#{raw.inspect})"
             end
 
-            @type, @url, @options = type, url, vcs_options
+            @type = type
+            @url = url
+            @options = vcs_options
             if type != "none" && type != "local" && !Autobuild.respond_to?(type)
                 raise ConfigError.new, "version control #{type} is unknown to autoproj"
             end
@@ -155,7 +157,7 @@ module Autoproj
                                   "VCS path '#{short_url}' is relative and no "\
                                   "base_dir was given"
                         end
-                    if !File.directory?(source_dir)
+                    unless File.directory?(source_dir)
                         raise ArgumentError,
                               "'#{short_url}' is neither a remote source "\
                               "specification, nor an existing local directory"
@@ -166,7 +168,7 @@ module Autoproj
 
             spec, vcs_options = Kernel.filter_options spec, type: nil, url: nil
             spec.merge!(vcs_options)
-            if !spec[:url]
+            unless spec[:url]
                 # Verify that none of the keys are source handlers. If it is the
                 # case, convert
                 filtered_spec = Hash.new
@@ -201,7 +203,7 @@ module Autoproj
         #   expected format
         def self.from_raw(spec, from: nil, raw: [], history: [])
             normalized_spec = normalize_vcs_hash(spec)
-            if !(type = normalized_spec.delete(:type))
+            unless (type = normalized_spec.delete(:type))
                 raise ArgumentError,
                       "the source specification #{raw_spec_to_s(spec)} normalizes "\
                       "into #{raw_spec_to_s(normalized_spec)}, "\
@@ -222,7 +224,8 @@ module Autoproj
         end
 
         def ==(other_vcs)
-            return false if !other_vcs.kind_of?(VCSDefinition)
+            return false unless other_vcs.kind_of?(VCSDefinition)
+
             if local?
                 other_vcs.local? && url == other_vcs.url
             elsif other_vcs.local?
@@ -249,9 +252,7 @@ module Autoproj
         ABSOLUTE_PATH_OR_URI = /^([\w+]+:\/)?\/|^[:\w]+@|^(\w+@)?[\w.-]+:/
 
         def self.to_absolute_url(url, root_dir)
-            if url && url !~ ABSOLUTE_PATH_OR_URI
-                url = File.expand_path(url, root_dir)
-            end
+            url = File.expand_path(url, root_dir) if url && url !~ ABSOLUTE_PATH_OR_URI
             url
         end
 
@@ -262,6 +263,7 @@ module Autoproj
 
         def overrides_key
             return if none?
+
             if local?
                 "local:#{url}"
             else
@@ -274,7 +276,7 @@ module Autoproj
         #
         # @return [Autobuild::Importer,nil] the autobuild importer
         def create_autobuild_importer
-            return if !needs_import?
+            return unless needs_import?
 
             importer = Autobuild.send(type, url, options)
             if importer.respond_to?(:declare_alternate_repository)
@@ -282,6 +284,7 @@ module Autoproj
                     package_set = entry.package_set
                     vcs         = entry.vcs
                     next if !package_set || package_set.main?
+
                     importer.declare_alternate_repository(package_set.name, vcs.url, vcs.options)
                 end
             end
@@ -294,7 +297,7 @@ module Autoproj
                 "none"
             else
                 desc = "#{type}:#{url}"
-                if !options.empty?
+                unless options.empty?
                     desc = "#{desc} #{options.to_a.sort_by { |key, _| key.to_s }.map { |key, value| "#{key}=#{value}" }.join(' ')}"
                 end
                 desc

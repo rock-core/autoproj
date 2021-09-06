@@ -11,7 +11,8 @@ module Autoproj
             if File.file?(path)
                 env = YAML.safe_load(File.read(path))
                 Autobuild::Environment::ExportedEnvironment.new(
-                    env["set"], env["unset"], env["update"])
+                    env["set"], env["unset"], env["update"]
+                )
             end
         end
 

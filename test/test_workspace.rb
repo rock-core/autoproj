@@ -6,18 +6,19 @@ module Autoproj
     describe Workspace do
         describe "#setup" do
             attr_reader :ws
+
             before do
                 @ws = ws_create
             end
 
             it "rewrite the shims to fix any discrepancy" do
-                flexmock(Ops::Install).should_receive(:rewrite_shims).
-                    with(File.join(ws.root_dir, ".autoproj", "bin"),
-                         ws.config.ruby_executable,
-                         ws.root_dir,
-                         File.join(ws.root_dir, ".autoproj", "Gemfile"),
-                         ws.config.gems_gem_home).
-                    once
+                flexmock(Ops::Install).should_receive(:rewrite_shims)
+                                      .with(File.join(ws.root_dir, ".autoproj", "bin"),
+                                            ws.config.ruby_executable,
+                                            ws.root_dir,
+                                            File.join(ws.root_dir, ".autoproj", "Gemfile"),
+                                            ws.config.gems_gem_home)
+                                      .once
                 ws.setup
             end
 
@@ -47,6 +48,7 @@ module Autoproj
 
         describe "#load_package_sets" do
             attr_reader :test_dir, :test_autoproj_dir, :workspace
+
             before do
                 @test_dir = make_tmpdir
                 @test_autoproj_dir = File.join(@test_dir, "autoproj")
@@ -92,11 +94,11 @@ module Autoproj
             end
 
             it "loads the osdep files" do
-                flexmock(workspace.manifest.each_package_set.first).
-                    should_receive(:load_osdeps).with(File.join(test_autoproj_dir, "test.osdeps"), Hash).
-                    at_least.once.and_return(osdep = flexmock)
-                flexmock(workspace.os_package_resolver).
-                    should_receive(:merge).with(osdep).at_least.once
+                flexmock(workspace.manifest.each_package_set.first)
+                    .should_receive(:load_osdeps).with(File.join(test_autoproj_dir, "test.osdeps"), Hash)
+                    .at_least.once.and_return(osdep = flexmock)
+                flexmock(workspace.os_package_resolver)
+                    .should_receive(:merge).with(osdep).at_least.once
 
                 workspace.load_package_sets
             end
@@ -130,6 +132,7 @@ module Autoproj
 
         describe "#setup" do
             attr_reader :ws
+
             before do
                 @ws = ws_create
                 flexmock(ws)
@@ -169,7 +172,8 @@ module Autoproj
                         Hash["GEM_HOME" => fixture_gem_home],
                         Ops::Install.guess_gem_program, "install",
                         "--ignore-dependencies", "--no-document",
-                        File.join("pkg", "autoproj-2.99.90.gem"))
+                        File.join("pkg", "autoproj-2.99.90.gem")
+                    )
                 end
                 unless install_successful
                     flunk("failed to install the autoproj gem in the mock repository:\n"\
@@ -207,7 +211,8 @@ module Autoproj
                 stdout, stderr = capture_subprocess_io do
                     result = Autoproj.bundler_unbundled_system(
                         File.join(".autoproj", "bin", "autoproj"), "update", "--autoproj",
-                        chdir: install_dir)
+                        chdir: install_dir
+                    )
                 end
                 unless result
                     puts stdout
@@ -269,6 +274,7 @@ module Autoproj
 
         describe "#export_env_sh" do
             attr_reader :pkg0, :pkg1, :env
+
             before do
                 ws_create
                 @pkg0         = ws_add_package_to_layout :cmake, :pkg0
@@ -277,7 +283,8 @@ module Autoproj
                 @env.should_receive(:export_env_sh).by_default
                 @env.should_receive(:each_env_filename).by_default
                 @env.should_receive(:exported_environment).and_return(
-                    Autobuild::Environment::ExportedEnvironment.new(Hash.new, Array.new, Hash.new))
+                    Autobuild::Environment::ExportedEnvironment.new(Hash.new, Array.new, Hash.new)
+                )
             end
             it "aggregates the environment only of the selected packages" do
                 flexmock(pkg0.autobuild).should_receive(:apply_env).with(env).once.globally.ordered
@@ -389,11 +396,13 @@ module Autoproj
                 test_dep = InstallationManifest::Package.new(
                     "test_dep", "Autobuild::CMake",
                     Hash[type: "none", url: nil], "#{srcdir}/test_dep", "#{srcdir}/test_dep",
-                         "/prefix/test_dep", "/builddir/test_dep", test_dep.autobuild.logdir, [])
+                    "/prefix/test_dep", "/builddir/test_dep", test_dep.autobuild.logdir, []
+                )
                 pkg = InstallationManifest::Package.new(
                     "pkg", "Autobuild::CMake",
                     Hash[type: "none", url: nil], "#{srcdir}/pkg", "#{srcdir}/pkg",
-                    "/prefix/pkg", "/builddir/pkg", pkg.autobuild.logdir, ["test_dep"])
+                    "/prefix/pkg", "/builddir/pkg", pkg.autobuild.logdir, ["test_dep"]
+                )
                 packages = manifest.each_package.to_a
                 assert_equal 2, packages.size
                 assert packages.include?(test_dep), "expected #{packages} to include #{test_dep}"
@@ -413,8 +422,8 @@ module Autoproj
                     io.puts "LOADED_00" # Verify that the 00 file has been loaded
                     io.puts "LOADED_99 = true"
                 end
-                flexmock(Dir).should_receive(:glob).with(File.join(overrides_d, "*.rb")).
-                    once.and_return([overrides99, overrides00])
+                flexmock(Dir).should_receive(:glob).with(File.join(overrides_d, "*.rb"))
+                             .once.and_return([overrides99, overrides00])
                 ws.finalize_package_setup
                 assert defined?(LOADED_00)
                 assert defined?(LOADED_99)
@@ -540,31 +549,33 @@ module Autoproj
 
         describe "#source_dir" do
             attr_reader :ws
+
             before do
                 @ws = ws_create
             end
 
             it "returns root_dir if 'source' config option is unset" do
-                flexmock(ws.config).should_receive(:source_dir).
-                    and_return(nil)
+                flexmock(ws.config).should_receive(:source_dir)
+                                   .and_return(nil)
                 assert_equal ws.source_dir, ws.root_dir
             end
 
             it "returns root_dir/source if 'source' config option is set" do
-                flexmock(ws.config).should_receive(:source_dir).
-                    and_return("src")
+                flexmock(ws.config).should_receive(:source_dir)
+                                   .and_return("src")
                 assert_equal ws.source_dir, File.join(ws.root_dir, "src")
             end
 
             it "sets 'source' config option" do
-                flexmock(ws.config).should_receive(:set).
-                    with("source", "src", true).once
+                flexmock(ws.config).should_receive(:set)
+                                   .with("source", "src", true).once
                 ws.source_dir = "src"
             end
         end
 
         describe "#load_config" do
             attr_reader :ws
+
             before do
                 @ws = ws_create
                 FileUtils.mkdir_p File.join(ws.root_dir, ".autoproj")
@@ -572,8 +583,8 @@ module Autoproj
             end
 
             it "raises if config.source_dir is not relative" do
-                flexmock(Autoproj::Configuration).new_instances.
-                    should_receive(:source_dir).and_return(ws.root_dir)
+                flexmock(Autoproj::Configuration).new_instances
+                                                 .should_receive(:source_dir).and_return(ws.root_dir)
                 assert_raises(ConfigError) do
                     ws.config = Configuration.new(ws.root_dir)
                     ws.load_config

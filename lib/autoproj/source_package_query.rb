@@ -53,17 +53,17 @@ module Autoproj
             super(fields, value, partial)
 
             directories = value.split("/")
-            if !directories.empty?
+            unless directories.empty?
                 @use_dir_prefix = true
-                rx = directories.
-                     map { |d| "#{Regexp.quote(d)}\\w*" }.
-                     join("/")
+                rx = directories
+                     .map { |d| "#{Regexp.quote(d)}\\w*" }
+                     .join("/")
                 rx = Regexp.new(rx, true)
                 @dir_prefix_weak_rx = rx
 
-                rx_strict = directories[0..-2].
-                            map { |d| "#{Regexp.quote(d)}\\w*" }.
-                            join("/")
+                rx_strict = directories[0..-2]
+                            .map { |d| "#{Regexp.quote(d)}\\w*" }
+                            .join("/")
                 rx_strict = Regexp.new("#{rx_strict}/#{Regexp.quote(directories.last)}$", true)
                 @dir_prefix_strong_rx = rx_strict
             end
@@ -95,17 +95,11 @@ module Autoproj
             pkg_value = fields.inject(pkg) { |v, field_name| v.send(field_name) }
             pkg_value = pkg_value.to_s
 
-            if pkg_value == value
-                return EXACT
-            end
+            return EXACT if pkg_value == value
 
-            if !partial?
-                return
-            end
+            return unless partial?
 
-            if @value_rx === pkg_value
-                return PARTIAL
-            end
+            return PARTIAL if @value_rx === pkg_value
 
             # Special match for directories: match directory prefixes
             if use_dir_prefix?

@@ -43,7 +43,7 @@ module Autoproj
                 dep_spec = dep_spec.first
                 known_dependencies[dep_spec.name] = dep_spec.version
                 dep_spec.dependencies.each do |dep|
-                    if !known_dependencies.has_key?(dep.name)
+                    unless known_dependencies.has_key?(dep.name)
                         collect_dependencies(dep, known_dependencies: known_dependencies)
                     end
                 end

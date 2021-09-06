@@ -8,13 +8,14 @@ module Autoproj
 
             before do
                 @autoproj_bin_dir = File.expand_path(
-                    File.join("..", "..", "bin"), __dir__)
+                    File.join("..", "..", "bin"), __dir__
+                )
                 run_command_and_stop "#{Gem.ruby} "\
                     "#{File.join(@autoproj_bin_dir, 'autoproj_install')} "\
                     "--no-interactive --gemfile '#{gemfile_aruba}'",
-                    exit_timeout: 120
+                                     exit_timeout: 120
                 @autoproj_bin = File.join(expand_path("."),
-                    ".autoproj", "bin", "autoproj")
+                                          ".autoproj", "bin", "autoproj")
             end
 
             it "generates the env.sh file and the installation manifest" do

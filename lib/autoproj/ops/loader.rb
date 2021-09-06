@@ -15,9 +15,7 @@ module Autoproj
             end
 
             def in_package_set(pkg_set, path)
-                if path
-                    path = File.expand_path(path, root_dir)
-                end
+                path = File.expand_path(path, root_dir) if path
                 @file_stack.push([pkg_set, path])
                 yield
             ensure
@@ -26,19 +24,23 @@ module Autoproj
 
             def filter_load_exception(error, package_set, path)
                 raise error if Autoproj.verbose
-                rx_path = Regexp.quote(path)
-                if error_line = error.backtrace.find { |l| l =~ /#{rx_path}/ }
-                    if line_number = Integer(/#{rx_path}:(\d+)/.match(error_line)[1])
-                        line_number = "#{line_number}:"
-                    end
 
-                    if package_set.local?
-                        raise ConfigError.new(path), "#{path}:#{line_number} #{error.message}", error.backtrace
-                    else
-                        raise ConfigError.new(path), "#{File.basename(path)}(package_set=#{package_set.name}):#{line_number} #{error.message}", error.backtrace
-                    end
-                else
+                rx_path = Regexp.quote(path)
+                unless (error_line = error.backtrace.find { |l| l =~ /#{rx_path}/ })
                     raise error
+                end
+
+                if (line_number = Integer(/#{rx_path}:(\d+)/.match(error_line)[1]))
+                    line_number = "#{line_number}:"
+                end
+
+                if package_set.local?
+                    raise ConfigError.new(path),
+                          "#{path}:#{line_number} #{error.message}", error.backtrace
+                else
+                    raise ConfigError.new(path),
+                          "#{File.basename(path)}(package_set=#{package_set.name}):"\
+                          "#{line_number} #{error.message}", error.backtrace
                 end
             end
 
@@ -48,10 +50,11 @@ module Autoproj
             # PackageSet instance and +path+ is the path of the file w.r.t. the autoproj
             # root directory
             def current_file
-                if file = @file_stack.last
-                    file
-                else raise ArgumentError, "not in a #in_package_set context"
+                unless (file = @file_stack.last)
+                    raise ArgumentError, "not in a #in_package_set context"
                 end
+
+                file
             end
 
             # The PackageSet object representing the package set that is currently being
@@ -88,13 +91,12 @@ module Autoproj
             # (see load)
             def load_if_present(pkg_set, *path)
                 path = File.join(*path)
-                if File.file?(path)
-                    load(pkg_set, *path)
-                end
+                load(pkg_set, *path) if File.file?(path)
             end
 
             def import_autobuild_file(package_set, path)
                 return if @loaded_autobuild_files.include?(path)
+
                 load(package_set, path)
                 @loaded_autobuild_files << path
             end

@@ -20,6 +20,7 @@ module Autoproj
             def <=>(b)
                 (0..2).inject(0) do |result, i|
                     return result unless result == 0
+
                     normalize(compare_fragments(split[i], b.split[i]))
                 end
             end
@@ -90,6 +91,7 @@ module Autoproj
                         vc = order(a[i])
                         rc = order(b[j])
                         return vc - rc if vc != rc
+
                         i += 1
                         j += 1
                     end
@@ -111,10 +113,12 @@ module Autoproj
 
                 if i == a.size
                     return 1 if b[j] == "~"
+
                     return -1
                 end
                 if j == b.size
                     return -1 if a[i] == "~"
+
                     1
                 end
             end

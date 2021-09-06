@@ -11,7 +11,9 @@ module Autoproj
         attr_accessor :operating_system
 
         def self.load(file)
-            raise ArgumentError, "no such file or directory: #{file}" unless File.file?(file)
+            unless File.file?(file)
+                raise ArgumentError, "no such file or directory: #{file}"
+            end
 
             error_t = if defined? Psych::SyntaxError
                           [ArgumentError, Psych::SyntaxError]

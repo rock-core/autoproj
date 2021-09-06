@@ -8,7 +8,7 @@ module Autoproj
                 packages, options = super
                 if packages.empty? && !options[:all]
                     prompt = TTY::Prompt.new
-                    if !prompt.yes?("this is going to clean all packages. Is that really what you want ?")
+                    unless prompt.yes?("this is going to clean all packages. Is that really what you want ?")
                         raise Interrupt
                     end
                 end
@@ -27,14 +27,15 @@ module Autoproj
 
                 source_packages, * = resolve_selection(
                     packages,
-                    recursive: deps)
+                    recursive: deps
+                )
                 if source_packages.empty?
                     raise CLIInvalidArguments, "no packages or OS packages match #{selection.join(' ')}"
                 end
 
                 source_packages.each do |pkg_name|
-                    ws.manifest.find_autobuild_package(pkg_name).
-                        prepare_for_rebuild
+                    ws.manifest.find_autobuild_package(pkg_name)
+                      .prepare_for_rebuild
                 end
             end
         end

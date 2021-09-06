@@ -199,7 +199,8 @@ module Autoproj
                 manifest.add_dependency(
                     package,
                     optional: optional || (attributes["optional"] == "1"),
-                    modes: modes)
+                    modes: modes
+                )
             end
 
             def parse_contact_field(text)

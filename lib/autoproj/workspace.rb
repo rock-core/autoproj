@@ -55,7 +55,8 @@ module Autoproj
             os_package_resolver: OSPackageResolver.new,
             package_managers: OSPackageInstaller::PACKAGE_MANAGERS,
             os_repository_resolver: OSRepositoryResolver.new(
-                operating_system: os_package_resolver.operating_system),
+                operating_system: os_package_resolver.operating_system
+            ),
             os_repository_installer: OSRepositoryInstaller.new(self))
             @root_dir = root_dir
             @root_path = Pathname.new(root_dir)
@@ -74,7 +75,8 @@ module Autoproj
             @config = Configuration.new(config_file_path)
 
             @os_package_installer = OSPackageInstaller.new(
-                self, os_package_resolver, package_managers: package_managers)
+                self, os_package_resolver, package_managers: package_managers
+            )
             super(root_dir)
         end
 
@@ -644,18 +646,18 @@ module Autoproj
             retry_count: nil)
             return unless File.file?(manifest_file_path) # empty install, just return
 
-            Ops::Configuration.new(self).
-                load_package_sets(only_local: only_local,
-                                  checkout_only: checkout_only,
-                                  keep_going: keep_going,
-                                  reset: reset,
-                                  retry_count: retry_count,
-                                  mainline: mainline)
+            Ops::Configuration.new(self)
+                              .load_package_sets(only_local: only_local,
+                                                 checkout_only: checkout_only,
+                                                 keep_going: keep_going,
+                                                 reset: reset,
+                                                 retry_count: retry_count,
+                                                 mainline: mainline)
         end
 
         def load_packages(selection = manifest.default_packages(false), options = {})
-            options = Hash[warn_about_ignored_packages: true, checkout_only: true].
-                      merge(options)
+            options = Hash[warn_about_ignored_packages: true, checkout_only: true]
+                      .merge(options)
             ops = Ops::Import.new(self)
             ops.import_packages(selection, options)
         end
@@ -768,9 +770,9 @@ module Autoproj
         end
 
         def all_present_packages
-            manifest.each_autobuild_package.
-                find_all { |pkg| File.directory?(pkg.srcdir) }.
-                map(&:name)
+            manifest.each_autobuild_package
+                    .find_all { |pkg| File.directory?(pkg.srcdir) }
+                    .map(&:name)
         end
 
         # Generate a {InstallationManifest} with the currently known information

@@ -14,7 +14,7 @@ module Autoproj
 
             def validate_options(packages, options = Hash.new)
                 packages, options = super
-                if !options[:save].nil?
+                unless options[:save].nil?
                     options[:save] = case options[:save]
                                      when "."
                                          nil
@@ -52,12 +52,12 @@ module Autoproj
                 end
                 if snapshot_packages
                     versions += ops.snapshot_packages(packages,
-                        nil,
-                        only_local: options[:only_local],
-                        fingerprint: options[:fingerprint])
+                                                      nil,
+                                                      only_local: options[:only_local],
+                                                      fingerprint: options[:fingerprint])
                 end
 
-                if output_file = options[:save]
+                if (output_file = options[:save])
                     ops.save_versions(versions, output_file, replace: options[:replace])
                 else
                     versions = ops.sort_versions(versions)

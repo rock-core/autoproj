@@ -108,9 +108,7 @@ module Autoproj
                 if error.kind_of?(Interrupt)
                     raise
                 elsif keep_going?
-                    if !error.respond_to?(:to_str)
-                        error = error.message
-                    end
+                    error = error.message unless error.respond_to?(:to_str)
                     Autoproj.warn error
                 elsif error.respond_to?(:to_str)
                     raise Autobuild::PackageException.new(package, "snapshot"), error
@@ -124,9 +122,10 @@ module Autoproj
                 fingerprint_memo = Hash.new
                 packages.each do |package_name|
                     package = manifest.find_package_definition(package_name)
-                    if !package
+                    unless package
                         raise ArgumentError, "#{package_name} is not a known package"
                     end
+
                     importer = package.autobuild.importer
                     if !importer
                         error_or_warn(package, "cannot snapshot #{package_name} as it has no importer")
@@ -172,15 +171,16 @@ module Autoproj
             #   {Autobuild::Git}
             def import_state_log_package
                 pkg = manifest.main_package_set.create_autobuild_package
-                if !pkg.importer
+                unless pkg.importer
                     if Autobuild::Git.can_handle?(pkg.srcdir)
                         pkg.importer = Autobuild.git(pkg.srcdir)
                     end
                 end
 
-                if !pkg.importer.kind_of?(Autobuild::Git)
+                unless pkg.importer.kind_of?(Autobuild::Git)
                     raise ArgumentError, "cannot use autoproj auto-import feature if the main configuration is not managed under git"
                 end
+
                 pkg
             end
 
@@ -210,9 +210,9 @@ module Autoproj
                 if current_versions.empty?
                     # Do a full snapshot this time only
                     Autoproj.message "  building initial autoproj import log, this may take a while"
-                    packages = manifest.all_selected_source_packages.
-                               find_all { |pkg| File.directory?(pkg.autobuild.srcdir) }.
-                               map(&:name)
+                    packages = manifest.all_selected_source_packages
+                                       .find_all { |pkg| File.directory?(pkg.autobuild.srcdir) }
+                                       .map(&:name)
                 end
                 versions  = snapshot_package_sets
                 versions += snapshot_packages(packages)
@@ -258,18 +258,17 @@ module Autoproj
                     io.flush
                     importer.run_git_bare(
                         pkg, "hash-object", "-w",
-                        "--path", path, io.path).first
+                        "--path", path, io.path
+                    ).first
                 end
 
                 cacheinfo = ["100644", object_id, path]
-                if Autobuild::Git.at_least_version(2, 1)
-                    cacheinfo = cacheinfo.join(",")
-                end
+                cacheinfo = cacheinfo.join(",") if Autobuild::Git.at_least_version(2, 1)
 
                 parent_id ||= importer.rev_parse(pkg, "HEAD")
 
                 env = Hash.new
-                if !real_author
+                unless real_author
                     env["GIT_AUTHOR_NAME"] = "autoproj"
                     env["GIT_AUTHOR_EMAIL"] = "autoproj"
                     env["GIT_COMMITTER_NAME"] = "autoproj"
@@ -287,7 +286,8 @@ module Autoproj
                     # And add the new file
                     importer.run_git_bare(
                         pkg, "update-index",
-                        "--add", "--cacheinfo", *cacheinfo)
+                        "--add", "--cacheinfo", *cacheinfo
+                    )
                     tree_id = importer.run_git_bare(pkg, "write-tree").first
                 ensure
                     ENV.delete("GIT_INDEX_FILE")
@@ -296,7 +296,8 @@ module Autoproj
 
                 importer.run_git_bare(
                     pkg, "commit-tree",
-                    tree_id, "-p", parent_id, env: env, input_streams: [message]).first
+                    tree_id, "-p", parent_id, env: env, input_streams: [message]
+                ).first
             end
         end
     end

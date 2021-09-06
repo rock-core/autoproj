@@ -4,6 +4,7 @@ module Autoproj
     describe VCSDefinition do
         describe ".normalize_vcs_hash" do
             attr_reader :root_dir
+
             before do
                 @root_dir = make_tmpdir
             end
@@ -37,21 +38,21 @@ module Autoproj
                     VCSDefinition.normalize_vcs_hash("dir")
                 end
                 assert_equal "VCS path 'dir' is relative and no base_dir was given",
-                    e.message
+                             e.message
             end
             it "raises if given a relative path that does not exist" do
                 e = assert_raises(ArgumentError) do
                     VCSDefinition.normalize_vcs_hash("dir", base_dir: root_dir)
                 end
                 assert_equal "'dir' is neither a remote source specification, nor an existing local directory",
-                    e.message
+                             e.message
             end
             it "raises if given a full path that does not exist" do
                 e = assert_raises(ArgumentError) do
                     VCSDefinition.normalize_vcs_hash("/full/dir", base_dir: root_dir)
                 end
                 assert_equal "'/full/dir' is neither a remote source specification, nor an existing local directory",
-                    e.message
+                             e.message
             end
 
             it "expands a source handler when the specification is a single string" do
@@ -77,7 +78,7 @@ module Autoproj
                     VCSDefinition.from_raw(url: "test")
                 end
                 assert_equal "the source specification { url: test } normalizes into { url: test }, which does not have a VCS type",
-                    e.message
+                             e.message
             end
             it "raises if the VCS has no URL and type is not 'none'" do
                 assert_raises(ArgumentError) do
@@ -126,8 +127,8 @@ module Autoproj
             end
             it "adds one" do
                 recorder = flexmock
-                recorder.should_receive(:called).with("url", expected_options = {}).
-                    once
+                recorder.should_receive(:called).with("url", expected_options = {})
+                        .once
                 ret = flexmock
                 Autoproj.add_source_handler "custom_handler" do |url, **options|
                     recorder.called(url, options)
@@ -162,6 +163,7 @@ module Autoproj
 
             describe "null definitions" do
                 attr_reader :left
+
                 before do
                     @left = VCSDefinition.none
                 end
@@ -181,6 +183,7 @@ module Autoproj
 
             describe "a local vcs receiver" do
                 attr_reader :left
+
                 before do
                     @left = VCSDefinition.from_raw(type: "local", url: "/path/to", garbage_option: true)
                 end
@@ -199,6 +202,7 @@ module Autoproj
 
             describe "an non-local, non-null definition" do
                 attr_reader :left
+
                 before do
                     @left = VCSDefinition.from_raw(type: "git", url: "/path/to", branch: "master")
                 end
@@ -210,17 +214,17 @@ module Autoproj
                     refute_equal left, VCSDefinition.from_raw(type: "local", url: "/path/to")
                 end
                 it "delegates to the autobuild importer's #source_id implementation" do
-                    flexmock(left).should_receive(:create_autobuild_importer).
-                        and_return(flexmock(source_id: (source_id = flexmock)))
+                    flexmock(left).should_receive(:create_autobuild_importer)
+                                  .and_return(flexmock(source_id: (source_id = flexmock)))
 
                     right = VCSDefinition.from_raw(type: "git", url: "/path/to", branch: "arbitrary")
-                    flexmock(right).should_receive(:create_autobuild_importer).
-                        and_return(flexmock(source_id: source_id))
+                    flexmock(right).should_receive(:create_autobuild_importer)
+                                   .and_return(flexmock(source_id: source_id))
                     assert_equal left, right
 
                     right = VCSDefinition.from_raw(type: "git", url: "/path/to", branch: "arbitrary")
-                    flexmock(right).should_receive(:create_autobuild_importer).
-                        and_return(flexmock(source_id: flexmock))
+                    flexmock(right).should_receive(:create_autobuild_importer)
+                                   .and_return(flexmock(source_id: flexmock))
                     refute_equal left, right
                 end
             end

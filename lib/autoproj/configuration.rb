@@ -107,9 +107,7 @@ module Autoproj
 
         # Get the value for a given option
         def get(key, *default_value)
-            if overrides.has_key?(key)
-                return overrides[key].dup
-            end
+            return overrides[key].dup if overrides.has_key?(key)
 
             has_value = config.has_key?(key)
             value, validated = config[key]
@@ -122,17 +120,13 @@ module Autoproj
                 else
                     default_value.first.dup
                 end
+            elsif validated
+                doc = declared_options[key].short_doc
+                doc = "#{doc}:" if doc[-1, 1] != "?"
+                displayed_options[key] = value
+                value.dup
             else
-                if validated
-                    doc = declared_options[key].short_doc
-                    if doc[-1, 1] != "?"
-                        doc = "#{doc}:"
-                    end
-                    displayed_options[key] = value
-                    value.dup
-                else
-                    configure(key).dup
-                end
+                configure(key).dup
             end
         end
 
@@ -183,8 +177,8 @@ module Autoproj
         # @return [Object] the new option value
         # @raise ConfigError if the option is not declared
         def configure(option_name)
-            if opt = declared_options[option_name]
-                if current_value = config[option_name]
+            if (opt = declared_options[option_name])
+                if (current_value = config[option_name])
                     current_value = current_value.first
                 end
                 is_default = false
@@ -209,15 +203,13 @@ module Autoproj
 
         def load(path: self.path, reconfigure: false)
             current_keys = @config.keys
-            if h = YAML.load(File.read(path))
-                h.each do |key, value|
-                    current_keys.delete(key)
-                    set(key, value, !reconfigure)
-                end
-                if current_keys.empty?
-                    @modified = false
-                end
+            return unless (h = YAML.load(File.read(path)))
+
+            h.each do |key, value|
+                current_keys.delete(key)
+                set(key, value, !reconfigure)
             end
+            @modified = false if current_keys.empty?
         end
 
         def reconfigure!
@@ -282,8 +274,8 @@ module Autoproj
 
         # The Ruby platform and version-specific subdirectory used by bundler and rubygem
         def self.gems_path_suffix
-            @gems_path_suffix ||= Pathname.new(Gem.user_dir).
-                                  relative_path_from(Pathname.new(dot_gem_dir)).to_s
+            @gems_path_suffix ||= Pathname.new(Gem.user_dir)
+                                          .relative_path_from(Pathname.new(dot_gem_dir)).to_s
         end
 
         # The gem install root into which the workspace gems are installed
@@ -312,13 +304,12 @@ module Autoproj
 
         # The full path to the expected ruby executable
         def ruby_executable
-            if path = get("ruby_executable", nil)
-                path
-            else
+            unless (path = get("ruby_executable", nil))
                 path = OSPackageResolver.autodetect_ruby_program
                 set("ruby_executable", path, true)
-                path
             end
+
+            path
         end
 
         # Verify that the Ruby executable that is being used to run autoproj
@@ -337,7 +328,7 @@ module Autoproj
 
         def use_prerelease?
             use_prerelease =
-                if env_flag = ENV["AUTOPROJ_USE_PRERELEASE"]
+                if (env_flag = ENV["AUTOPROJ_USE_PRERELEASE"])
                     env_flag == "1"
                 elsif has_value_for?("autoproj_use_prerelease")
                     get("autoproj_use_prerelease")
@@ -481,6 +472,7 @@ module Autoproj
             elsif has_value_for?("interactive")
                 return get("interactive")
             end
+
             true
         end
 

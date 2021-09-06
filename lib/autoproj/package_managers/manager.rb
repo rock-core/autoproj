@@ -11,11 +11,13 @@ module Autoproj
             attr_reader :ws
 
             attr_writer :enabled
+
             def enabled?
                 !!@enabled
             end
 
             attr_writer :silent
+
             def silent?
                 !!@silent
             end

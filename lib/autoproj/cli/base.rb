@@ -79,7 +79,8 @@ module Autoproj
                 # Try to auto-add stuff if nonresolved
                 nonresolved.delete_if do |sel|
                     sel = File.expand_path(sel)
-                    next if !File.directory?(sel)
+                    next unless File.directory?(sel)
+
                     while sel != "/"
                         handler, srcdir = Autoproj.package_handler_for(sel)
                         if handler
@@ -149,7 +150,8 @@ module Autoproj
                     recursive: recursive,
                     warn_about_ignored_packages: false,
                     non_imported_packages: non_imported_packages,
-                    auto_exclude: auto_exclude)
+                    auto_exclude: auto_exclude
+                )
 
                 [source_packages, osdep_packages, resolved_selection]
             rescue ExcludedSelection => e
@@ -169,7 +171,7 @@ module Autoproj
                         !(resolved_selection.ignored?(pkg_name) ||
                           resolved_selection.excluded?(pkg_name))
                 end
-                if !not_matched.empty?
+                unless not_matched.empty?
                     raise CLIInvalidArguments, "autoproj: wrong package selection on command line, cannot find a match for #{not_matched.to_a.sort.join(', ')}"
                 end
             end
@@ -182,12 +184,12 @@ module Autoproj
 
             def self.validate_options(args, options)
                 options, remaining = filter_options options,
-                    silent: false,
-                    verbose: false,
-                    debug: false,
-                    color: TTY::Color.color?,
-                    progress: TTY::Color.color?,
-                    parallel: nil
+                                                    silent: false,
+                                                    verbose: false,
+                                                    debug: false,
+                                                    color: TTY::Color.color?,
+                                                    progress: TTY::Color.color?,
+                                                    parallel: nil
 
                 Autoproj.silent = options[:silent]
                 Autobuild.color = options[:color]
@@ -207,8 +209,7 @@ module Autoproj
                     Autobuild.debug = true
                 end
 
-
-                if level = options[:parallel]
+                if (level = options[:parallel])
                     Autobuild.parallel_build_level = Integer(level)
                     remaining[:parallel] = Integer(level)
                 end

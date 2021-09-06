@@ -4,6 +4,7 @@ require "tmpdir"
 describe Autoproj do
     describe ".find_v2_root_dir" do
         attr_reader :workspace_root, :testdir
+
         before do
             @testdir = make_tmpdir
             @workspace_root = File.join(testdir, "path", "to", "workspace")

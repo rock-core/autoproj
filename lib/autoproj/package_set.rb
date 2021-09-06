@@ -8,6 +8,7 @@ module Autoproj
         # loaded is called before {PackageSet#load_description_file} is called
         class NotLoaded < RuntimeError
             attr_reader :package_set
+
             def initialize(package_set)
                 @package_set = package_set
 
@@ -115,6 +116,7 @@ module Autoproj
         #
         # @see auto_imports?
         attr_writer :auto_imports
+
         # If true (the default), imports listed in this package set will be
         # automatically loaded by autoproj
         def auto_imports?
@@ -158,15 +160,17 @@ module Autoproj
 
             @ws = ws
             @vcs = vcs
-            if !vcs
+            unless vcs
                 raise ArgumentError, "cannot create a package set with a nil vcs, create a null VCS using VCSDefinition.none"
             end
+
             @name = name
             @os_repository_resolver = OSRepositoryResolver.new
             @os_package_resolver = OSPackageResolver.new(
                 operating_system: ws.os_package_resolver.operating_system,
                 package_managers: ws.os_package_resolver.package_managers,
-                os_package_manager: ws.os_package_resolver.os_package_manager)
+                os_package_manager: ws.os_package_resolver.os_package_manager
+            )
             @importer_definitions_cache = Hash.new
             @all_osdeps = []
             @all_osrepos = []
@@ -189,7 +193,8 @@ module Autoproj
             new_osdeps = OSPackageResolver.load(
                 file,
                 suffixes: ws.osdep_suffixes,
-                **options)
+                **options
+            )
             all_osdeps << new_osdeps
             os_package_resolver.merge(all_osdeps.last)
             new_osdeps
@@ -218,15 +223,18 @@ module Autoproj
         def present?
             File.directory?(raw_local_dir)
         end
+
         # True if this is the main package set (i.e. the main autoproj
         # configuration)
         def main?
             false
         end
+
         # True if this source is local, i.e. is not under a version control
         def local?
             vcs.local?
         end
+
         # True if this source defines nothing
         def empty?
             version_control.empty? && overrides.empty?
@@ -269,7 +277,7 @@ module Autoproj
                 begin
                     return raw_description_file(raw_local_dir, package_set_name: "#{vcs.type}:#{vcs.url}")["name"]
                 rescue ConfigError
-                    raise if !ignore_load_errors
+                    raise unless ignore_load_errors
                 end
             end
             vcs.to_s
@@ -292,10 +300,10 @@ module Autoproj
         end
 
         def self.default_expansions(ws)
-            ws.config.to_hash.
-                merge(ws.manifest.constant_definitions).
-                merge("AUTOPROJ_ROOT" => ws.root_dir,
-                      "AUTOPROJ_CONFIG" => ws.config_dir)
+            ws.config.to_hash
+              .merge(ws.manifest.constant_definitions)
+              .merge("AUTOPROJ_ROOT" => ws.root_dir,
+                     "AUTOPROJ_CONFIG" => ws.config_dir)
         end
 
         # Resolve the VCS information for a package set
@@ -365,23 +373,23 @@ module Autoproj
         # Validate and normalizes a raw source file
         def self.validate_and_normalize_source_file(yaml_path, yaml)
             yaml = yaml.dup
-            %w{imports version_control}.each do |entry_name|
+            %w[imports version_control].each do |entry_name|
                 yaml[entry_name] ||= Array.new
-                if !yaml[entry_name].respond_to?(:to_ary)
+                unless yaml[entry_name].respond_to?(:to_ary)
                     raise ConfigError.new(yaml_path), "expected the '#{entry_name}' entry to be an array"
                 end
             end
 
-            %w{constants}.each do |entry_name|
+            %w[constants].each do |entry_name|
                 yaml[entry_name] ||= Hash.new
-                if !yaml[entry_name].respond_to?(:to_h)
+                unless yaml[entry_name].respond_to?(:to_h)
                     raise ConfigError.new(yaml_path), "expected the '#{entry_name}' entry to be a map"
                 end
             end
 
             if yaml.has_key?("overrides")
                 yaml["overrides"] ||= Array.new
-                if !yaml["overrides"].respond_to?(:to_ary)
+                unless yaml["overrides"].respond_to?(:to_ary)
                     raise ConfigError.new(yaml_path), "expected the 'overrides' entry to be an array"
                 end
             end
@@ -397,14 +405,14 @@ module Autoproj
         # @return [Hash] the raw description information
         def self.raw_description_file(raw_local_dir, package_set_name: nil)
             master_source_file = File.join(raw_local_dir, PackageSet.master_source_file)
-            if !File.exist?(master_source_file)
+            unless File.exist?(master_source_file)
                 raise ConfigError.new, "package set #{package_set_name} present in #{raw_local_dir} should have a source.yml file, but does not"
             end
 
             source_definition = Hash.new
             PackageSet.source_files.each do |name|
                 source_file = File.join(raw_local_dir, name)
-                next if !File.file?(source_file)
+                next unless File.file?(source_file)
 
                 newdefs = Autoproj.in_file(source_file, Autoproj::YAML_LOAD_ERROR) do
                     YAML.load(File.read(source_file))
@@ -417,7 +425,7 @@ module Autoproj
                     end
                 end
             end
-            if !source_definition["name"]
+            unless source_definition["name"]
                 raise ConfigError.new(master_source_file), "#{master_source_file} does not have a 'name' field"
             end
 
@@ -429,7 +437,7 @@ module Autoproj
         # Raises InternalError if the source has not been checked out yet (it
         # should have), and ConfigError if the source.yml file is not valid.
         def raw_description_file
-            if !present?
+            unless present?
                 raise InternalError, "source #{vcs} has not been fetched yet, cannot load description for it"
             end
 
@@ -484,9 +492,7 @@ module Autoproj
 
         # Path to the source.yml file
         def source_file
-            if local_dir
-                File.join(local_dir, "source.yml")
-            end
+            File.join(local_dir, "source.yml") if local_dir
         end
 
         # Load the source.yml file and resolves all information it contains.
@@ -495,17 +501,17 @@ module Autoproj
             name = source_definition["name"]
             if name !~ /^[\w.-]+$/
                 raise ConfigError.new(source_file),
-                    "in #{source_file}: invalid source name '#{@name}': source names can only contain alphanumeric characters, and .-_"
+                      "in #{source_file}: invalid source name '#{@name}': source names can only contain alphanumeric characters, and .-_"
             elsif name == "local"
                 raise ConfigError.new(source_file),
-                    "in #{source_file}: the name 'local' is a reserved name"
+                      "in #{source_file}: the name 'local' is a reserved name"
             end
 
             parse_source_definition(source_definition)
         end
 
         def load_overrides(source_definition)
-            if data = source_definition["overrides"]
+            if (data = source_definition["overrides"])
                 [[source_file, data]]
             end
         end
@@ -513,18 +519,20 @@ module Autoproj
         def parse_source_definition(source_definition)
             @name = source_definition["name"] || name
             @required_autoproj_version = source_definition.fetch(
-                "required_autoproj_version", required_autoproj_version)
+                "required_autoproj_version", required_autoproj_version
+            )
 
             # Compute the definition of constants
-            if new_constants = source_definition["constants"]
+            if (new_constants = source_definition["constants"])
                 Autoproj.in_file(source_file) do
                     variables = inject_constants_and_config_for_expansion(Hash.new)
                     @constants_definitions = Autoproj.resolve_constant_definitions(
-                        new_constants, variables)
+                        new_constants, variables
+                    )
                 end
             end
 
-            if new_imports = source_definition["imports"]
+            if (new_imports = source_definition["imports"])
                 variables = inject_constants_and_config_for_expansion(Hash.new)
                 @imports_vcs = Array(new_imports).map do |set_def|
                     if !set_def.kind_of?(Hash) && !set_def.respond_to?(:to_str)
@@ -535,16 +543,16 @@ module Autoproj
 
                     Autoproj.in_file(source_file) do
                         PackageSet.resolve_definition(ws, set_def, from: self,
-                            vars: variables,
-                            raw: [VCSDefinition::RawEntry.new(self, source_file, set_def)])
+                                                                   vars: variables,
+                                                                   raw: [VCSDefinition::RawEntry.new(self, source_file, set_def)])
                     end
                 end
             end
 
-            if new_version_control = source_definition["version_control"]
+            if (new_version_control = source_definition["version_control"])
                 invalidate_importer_definitions_cache
                 @version_control = normalize_vcs_list("version_control", source_file,
-                    new_version_control)
+                                                      new_version_control)
 
                 Autoproj.in_file(source_file) do
                     default_vcs_spec, raw = version_control_field(
@@ -553,11 +561,11 @@ module Autoproj
                     )
                     if default_vcs_spec
                         @default_importer = VCSDefinition.from_raw(default_vcs_spec,
-                            raw: raw, from: self)
+                                                                   raw: raw, from: self)
                     end
                 end
             end
-            if new_overrides = load_overrides(source_definition)
+            if (new_overrides = load_overrides(source_definition))
                 @overrides = new_overrides.map do |file, entries|
                     [file, normalize_vcs_list("overrides", file, entries)]
                 end
@@ -574,16 +582,14 @@ module Autoproj
             defs = Hash[
                 "AUTOPROJ_ROOT" => ws.root_dir,
                 "AUTOPROJ_CONFIG" => ws.config_dir,
-                "AUTOPROJ_SOURCE_DIR" => local_dir].
-                   merge(manifest.constant_definitions).
-                   merge(constants_definitions).
-                   merge(additional_expansions)
+                "AUTOPROJ_SOURCE_DIR" => local_dir]
+                   .merge(manifest.constant_definitions)
+                   .merge(constants_definitions)
+                   .merge(additional_expansions)
 
             config = ws.config
             Hash.new do |h, k|
-                if config.has_value_for?(k) || config.declared?(k)
-                    config.get(k)
-                end
+                config.get(k) if config.has_value_for?(k) || config.declared?(k)
             end.merge(defs)
         end
 
@@ -619,7 +625,7 @@ module Autoproj
 
             list.each_with_index.map do |spec, spec_idx|
                 spec_nth = number_to_nth(spec_idx + 1)
-                if !spec.kind_of?(Hash)
+                unless spec.kind_of?(Hash)
                     raise InvalidYAMLFormatting, "wrong format for the #{spec_nth} entry (#{spec.inspect}) of the #{section_name} section of #{file}, expected a package name, followed by a colon, and one importer option per following line"
                 end
 
@@ -652,9 +658,7 @@ module Autoproj
                 end
 
                 name_match = name
-                if name_match =~ /[^\w\/-]/
-                    name_match = Regexp.new("^#{name_match}")
-                end
+                name_match = Regexp.new("^#{name_match}") if name_match =~ /[^\w\/-]/
 
                 [name_match, spec]
             end
@@ -791,20 +795,17 @@ module Autoproj
         # Enumerates the Autobuild::Package instances that are defined in this
         # source
         def each_package
-            if !block_given?
-                return enum_for(:each_package)
-            end
+            return enum_for(:each_package) unless block_given?
 
             manifest.each_package_definition do |pkg|
-                if pkg.package_set == self
-                    yield(pkg.autobuild)
-                end
+                yield(pkg.autobuild) if pkg.package_set == self
             end
         end
 
         # List the autobuild files that are part of this package set
         def each_autobuild_file
-            return enum_for(__method__) if !block_given?
+            return enum_for(__method__) unless block_given?
+
             Dir.glob(File.join(local_dir, "*.autobuild")).sort.each do |file|
                 yield(file)
             end
@@ -813,7 +814,8 @@ module Autoproj
         # Yields each osdeps definition files that are present in this package
         # set
         def each_osdeps_file
-            return enum_for(__method__) if !block_given?
+            return enum_for(__method__) unless block_given?
+
             Dir.glob(File.join(local_dir, "*.osdeps")).each do |file|
                 yield(file)
             end
@@ -822,7 +824,8 @@ module Autoproj
         # Yields each osdeps definition files that are present in this package
         # set
         def each_osrepos_file
-            return enum_for(__method__) if !block_given?
+            return enum_for(__method__) unless block_given?
+
             Dir.glob(File.join(local_dir, "*.osrepos")).each do |file|
                 yield(file)
             end

@@ -16,9 +16,7 @@ Autoproj.report(silent: true) do
     cli = Autoproj::CLI::Locate.new
 
     arg = argv.first || Dir.pwd
-    if File.directory?(arg)
-        arg = "#{File.expand_path(arg)}/"
-    end
+    arg = "#{File.expand_path(arg)}/" if File.directory?(arg)
     log_files = cli.logs_of(arg, log: nil)
 
     if log_files.size == 1

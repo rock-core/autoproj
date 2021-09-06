@@ -21,11 +21,12 @@ module Autoproj
                         full_path = File.join(ws.config_dir, name)
                     end
 
-                    if !File.file?(full_path)
+                    unless File.file?(full_path)
                         alternative_full_path = File.join(ws.config_dir, "manifest.#{name}")
-                        if !File.file?(alternative_full_path)
+                        unless File.file?(alternative_full_path)
                             raise CLIInvalidArguments, "neither #{full_path} nor #{alternative_full_path} exist"
                         end
+
                         full_path = alternative_full_path
                     end
                     begin

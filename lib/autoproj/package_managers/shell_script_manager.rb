@@ -28,6 +28,7 @@ module Autoproj
 
             # Overrides the {#needs_locking?} flag
             attr_writer :needs_locking
+
             # Whether two autoproj instances can run this package manager at the
             # same time
             #
@@ -43,6 +44,7 @@ module Autoproj
 
             # Overrides the {#needs_root?} flag
             attr_writer :needs_root
+
             # Whether this package manager needs root access.
             #
             # This declares if the command line(s) for this package manager
@@ -157,7 +159,9 @@ module Autoproj
 
                 #{Autoproj.color('The build process and/or the packages require some other software to be installed', :bold)}
                 #{Autoproj.color('and you required autoproj to not install them itself', :bold)}
-                #{Autoproj.color('\nIf these packages are already installed, simply ignore this message\n', :red) unless respond_to?(:filter_uptodate_packages)}
+                #{unless respond_to?(:filter_uptodate_packages)
+                      Autoproj.color('\nIf these packages are already installed, simply ignore this message\n', :red)
+                  end}
     The following packages are available as OS dependencies, i.e. as prebuilt
     packages provided by your distribution / operating system. You will have to
     install them manually if they are not already installed

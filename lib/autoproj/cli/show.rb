@@ -66,10 +66,10 @@ module Autoproj
             def display_package_set(name, package_per_line: 8)
                 puts Autoproj.color("package set #{name}", :bold)
                 pkg_set = ws.manifest.find_package_set(name)
-                if !File.directory?(pkg_set.raw_local_dir)
+                unless File.directory?(pkg_set.raw_local_dir)
                     puts Autobuild.color("  this package set is not checked out", :magenta)
                 end
-                if overrides_key = pkg_set.vcs.overrides_key
+                if (overrides_key = pkg_set.vcs.overrides_key)
                     puts "  overrides key: pkg_set:#{overrides_key}"
                 end
                 if pkg_set.raw_local_dir != pkg_set.user_local_dir
@@ -100,7 +100,7 @@ module Autoproj
             def display_source_package(pkg_name, default_packages, revdeps, options = Hash.new)
                 puts Autoproj.color("source package #{pkg_name}", :bold)
                 pkg = ws.manifest.find_autobuild_package(pkg_name)
-                if !File.directory?(pkg.srcdir)
+                unless File.directory?(pkg.srcdir)
                     puts Autobuild.color("  this package is not checked out yet, the dependency information will probably be incomplete", :magenta)
                 end
                 puts "  source definition"
@@ -178,7 +178,7 @@ module Autoproj
                     puts "  #{e.message}"
                 end
 
-                if !selected
+                unless selected
                     puts "  is present, but won't be used by autoproj for '#{pkg_name}'"
                 end
 
@@ -208,9 +208,7 @@ module Autoproj
                 else
                     puts "  is not directly selected by the manifest"
                 end
-                if ws.manifest.ignored?(pkg_name)
-                    puts "  is ignored"
-                end
+                puts "  is ignored" if ws.manifest.ignored?(pkg_name)
                 if ws.manifest.excluded?(pkg_name)
                     puts "  is excluded: #{Autoproj.manifest.exclusion_reason(pkg_name)}"
                 end

@@ -5,6 +5,7 @@ module Autoproj
     module CLI
         describe Clean do
             attr_reader :cli
+
             before do
                 ws_create
                 @cli = Clean.new(ws)
@@ -17,20 +18,20 @@ module Autoproj
             describe "#validate_options" do
                 describe "confirmation if no packages have been selected" do
                     it "passes if the user replied 'yes'" do
-                        flexmock(TTY::Prompt).new_instances.
-                            should_receive(:yes?).and_return(true)
+                        flexmock(TTY::Prompt).new_instances
+                                             .should_receive(:yes?).and_return(true)
                         assert_equal [[], Hash.new], cli.validate_options([], Hash.new)
                     end
                     it "raises if the user replied 'yes'" do
-                        flexmock(TTY::Prompt).new_instances.
-                            should_receive(:yes?).and_return(false)
+                        flexmock(TTY::Prompt).new_instances
+                                             .should_receive(:yes?).and_return(false)
                         assert_raises(Interrupt) do
                             cli.validate_options([], Hash.new)
                         end
                     end
                     it "does not ask confirmation if the 'all' options is true" do
-                        flexmock(TTY::Prompt).new_instances.
-                            should_receive(:yes?).never
+                        flexmock(TTY::Prompt).new_instances
+                                             .should_receive(:yes?).never
                         assert_equal [[], Hash[all: true]], cli.validate_options([], all: true)
                     end
                 end

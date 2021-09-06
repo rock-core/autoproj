@@ -15,8 +15,8 @@ module Autoproj
 
         def test_it_initializes_itself_with_the_global_operating_system
             resolver = OSPackageResolver.new
-            flexmock(OSPackageResolver).should_receive(:autodetect_operating_system).
-                once.and_return(operating_system)
+            flexmock(OSPackageResolver).should_receive(:autodetect_operating_system)
+                                       .once.and_return(operating_system)
             assert_equal operating_system, resolver.operating_system
         end
 
@@ -51,10 +51,10 @@ module Autoproj
         describe "#resolve_package" do
             it "handles bad formatting produced by parsing invalid YAML with old YAML Ruby versions" do
                 data = { "test" => {
-                            "v1.0" => "pkg1.0 blabla",
-                            "v1.1" => "pkg1.1 bloblo",
-                            "default" => "pkgdef"
-                         } }
+                    "v1.0" => "pkg1.0 blabla",
+                    "v1.1" => "pkg1.1 bloblo",
+                    "default" => "pkgdef"
+                } }
                 osdeps = create_osdep(data)
                 expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg1.0 blabla"]]]
                 assert_equal expected, osdeps.resolve_package("pkg")
@@ -62,10 +62,10 @@ module Autoproj
 
             it "applies aliases" do
                 data = { "test" => {
-                            "v1.0" => "pkg1.0",
-                            "v1.1" => "pkg1.1",
-                            "default" => "pkgdef"
-                         } }
+                    "v1.0" => "pkg1.0",
+                    "v1.1" => "pkg1.1",
+                    "default" => "pkgdef"
+                } }
                 osdeps = create_osdep(data)
                 osdeps.add_aliases "bla" => "pkg"
                 expected = [[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg1.0"]]]
@@ -74,18 +74,19 @@ module Autoproj
 
             describe "recursive resolution" do
                 attr_reader :data, :osdeps
+
                 before do
                     @data = { "osdep" => "pkg1.0" }
                     @osdeps = create_osdep(data)
                 end
 
                 it "resolves the 'osdep' keyword by recursively resolving the package" do
-                    flexmock(osdeps).should_receive(:resolve_package).
-                        with("pkg").pass_thru
-                    flexmock(osdeps).should_receive(:resolve_package).
-                        with("pkg1.0").and_return([[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg1.1"]]])
+                    flexmock(osdeps).should_receive(:resolve_package)
+                                    .with("pkg").pass_thru
+                    flexmock(osdeps).should_receive(:resolve_package)
+                                    .with("pkg1.0").and_return([[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg1.1"]]])
                     assert_equal [[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg1.1"]]],
-                        osdeps.resolve_package("pkg")
+                                 osdeps.resolve_package("pkg")
                 end
 
                 it "raises if a recursive resolution does not match an existing package" do
@@ -93,7 +94,7 @@ module Autoproj
                         osdeps.resolve_package("pkg")
                     end
                     assert_equal "the 'pkg' osdep refers to another osdep, 'pkg1.0', which does not seem to exist: Autoproj::OSPackageResolver::InvalidRecursiveStatement",
-                        exception.message
+                                 exception.message
                 end
 
                 it "replaces recursive resolution by a fake package manager if resolve_recursive: is false" do
@@ -107,10 +108,10 @@ module Autoproj
 
                 before do
                     @data = { "test" => {
-                                "v1.0" => nil,
-                                "v1.1" => "pkg1.1",
-                                "default" => "pkgdef"
-                             } }
+                        "v1.0" => nil,
+                        "v1.1" => "pkg1.1",
+                        "default" => "pkgdef"
+                    } }
                 end
 
                 it "resolves a single package name" do
@@ -235,7 +236,7 @@ module Autoproj
                 data = [
                     "global_pkg1", "global_pkg2",
                     {
-                      "other_test" => "pkg1.1"
+                        "other_test" => "pkg1.1"
                     }
                 ]
                 osdeps = create_osdep(data)
@@ -377,22 +378,26 @@ module Autoproj
             osdeps = flexmock(OSPackageResolver.new)
             osdeps.should_receive(:resolve_package).with("pkg0").once.and_return(
                 [[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg1"]],
-                 ["gem", FOUND_PACKAGES, ["gempkg1"]]])
+                 ["gem", FOUND_PACKAGES, ["gempkg1"]]]
+            )
             assert_equal OSPackageResolver::AVAILABLE, osdeps.availability_of("pkg0")
 
             osdeps.should_receive(:resolve_package).with("pkg0").once.and_return(
                 [[osdeps.os_package_manager, FOUND_PACKAGES, []],
-                 ["gem", FOUND_PACKAGES, ["gempkg1"]]])
+                 ["gem", FOUND_PACKAGES, ["gempkg1"]]]
+            )
             assert_equal OSPackageResolver::AVAILABLE, osdeps.availability_of("pkg0")
 
             osdeps.should_receive(:resolve_package).with("pkg0").once.and_return(
                 [[osdeps.os_package_manager, FOUND_PACKAGES, []],
-                 ["gem", FOUND_PACKAGES, []]])
+                 ["gem", FOUND_PACKAGES, []]]
+            )
             assert_equal OSPackageResolver::IGNORE, osdeps.availability_of("pkg0")
 
             osdeps.should_receive(:resolve_package).with("pkg0").once.and_return(
                 [[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg1"]],
-                 ["gem", FOUND_NONEXISTENT, []]])
+                 ["gem", FOUND_NONEXISTENT, []]]
+            )
             assert_equal OSPackageResolver::NONEXISTENT, osdeps.availability_of("pkg0")
 
             osdeps.should_receive(:resolve_package).with("pkg0").once.and_return([])
@@ -404,51 +409,57 @@ module Autoproj
 
         def test_has_p
             osdeps = flexmock(OSPackageResolver.new)
-            osdeps.should_receive(:availability_of).with("pkg0").once.
-                and_return(OSPackageResolver::AVAILABLE)
+            osdeps.should_receive(:availability_of).with("pkg0").once
+                  .and_return(OSPackageResolver::AVAILABLE)
             assert(osdeps.has?("pkg0"))
 
-            osdeps.should_receive(:availability_of).with("pkg0").once.
-                and_return(OSPackageResolver::IGNORE)
+            osdeps.should_receive(:availability_of).with("pkg0").once
+                  .and_return(OSPackageResolver::IGNORE)
             assert(osdeps.has?("pkg0"))
 
-            osdeps.should_receive(:availability_of).with("pkg0").once.
-                and_return(OSPackageResolver::UNKNOWN_OS)
+            osdeps.should_receive(:availability_of).with("pkg0").once
+                  .and_return(OSPackageResolver::UNKNOWN_OS)
             assert(!osdeps.has?("pkg0"))
 
-            osdeps.should_receive(:availability_of).with("pkg0").once.
-                and_return(OSPackageResolver::WRONG_OS)
+            osdeps.should_receive(:availability_of).with("pkg0").once
+                  .and_return(OSPackageResolver::WRONG_OS)
             assert(!osdeps.has?("pkg0"))
 
-            osdeps.should_receive(:availability_of).with("pkg0").once.
-                and_return(OSPackageResolver::NONEXISTENT)
+            osdeps.should_receive(:availability_of).with("pkg0").once
+                  .and_return(OSPackageResolver::NONEXISTENT)
             assert(!osdeps.has?("pkg0"))
 
-            osdeps.should_receive(:availability_of).with("pkg0").once.
-                and_return(OSPackageResolver::NO_PACKAGE)
+            osdeps.should_receive(:availability_of).with("pkg0").once
+                  .and_return(OSPackageResolver::NO_PACKAGE)
             assert(!osdeps.has?("pkg0"))
         end
 
         def test_resolve_os_packages
             osdeps = flexmock(OSPackageResolver.new)
             osdeps.should_receive(:resolve_package).with("pkg0").once.and_return(
-                [[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg0"]]])
+                [[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg0"]]]
+            )
             osdeps.should_receive(:resolve_package).with("pkg1").once.and_return(
                 [[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg1"]],
-                 ["gem", FOUND_PACKAGES, ["gempkg1"]]])
+                 ["gem", FOUND_PACKAGES, ["gempkg1"]]]
+            )
             osdeps.should_receive(:resolve_package).with("pkg2").once.and_return(
-                [["gem", FOUND_PACKAGES, ["gempkg2"]]])
+                [["gem", FOUND_PACKAGES, ["gempkg2"]]]
+            )
             expected =
                 [[osdeps.os_package_manager, %w[pkg0 pkg1]],
                  ["gem", %w[gempkg1 gempkg2]]]
             assert_equal expected, osdeps.resolve_os_packages(%w[pkg0 pkg1 pkg2])
 
             osdeps.should_receive(:resolve_package).with("pkg0").once.and_return(
-                [[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg0"]]])
+                [[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg0"]]]
+            )
             osdeps.should_receive(:resolve_package).with("pkg1").once.and_return(
-                [[osdeps.os_package_manager, FOUND_PACKAGES, []]])
+                [[osdeps.os_package_manager, FOUND_PACKAGES, []]]
+            )
             osdeps.should_receive(:resolve_package).with("pkg2").once.and_return(
-                [["gem", FOUND_PACKAGES, ["gempkg2"]]])
+                [["gem", FOUND_PACKAGES, ["gempkg2"]]]
+            )
             expected =
                 [[osdeps.os_package_manager, ["pkg0"]],
                  ["gem", ["gempkg2"]]]
@@ -460,10 +471,12 @@ module Autoproj
             assert_raises(MissingOSDep) { osdeps.resolve_os_packages(%w[pkg0 pkg1 pkg2]) }
 
             osdeps.should_receive(:resolve_package).with("pkg0").once.and_return(
-                [[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg0"]]])
+                [[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg0"]]]
+            )
             osdeps.should_receive(:resolve_package).with("pkg1").once.and_return(
                 [[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg1"]],
-                 ["gem", FOUND_PACKAGES, ["gempkg1"]]])
+                 ["gem", FOUND_PACKAGES, ["gempkg1"]]]
+            )
             osdeps.should_receive(:resolve_package).with("pkg2").once.and_return(nil)
             expected =
                 [[osdeps.os_package_manager, ["pkg0"]],
@@ -471,16 +484,19 @@ module Autoproj
             assert_raises(MissingOSDep) { osdeps.resolve_os_packages(%w[pkg0 pkg1 pkg2]) }
 
             osdeps.should_receive(:resolve_package).with("pkg0").once.and_return(
-                [[osdeps.os_package_manager, FOUND_NONEXISTENT, ["pkg0"]]])
+                [[osdeps.os_package_manager, FOUND_NONEXISTENT, ["pkg0"]]]
+            )
             osdeps.should_receive(:resolve_package).with("pkg1").never
             osdeps.should_receive(:resolve_package).with("pkg2").never
             assert_raises(MissingOSDep) { osdeps.resolve_os_packages(%w[pkg0 pkg1 pkg2]) }
 
             osdeps.should_receive(:resolve_package).with("pkg0").once.and_return(
-                [[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg0"]]])
+                [[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg0"]]]
+            )
             osdeps.should_receive(:resolve_package).with("pkg1").once.and_return(
                 [[osdeps.os_package_manager, FOUND_PACKAGES, ["pkg1"]],
-                 ["gem", FOUND_NONEXISTENT, ["gempkg1"]]])
+                 ["gem", FOUND_NONEXISTENT, ["gempkg1"]]]
+            )
             osdeps.should_receive(:resolve_package).with("pkg2").never
             assert_raises(MissingOSDep) { osdeps.resolve_os_packages(%w[pkg0 pkg1 pkg2]) }
         end
@@ -507,29 +523,38 @@ module Autoproj
         def test_os_from_os_release_returns_nil_if_the_os_release_file_is_not_found
             assert !OSPackageResolver.os_from_os_release("does_not_exist")
         end
+
         def test_os_from_os_release_handles_quoted_and_unquoted_fields
             names, versions = OSPackageResolver.os_from_os_release(
-                File.join(DATA_DIR, "os_release.with_missing_optional_fields"))
+                File.join(DATA_DIR, "os_release.with_missing_optional_fields")
+            )
             assert_equal ["name"], names
             assert_equal ["version_id"], versions
         end
+
         def test_os_from_os_release_handles_optional_fields
             names, versions = OSPackageResolver.os_from_os_release(
-                File.join(DATA_DIR, "os_release.with_missing_optional_fields"))
+                File.join(DATA_DIR, "os_release.with_missing_optional_fields")
+            )
             assert_equal ["name"], names
             assert_equal ["version_id"], versions
         end
+
         def test_os_from_os_release_parses_the_version_field
             _, versions = OSPackageResolver.os_from_os_release(
-                File.join(DATA_DIR, "os_release.with_complex_version_field"))
+                File.join(DATA_DIR, "os_release.with_complex_version_field")
+            )
             assert_equal %w[version_id version codename codename_bis], versions
         end
+
         def test_os_from_os_release_removes_duplicate_values
             names, versions = OSPackageResolver.os_from_os_release(
-                File.join(DATA_DIR, "os_release.with_duplicate_values"))
+                File.join(DATA_DIR, "os_release.with_duplicate_values")
+            )
             assert_equal ["id"], names
             assert_equal %w[version_id codename], versions
         end
+
         def test_os_from_lsb_returns_nil_if_lsb_release_is_not_found_in_path
             flexmock(Autobuild).should_receive(:find_in_path).with("lsb_release").and_return(nil)
             assert !OSPackageResolver.os_from_lsb
@@ -552,7 +577,7 @@ module Autoproj
                 osdeps1 = create_osdep(Hash["test" => ["osdep1"], "gem" => ["gem1"]], "bla/blo")
                 capture_warn { osdeps0.merge(osdeps1) }
                 assert_equal [["apt-dpkg", 0, ["osdep1"]], ["gem", 0, ["gem1"]]],
-                    osdeps0.resolve_package("pkg")
+                             osdeps0.resolve_package("pkg")
             end
 
             it "issues a warning if two definitions differ only by the operating system packages" do
@@ -627,11 +652,13 @@ osdeps definition for pkg, previously defined in bla/bla overridden by bla/blo:
 
         describe "#os_package_manager=" do
             attr_reader :resolver
+
             before do
                 @resolver = OSPackageResolver.new(
                     operating_system: [["test"], []],
                     package_managers: %w[os1 os2],
-                    os_package_manager: "os1")
+                    os_package_manager: "os1"
+                )
             end
 
             it "sets the package manager" do
@@ -651,6 +678,7 @@ osdeps definition for pkg, previously defined in bla/bla overridden by bla/blo:
 
         describe "#known_operating_system?" do
             attr_reader :resolver
+
             before do
                 @resolver = ws_create_os_package_resolver
                 flexmock(resolver)
@@ -659,27 +687,28 @@ osdeps definition for pkg, previously defined in bla/bla overridden by bla/blo:
                 assert resolver.known_operating_system?
             end
             it "returns false if the operating_system is empty" do
-                resolver.should_receive(:operating_system).
-                    and_return([[], []])
+                resolver.should_receive(:operating_system)
+                        .and_return([[], []])
                 refute resolver.known_operating_system?
             end
         end
 
         describe "#availability_of" do
             attr_reader :resolver
+
             before do
                 @resolver = ws_create_os_package_resolver
                 flexmock(resolver)
             end
             it "returns WRONG_OS if the OS is known but the package was resolved to empty" do
-                resolver.should_receive(:resolve_package).with(name = flexmock).
-                    and_return([])
+                resolver.should_receive(:resolve_package).with(name = flexmock)
+                        .and_return([])
                 assert_equal OSPackageResolver::WRONG_OS, resolver.availability_of(name)
             end
             it "returns UNKNOWN_OS if the OS is unknown and the package was resolved to empty" do
                 resolver.operating_system = [[], []]
-                resolver.should_receive(:resolve_package).with(name = flexmock).
-                    and_return([])
+                resolver.should_receive(:resolve_package).with(name = flexmock)
+                        .and_return([])
                 assert_equal OSPackageResolver::UNKNOWN_OS, resolver.availability_of(name)
             end
         end

@@ -8,8 +8,8 @@ module Autoproj
                 if options[:system_info]
                     os_names, os_versions = ws.os_package_resolver.operating_system
                     os_package_manager_names = OSPackageResolver::OS_PACKAGE_MANAGERS.values
-                    os_indep_managers = ws.os_package_installer.package_managers.
-                                        each_key.find_all do |name, manager|
+                    os_indep_managers = ws.os_package_installer.package_managers
+                                          .each_key.find_all do |name, manager|
                         !os_package_manager_names.include?(name)
                     end
                     puts "OS Names:    #{(os_names - ['default']).join(', ')}"
@@ -28,10 +28,11 @@ module Autoproj
                 ws.install_os_packages(
                     osdep_packages,
                     run_package_managers_without_packages: true,
-                    install_only: !update)
+                    install_only: !update
+                )
                 export_env_sh(shell_helpers: shell_helpers)
                 Main.run_post_command_hook(:update, ws, source_packages: [],
-                    osdep_packages: osdep_packages)
+                                                        osdep_packages: osdep_packages)
             end
         end
     end

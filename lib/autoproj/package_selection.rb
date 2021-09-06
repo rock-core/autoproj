@@ -103,7 +103,8 @@ module Autoproj
         end
 
         def each_package_name(&block)
-            return enum_for(__method__) if !block
+            return enum_for(__method__) unless block
+
             each_source_package_name(&block)
             each_osdep_package_name(&block)
         end

@@ -55,7 +55,7 @@ module Autoproj
             it "returns the set of source packages and their dependencies" do
                 @sel.select("pkg1", "pkg1")
                 assert_equal Set[@pkg1, @pkg2],
-                    @sel.all_selected_source_packages(ws.manifest).to_set
+                             @sel.all_selected_source_packages(ws.manifest).to_set
             end
 
             it "does not return osdeps" do
@@ -77,14 +77,14 @@ module Autoproj
             it "returns the set of osdep packages selected by the source packages" do
                 @sel.select("pkg1", "pkg1")
                 assert_equal %w[osdep1 osdep2],
-                    @sel.all_selected_osdep_packages(ws.manifest).to_a.sort
+                             @sel.all_selected_osdep_packages(ws.manifest).to_a.sort
             end
 
             it "adds any directly selected osdep package" do
                 @sel.select("pkg1", "pkg1")
                 @sel.select("osdep3", "osdep3", osdep: true)
                 assert_equal %w[osdep1 osdep2 osdep3],
-                    @sel.all_selected_osdep_packages(ws.manifest).to_a.sort
+                             @sel.all_selected_osdep_packages(ws.manifest).to_a.sort
             end
         end
     end

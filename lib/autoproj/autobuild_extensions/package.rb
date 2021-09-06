@@ -8,6 +8,7 @@ module Autoproj
             attr_reader :os_packages
 
             attr_writer :ws
+
             def ws
                 @ws ||= Autoproj.workspace
             end
@@ -46,9 +47,7 @@ module Autoproj
             # #add_tag
             def tags
                 result = @added_tags.dup
-                if description
-                    result |= description.tags.to_set
-                end
+                result |= description.tags.to_set if description
                 result
             end
 
@@ -104,9 +103,7 @@ module Autoproj
             end
 
             def depends_on(name)
-                if name.respond_to?(:name) # probably a Package object
-                    name = name.name
-                end
+                name = name.name if name.respond_to?(:name) # probably a Package object
 
                 pkg_autobuild, pkg_os = partition_package(name)
                 pkg_autobuild.each do |pkg|
@@ -120,10 +117,13 @@ module Autoproj
                 all_dependencies(set)
                 set.dup.each do |dep_pkg_name|
                     next if original_set.include?(dep_pkg_name)
-                    if dep_pkg = ws.manifest.find_autobuild_package(dep_pkg_name)
+
+                    if (dep_pkg = ws.manifest.find_autobuild_package(dep_pkg_name))
                         set.merge(dep_pkg.os_packages)
                     else
-                        raise ArgumentError, "#{dep_pkg_name}, which is listed as a dependency of #{name}, is not the name of a known package"
+                        raise ArgumentError,
+                              "#{dep_pkg_name}, which is listed as a dependency "\
+                              "of #{name}, is not the name of a known package"
                     end
                 end
                 set.merge(os_packages)
@@ -160,7 +160,8 @@ module Autoproj
             end
 
             def partition_package(pkg_name)
-                pkg_autobuild, pkg_osdeps = [], []
+                pkg_autobuild = []
+                pkg_osdeps = []
                 ws.manifest.resolve_package_name(pkg_name, include_unavailable: true).each do |type, dep_name|
                     if type == :osdeps
                         pkg_osdeps << dep_name
@@ -173,7 +174,8 @@ module Autoproj
             end
 
             def partition_optional_dependencies
-                packages, osdeps = [], []
+                packages = []
+                osdeps = []
                 optional_dependencies.each do |name|
                     pkg_autobuild, pkg_osdeps = partition_package(name)
                     packages.concat(pkg_autobuild)

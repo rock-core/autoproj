@@ -95,6 +95,7 @@ module Autoproj
         # information in +definitions+ originates. It is a mapping from the
         # package name to the osdeps file' full path
         attr_reader :sources
+
         # Controls whether the package resolver will prefer installing
         # OS-independent packages (such as e.g. Gems) over their OS-provided
         # equivalent (e.g. the packaged version of a gem)
@@ -407,7 +408,8 @@ module Autoproj
                 else
                     names, versions = user_os.split(":")
                     return normalize_os_representation(
-                        names.split(","), versions.split(","))
+                        names.split(","), versions.split(",")
+                    )
                 end
             end
 
@@ -538,18 +540,21 @@ module Autoproj
             result = []
             found, pkg = partition_osdep_entry(
                 name, dep_def, nil,
-                (package_managers - [os_package_manager]), os_names, os_versions)
+                (package_managers - [os_package_manager]), os_names, os_versions
+            )
             result << [os_package_manager, found, pkg] if found
 
             package_managers.each do |handler|
                 found, pkg = partition_osdep_entry(
-                    name, dep_def, [handler], [], os_names, os_versions)
+                    name, dep_def, [handler], [], os_names, os_versions
+                )
                 result << [handler, found, pkg] if found
             end
 
             # Recursive resolutions
             found, pkg = partition_osdep_entry(
-                name, dep_def, ["osdep"], [], os_names, os_versions)
+                name, dep_def, ["osdep"], [], os_names, os_versions
+            )
             if found
                 if resolve_recursive
                     pkg.each do |pkg_name|
@@ -645,12 +650,16 @@ module Autoproj
             Array(dep_def).each do |names, values|
                 if !values
                     entry_found, entry_nonexistent, entry_names =
-                        partition_osdep_raw_array_entry(names, osdep_name,
-                            handler_names, excluded, keys, additional_keys)
+                        partition_osdep_raw_array_entry(
+                            names, osdep_name,
+                            handler_names, excluded, keys, additional_keys
+                        )
                 else
                     entry_found, entry_nonexistent, entry_names =
-                        partition_osdep_map_entry(names, values, osdep_name,
-                            handler_names, excluded, keys, found_keys, additional_keys)
+                        partition_osdep_map_entry(
+                            names, values, osdep_name,
+                            handler_names, excluded, keys, found_keys, additional_keys
+                        )
                 end
                 found ||= entry_found
                 nonexistent ||= entry_nonexistent
@@ -700,8 +709,9 @@ module Autoproj
                     [false, false, []]
                 end
             elsif names.respond_to?(:to_hash)
-                rec_found, rec_result = partition_osdep_entry(osdep_name,
-                    names, handler_names, excluded, keys, *additional_keys)
+                rec_found, rec_result = partition_osdep_entry(
+                    osdep_name, names, handler_names, excluded, keys, *additional_keys
+                )
                 if rec_found == FOUND_NONEXISTENT
                     [false, true, rec_result]
                 elsif rec_found == FOUND_PACKAGES
@@ -721,15 +731,16 @@ module Autoproj
             result = [false, false, []]
 
             if handler_names
-                matching_handler = handler_names.
-                                   find do |k|
+                matching_handler = handler_names
+                                   .find do |k|
                     names.any? do |name_tag|
                         k == name_tag.downcase
                     end
                 end
                 if matching_handler
                     rec_found, rec_result = partition_osdep_entry(
-                        osdep_name, values, nil, excluded, keys, *additional_keys)
+                        osdep_name, values, nil, excluded, keys, *additional_keys
+                    )
                     if rec_found == FOUND_NONEXISTENT
                         result = [false, true, rec_result]
                     elsif rec_found == FOUND_PACKAGES
@@ -738,12 +749,13 @@ module Autoproj
                 end
             end
 
-            matching_name = keys.
-                            find { |k| names.any? { |name_tag| k == name_tag.downcase } }
+            matching_name = keys
+                            .find { |k| names.any? { |name_tag| k == name_tag.downcase } }
             return result unless matching_name
 
             rec_found, rec_result = partition_osdep_entry(
-                osdep_name, values, handler_names, excluded, *additional_keys)
+                osdep_name, values, handler_names, excluded, *additional_keys
+            )
             # We only consider the first highest-priority entry,
             # regardless of whether it has some packages for us or
             # not

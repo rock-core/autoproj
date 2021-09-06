@@ -16,7 +16,6 @@ module Autoproj
             EXPECTED_ROOT_ENTRIES = [".", "..", "autoproj_bootstrap",
                                      ".autoproj", "bootstrap.sh", ENV_FILENAME].to_set
 
-
             def check_root_dir_empty?
                 (ENV["AUTOPROJ_NONINTERACTIVE"] != "1") &&
                     (ENV["AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR"] != "1")
@@ -33,13 +32,11 @@ module Autoproj
                                  EXPECTED_ROOT_ENTRIES
                 return if curdir_entries.empty?
 
-                while true
+                loop do
                     print "The current directory is not empty, continue bootstrapping anyway ? [yes] "
                     STDOUT.flush
                     answer = STDIN.readline.chomp
-                    if answer == "no"
-                        raise Interrupt, "Interrupted by user"
-                    end
+                    raise Interrupt, "Interrupted by user" if answer == "no"
 
                     if answer == "" || answer == "yes"
                         # Set this environment variable since we might restart
@@ -62,17 +59,15 @@ module Autoproj
             # @param [Array<String>] reuse set of autoproj roots that are being reused
             # @raise ConfigError
             def validate_autoproj_current_root(reuse)
-                if current_root = ENV["AUTOPROJ_CURRENT_ROOT"]
-                    # Allow having a current root only if it is being reused
-                    if (current_root != ws.root_dir) && !reuse.include?(current_root)
-                        Autoproj.error "the env.sh from #{ENV['AUTOPROJ_CURRENT_ROOT']} seem to already be sourced"
-                        Autoproj.error "start a new shell and try to bootstrap again"
-                        Autoproj.error ""
-                        Autoproj.error "you are allowed to boostrap from another autoproj installation"
-                        Autoproj.error "only if you reuse it with the --reuse flag"
-                        raise Autobuild::Exception, ""
-                    end
-                end
+                return unless (current_root = ENV["AUTOPROJ_CURRENT_ROOT"])
+                return if (current_root == ws.root_dir) || reuse.include?(current_root)
+
+                Autoproj.error "the env.sh from #{ENV['AUTOPROJ_CURRENT_ROOT']} seem to already be sourced"
+                Autoproj.error "start a new shell and try to bootstrap again"
+                Autoproj.error ""
+                Autoproj.error "you are allowed to boostrap from another autoproj installation"
+                Autoproj.error "only if you reuse it with the --reuse flag"
+                raise Autobuild::Exception, ""
             end
 
             MAIN_CONFIGURATION_TEMPLATE = File.expand_path(File.join("..", "..", "..", "samples", "autoproj"), File.dirname(__FILE__))
@@ -122,9 +117,11 @@ module Autoproj
                 if args.first =~ /^(\w+)=/
                     # First argument is an option string, we are simply setting the
                     # options without changing the type/url
-                    type, url = vcs.type, vcs.url
+                    type = vcs.type
+                    url = vcs.url
                 else
-                    type, url = args.shift, args.shift
+                    type = args.shift
+                    url = args.shift
                 end
                 options = args
 
@@ -145,10 +142,10 @@ module Autoproj
                 else
                     # We will have to delete the current autoproj directory. Ask the user.
                     opt = Autoproj::BuildOption.new("delete current config", "boolean",
-                                Hash[:default => "false",
-                                    :doc => "delete the current configuration ? (required to switch)"], nil)
+                                                    Hash[default: "false",
+                                                         doc: "delete the current configuration ? (required to switch)"], nil)
 
-                    return if !opt.ask(nil)
+                    return unless opt.ask(nil)
 
                     do_switch_config(true, type, url, *options)
                     ws.config.save
@@ -163,9 +160,7 @@ module Autoproj
                 vcs_def[:url]  = VCSDefinition.to_absolute_url(url, ws.root_dir)
                 options.each do |opt|
                     name, value = opt.split("=")
-                    if value =~ /^\d+$/
-                        value = Integer(value)
-                    end
+                    value = Integer(value) if value =~ /^\d+$/
 
                     vcs_def[name] = value
                 end
@@ -193,7 +188,8 @@ module Autoproj
                 ops.update_configuration_repository(
                     vcs,
                     "autoproj main configuration",
-                    config_dir)
+                    config_dir
+                )
 
                 # If the new tree has a configuration file, load it but override
                 # the already known parameters once it is loaded
@@ -226,9 +222,7 @@ module Autoproj
                 end
                 raise
             ensure
-                if backup_name
-                    FileUtils.rm_rf backup_name
-                end
+                FileUtils.rm_rf backup_name if backup_name
             end
         end
     end

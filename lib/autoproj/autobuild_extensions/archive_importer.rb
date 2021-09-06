@@ -9,8 +9,8 @@ module Autoproj
             #   manifest
             def pick_from_autoproj_root(package, installation_manifest)
                 # Get the cachefile w.r.t. the autoproj root
-                cachefile = Pathname.new(self.cachefile).
-                            relative_path_from(Pathname.new(ws.root_dir)).to_s
+                cachefile = Pathname.new(self.cachefile)
+                                    .relative_path_from(Pathname.new(ws.root_dir)).to_s
 
                 # The cachefile in the other autoproj installation
                 other_cachefile = File.join(installation_manifest.path, cachefile)

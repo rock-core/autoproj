@@ -20,8 +20,8 @@ module Autoproj
                 env = Ops.load_cached_env(@root_dir)
                 return unless env
 
-                Autobuild::Environment.
-                    environment_from_export(env, ENV)
+                Autobuild::Environment
+                    .environment_from_export(env, ENV)
             end
 
             def try_loading_installation_manifest

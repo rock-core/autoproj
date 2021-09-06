@@ -14,20 +14,20 @@ module Autoproj
                 if File.exist?(File.join(root_dir, "autoproj", "manifest"))
                     raise CLIException, "this installation is already bootstrapped. Remove the autoproj directory if it is not the case"
                 end
+
                 @root_dir = root_dir
             end
 
             def validate_options(args, options)
                 args, options = Base.validate_options(args, options)
-                if path = options[:reuse]
-                    if path == "reuse"
-                        path = ENV["AUTOPROJ_CURRENT_ROOT"]
-                    end
+                if (path = options[:reuse])
+                    path = ENV["AUTOPROJ_CURRENT_ROOT"] if path == "reuse"
 
                     path = File.expand_path(path)
                     if !File.directory?(path) || !File.directory?(File.join(path, "autoproj"))
                         raise CLIInvalidArguments, "#{path} does not look like an autoproj installation"
                     end
+
                     options[:reuse] = [path]
                 end
                 [args, options]
@@ -46,8 +46,8 @@ module Autoproj
 
                 begin
                     switcher.bootstrap(buildconf_info,
-                        check_root_dir_empty: check_root_dir_empty,
-                        **options)
+                                       check_root_dir_empty: check_root_dir_empty,
+                                       **options)
                     if seed_config
                         FileUtils.cp seed_config, File.join(ws.config_dir, "config.yml")
                     end

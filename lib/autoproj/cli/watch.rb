@@ -42,10 +42,10 @@ module Autoproj
                 @source_packages_dirs = []
                 @package_sets = []
 
-                @source_packages_dirs = installation_manifest.each_package.
-                                        map(&:srcdir)
-                @package_sets = installation_manifest.each_package_set.
-                                map(&:raw_local_dir)
+                @source_packages_dirs = installation_manifest.each_package
+                                                             .map(&:srcdir)
+                @package_sets = installation_manifest.each_package_set
+                                                     .map(&:raw_local_dir)
             end
 
             def callback
@@ -65,10 +65,9 @@ module Autoproj
                     file_name = e.absolute_name[strip_dir_range]
                     included = included_paths.empty? ||
                                included_paths.any? { |rx| rx === file_name }
-                    if included
-                        included = !excluded_paths.any? { |rx| rx === file_name }
-                    end
-                    next if !included
+                    included = !excluded_paths.any? { |rx| rx === file_name } if included
+                    next unless included
+
                     Autobuild.message "#{e.absolute_name} changed" if show_events?
                     callback
                 end
@@ -77,12 +76,15 @@ module Autoproj
             def create_src_pkg_watchers
                 @source_packages_dirs.each do |pkg_srcdir|
                     next unless File.exist? pkg_srcdir
+
                     create_dir_watcher(pkg_srcdir, included_paths: ["manifest.xml", "package.xml"])
 
                     manifest_file = File.join(pkg_srcdir, "manifest.xml")
                     create_file_watcher(manifest_file) if File.exist? manifest_file
                     ros_manifest_file = File.join(pkg_srcdir, "package.xml")
-                    create_file_watcher(ros_manifest_file) if File.exist? ros_manifest_file
+                    if File.exist? ros_manifest_file
+                        create_file_watcher(ros_manifest_file)
+                    end
                 end
             end
 
@@ -90,12 +92,12 @@ module Autoproj
                 create_file_watcher(ws.config.path)
                 create_src_pkg_watchers
                 create_dir_watcher(ws.config_dir,
-                    excluded_paths: [/(^|#{File::SEPARATOR})\./],
-                    inotify_flags: [:recursive])
+                                   excluded_paths: [/(^|#{File::SEPARATOR})\./],
+                                   inotify_flags: [:recursive])
                 FileUtils.mkdir_p ws.remotes_dir
                 create_dir_watcher(ws.remotes_dir,
-                    excluded_paths: [/(^|#{File::SEPARATOR})\./],
-                    inotify_flags: [:recursive])
+                                   excluded_paths: [/(^|#{File::SEPARATOR})\./],
+                                   inotify_flags: [:recursive])
             end
 
             def cleanup_notifier
@@ -118,12 +120,8 @@ module Autoproj
             end
 
             def cleanup
-                if @marker_io
-                    Ops.watch_cleanup_marker(@marker_io)
-                end
-                if @notifier
-                    cleanup_notifier
-                end
+                Ops.watch_cleanup_marker(@marker_io) if @marker_io
+                cleanup_notifier if @notifier
             end
 
             def restart

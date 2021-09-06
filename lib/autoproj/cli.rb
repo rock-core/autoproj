@@ -5,10 +5,13 @@ module Autoproj
                 true
             end
         end
+
         class CLIInvalidArguments < CLIException
         end
+
         class CLIAmbiguousArguments < CLIException
         end
+
         class CLIInvalidSelection < CLIException
         end
 

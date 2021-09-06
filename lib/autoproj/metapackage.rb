@@ -43,9 +43,7 @@ module Autoproj
 
         # Remove a package from this metapackage
         def remove(pkg)
-            if pkg.respond_to?(:name)
-                pkg = pkg.name
-            end
+            pkg = pkg.name if pkg.respond_to?(:name)
             packages_by_name.delete(pkg)
         end
 
@@ -60,9 +58,7 @@ module Autoproj
         #
         # @param [String,#name] pkg the package or package name
         def include?(pkg)
-            if !pkg.respond_to?(:to_str)
-                pkg = pkg.name
-            end
+            pkg = pkg.name unless pkg.respond_to?(:to_str)
             packages_by_name.has_key?(pkg)
         end
 

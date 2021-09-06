@@ -77,7 +77,6 @@ module Autoproj
                 build_packages(all_enabled_packages)
             end
 
-
             # Builds the listed packages
             #
             # Only build steps that are actually needed will be performed. See

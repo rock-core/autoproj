@@ -8,7 +8,7 @@ module Autoproj
         class Which
             def initialize
                 @root_dir = Autoproj.find_workspace_dir
-                if !@root_dir
+                unless @root_dir
                     require "autoproj/workspace"
                     # Will do all sorts of error reporting,
                     # or may be able to resolve
@@ -18,18 +18,16 @@ module Autoproj
 
             def load_cached_env
                 env = Ops.load_cached_env(@root_dir)
-                return if !env
+                return unless env
 
-                Autobuild::Environment.
-                    environment_from_export(env, ENV)
+                Autobuild::Environment
+                    .environment_from_export(env, ENV)
             end
 
             def run(cmd, use_cached_env: Ops.watch_running?(@root_dir))
-                if use_cached_env
-                    env = load_cached_env
-                end
+                env = load_cached_env if use_cached_env
 
-                if !env
+                unless env
                     require "autoproj"
                     require "autoproj/cli/inspection_tool"
                     ws = Workspace.from_dir(@root_dir)

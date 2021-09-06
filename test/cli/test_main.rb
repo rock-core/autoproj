@@ -6,6 +6,7 @@ module Autoproj
     module CLI
         describe Main do
             attr_reader :workspace_dir
+
             before do
                 @workspace_dir = create_bootstrap.root_dir
             end
@@ -19,21 +20,21 @@ module Autoproj
                 end
 
                 def mock_finalize_setup(packages, config_selected)
-                    flexmock(Versions).new_instances.should_receive(:finalize_setup).
-                        and_return([packages, flexmock, config_selected])
+                    flexmock(Versions).new_instances.should_receive(:finalize_setup)
+                                      .and_return([packages, flexmock, config_selected])
                 end
 
                 def mock_should_snapshot_package_sets
-                    flexmock(Ops::Snapshot).new_instances.
-                        should_receive(:snapshot_package_sets).
-                        and_return([])
+                    flexmock(Ops::Snapshot).new_instances
+                                           .should_receive(:snapshot_package_sets)
+                                           .and_return([])
                 end
 
                 def mock_should_snapshot_packages(packages)
-                    flexmock(Ops::Snapshot).new_instances.
-                        should_receive(:snapshot_packages).
-                        with(["pkg"], nil, fingerprint: false, only_local: false).
-                        and_return([])
+                    flexmock(Ops::Snapshot).new_instances
+                                           .should_receive(:snapshot_packages)
+                                           .with(["pkg"], nil, fingerprint: false, only_local: false)
+                                           .and_return([])
                 end
 
                 def run_command(*args)

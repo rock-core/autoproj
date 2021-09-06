@@ -19,7 +19,7 @@ module Autoproj
                     write_file "subdir/test", ""
                     chmod 0755, "subdir/test"
                     append_to_file "autoproj/init.rb",
-                        "Autoproj.env.add_path 'PATH', '#{expand_path('subdir')}'"
+                                   "Autoproj.env.add_path 'PATH', '#{expand_path('subdir')}'"
 
                     cmd = run_command_and_stop "#{@autoproj_bin} which test"
                     assert_equal expand_path("subdir/test"), cmd.stdout.chomp

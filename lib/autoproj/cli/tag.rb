@@ -19,13 +19,15 @@ module Autoproj
 
                 versions_file = File.join(
                     Workspace::OVERRIDES_DIR,
-                    Versions::DEFAULT_VERSIONS_FILE_BASENAME)
+                    Versions::DEFAULT_VERSIONS_FILE_BASENAME
+                )
 
                 if tag_name.nil?
                     importer = pkg.importer
                     all_tags = importer.run_git_bare(pkg, "tag")
                     all_tags.sort.each do |tag|
                         next if tag =~ /\^/
+
                         begin importer.show(pkg, "refs/tags/#{tag}", versions_file)
                               puts tag
                         rescue Autobuild::PackageException

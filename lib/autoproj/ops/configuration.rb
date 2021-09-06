@@ -59,26 +59,25 @@ module Autoproj
                 if update_from
                     # Define a package in the installation manifest that points to
                     # the desired folder in other_root
-                    relative_path = Pathname.new(into).
-                                    relative_path_from(Pathname.new(ws.root_dir)).to_s
+                    relative_path = Pathname.new(into)
+                                            .relative_path_from(Pathname.new(ws.root_dir)).to_s
                     other_dir = File.join(update_from.path, relative_path)
                     if File.directory?(other_dir)
                         update_from.packages.unshift(
-                            InstallationManifest::Package.new(fake_package.name, other_dir, File.join(other_dir, "install")))
+                            InstallationManifest::Package.new(fake_package.name, other_dir, File.join(other_dir, "install"))
+                        )
                     end
 
                     # Then move the importer there if possible
                     if fake_package.importer.respond_to?(:pick_from_autoproj_root)
-                        if !fake_package.importer.pick_from_autoproj_root(fake_package, update_from)
+                        unless fake_package.importer.pick_from_autoproj_root(fake_package, update_from)
                             fake_package.update = false
                         end
                     else
                         fake_package.update = false
                     end
                 end
-                if retry_count
-                    fake_package.importer.retry_count = retry_count
-                end
+                fake_package.importer.retry_count = retry_count if retry_count
                 fake_package.import(only_local: only_local, reset: reset)
             rescue Autobuild::ConfigException => e
                 raise ConfigError.new, "cannot import #{name}: #{e.message}", e.backtrace
@@ -89,9 +88,7 @@ module Autoproj
             # @return [Boolean] true if something got updated or checked out,
             #   and false otherwise
             def update_main_configuration(keep_going: false, checkout_only: !Autobuild.do_update, only_local: false, reset: false, retry_count: nil)
-                if checkout_only && File.exist?(ws.config_dir)
-                    return []
-                end
+                return [] if checkout_only && File.exist?(ws.config_dir)
 
                 update_configuration_repository(
                     ws.manifest.vcs, "autoproj main configuration", ws.config_dir,
@@ -120,9 +117,7 @@ module Autoproj
                 retry_count: nil)
 
                 raw_local_dir = PackageSet.raw_local_dir_of(ws, vcs)
-                if checkout_only && File.exist?(raw_local_dir)
-                    return
-                end
+                return if checkout_only && File.exist?(raw_local_dir)
 
                 # name_of does minimal validation of source.yml, so do it here
                 # even though we don't really need it
@@ -132,7 +127,8 @@ module Autoproj
                     vcs, name, raw_local_dir,
                     only_local: only_local,
                     reset: reset,
-                    retry_count: retry_count)
+                    retry_count: retry_count
+                )
             end
 
             # Create the user-visible directory for a remote package set
@@ -206,10 +202,10 @@ module Autoproj
                 required_remotes_dirs = Array.new
 
                 queue = queue_auto_imports_if_needed(Array.new, root_pkg_set, root_pkg_set)
-                while !queue.empty?
+                until queue.empty?
                     vcs, import_options, imported_from = queue.shift
                     repository_id = vcs.overrides_key
-                    if already_processed = by_repository_id[repository_id]
+                    if (already_processed = by_repository_id[repository_id])
                         already_processed_vcs, already_processed_from, pkg_set = *already_processed
                         if (already_processed_from != root_pkg_set) && (already_processed_vcs != vcs)
                             Autoproj.warn "already loaded the package set from #{already_processed_vcs} from #{already_processed_from.name}, this overrides different settings (#{vcs}) found in #{imported_from.name}"
@@ -225,20 +221,19 @@ module Autoproj
 
                     # Make sure the package set has been already checked out to
                     # retrieve the actual name of the package set
-                    if !vcs.local?
+                    unless vcs.local?
                         failed = handle_keep_going(keep_going, vcs, failures) do
                             update_remote_package_set(
                                 vcs, checkout_only: checkout_only,
-                                only_local: only_local, reset: reset,
-                                retry_count: retry_count)
+                                     only_local: only_local, reset: reset,
+                                     retry_count: retry_count
+                            )
                         end
                         raw_local_dir = PackageSet.raw_local_dir_of(ws, vcs)
 
                         # We really can't continue if the VCS was being checked out
                         # and that failed
-                        if failed && !File.directory?(raw_local_dir)
-                            raise failures.last
-                        end
+                        raise failures.last if failed && !File.directory?(raw_local_dir)
 
                         required_remotes_dirs << raw_local_dir
                     end
@@ -249,7 +244,7 @@ module Autoproj
                     Autoproj.debug "Trying to load package_set: #{name} from definition #{repository_id}"
                     Autoproj.debug "Already loaded package_sets are: #{required_user_dirs}"
 
-                    if already_loaded = by_name[name]
+                    if (already_loaded = by_name[name])
                         already_loaded_pkg_set, already_loaded_vcs = *already_loaded
                         if already_loaded_vcs != vcs
                             if imported_from
@@ -271,9 +266,7 @@ module Autoproj
                         next
                     end
 
-                    if !vcs.local?
-                        create_remote_set_user_dir(vcs)
-                    end
+                    create_remote_set_user_dir(vcs) unless vcs.local?
                     pkg_set = load_package_set(vcs, import_options, imported_from)
                     by_repository_id[repository_id][2] = pkg_set
                     package_sets << pkg_set
@@ -330,11 +323,11 @@ module Autoproj
                 #    the dependencies
                 topological = Array.new
                 queue = (package_sets.to_a + [root_pkg_set]).uniq
-                while !queue.empty?
+                until queue.empty?
                     last_size = queue.size
                     pending = queue.dup
                     queue = Array.new
-                    while !pending.empty?
+                    until pending.empty?
                         pkg_set = pending.shift
                         if pkg_set.imports.any? { |imported_set| !topological.include?(imported_set) }
                             queue.push(pkg_set)
@@ -348,9 +341,9 @@ module Autoproj
                 end
 
                 result = root_pkg_set.imports.to_a.dup
-                to_insert = topological.dup.
-                            find_all { |p| !result.include?(p) }
-                while !to_insert.empty?
+                to_insert = topological.dup
+                                       .find_all { |p| !result.include?(p) }
+                until to_insert.empty?
                     pkg_set = to_insert.shift
                     dependencies = pkg_set.imports.dup
                     if dependencies.empty?
@@ -370,6 +363,7 @@ module Autoproj
                 if result.last != root_pkg_set
                     raise InternalError, "failed to sort the package sets: the root package set should be last, but is not"
                 end
+
                 result
             end
 
@@ -387,11 +381,12 @@ module Autoproj
                     keep_going: keep_going,
                     reset: reset,
                     retry_count: retry_count,
-                    mainline: mainline)
+                    mainline: mainline
+                )
             end
 
             def report_import_failure(what, reason)
-                if !reason.kind_of?(Interrupt)
+                unless reason.kind_of?(Interrupt)
                     Autoproj.message "import of #{what} failed", :red
                     Autoproj.message reason.to_s, :red
                 end
@@ -427,7 +422,8 @@ module Autoproj
                         checkout_only: checkout_only,
                         only_local: only_local,
                         reset: reset,
-                        retry_count: retry_count)
+                        retry_count: retry_count
+                    )
 
                     main_configuration_failure.each do |e|
                         report_import_failure("main configuration", e)
@@ -446,7 +442,8 @@ module Autoproj
                     checkout_only: checkout_only,
                     keep_going: keep_going,
                     reset: reset,
-                    retry_count: retry_count)
+                    retry_count: retry_count
+                )
 
                 load_package_set_information(mainline: mainline)
 
@@ -482,9 +479,7 @@ module Autoproj
 
                 # Now, load the package's importer configurations (from the various
                 # source.yml files)
-                if mainline.respond_to?(:to_str)
-                    mainline = manifest.package_set(mainline)
-                end
+                mainline = manifest.package_set(mainline) if mainline.respond_to?(:to_str)
                 manifest.load_importers(mainline: mainline)
 
                 auto_add_packages_from_layout
@@ -516,13 +511,20 @@ module Autoproj
                 explicit.each do |pkg_or_set, layout_level|
                     next if manifest.find_autobuild_package(pkg_or_set)
                     next if manifest.has_package_set?(pkg_or_set)
-                    full_path = File.expand_path(File.join(ws.source_dir, layout_level, pkg_or_set))
-                    next if !File.directory?(full_path)
 
-                    if handler = auto_add_package(pkg_or_set, full_path)
-                        Autoproj.message "  auto-added #{pkg_or_set} #{"in #{layout_level} " if layout_level != '/'}using the #{handler.gsub(/_package/, '')} package handler"
+                    full_path = File.expand_path(
+                        File.join(ws.source_dir, layout_level, pkg_or_set)
+                    )
+                    next unless File.directory?(full_path)
+
+                    if (handler = auto_add_package(pkg_or_set, full_path))
+                        handler_name = handler.gsub(/_package/, "")
+                        layout_level_msg = "in #{layout_level} " if layout_level != "/"
+                        Autoproj.message "  auto-added #{pkg_or_set} #{layout_level_msg}"\
+                                         "using the #{handler_name} package handler"
                     else
-                        Autoproj.warn "cannot auto-add #{pkg_or_set}: unknown package type"
+                        Autoproj.warn "cannot auto-add #{pkg_or_set}: "\
+                                      "unknown package type"
                     end
                 end
             end
@@ -579,7 +581,8 @@ module Autoproj
                 ws.manifest.each_package_set do |pkg_set|
                     pkg_set.each_osdeps_file do |file|
                         file_osdeps = pkg_set.load_osdeps(
-                            file, operating_system: ws.operating_system)
+                            file, operating_system: ws.operating_system
+                        )
                         ws.os_package_resolver.merge(file_osdeps)
                     end
                 end
@@ -612,7 +615,8 @@ module Autoproj
                     checkout_only: checkout_only,
                     keep_going: keep_going,
                     reset: reset,
-                    retry_count: retry_count)
+                    retry_count: retry_count
+                )
                 root_pkg_set.imports.each do |pkg_set|
                     pkg_set.explicit = true
                 end

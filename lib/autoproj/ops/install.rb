@@ -87,17 +87,14 @@ module Autoproj
                 @ruby_executable = config["ruby_executable"]
                 @local = false
 
-                unless @gems_install_path
-                    install_gems_in_gem_user_dir
-                end
+                install_gems_in_gem_user_dir unless @gems_install_path
                 env["GEM_HOME"] = [gems_gem_home]
                 env["GEM_PATH"] = [gems_gem_home]
             end
 
             def env_for_child(env = self.env)
                 env.inject(Hash.new) do |h, (k, v)|
-                    h[k] = if v && !v.empty? then v.join(File::PATH_SEPARATOR)
-                           end
+                    h[k] = (v.join(File::PATH_SEPARATOR) if v && !v.empty?)
                     h
                 end
             end
@@ -113,8 +110,8 @@ module Autoproj
             end
 
             def self.sanitize_env(value)
-                value.split(File::PATH_SEPARATOR).
-                    find_all { |p| !in_workspace?(p) }
+                value.split(File::PATH_SEPARATOR)
+                     .find_all { |p| !in_workspace?(p) }
             end
 
             def self.in_workspace?(base_dir)
@@ -123,6 +120,7 @@ module Autoproj
                     if path.join(".autoproj").exist? || path.join("autoproj").exist?
                         return true
                     end
+
                     path = path.parent
                 end
                 false
@@ -172,8 +170,8 @@ module Autoproj
             #
             # This is also the suffix used by bundler to install gems
             def gem_path_suffix
-                @gem_path_suffix ||= Pathname.new(Gem.user_dir).
-                                     relative_path_from(Pathname.new(dot_gem_dir)).to_s
+                @gem_path_suffix ||= Pathname.new(Gem.user_dir)
+                                             .relative_path_from(Pathname.new(dot_gem_dir)).to_s
             end
 
             # The path into which the workspace's gems should be installed
@@ -183,6 +181,7 @@ module Autoproj
             #
             # @return [String]
             attr_accessor :gems_install_path
+
             # The GEM_HOME under which the workspace's gems should be installed
             #
             # @return [String]
@@ -206,9 +205,10 @@ module Autoproj
             # Install autoproj in Gem's default user dir
             def install_gems_in_gem_user_dir
                 xdg_default_gem_path = xdg_var("XDG_DATA_HOME",
-                    File.join(Dir.home, ".local", "share", "autoproj", "gems"))
+                                               File.join(Dir.home, ".local", "share", "autoproj", "gems"))
                 default_gem_path = File.join(
-                    Dir.home, ".autoproj", "gems")
+                    Dir.home, ".autoproj", "gems"
+                )
                 @gems_install_path =
                     if File.directory?(xdg_default_gem_path)
                         xdg_default_gem_path
@@ -225,6 +225,7 @@ module Autoproj
             def prefer_indep_over_os_packages?
                 @prefer_indep_over_os_packages
             end
+
             # (see #prefer_index_over_os_packages?)
             def prefer_indep_over_os_packages=(flag)
                 @prefer_indep_over_os_packages = !!flag
@@ -235,9 +236,7 @@ module Autoproj
                 ruby_bindir = RbConfig::CONFIG["bindir"]
 
                 candidates = ["gem"]
-                if ruby_bin =~ /^ruby(.+)$/
-                    candidates.unshift "gem#{$1}"
-                end
+                candidates.unshift "gem#{$1}" if ruby_bin =~ /^ruby(.+)$/
 
                 candidates.each do |gem_name|
                     if File.file?(gem_full_path = File.join(ruby_bindir, gem_name))
@@ -293,16 +292,14 @@ module Autoproj
                     end
                     opt.on "--version=VERSION_CONSTRAINT", String, "use the provided "\
                         "string as a version constraint for autoproj" do |version|
-                        if @gemfile
-                            raise "cannot give both --version and --gemfile"
-                        end
+                        raise "cannot give both --version and --gemfile" if @gemfile
+
                         @gemfile = default_gemfile_contents(version)
                     end
                     opt.on "--gemfile=PATH", String, "use the given Gemfile to install "\
                         "autoproj instead of the default" do |path|
-                        if @gemfile
-                            raise "cannot give both --version and --gemfile"
-                        end
+                        raise "cannot give both --version and --gemfile" if @gemfile
+
                         @gemfile = File.read(path)
                     end
                     opt.on "--no-seed-config",
@@ -389,9 +386,7 @@ module Autoproj
                 local = ["--local"] if local?
 
                 redirection = Hash.new
-                if silent
-                    redirection = Hash[out: :close]
-                end
+                redirection = Hash[out: :close] if silent
 
                 version_args = []
                 version_args << "-v" << version if version
@@ -402,13 +397,14 @@ module Autoproj
                 result = system(
                     env_for_child(env),
                     Gem.ruby, gem_program, "install",
-                        "--env-shebang", "--no-document", "--no-format-executable",
-                        "--clear-sources", "--source", gem_source,
-                        "--no-user-install", "--install-dir", gems_gem_home,
-                        *local, "--bindir=#{File.join(gems_gem_home, 'bin')}",
-                        "bundler", *version_args, **redirection)
+                    "--env-shebang", "--no-document", "--no-format-executable",
+                    "--clear-sources", "--source", gem_source,
+                    "--no-user-install", "--install-dir", gems_gem_home,
+                    *local, "--bindir=#{File.join(gems_gem_home, 'bin')}",
+                    "bundler", *version_args, **redirection
+                )
 
-                if !result
+                unless result
                     STDERR.puts "FATAL: failed to install bundler in #{gems_gem_home}"
                     nil
                 end
@@ -426,9 +422,7 @@ module Autoproj
                 # Force bundler to update. If the user does not want this, let
                 # him specify a Gemfile with tighter version constraints
                 lockfile = File.join(dot_autoproj, "Gemfile.lock")
-                if File.exist?(lockfile)
-                    FileUtils.rm lockfile
-                end
+                FileUtils.rm lockfile if File.exist?(lockfile)
 
                 clean_env = env_for_child.dup
 
@@ -455,7 +449,7 @@ module Autoproj
                 end
             ensure
                 self.class.rewrite_shims(shims_path, ruby_executable,
-                    root_dir, autoproj_gemfile_path, gems_gem_home)
+                                         root_dir, autoproj_gemfile_path, gems_gem_home)
             end
 
             EXCLUDED_FROM_SHIMS = %w[rake thor].freeze
@@ -486,10 +480,10 @@ module Autoproj
                     File.open(bin_shim, "w") do |io|
                         if bin_name == "bundler" || bin_name == "bundle"
                             io.puts shim_bundler(bin_script_lines, ruby_executable,
-                                autoproj_gemfile_path, gems_gem_home)
+                                                 autoproj_gemfile_path, gems_gem_home)
                         else
                             io.puts shim_script(bin_script_lines, ruby_executable, root_dir,
-                                autoproj_gemfile_path, gems_gem_home)
+                                                autoproj_gemfile_path, gems_gem_home)
                         end
                     end
                     FileUtils.chmod 0755, bin_shim
@@ -542,7 +536,7 @@ load Gem.bin_path('bundler', 'bundler')"
                 end
                 load_line = script_lines.grep(/load Gem.bin_path/).first
                 return shim_script_old(ruby_executable, root_dir,
-                    autoproj_gemfile_path, gems_gem_home, load_line) \
+                                       autoproj_gemfile_path, gems_gem_home, load_line) \
                     unless new_style
 
                 script_lines.insert(1, <<-AUTOPROJ_PREAMBLE)
@@ -630,15 +624,12 @@ require 'bundler/setup'
 
             ENV_BUNDLE_GEMFILE_RX = /^(\s*ENV\[['"]BUNDLE_GEMFILE['"]\]\s*)(?:\|\|)?=/
 
-
             def find_in_clean_path(command, *additional_paths)
                 clean_path = env_for_child["PATH"].split(File::PATH_SEPARATOR) +
                              additional_paths
                 clean_path.each do |p|
                     full_path = File.join(p, command)
-                    if File.file?(full_path)
-                        return full_path
-                    end
+                    return full_path if File.file?(full_path)
                 end
                 nil
             end
@@ -693,7 +684,8 @@ require 'bundler/setup'
                     ruby_executable,
                     root_dir,
                     autoproj_gemfile_path,
-                    gems_gem_home)
+                    gems_gem_home
+                )
                 env["PATH"].unshift File.join(dot_autoproj, "bin")
                 save_gemfile
 
@@ -715,7 +707,7 @@ require 'bundler/setup'
                 ruby = RbConfig::CONFIG["RUBY_INSTALL_NAME"]
                 ruby_bindir = RbConfig::CONFIG["bindir"]
                 ruby_executable = File.join(ruby_bindir, ruby)
-                if current = config["ruby_executable"] # When upgrading or reinstalling
+                if (current = config["ruby_executable"]) # When upgrading or reinstalling
                     if current != ruby_executable
                         raise "this workspace has already been initialized using "\
                         "#{current}, you cannot run autoproj install with "\
@@ -727,7 +719,7 @@ require 'bundler/setup'
                 end
 
                 @config = config
-                %w{gems_install_path prefer_indep_over_os_packages}.each do |flag|
+                %w[gems_install_path prefer_indep_over_os_packages].each do |flag|
                     instance_variable_set "@#{flag}", config.fetch(flag, false)
                 end
             end
@@ -744,7 +736,7 @@ require 'bundler/setup'
 
             def run_autoproj(*args)
                 system env_for_child.merge("BUNDLE_GEMFILE" => autoproj_gemfile_path),
-                    Gem.ruby, autoproj_path, *args, *@autoproj_options
+                       Gem.ruby, autoproj_path, *args, *@autoproj_options
             end
 
             def v1_workspace?
@@ -768,7 +760,7 @@ require 'bundler/setup'
                 clean_env = env_for_child
                 stage2_vars = clean_env.map { |k, v| "#{k}=#{v}" }
                 puts "starting the newly installed autoproj for stage2 install"
-                if !run_autoproj("install-stage2", root_dir, *stage2_vars, *@autoproj_options)
+                unless run_autoproj("install-stage2", root_dir, *stage2_vars, *@autoproj_options)
                     raise "failed to execute autoproj install-stage2"
                 end
             end
@@ -778,7 +770,7 @@ require 'bundler/setup'
                 puts "saving temporary env.sh and .autoproj/env.sh"
                 save_env_sh(*vars)
                 puts "running 'autoproj envsh' to generate a proper env.sh"
-                if !system(Gem.ruby, autoproj_path, "envsh", *@autoproj_options)
+                unless system(Gem.ruby, autoproj_path, "envsh", *@autoproj_options)
                     STDERR.puts "failed to run autoproj envsh on the newly installed "\
                         "autoproj (#{autoproj_path})"
                     exit 1
@@ -786,7 +778,7 @@ require 'bundler/setup'
                 # This is really needed on an existing install to install the
                 # gems that were present in the v1 layout
                 puts "running 'autoproj osdeps' to re-install missing gems"
-                if !system(Gem.ruby, autoproj_path, "osdeps", *@autoproj_options)
+                unless system(Gem.ruby, autoproj_path, "osdeps", *@autoproj_options)
                     STDERR.puts "failed to run autoproj osdeps on the newly installed "\
                         "autoproj (#{autoproj_path})"
                     exit 1

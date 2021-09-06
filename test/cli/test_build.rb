@@ -6,6 +6,7 @@ module Autoproj
     module CLI
         describe Build do
             attr_reader :cli
+
             before do
                 ws_create
                 @cli = Build.new(ws)
@@ -19,8 +20,8 @@ module Autoproj
             describe "the main CLI" do
                 describe "-n" do
                     it "turns dependencies off" do
-                        flexmock(Update).new_instances.
-                            should_receive(:run).with([], hsh(deps: false)).once
+                        flexmock(Update).new_instances
+                                        .should_receive(:run).with([], hsh(deps: false)).once
                         in_ws do
                             Main.start(["build", "-n", "--silent"])
                         end
@@ -50,10 +51,10 @@ module Autoproj
 
             describe "#validate_options" do
                 it "normalizes the selection" do
-                    flexmock(cli).should_receive(:normalize_command_line_package_selection).
-                        with(selection = flexmock(:empty? => false)).
-                        and_return([normalized_selection = flexmock(:empty? => false),
-                                    false])
+                    flexmock(cli).should_receive(:normalize_command_line_package_selection)
+                                 .with(selection = flexmock(empty?: false))
+                                 .and_return([normalized_selection = flexmock(empty?: false),
+                                              false])
 
                     selection, _options = cli.validate_options(selection, Hash.new)
                     assert_equal normalized_selection, selection

@@ -39,9 +39,7 @@ module Autoproj
         def run_command_and_stop(*args, fail_on_error: true, **kwargs)
             cmd = run_command(*args, **kwargs)
             cmd.stop
-            if fail_on_error
-                assert_command_finished_successfully(cmd)
-            end
+            assert_command_finished_successfully(cmd) if fail_on_error
             cmd
         end
 
@@ -67,9 +65,7 @@ module Autoproj
 
         def assert_command_stops(cmd, fail_on_error: true)
             cmd.stop
-            if fail_on_error
-                assert_command_finished_successfully(cmd)
-            end
+            assert_command_finished_successfully(cmd) if fail_on_error
         end
 
         def assert_command_finished_successfully(cmd)

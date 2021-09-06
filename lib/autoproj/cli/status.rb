@@ -7,12 +7,8 @@ module Autoproj
             def validate_options(packages, options)
                 packages, options = super
                 options[:progress] = Autobuild.progress_display_enabled?
-                if options[:no_deps_shortcut]
-                    options[:deps] = false
-                end
-                if options[:deps].nil? && packages.empty?
-                    options[:deps] = true
-                end
+                options[:deps] = false if options[:no_deps_shortcut]
+                options[:deps] = true if options[:deps].nil? && packages.empty?
                 [packages, options]
             end
 
@@ -20,7 +16,8 @@ module Autoproj
                 initialize_and_load(mainline: options[:mainline])
                 packages, *, config_selected = finalize_setup(
                     user_selection,
-                    recursive: options[:deps])
+                    recursive: options[:deps]
+                )
 
                 if options[:config].nil?
                     options[:config] = user_selection.empty? || config_selected
@@ -39,14 +36,15 @@ module Autoproj
 
                 if options[:config]
                     pkg_sets = ws.manifest.each_package_set.to_a
-                    if !pkg_sets.empty?
+                    unless pkg_sets.empty?
                         Autoproj.message("autoproj: displaying status of configuration", :bold)
                         display_status(
                             pkg_sets,
                             parallel: options[:parallel],
                             snapshot: options[:snapshot],
                             only_local: options[:only_local],
-                            progress: options[:progress])
+                            progress: options[:progress]
+                        )
 
                         STDERR.puts
                     end
@@ -61,7 +59,8 @@ module Autoproj
                     parallel: options[:parallel],
                     snapshot: options[:snapshot],
                     only_local: options[:only_local],
-                    progress: options[:progress])
+                    progress: options[:progress]
+                )
             end
 
             def snapshot_overrides_vcs?(importer, vcs, snapshot)
@@ -100,8 +99,8 @@ module Autoproj
                         return package_status
                     end
 
-                    snapshot_useful = [Autobuild::Importer::Status::ADVANCED, Autobuild::Importer::Status::NEEDS_MERGE].
-                                      include?(status.status)
+                    snapshot_useful = [Autobuild::Importer::Status::ADVANCED, Autobuild::Importer::Status::NEEDS_MERGE]
+                                      .include?(status.status)
                     if snapshot && snapshot_useful && importer.respond_to?(:snapshot)
                         snapshot_version =
                             begin importer.snapshot(pkg, nil, exact_state: false, only_local: only_local)
@@ -168,7 +167,7 @@ module Autoproj
                 parallel: ws.config.parallel_import_level,
                 snapshot: false, only_local: false, progress: nil
             )
-                return enum_for(__method__) if !block_given?
+                return enum_for(__method__) unless block_given?
 
                 result = StatusResult.new
 
@@ -188,7 +187,7 @@ module Autoproj
                     if future
                         if progress
                             wait_timeout = 1
-                            while true
+                            loop do
                                 future.wait!(wait_timeout)
                                 if future.resolved?
                                     break
@@ -199,7 +198,7 @@ module Autoproj
                             end
                         end
 
-                        if !(status = future.value)
+                        unless (status = future.value)
                             raise future.reason
                         end
                     else
@@ -232,8 +231,8 @@ module Autoproj
 
                 if progress
                     progress = lambda do |pkg|
-                        if !spinner
-                            if !sync_packages.empty?
+                        unless spinner
+                            unless sync_packages.empty?
                                 Autoproj.message("#{sync_packages}: #{Autoproj.color('local and remote are in sync', :green)}")
                                 sync_packages = ""
                             end
@@ -266,7 +265,7 @@ module Autoproj
                         next
                     end
 
-                    if !sync_packages.empty?
+                    unless sync_packages.empty?
                         Autoproj.message("#{sync_packages}: #{Autoproj.color('local and remote are in sync', :green)}")
                         sync_packages = ""
                     end
@@ -282,7 +281,7 @@ module Autoproj
                         end
                     end
                 end
-                if !sync_packages.empty?
+                unless sync_packages.empty?
                     Autoproj.message("#{sync_packages}: #{Autoproj.color('local and remote are in sync', :green)}")
                 end
                 result

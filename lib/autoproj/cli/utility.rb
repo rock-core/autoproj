@@ -10,6 +10,7 @@ module Autoproj
             end
 
             attr_reader :utility_name
+
             def default(enabled)
                 ws.load_config
                 ws.config.utility_default(utility_name, enabled)

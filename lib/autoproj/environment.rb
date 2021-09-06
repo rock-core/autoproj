@@ -35,10 +35,11 @@ module Autoproj
 
         def export_env_sh(subdir = nil, options = Hash.new)
             if subdir.kind_of?(Hash)
-                subdir, options = nil, subdir
+                options = subdir
+                subdir = nil
             end
             options = validate_options options,
-                shell_helpers: true
+                                       shell_helpers: true
 
             shell_dir = File.expand_path(File.join("..", "..", "shell"), File.dirname(__FILE__))
             completion_dir = File.join(shell_dir, "completion")
@@ -50,7 +51,9 @@ module Autoproj
                     source_after(helper, shell: shell) if File.file?(helper)
                     %w[alocate alog amake aup autoproj].each do |tool|
                         completion_file = File.join(completion_dir, "#{tool}_#{shell}")
-                        source_after(completion_file, shell: shell) if File.file?(completion_file)
+                        if File.file?(completion_file)
+                            source_after(completion_file, shell: shell)
+                        end
                     end
                 end
 
@@ -84,46 +87,57 @@ module Autoproj
     def self.env_set(name, *value)
         env.set(name, *value)
     end
+
     # @deprecated call Autoproj.env.add instead
     def self.env_add(name, *value)
         env.add(name, *value)
     end
+
     # @deprecated call Autoproj.env.set_path instead
     def self.env_set_path(name, *value)
         env.set_path(name, *value)
     end
+
     # @deprecated call Autoproj.env.add_path instead
     def self.env_add_path(name, *value)
         env.add_path(name, *value)
     end
+
     # @deprecated call Autoproj.env.source_after instead
     def self.env_source_file(file, shell: "sh")
         env.source_after(file, shell: shell)
     end
+
     # @deprecated call Autoproj.env.source_after instead
     def self.env_source_after(file, shell: "sh")
         env.source_after(file, shell: shell)
     end
+
     # @deprecated call Autoproj.env.source_before instead
     def self.env_source_before(file, shell: "sh")
         env.source_before(file, shell: shell)
     end
+
     # @deprecated call Autoproj.env.inherit instead
     def self.env_inherit(*names)
         env.inherit(*names)
     end
+
     # @deprecated use Autoproj.env.isolate instead
     def self.set_initial_env
         isolate_environment
     end
+
     # @deprecated use Autoproj.env.isolate instead
     def self.isolate_environment
         env.isolate
     end
+
     # @deprecated call Autoproj.env.prepare directly
     def self.prepare_environment(env = Autoproj.env, manifest = Autoproj.manifest)
         env.prepare(manifest)
     end
+
     # @deprecated use Autoproj.env.export_env_sh instead
     def self.export_env_sh(subdir = nil)
         env.export_env_sh(subdir)
