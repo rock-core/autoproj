@@ -1,7 +1,7 @@
-require 'autoproj/cli'
-require 'autoproj/cli/base'
-require 'autoproj/cli/status'
-require 'autoproj/ops/import'
+require "autoproj/cli"
+require "autoproj/cli/base"
+require "autoproj/cli/status"
+require "autoproj/ops/import"
 
 module Autoproj
     module CLI
@@ -30,7 +30,7 @@ module Autoproj
                 end
 
                 if mainline = options[:mainline]
-                    if mainline == 'mainline' || mainline == 'true'
+                    if mainline == "mainline" || mainline == "true"
                         options[:mainline] = true
                     end
                 end
@@ -64,7 +64,7 @@ module Autoproj
                 options[:autoproj] = update_autoproj
                 options[:config]   = update_config
                 options[:packages] = update_packages
-                return selection, options
+                [selection, options]
             end
 
             def run(selected_packages, run_hook: false, report: true, ask: false, **options)
@@ -162,7 +162,7 @@ module Autoproj
                     end
                 end
 
-                return command_line_selection, source_packages, osdep_packages
+                [command_line_selection, source_packages, osdep_packages]
             end
 
             def finish_loading_configuration(selected_packages)
@@ -173,7 +173,7 @@ module Autoproj
                 # overrides.rb files might have changed it
                 ws.finalize_package_setup
                 # Finally, filter out exclusions
-                resolved_selected_packages, _ =
+                resolved_selected_packages, =
                     resolve_user_selection(selected_packages)
                 validate_user_selection(selected_packages, resolved_selected_packages)
 
@@ -182,12 +182,13 @@ module Autoproj
                 else
                     command_line_selection = Array.new
                 end
-                return command_line_selection, resolved_selected_packages
+                [command_line_selection, resolved_selected_packages]
             end
 
             def normalize_osdeps_options(
                 checkout_only: false, osdeps: true, osdeps_mode: nil,
-                osdeps_filter_uptodate: true)
+                osdeps_filter_uptodate: true
+            )
 
                 osdeps_options = Hash[install_only: checkout_only]
                 if osdeps_mode
@@ -218,7 +219,7 @@ module Autoproj
                     clean = !status.unexpected &&
                             (status.sync || (status.local && !status.remote))
                     if clean
-                        msg = Autobuild.color('already up-to-date', :green)
+                        msg = Autobuild.color("already up-to-date", :green)
                         pkg.autobuild.message "#{msg} %s"
                         return false
                     end
@@ -259,17 +260,17 @@ module Autoproj
                 ops = Autoproj::Ops::Import.new(
                     ws, report_path: (ws.import_report_path if report))
                 source_packages, osdep_packages =
-                        ops.import_packages(selected_packages,
-                                        checkout_only: checkout_only,
-                                        only_local: only_local,
-                                        reset: reset,
-                                        recursive: deps,
-                                        keep_going: keep_going,
-                                        parallel: parallel,
-                                        retry_count: retry_count,
-                                        install_vcs_packages: (osdeps_options if osdeps),
-                                        auto_exclude: auto_exclude,
-                                        filter: filter)
+                    ops.import_packages(selected_packages,
+                                    checkout_only: checkout_only,
+                                    only_local: only_local,
+                                    reset: reset,
+                                    recursive: deps,
+                                    keep_going: keep_going,
+                                    parallel: parallel,
+                                    retry_count: retry_count,
+                                    install_vcs_packages: (osdeps_options if osdeps),
+                                    auto_exclude: auto_exclude,
+                                    filter: filter)
                 [source_packages, osdep_packages, nil]
             rescue ExcludedSelection => e
                 raise CLIInvalidSelection, e.message, e.backtrace
@@ -295,4 +296,3 @@ module Autoproj
         end
     end
 end
-

@@ -1,8 +1,8 @@
-require 'autoproj'
-require 'autoproj/cli/base'
-require 'autoproj/cli/update'
-require 'autoproj/ops/main_config_switcher'
-require 'autoproj/ops/configuration'
+require "autoproj"
+require "autoproj/cli/base"
+require "autoproj/cli/update"
+require "autoproj/ops/main_config_switcher"
+require "autoproj/ops/configuration"
 
 module Autoproj
     module CLI
@@ -29,4 +29,3 @@ module Autoproj
         end
     end
 end
-

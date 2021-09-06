@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'autoproj/cli/inspection_tool'
-require 'autoproj/ops/cache'
+require "autoproj/cli/inspection_tool"
+require "autoproj/ops/cache"
 
 module Autoproj
     module CLI
@@ -13,17 +13,17 @@ module Autoproj
                 level = 0
                 artifacts = []
                 artifact_include = nil
-                artifact_name = ''.dup
+                artifact_name = "".dup
                 until scanner.eos?
                     c = scanner.getch
                     if level == 0
-                        raise ArgumentError, "expected '[' but got '#{c}'" unless c == '['
+                        raise ArgumentError, "expected '[' but got '#{c}'" unless c == "["
 
                         level = 1
                         include_c = scanner.getch
                         if %w[+ -].include?(include_c)
-                            artifact_include = (include_c == '+')
-                        elsif include_c == ']'
+                            artifact_include = (include_c == "+")
+                        elsif include_c == "]"
                             raise ArgumentError, "empty [] found in '#{string}'"
                         else
                             raise ArgumentError,
@@ -32,11 +32,11 @@ module Autoproj
                         next
                     end
 
-                    if c == ']'
+                    if c == "]"
                         level -= 1
                         if level == 0
                             artifacts << [artifact_include, artifact_name]
-                            artifact_name = ''.dup
+                            artifact_name = "".dup
                             next
                         end
                     end
@@ -75,9 +75,9 @@ module Autoproj
             end
 
             def run(cache_dir, *package_names,
-                    keep_going: false,
-                    packages: true, all: true, checkout_only: false,
-                    gems: false, gems_compile: [], gems_compile_force: false)
+                keep_going: false,
+                packages: true, all: true, checkout_only: false,
+                gems: false, gems_compile: [], gems_compile_force: false)
                 initialize_and_load
                 finalize_setup
 

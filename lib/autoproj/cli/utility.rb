@@ -1,4 +1,4 @@
-require 'autoproj/cli/inspection_tool'
+require "autoproj/cli/inspection_tool"
 
 module Autoproj
     module CLI
@@ -68,7 +68,7 @@ module Autoproj
                 lines = lines.sort_by { |name, _| name }
                 w     = lines.map { |name, _| name.length }.max
                 out_format = "%-#{w}s %-7s %-9s"
-                puts format(out_format, 'Package Name', 'Enabled', 'Available')
+                puts format(out_format, "Package Name", "Enabled", "Available")
                 lines.each do |name, enabled, available|
                     puts(format(out_format, name, (!!enabled).to_s, (!!available).to_s)) # rubocop:disable Style/DoubleNegation
                 end
@@ -121,13 +121,13 @@ module Autoproj
                 # rubocop:disable Style/DoubleNegation
                 u = autobuild_package.utility(@utility_name)
                 {
-                    'source_dir' => u.source_dir,
-                    'target_dir' => u.target_dir,
-                    'available' => !!u.available?,
-                    'enabled' => !!u.enabled?,
-                    'invoked' => !!u.invoked?,
-                    'success' => !!u.success?,
-                    'installed' => !!u.installed?
+                    "source_dir" => u.source_dir,
+                    "target_dir" => u.target_dir,
+                    "available" => !!u.available?,
+                    "enabled" => !!u.enabled?,
+                    "invoked" => !!u.invoked?,
+                    "success" => !!u.success?,
+                    "installed" => !!u.installed?
                 }
                 # rubocop:enable Style/DoubleNegation
             end

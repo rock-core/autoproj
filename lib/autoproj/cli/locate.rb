@@ -1,4 +1,4 @@
-require 'autoproj/cli/inspection_tool'
+require "autoproj/cli/inspection_tool"
 
 module Autoproj
     module CLI
@@ -11,7 +11,7 @@ module Autoproj
         class Locate < InspectionTool
             attr_reader :packages
             attr_reader :package_sets
-            
+
             class NotFound < CLIException; end
             class NoSuchDir < CLIException; end
 
@@ -69,14 +69,14 @@ module Autoproj
                         candidates << pkg
                     end
                 end
-                return candidates
+                candidates
             end
 
             def find_packages_with_directory_shortnames(selection)
-                *directories, basename = *selection.split('/')
+                *directories, basename = *selection.split("/")
                 dirname_rx = directories.
-                    map { |d| "#{Regexp.quote(d)}\\w*" }.
-                    join("/")
+                             map { |d| "#{Regexp.quote(d)}\\w*" }.
+                             join("/")
 
                 rx        = Regexp.new("#{dirname_rx}/#{Regexp.quote(basename)}")
                 rx_strict = Regexp.new("#{dirname_rx}/#{Regexp.quote(basename)}$")
@@ -115,7 +115,7 @@ module Autoproj
                        elsif options.delete(:prefix)
                            :prefix_dir
                        elsif log_type = options[:log]
-                           if log_type == 'log'
+                           if log_type == "log"
                                options.delete(:log)
                            end
                            :log
@@ -126,10 +126,10 @@ module Autoproj
                 if selections.empty?
                     selections << ws.root_dir
                 end
-                return selections, options
+                [selections, options]
             end
 
-            RESOLUTION_MODES = [:source_dir, :build_dir, :prefix_dir, :log]
+            RESOLUTION_MODES = %i[source_dir build_dir prefix_dir log]
 
             def run(selections, cache: !!packages, mode: :source_dir, log: nil)
                 if !RESOLUTION_MODES.include?(mode)
@@ -149,7 +149,7 @@ module Autoproj
                     elsif mode == :prefix_dir
                         puts prefix_dir_of(string)
                     elsif mode == :log
-                        if all_logs = (log == 'all')
+                        if all_logs = (log == "all")
                             log = nil
                         end
                         result = logs_of(string, log: log)
@@ -187,9 +187,9 @@ module Autoproj
                 if matching_packages.empty?
                     raise CLIInvalidArguments, "cannot find '#{selection}' in the current autoproj installation"
                 elsif matching_packages.size > 1
-                    raise CLIAmbiguousArguments, "multiple packages match '#{selection}' in the current autoproj installation: #{matching_packages.map(&:name).sort.join(", ")}"
+                    raise CLIAmbiguousArguments, "multiple packages match '#{selection}' in the current autoproj installation: #{matching_packages.map(&:name).sort.join(', ')}"
                 else
-                    return matching_packages.first
+                    matching_packages.first
                 end
             end
 
@@ -246,10 +246,10 @@ module Autoproj
             #
             # The workspace is resolved as the main configuration
             #
-            # If 'log' is nil and multiple logs are available, 
+            # If 'log' is nil and multiple logs are available,
             def logs_of(selection, log: nil)
                 if workspace_dir?(selection) || (pkg_set = find_package_set(selection))
-                    if log && log != 'import'
+                    if log && log != "import"
                         return []
                     end
                     name = if pkg_set then pkg_set.name
@@ -258,8 +258,8 @@ module Autoproj
 
                     import_log = File.join(ws.log_dir, "#{name}-import.log")
                     if File.file?(import_log)
-                        return [import_log]
-                    else return []
+                        [import_log]
+                    else []
                     end
                 else
                     pkg = resolve_package(selection)
@@ -269,7 +269,7 @@ module Autoproj
 
             # Interactively select a log file among a list
             def select_log_file(log_files)
-                require 'tty/prompt'
+                require "tty/prompt"
 
                 log_files = log_files.map do |path|
                     [path, File.stat(path).mtime]
@@ -294,4 +294,3 @@ module Autoproj
         end
     end
 end
-

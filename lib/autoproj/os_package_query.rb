@@ -18,10 +18,10 @@ module Autoproj
     #   * package_manager: a regexp that matches the underlying package manager
     #
     class OSPackageQuery < QueryBase
-        ALLOWED_FIELDS = [
-            'name',
-            'real_package',
-            'package_manager'
+        ALLOWED_FIELDS = %w[
+            name
+            real_package
+            package_manager
         ]
         DEFAULT_FIELDS = {
         }
@@ -85,7 +85,7 @@ module Autoproj
             end
 
             if pkg_value.any? { |v| @value_rx === v }
-                return PARTIAL
+                PARTIAL
             end
         end
 

@@ -1,5 +1,5 @@
-require 'autoproj/cli/update'
-require 'autoproj/ops/build'
+require "autoproj/cli/update"
+require "autoproj/ops/build"
 
 module Autoproj
     module CLI
@@ -60,8 +60,8 @@ module Autoproj
                     if command_line_selection.empty?
                         # If we don't have an explicit package selection, we want to
                         # make sure that the user really wants this
-                        mode_name = if build_options[:rebuild] then 'rebuild'
-                                    else 'force-build'
+                        mode_name = if build_options[:rebuild] then "rebuild"
+                                    else "force-build"
                                     end
                         if build_options[:confirm] != false
                             opt = BuildOption.new(

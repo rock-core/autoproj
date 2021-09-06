@@ -1,5 +1,5 @@
-require 'open3'
-require 'rubygems'
+require "open3"
+require "rubygems"
 
 module Autoproj
     module Python
@@ -66,9 +66,9 @@ module Autoproj
         # Find python given a version constraint
         # @return [String,String] path to python executable and python version
         def self.find_python(ws: Autoproj.workspace,
-                             version: ws.config.get('python_version', nil))
+            version: ws.config.get("python_version", nil))
             finders = [
-                -> { Autobuild.programs['python'] },
+                -> { Autobuild.programs["python"] },
                 -> { `which python3`.strip },
                 -> { `which python`.strip }
             ]
@@ -91,10 +91,10 @@ module Autoproj
         #      are fulfilled nil otherwise
 
         def self.get_python_from_config(ws: Autoproj.workspace, version: nil)
-            config_bin = ws.config.get('python_executable', nil)
+            config_bin = ws.config.get("python_executable", nil)
             return unless config_bin
 
-            config_version = ws.config.get('python_version', nil)
+            config_version = ws.config.get("python_version", nil)
             config_version ||= get_python_version(config_bin)
 
             # If a version constraint is given, ensure fulfillment
@@ -108,7 +108,7 @@ module Autoproj
         end
 
         def self.custom_resolve_python(bin: nil,
-                                       version: nil)
+            version: nil)
             version, valid = validate_python_version(bin, version)
             if valid
                 [bin, version]
@@ -120,7 +120,7 @@ module Autoproj
         end
 
         def self.auto_resolve_python(ws: Autoproj.workspace,
-                                     version: nil)
+            version: nil)
             version_constraint = version
             resolvers = [
                 -> { get_python_from_config(ws: ws, version: version_constraint) },
@@ -129,15 +129,15 @@ module Autoproj
 
             bin = nil
             resolvers.each do |resolver|
-                    bin, version = resolver.call
-                    if bin && File.exist?(bin) && version
-                        Autoproj.debug "Autoproj::Python.resolve_python: " \
-                          "found python '#{bin}' version '#{version}'"
-                        break
-                    end
-            rescue RuntimeError => e
+                bin, version = resolver.call
+                if bin && File.exist?(bin) && version
                     Autoproj.debug "Autoproj::Python.resolve_python: " \
-                      "resolver failed: #{e}"
+                      "found python '#{bin}' version '#{version}'"
+                    break
+                end
+            rescue RuntimeError => e
+                Autoproj.debug "Autoproj::Python.resolve_python: " \
+                  "resolver failed: #{e}"
             end
 
             unless bin
@@ -159,8 +159,8 @@ module Autoproj
         # @param [String] version version constraint
         # @return [String,String] python path and python version
         def self.resolve_python(ws: Autoproj.workspace,
-                                bin: nil,
-                                version: nil)
+            bin: nil,
+            version: nil)
             if bin
                 custom_resolve_python(bin: bin, version: version)
             else
@@ -187,8 +187,8 @@ module Autoproj
                     "are you operating on a valid autoproj workspace?"
             end
 
-            python_path = File.join(shim_path, 'python')
-            File.open(python_path, 'w') do |io|
+            python_path = File.join(shim_path, "python")
+            File.open(python_path, "w") do |io|
                 io.puts "#! /bin/sh"
                 io.puts "exec #{python_executable} \"$@\""
             end
@@ -204,8 +204,8 @@ module Autoproj
                     "#{shim_path} - "\
                     "are you operating on a valid autoproj workspace?"
             end
-            pip_path = File.join(shim_path, 'pip')
-            File.open(pip_path, 'w') do |io|
+            pip_path = File.join(shim_path, "pip")
+            File.open(pip_path, "w") do |io|
                 io.puts "#! /bin/sh"
                 io.puts "exec #{python_executable} -m pip \"$@\""
             end
@@ -216,11 +216,11 @@ module Autoproj
         # Activate configuration for python in the autoproj configuration
         # @return [String,String] python path and python version
         def self.activate_python(ws: Autoproj.workspace,
-                                 bin: nil,
-                                 version: nil)
+            bin: nil,
+            version: nil)
             bin, version = resolve_python(ws: ws, bin: bin, version: version)
-            ws.config.set('python_executable', bin, true)
-            ws.config.set('python_version', version, true)
+            ws.config.set("python_executable", bin, true)
+            ws.config.set("python_version", version, true)
 
             ws.osdep_suffixes << "python#{$1}" if version =~ /^([0-9]+)\./
 
@@ -232,8 +232,8 @@ module Autoproj
         def self.deactivate_python(ws: Autoproj.workspace)
             remove_python_shims(ws.root_dir)
             remove_pip_shims(ws.root_dir)
-            ws.config.reset('python_executable')
-            ws.config.reset('python_version')
+            ws.config.reset("python_executable")
+            ws.config.reset("python_version")
         end
 
         # Allow to update the PYTHONPATH for package if autoproj configuration
@@ -247,32 +247,32 @@ module Autoproj
         # @return tuple of [executable, version, site-packages path] if set,
         #    otherwise nil
         def self.activate_python_path(pkg,
-                                 ws: Autoproj.workspace,
-                                 bin: nil,
-                                 version: nil)
-            return unless ws.config.get('USE_PYTHON', nil)
+            ws: Autoproj.workspace,
+            bin: nil,
+            version: nil)
+            return unless ws.config.get("USE_PYTHON", nil)
 
             bin, version = resolve_python(ws: ws, bin: bin, version: version)
             path = File.join(pkg.prefix, "lib",
                              "python#{version}", "site-packages")
-            pkg.env_add_path 'PYTHONPATH', path
+            pkg.env_add_path "PYTHONPATH", path
 
             [bin, version, path]
         end
 
         def self.setup_python_configuration_options(ws: Autoproj.workspace)
-            ws.config.declare 'USE_PYTHON', 'boolean',
-                              default: 'no',
+            ws.config.declare "USE_PYTHON", "boolean",
+                              default: "no",
                               doc: ["Do you want to activate python?"]
 
             if ws.config.get("USE_PYTHON")
-                unless ws.config.has_value_for?('python_executable')
+                unless ws.config.has_value_for?("python_executable")
                     remove_python_shims(ws.root_dir)
                     remove_pip_shims(ws.root_dir)
                     python_bin, = auto_resolve_python(ws: ws)
                 end
 
-                ws.config.declare 'python_executable', 'string',
+                ws.config.declare "python_executable", "string",
                                   default: python_bin.to_s,
                                   doc: ["Select the path to the python executable"]
 

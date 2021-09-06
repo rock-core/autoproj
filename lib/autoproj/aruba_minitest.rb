@@ -1,4 +1,4 @@
-require 'aruba/api'
+require "aruba/api"
 
 module Autoproj
     # Minitest-usable Aruba wrapper
@@ -27,10 +27,10 @@ module Autoproj
 
         def generate_local_gemfile
             path = expand_path("Gemfile.local")
-            File.open(path, 'w') do |io|
+            File.open(path, "w") do |io|
                 io.write <<~GEMFILE
                 source "https://rubygems.org"
-                gem "autoproj", path: "#{File.expand_path("../../", __dir__)}"
+                gem "autoproj", path: "#{File.expand_path('../../', __dir__)}"
                 GEMFILE
             end
             path
@@ -59,7 +59,7 @@ module Autoproj
 
         def method_missing(m, *args, &block)
             if @aruba_api.respond_to?(m)
-                return @aruba_api.send(m, *args, &block)
+                @aruba_api.send(m, *args, &block)
             else
                 super
             end
@@ -78,4 +78,3 @@ module Autoproj
         end
     end
 end
-

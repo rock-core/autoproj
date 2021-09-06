@@ -1,7 +1,7 @@
-require 'autoproj/find_workspace'
-require 'autoproj/ops/cached_env'
-require 'autoproj/ops/which'
-require 'autoproj/ops/watch'
+require "autoproj/find_workspace"
+require "autoproj/ops/cached_env"
+require "autoproj/ops/which"
+require "autoproj/ops/watch"
 
 module Autoproj
     module CLI
@@ -9,7 +9,7 @@ module Autoproj
             def initialize
                 @root_dir = Autoproj.find_workspace_dir
                 unless @root_dir
-                    require 'autoproj/workspace'
+                    require "autoproj/workspace"
                     # Will do all sorts of error reporting,
                     # or may be able to resolve
                     @root_dir = Workspace.default.root_dir
@@ -61,8 +61,8 @@ module Autoproj
                 manifest = try_loading_installation_manifest if use_cached_env
 
                 if !env || (package && !manifest)
-                    require 'autoproj'
-                    require 'autoproj/cli/inspection_tool'
+                    require "autoproj"
+                    require "autoproj/cli/inspection_tool"
                     ws = Workspace.from_dir(@root_dir)
                     ws.config.interactive = interactive unless interactive.nil?
                     loader = InspectionTool.new(ws)
@@ -79,18 +79,18 @@ module Autoproj
                     chdir_kw = { chdir: chdir }
                 end
 
-                path = env['PATH'].split(File::PATH_SEPARATOR)
+                path = env["PATH"].split(File::PATH_SEPARATOR)
                 program =
                     begin Ops.which(cmd, path_entries: [chdir, *path].compact)
                     rescue ::Exception => e
-                        require 'autoproj'
+                        require "autoproj"
                         raise CLIInvalidArguments, e.message, e.backtrace
                     end
 
                 begin
                     ::Process.exec(env, program, *args, **(chdir_kw || {}))
                 rescue ::Exception => e
-                    require 'autoproj'
+                    require "autoproj"
                     raise CLIInvalidArguments, e.message, e.backtrace
                 end
             end

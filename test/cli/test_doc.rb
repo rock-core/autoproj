@@ -1,6 +1,6 @@
-require 'autoproj/test'
-require 'autoproj/cli/main'
-require 'autoproj/cli/doc'
+require "autoproj/test"
+require "autoproj/cli/main"
+require "autoproj/cli/doc"
 
 module Autoproj
     module CLI
@@ -8,7 +8,7 @@ module Autoproj
             attr_reader :cli
             before do
                 ws_create
-                @one = ws_add_package_to_layout :cmake, 'one'
+                @one = ws_add_package_to_layout :cmake, "one"
                 @cli = Doc.new(ws)
                 flexmock(cli)
             end
@@ -28,12 +28,10 @@ module Autoproj
                     flexmock(Doc).new_instances.
                         should_receive(:run).with([], hsh(deps: false)).once
                     in_ws do
-                        Main.start(['doc', '-n'])
+                        Main.start(["doc", "-n"])
                     end
                 end
             end
         end
     end
 end
-
-

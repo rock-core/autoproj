@@ -94,7 +94,7 @@ module Autoproj
             end
 
             def post_package_import(selection, manifest, pkg, reverse_dependencies,
-                                    auto_exclude: auto_exclude?)
+                auto_exclude: auto_exclude?)
                 Rake::Task["#{pkg.name}-import"]
                     .instance_variable_set(:@already_invoked, true)
                 if pkg.checked_out?
@@ -172,7 +172,7 @@ module Autoproj
             #   allowed. Set to zero for no retry
             # @param [Hash] import_options options passed to {Autobuild::Importer#import}
             def queue_import_work(executor, completion_queue, pkg,
-                                  retry_count: nil, **import_options)
+                retry_count: nil, **import_options)
                 import_future =
                     Concurrent::Promises.future_on(executor) do
                         ## COMPLETELY BYPASS RAKE HERE
@@ -192,15 +192,15 @@ module Autoproj
             # Import all packages from the given selection, and their
             # dependencies
             def import_selected_packages(selection,
-                                         parallel: ws.config.parallel_import_level,
-                                         recursive: true,
-                                         retry_count: nil,
-                                         keep_going: false,
-                                         install_vcs_packages: Hash.new,
-                                         non_imported_packages: :checkout,
-                                         auto_exclude: auto_exclude?,
-                                         filter: ->(package) { true },
-                                         **import_options)
+                parallel: ws.config.parallel_import_level,
+                recursive: true,
+                retry_count: nil,
+                keep_going: false,
+                install_vcs_packages: Hash.new,
+                non_imported_packages: :checkout,
+                auto_exclude: auto_exclude?,
+                filter: ->(package) { true },
+                **import_options)
 
                 unless %i[checkout ignore return].include?(non_imported_packages)
                     raise ArgumentError, "invalid value for 'non_imported_packages'. "\
@@ -234,7 +234,7 @@ module Autoproj
 
                 failures = Array.new
                 missing_vcs = Array.new
-                installed_vcs_packages = Set['none', 'local']
+                installed_vcs_packages = Set["none", "local"]
                 while failures.empty? || keep_going
                     # Allow 'filter' to parallelize as well
                     if filter.respond_to?(:lookahead)
@@ -317,7 +317,6 @@ module Autoproj
                             break
                         else
                             main_thread_imports.delete_if do |pkg|
-                                # rubocop:disable Lint/HandleExceptions
                                 begin
                                     if retry_count
                                         pkg.autobuild.importer.retry_count = retry_count
@@ -326,8 +325,8 @@ module Autoproj
                                         **import_options.merge(allow_interactive: true))
                                 rescue StandardError => e
                                 end
-                                completion_queue << [pkg, Time.now, result, e]
-                                # rubocop:enable Lint/HandleExceptions
+                                completion_queue << [pkg,
+                                                     Time.now, result, e]
                             end
                         end
                     end
@@ -382,8 +381,8 @@ module Autoproj
             end
 
             def finalize_package_load(processed_packages,
-                                      ignore_optional_dependencies: false,
-                                      auto_exclude: auto_exclude?)
+                ignore_optional_dependencies: false,
+                auto_exclude: auto_exclude?)
                 manifest = ws.manifest
 
                 all = Set.new
@@ -436,15 +435,15 @@ module Autoproj
             end
 
             def import_packages(selection,
-                                non_imported_packages: :checkout,
-                                warn_about_ignored_packages: true,
-                                warn_about_excluded_packages: true,
-                                recursive: true,
-                                keep_going: false,
-                                install_vcs_packages: Hash.new,
-                                auto_exclude: auto_exclude?,
-                                filter: ->(pkg) { true },
-                                **import_options)
+                non_imported_packages: :checkout,
+                warn_about_ignored_packages: true,
+                warn_about_excluded_packages: true,
+                recursive: true,
+                keep_going: false,
+                install_vcs_packages: Hash.new,
+                auto_exclude: auto_exclude?,
+                filter: ->(pkg) { true },
+                **import_options)
 
                 manifest = ws.manifest
 
@@ -494,7 +493,7 @@ module Autoproj
                         failures, source_packages: all_enabled_sources,
                                   osdep_packages: all_enabled_osdeps)
                 else
-                    return all_enabled_sources, all_enabled_osdeps
+                    [all_enabled_sources, all_enabled_osdeps]
                 end
             ensure
                 create_report(all_processed_packages || []) if @report_path

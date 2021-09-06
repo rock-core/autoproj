@@ -2,8 +2,8 @@ module Autoproj
     module Ops
         # Shamelessly stolen from ActiveSupport
         def self.atomic_write(file_name, temp_dir = Dir.tmpdir)
-            require 'tempfile' unless defined?(Tempfile)
-            require 'fileutils' unless defined?(FileUtils)
+            require "tempfile" unless defined?(Tempfile)
+            require "fileutils" unless defined?(FileUtils)
 
             temp_file = Tempfile.new(File.basename(file_name), temp_dir)
             yield temp_file

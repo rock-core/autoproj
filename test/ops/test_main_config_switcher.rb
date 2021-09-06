@@ -1,5 +1,5 @@
-require 'autoproj/test'
-require 'autoproj/ops/main_config_switcher'
+require "autoproj/test"
+require "autoproj/ops/main_config_switcher"
 
 module Autoproj
     module Ops
@@ -11,8 +11,8 @@ module Autoproj
 
             describe "#check_root_dir_empty?" do
                 after do
-                    ENV.delete('AUTOPROJ_NONINTERACTIVE')
-                    ENV.delete('AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR')
+                    ENV.delete("AUTOPROJ_NONINTERACTIVE")
+                    ENV.delete("AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR")
                 end
 
                 it "is enabled by default" do
@@ -20,12 +20,12 @@ module Autoproj
                 end
 
                 it "is disabled if AUTOPROJ_NONINTERACTIVE is set to 1" do
-                    ENV['AUTOPROJ_NONINTERACTIVE'] = '1'
+                    ENV["AUTOPROJ_NONINTERACTIVE"] = "1"
                     refute @ops.check_root_dir_empty?
                 end
 
                 it "is disabled if AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR is set to 1" do
-                    ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] = '1'
+                    ENV["AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR"] = "1"
                     refute @ops.check_root_dir_empty?
                 end
             end
@@ -49,4 +49,3 @@ module Autoproj
         end
     end
 end
-

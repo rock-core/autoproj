@@ -15,13 +15,13 @@ module Autoproj
 
                 dump = JSON.dump(
                     "#{@name}_report" => {
-                        'timestamp' => Time.now,
-                        'packages' => info
+                        "timestamp" => Time.now,
+                        "packages" => info
                     }
                 )
 
                 FileUtils.mkdir_p File.dirname(@path)
-                File.open(@path, 'w') do |io|
+                File.open(@path, "w") do |io|
                     io.write dump
                 end
             end
@@ -37,7 +37,7 @@ module Autoproj
                 @incremental_report.concat(
                     "#{prefix}\"#{autobuild_package.name}\": #{JSON.dump(new_metadata)}"
                 )
-                File.open(@path, 'w') do |io|
+                File.open(@path, "w") do |io|
                     io.write "{ \"#{@name}_report\": "\
                              "{\"timestamp\": #{JSON.dump(Time.now)}, \"packages\": {"
                     io.write(@incremental_report)

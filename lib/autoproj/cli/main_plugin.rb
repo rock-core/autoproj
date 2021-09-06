@@ -1,7 +1,7 @@
 module Autoproj
     module CLI
         class MainPlugin < Thor
-            namespace 'plugin'
+            namespace "plugin"
 
             no_commands do
                 def ws
@@ -15,27 +15,27 @@ module Autoproj
 
                 def read_plugin_list
                     ws.load_config
-                    ws.config.get('plugins', Hash.new)
+                    ws.config.get("plugins", Hash.new)
                 end
 
                 def write_plugin_list(plugins)
                     ws.load_config
-                    ws.config.set('plugins', plugins)
+                    ws.config.set("plugins", plugins)
                     ws.save_config
                 end
             end
 
-            desc 'install NAME', 'install or upgrade an autoproj plugin'
-            option :version, desc: 'a gem version constraint',
-                type: 'string', default: '>= 0'
-            option :git, desc: 'checkout a git repository instead of downloading the gem',
-                type: 'string'
-            option :branch, desc: 'choose the branch that should be checked out with --git',
-                type: 'string', default: 'master'
-            option :path, desc: 'use the plugin that is already present on this path',
-                type: 'string'
+            desc "install NAME", "install or upgrade an autoproj plugin"
+            option :version, desc: "a gem version constraint",
+                type: "string", default: ">= 0"
+            option :git, desc: "checkout a git repository instead of downloading the gem",
+                type: "string"
+            option :branch, desc: "choose the branch that should be checked out with --git",
+                type: "string", default: "master"
+            option :path, desc: "use the plugin that is already present on this path",
+                type: "string"
             def install(name)
-                require 'autoproj'
+                require "autoproj"
 
                 gem_options = Hash.new
                 if options[:git] && options[:path]
@@ -59,18 +59,18 @@ module Autoproj
                 end
             end
 
-            desc 'list', 'list installed plugins'
+            desc "list", "list installed plugins"
             def list
-                require 'autoproj'
+                require "autoproj"
                 read_plugin_list.sort_by(&:first).each do |name, (version, options)|
                     args = [version, *options.map { |k, v| "#{k}: \"#{v}\"" }]
-                    puts "#{name}: #{args.join(", ")}"
+                    puts "#{name}: #{args.join(', ')}"
                 end
             end
 
-            desc 'remove NAME', 'uninstall a plugin'
+            desc "remove NAME", "uninstall a plugin"
             def remove(name)
-                require 'autoproj'
+                require "autoproj"
                 plugins = read_plugin_list
                 updated_plugins = plugins.dup
                 updated_plugins.delete(name)

@@ -1,5 +1,5 @@
-require 'autoproj/test'
-require 'autoproj/cli/watch'
+require "autoproj/test"
+require "autoproj/cli/watch"
 
 module Autoproj
     module CLI
@@ -43,26 +43,26 @@ module Autoproj
                 attr_reader :pkg_set_manifest_dir
                 before do
                     ws.config.save
-                    @pkg = ws_add_package_to_layout :cmake, 'package'
+                    @pkg = ws_add_package_to_layout :cmake, "package"
                     @pkg_set = ws.manifest.main_package_set
                     @ros_manifest_file = File.join(pkg.autobuild.srcdir,
-                        'package.xml')
+                        "package.xml")
                     @manifest_file = File.join(pkg.autobuild.srcdir,
-                                               'manifest.xml')
+                                               "manifest.xml")
                     @autobuild_file = File.join(pkg_set.raw_local_dir,
-                                                'packages.autobuild')
+                                                "packages.autobuild")
                     @ruby_file = File.join(pkg_set.raw_local_dir,
-                                           'file.rb')
+                                           "file.rb")
                     @pkg_set_manifest_dir = File.join(pkg_set.raw_local_dir,
-                                                      'manifests')
+                                                      "manifests")
                     @pkg_set_manifest_file = File.join(pkg_set_manifest_dir,
-                                                       'tools', 'package.xml')
+                                                       "tools", "package.xml")
 
                     FileUtils.touch(manifest_file)
                     FileUtils.touch(ros_manifest_file)
                     FileUtils.touch(autobuild_file)
                     FileUtils.touch(ruby_file)
-                    FileUtils.mkdir_p(File.join(pkg_set_manifest_dir, 'tools'))
+                    FileUtils.mkdir_p(File.join(pkg_set_manifest_dir, "tools"))
                     FileUtils.touch(pkg_set_manifest_file)
                     sleep 0.1
                     cli.update_workspace
@@ -81,7 +81,7 @@ module Autoproj
                 describe "main configuration watcher" do
                     it "triggers the callback when the file is modified" do
                         cli.should_receive(:callback).once
-                        File.open(ws.config.path, 'a') do |file|
+                        File.open(ws.config.path, "a") do |file|
                             file << "\n"
                         end
                         process_events
@@ -93,7 +93,7 @@ module Autoproj
                     end
                     it "triggers the callback when the file is overwritten" do
                         cli.should_receive(:callback).once
-                        config_copy = File.join(ws.root_dir, 'config.yml.orig')
+                        config_copy = File.join(ws.root_dir, "config.yml.orig")
                         FileUtils.cp(ws.config.path, config_copy)
                         FileUtils.mv(config_copy, ws.config.path)
                         process_events
@@ -102,7 +102,7 @@ module Autoproj
                 describe "main manifest watcher" do
                     it "triggers the callback when the file is modified" do
                         cli.should_receive(:callback).once
-                        File.open(ws.manifest_file_path, 'a') do |file|
+                        File.open(ws.manifest_file_path, "a") do |file|
                             file << "\n"
                         end
                         process_events
@@ -114,7 +114,7 @@ module Autoproj
                     end
                     it "triggers the callback when the file is overwritten" do
                         cli.should_receive(:callback).once
-                        manifest_copy = File.join(ws.root_dir, 'manifest.orig')
+                        manifest_copy = File.join(ws.root_dir, "manifest.orig")
                         FileUtils.cp(ws.manifest_file_path, manifest_copy)
                         FileUtils.mv(manifest_copy, ws.manifest_file_path)
                         process_events
@@ -132,7 +132,7 @@ module Autoproj
                     end
                     it "triggers the callback when the file is modified" do
                         cli.should_receive(:callback).at_least.once
-                        File.open(manifest_file, 'a') do |file|
+                        File.open(manifest_file, "a") do |file|
                             file << "\n"
                         end
                         process_events
@@ -144,7 +144,7 @@ module Autoproj
                     end
                     it "triggers the callback when the file is overwritten" do
                         cli.should_receive(:callback).at_least.once
-                        manifest_copy = File.join(ws.root_dir, 'manifest.xml')
+                        manifest_copy = File.join(ws.root_dir, "manifest.xml")
                         FileUtils.cp(manifest_file, manifest_copy)
                         FileUtils.mv(manifest_copy, manifest_file)
                         process_events
@@ -162,7 +162,7 @@ module Autoproj
                     end
                     it "triggers the callback when the file is modified" do
                         cli.should_receive(:callback).at_least.once
-                        File.open(ros_manifest_file, 'a') do |file|
+                        File.open(ros_manifest_file, "a") do |file|
                             file << "\n"
                         end
                         process_events
@@ -174,7 +174,7 @@ module Autoproj
                     end
                     it "triggers the callback when the file is overwritten" do
                         cli.should_receive(:callback).at_least.once
-                        manifest_copy = File.join(ws.root_dir, 'package.xml')
+                        manifest_copy = File.join(ws.root_dir, "package.xml")
                         FileUtils.cp(ros_manifest_file, manifest_copy)
                         FileUtils.mv(manifest_copy, ros_manifest_file)
                         process_events
@@ -183,12 +183,12 @@ module Autoproj
                 describe "autobuild package definitions watcher" do
                     it "triggers the callback when an autobuild file is created" do
                         cli.should_receive(:callback).once
-                        FileUtils.touch(File.join(pkg_set.raw_local_dir, 'test.autobuild'))
+                        FileUtils.touch(File.join(pkg_set.raw_local_dir, "test.autobuild"))
                         process_events
                     end
                     it "triggers the callback when an autobuild file is modified" do
                         cli.should_receive(:callback).once
-                        File.open(autobuild_file, 'a') do |file|
+                        File.open(autobuild_file, "a") do |file|
                             file << "\n"
                         end
                         process_events
@@ -200,7 +200,7 @@ module Autoproj
                     end
                     it "triggers the callback when a autobuild file is overwritten" do
                         cli.should_receive(:callback).at_least.once
-                        autobuild_copy = File.join(ws.root_dir, 'packages.autobuild')
+                        autobuild_copy = File.join(ws.root_dir, "packages.autobuild")
                         FileUtils.cp(autobuild_file, autobuild_copy)
                         FileUtils.mv(autobuild_copy, autobuild_file)
                         process_events
@@ -209,12 +209,12 @@ module Autoproj
                 describe "ruby files watcher" do
                     it "triggers the callback when a ruby file is created" do
                         cli.should_receive(:callback).once
-                        FileUtils.touch(File.join(pkg_set.raw_local_dir, 'test.rb'))
+                        FileUtils.touch(File.join(pkg_set.raw_local_dir, "test.rb"))
                         process_events
                     end
                     it "triggers the callback when a ruby file is modified" do
                         cli.should_receive(:callback).once
-                        File.open(ruby_file, 'a') do |file|
+                        File.open(ruby_file, "a") do |file|
                             file << "\n"
                         end
                         process_events
@@ -226,7 +226,7 @@ module Autoproj
                     end
                     it "triggers the callback when a ruby file is overwritten" do
                         cli.should_receive(:callback).at_least.once
-                        ruby_copy = File.join(ws.root_dir, 'file.rb')
+                        ruby_copy = File.join(ws.root_dir, "file.rb")
                         FileUtils.cp(ruby_file, ruby_copy)
                         FileUtils.mv(ruby_copy, ruby_file)
                         process_events
@@ -235,7 +235,7 @@ module Autoproj
                 describe "in-pkg set manifest files watcher" do
                     it "triggers the callback when a manifest file is modified" do
                         cli.should_receive(:callback).once
-                        File.open(pkg_set_manifest_file, 'a') do |file|
+                        File.open(pkg_set_manifest_file, "a") do |file|
                             file << "\n"
                         end
                         process_events
@@ -247,7 +247,7 @@ module Autoproj
                     end
                     it "triggers the callback when a manifest file is overwritten" do
                         cli.should_receive(:callback).at_least.once
-                        manifest_copy = File.join(ws.root_dir, 'package.xml')
+                        manifest_copy = File.join(ws.root_dir, "package.xml")
                         FileUtils.cp(pkg_set_manifest_file, manifest_copy)
                         FileUtils.mv(manifest_copy, pkg_set_manifest_file)
                         process_events

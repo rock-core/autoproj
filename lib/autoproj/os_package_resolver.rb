@@ -1,5 +1,5 @@
-require 'tempfile'
-require 'json'
+require "tempfile"
+require "json"
 
 module Autoproj
     # Manager for packages provided by external package managers
@@ -40,16 +40,16 @@ module Autoproj
         attr_reader :ws
 
         def self.autodetect_ruby_program
-            ruby = RbConfig::CONFIG['RUBY_INSTALL_NAME']
-            ruby_bindir = RbConfig::CONFIG['bindir']
+            ruby = RbConfig::CONFIG["RUBY_INSTALL_NAME"]
+            ruby_bindir = RbConfig::CONFIG["bindir"]
             ruby_executable = File.join(ruby_bindir, ruby)
-            Autobuild.programs['ruby'] = ruby_executable
+            Autobuild.programs["ruby"] = ruby_executable
             ruby_executable
         end
 
-        AUTOPROJ_OSDEPS = File.join(__dir__, 'default.osdeps')
+        AUTOPROJ_OSDEPS = File.join(__dir__, "default.osdeps")
         def self.load_default
-            file = ENV['AUTOPROJ_DEFAULT_OSDEPS'] || AUTOPROJ_OSDEPS
+            file = ENV["AUTOPROJ_DEFAULT_OSDEPS"] || AUTOPROJ_OSDEPS
             unless File.file?(file)
                 Autoproj.warn "#{file} (from AUTOPROJ_DEFAULT_OSDEPS) is not a file, "\
                     "falling back to #{AUTOPROJ_OSDEPS}"
@@ -76,14 +76,14 @@ module Autoproj
         #
         # we need to be able to separate between OS and package manager names.
         OS_PACKAGE_MANAGERS = {
-            'debian' => 'apt-dpkg',
-            'gentoo' => 'emerge',
-            'arch' => 'pacman',
-            'fedora' => 'yum',
-            'macos-port' => 'macports',
-            'macos-brew' => 'brew',
-            'opensuse' => 'zypper',
-            'freebsd' => 'pkg'
+            "debian" => "apt-dpkg",
+            "gentoo" => "emerge",
+            "arch" => "pacman",
+            "fedora" => "yum",
+            "macos-port" => "macports",
+            "macos-brew" => "brew",
+            "opensuse" => "zypper",
+            "freebsd" => "pkg"
         }.freeze
 
         # The information contained in the OSdeps files, as a hash
@@ -123,7 +123,7 @@ module Autoproj
             unless @os_package_manager
                 os_names, = operating_system
                 os_name = os_names.find { |name| OS_PACKAGE_MANAGERS[name] }
-                @os_package_manager = OS_PACKAGE_MANAGERS[os_name] || 'unknown'
+                @os_package_manager = OS_PACKAGE_MANAGERS[os_name] || "unknown"
             end
             @os_package_manager
         end
@@ -139,9 +139,9 @@ module Autoproj
         # The Gem::SpecFetcher object that should be used to query RubyGems, and
         # install RubyGems packages
         def initialize(defs = Hash.new, file = nil,
-                       operating_system: nil,
-                       package_managers: PACKAGE_MANAGERS.dup,
-                       os_package_manager: nil)
+            operating_system: nil,
+            package_managers: PACKAGE_MANAGERS.dup,
+            os_package_manager: nil)
             @definitions = defs.to_hash
             @resolve_package_cache = Hash.new
             @all_definitions = Hash.new { |h, k| h[k] = Array.new }
@@ -209,8 +209,9 @@ module Autoproj
             invalidate_resolve_package_cache
 
             @sources = sources.merge(info.sources)
-            @all_definitions = all_definitions.
-                merge(info.all_definitions) do |_package_name, all_defs, new_all_defs|
+            @all_definitions =
+                all_definitions
+                .merge(info.all_definitions) do |_package_name, all_defs, new_all_defs|
                     all_defs = all_defs.dup
                     new_all_defs = new_all_defs.dup
                     new_all_defs.delete_if do |files, data|
@@ -226,7 +227,7 @@ module Autoproj
         #
         # Warn about a collision (override) detected during #merge
         def warn_about_merge_collisions(merged_info, suffixes, key,
-                                        _old_value, _new_value)
+            _old_value, _new_value)
             old = source_of(key)
             new = merged_info.source_of(key)
 
@@ -234,14 +235,19 @@ module Autoproj
 
             # Warn if the new osdep definition resolves to a different
             # set of packages than the old one
-            old_resolved = resolve_package(key, resolve_recursive: false).
-                each_with_object(Hash.new) do |(handler, status, list), osdep_h|
+            old_resolved =
+                resolve_package(key, resolve_recursive: false)
+                .each_with_object(Hash.new) do |(handler, status, list), osdep_h|
                     osdep_h[handler] = [status, list.dup]
                 end
-            new_resolved = merged_info.resolve_package(key, resolve_recursive: false).
-                each_with_object(Hash.new) do |(handler, status, list), osdep_h|
+
+            new_resolved =
+                merged_info
+                .resolve_package(key, resolve_recursive: false)
+                .each_with_object(Hash.new) do |(handler, status, list), osdep_h|
                     osdep_h[handler] = [status, list.dup]
                 end
+
             if old_resolved != new_resolved
                 Autoproj.warn "osdeps definition for #{key}, "\
                     "previously defined in #{old} overridden by #{new}:"
@@ -292,35 +298,35 @@ module Autoproj
         # system on which we are installed
         def supported_operating_system?
             if @supported_operating_system.nil?
-                @supported_operating_system = (os_package_manager != 'unknown')
+                @supported_operating_system = (os_package_manager != "unknown")
             end
             @supported_operating_system
         end
 
         def self.guess_operating_system
-            if File.exist?('/etc/debian_version')
-                versions = [File.read('/etc/debian_version').strip]
+            if File.exist?("/etc/debian_version")
+                versions = [File.read("/etc/debian_version").strip]
                 versions = %w[unstable sid] if versions.first =~ /sid/
-                [['debian'], versions]
-            elsif File.exist?('/etc/redhat-release')
-                release_string = File.read('/etc/redhat-release').strip
+                [["debian"], versions]
+            elsif File.exist?("/etc/redhat-release")
+                release_string = File.read("/etc/redhat-release").strip
                 release_string =~ /(.*) release ([\d.]+)/
                 name = $1.downcase
                 version = $2
-                name = 'rhel' if name =~ /Red Hat Entreprise/
+                name = "rhel" if name =~ /Red Hat Entreprise/
                 [[name], [version]]
-            elsif File.exist?('/etc/gentoo-release')
-                release_string = File.read('/etc/gentoo-release').strip
+            elsif File.exist?("/etc/gentoo-release")
+                release_string = File.read("/etc/gentoo-release").strip
                 release_string =~ /^.*([^\s]+)$/
                 version = $1
-                [['gentoo'], [version]]
-            elsif File.exist?('/etc/arch-release')
-                [['arch'], []]
+                [["gentoo"], [version]]
+            elsif File.exist?("/etc/arch-release")
+                [["arch"], []]
             elsif Autobuild.macos?
                 version = `sw_vers | head -2 | tail -1`.split(":")[1]
                 manager =
-                    ENV['AUTOPROJ_MACOSX_PACKAGE_MANAGER'] ||
-                    'macos-brew'
+                    ENV["AUTOPROJ_MACOSX_PACKAGE_MANAGER"] ||
+                    "macos-brew"
                 unless OS_PACKAGE_MANAGERS.key?(manager)
                     known_managers = OS_PACKAGE_MANAGERS.keys.grep(/^macos/)
                     raise ArgumentError, "#{manager} is not a known MacOSX "\
@@ -329,32 +335,32 @@ module Autoproj
                 end
 
                 managers =
-                    if manager == 'macos-port'
-                        [manager, 'port']
+                    if manager == "macos-port"
+                        [manager, "port"]
                     else [manager]
                     end
-                [[*managers, 'darwin'], [version.strip]]
+                [[*managers, "darwin"], [version.strip]]
             elsif Autobuild.windows?
-                [['windows'], []]
-            elsif File.exist?('/etc/SuSE-release')
-                version = File.read('/etc/SuSE-release').strip
+                [["windows"], []]
+            elsif File.exist?("/etc/SuSE-release")
+                version = File.read("/etc/SuSE-release").strip
                 version =~ /.*VERSION\s+=\s+([^\s]+)/
                 version = $1
-                [['opensuse'], [version.strip]]
+                [["opensuse"], [version.strip]]
             elsif Autobuild.freebsd?
                 version = `uname -r`.strip.split("-")[0]
-                [['freebsd'], [version]]
+                [["freebsd"], [version]]
             end
         end
 
         def self.ensure_derivatives_refer_to_their_parents(names)
             names = names.dup
             version_files = Hash[
-                '/etc/debian_version' => 'debian',
-                '/etc/redhat-release' => 'fedora',
-                '/etc/gentoo-release' => 'gentoo',
-                '/etc/arch-release' => 'arch',
-                '/etc/SuSE-release' => 'opensuse']
+                "/etc/debian_version" => "debian",
+                "/etc/redhat-release" => "fedora",
+                "/etc/gentoo-release" => "gentoo",
+                "/etc/arch-release" => "arch",
+                "/etc/SuSE-release" => "opensuse"]
             version_files.each do |file, name|
                 names << name if File.exist?(file) && !names.include?(name)
             end
@@ -365,7 +371,7 @@ module Autoproj
             # Normalize the names to lowercase
             names    = names.map(&:downcase)
             versions = versions.map(&:downcase)
-            versions += ['default'] unless versions.include?('default')
+            versions += ["default"] unless versions.include?("default")
             [names, versions]
         end
 
@@ -395,13 +401,13 @@ module Autoproj
         #
         # Examples: ['debian', ['sid', 'unstable']] or ['ubuntu', ['lucid lynx', '10.04']]
         def self.autodetect_operating_system
-            if (user_os = ENV['AUTOPROJ_OS'])
+            if (user_os = ENV["AUTOPROJ_OS"])
                 if user_os.empty?
                     return false
                 else
-                    names, versions = user_os.split(':')
+                    names, versions = user_os.split(":")
                     return normalize_os_representation(
-                        names.split(','), versions.split(','))
+                        names.split(","), versions.split(","))
                 end
             end
 
@@ -415,8 +421,8 @@ module Autoproj
                 # flavour. it seems that "/etc/debian_version" does not contain
                 # "sid" (but "8.0" for example) during the feature freeze
                 # phase...
-                if File.exist?('/etc/debian_version')
-                    debian_versions = [File.read('/etc/debian_version').strip]
+                if File.exist?("/etc/debian_version")
+                    debian_versions = [File.read("/etc/debian_version").strip]
                     versions = %w[unstable sid] if debian_versions.first =~ /sid/
                 end
                 # otherwise "versions" contains the result it previously had
@@ -428,7 +434,7 @@ module Autoproj
             [names, versions]
         end
 
-        def self.os_from_os_release(filename = '/etc/os-release')
+        def self.os_from_os_release(filename = "/etc/os-release")
             return unless File.exist?(filename)
 
             fields = Hash.new
@@ -444,15 +450,15 @@ module Autoproj
 
             names = []
             versions = []
-            names << fields['ID'] << fields['ID_LIKE']
-            versions << fields['VERSION_ID']
-            version = fields['VERSION'] || ''
-            versions.concat(version.gsub(/[^\w.]/, ' ').split(' '))
+            names << fields["ID"] << fields["ID_LIKE"]
+            versions << fields["VERSION_ID"]
+            version = fields["VERSION"] || ""
+            versions.concat(version.gsub(/[^\w.]/, " ").split(" "))
             [names.compact.uniq, versions.compact.uniq]
         end
 
         def self.os_from_lsb
-            return unless Autobuild.find_in_path('lsb_release')
+            return unless Autobuild.find_in_path("lsb_release")
 
             distributor = [`lsb_release -i -s`.strip.downcase]
             codename    = `lsb_release -c -s`.strip.downcase
@@ -481,7 +487,7 @@ module Autoproj
         # calling {#resolve_package} with resolve_recursive set to false
         class OSDepRecursiveResolver
             def self.to_s
-                'osdep'.freeze
+                "osdep".freeze
             end
         end
 
@@ -518,14 +524,14 @@ module Autoproj
             # package managers and os-independent package managers selected by
             # OS or version
             if os_names.empty?
-                os_names = ['default']
-                os_versions = ['default']
+                os_names = ["default"]
+                os_versions = ["default"]
             else
                 os_names = os_names.dup
                 if prefer_indep_over_os_packages?
-                    os_names.unshift 'default'
+                    os_names.unshift "default"
                 else
-                    os_names.push 'default'
+                    os_names.push "default"
                 end
             end
 
@@ -543,7 +549,7 @@ module Autoproj
 
             # Recursive resolutions
             found, pkg = partition_osdep_entry(
-                name, dep_def, ['osdep'], [], os_names, os_versions)
+                name, dep_def, ["osdep"], [], os_names, os_versions)
             if found
                 if resolve_recursive
                     pkg.each do |pkg_name|
@@ -672,14 +678,14 @@ module Autoproj
         end
 
         def partition_osdep_raw_array_entry(names, osdep_name, handler_names,
-                                            excluded, keys, additional_keys)
+            excluded, keys, additional_keys)
             have_handler_names = true if handler_names
 
             # Raw array of packages. Possible only if we are not at toplevel
             # (i.e. if we already have a handler)
-            if names == 'ignore'
+            if names == "ignore"
                 [!have_handler_names, false, []]
-            elsif names == 'nonexistent'
+            elsif names == "nonexistent"
                 [false, !have_handler_names, []]
             elsif !handler_names && names.kind_of?(Array)
                 [true, false, names]
@@ -709,14 +715,18 @@ module Autoproj
         end
 
         def partition_osdep_map_entry(names, values, osdep_name, handler_names,
-                                      excluded, keys, found_keys, additional_keys)
+            excluded, keys, found_keys, additional_keys)
             # names could be an array already
-            names = names.split(',') if names.respond_to?(:to_str)
+            names = names.split(",") if names.respond_to?(:to_str)
             result = [false, false, []]
 
             if handler_names
                 matching_handler = handler_names.
-                    find { |k| names.any? { |name_tag| k == name_tag.downcase } }
+                                   find do |k|
+                    names.any? do |name_tag|
+                        k == name_tag.downcase
+                    end
+                end
                 if matching_handler
                     rec_found, rec_result = partition_osdep_entry(
                         osdep_name, values, nil, excluded, keys, *additional_keys)
@@ -729,7 +739,7 @@ module Autoproj
             end
 
             matching_name = keys.
-                find { |k| names.any? { |name_tag| k == name_tag.downcase } }
+                            find { |k| names.any? { |name_tag| k == name_tag.downcase } }
             return result unless matching_name
 
             rec_found, rec_result = partition_osdep_entry(
@@ -864,12 +874,12 @@ module Autoproj
             end
             if failed.empty?
                 if resolved.empty?
-                    return IGNORE
+                    IGNORE
                 else
-                    return AVAILABLE
+                    AVAILABLE
                 end
             else
-                return NONEXISTENT
+                NONEXISTENT
             end
         end
     end

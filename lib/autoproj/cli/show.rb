@@ -1,5 +1,5 @@
-require 'autoproj'
-require 'autoproj/cli/inspection_tool'
+require "autoproj"
+require "autoproj/cli/inspection_tool"
 
 module Autoproj
     module CLI
@@ -29,7 +29,7 @@ module Autoproj
                 end
 
                 if package_set_names.empty? && source_packages.empty? && all_matching_osdeps.empty?
-                    Autoproj.error "no package set, packages or OS packages match #{user_selection.join(" ")}"
+                    Autoproj.error "no package set, packages or OS packages match #{user_selection.join(' ')}"
                     return
                 elsif !source_packages.empty? || !all_matching_osdeps.empty?
                     ws.load_all_available_package_manifests
@@ -48,7 +48,7 @@ module Autoproj
                         puts "pkg     #{name}"
                     end
                     all_matching_osdeps.each do |name, sel|
-                        puts "osdep   #{name} (#{sel ? "not selected" : "selected"})"
+                        puts "osdep   #{name} (#{sel ? 'not selected' : 'selected'})"
                     end
                 else
                     package_set_names.each do |pkg_set_name|
@@ -87,14 +87,14 @@ module Autoproj
                 if size == 0
                     puts "  does not have any packages"
                 else
-                    puts "  refers to #{metapackage.size} package#{'s' if metapackage.size > 1}"
+                    plural = metapackage.size > 1 ? "s" : ""
+                    puts "  refers to #{metapackage.size} package#{plural}"
                 end
                 names = metapackage.each_package.map(&:name).sort
                 package_lines = names.each_slice(package_per_line).map do |*line_names|
                     line_names.join(", ")
                 end
-                puts "    " + package_lines.join(",\n    ")
-
+                puts "    #{package_lines.join(",\n    ")}"
             end
 
             def display_source_package(pkg_name, default_packages, revdeps, options = Hash.new)
@@ -110,9 +110,9 @@ module Autoproj
                 display_vcs(vcs)
                 display_common_information(pkg_name, default_packages, revdeps)
 
-                puts "  directly depends on: #{pkg.dependencies.sort.join(", ")}"
-                puts "  optionally depends on: #{pkg.optional_dependencies.sort.join(", ")}"
-                puts "  dependencies on OS packages: #{pkg.os_packages.sort.join(", ")}"
+                puts "  directly depends on: #{pkg.dependencies.sort.join(', ')}"
+                puts "  optionally depends on: #{pkg.optional_dependencies.sort.join(', ')}"
+                puts "  dependencies on OS packages: #{pkg.os_packages.sort.join(', ')}"
                 if options[:env]
                     puts "  environment"
                     pkg.resolved_env.sort_by(&:first).each do |name, v|
@@ -141,9 +141,9 @@ module Autoproj
                             if entry.package_set && entry.file
                                 "#{entry.package_set.name} (#{entry.file})"
                             elsif entry.package_set
-                                "#{entry.package_set.name}"
+                                entry.package_set.name.to_s
                             elsif entry.file
-                                "#{entry.file}"
+                                entry.file.to_s
                             end
 
                         title = if first
@@ -172,7 +172,7 @@ module Autoproj
                 puts Autoproj.color("the osdep '#{pkg_name}'", :bold)
                 begin
                     ws.os_package_resolver.resolve_os_packages([pkg_name]).each do |manager_name, packages|
-                        puts "  #{manager_name}: #{packages.map { |*subnames| subnames.join(" ") }.join(", ")}"
+                        puts "  #{manager_name}: #{packages.map { |*subnames| subnames.join(' ') }.join(', ')}"
                     end
                 rescue MissingOSDep => e
                     puts "  #{e.message}"
@@ -185,13 +185,12 @@ module Autoproj
                 entries = ws.os_package_resolver.all_definitions[pkg_name]
                 puts "  #{entries.inject(0) { |c, (files, _)| c + files.size }} matching entries:"
                 entries.each do |files, entry|
-                    puts "    in #{files.join(", ")}:"
+                    puts "    in #{files.join(', ')}:"
                     lines = YAML.dump(entry).split("\n")
-                    lines[0] = lines[0].gsub(/---\s*/, '')
-                    if lines[0].empty?
-                        lines.shift
-                    end
-                    puts "        " + lines.join("\n      ")
+                    lines[0] = lines[0].gsub(/---\s*/, "")
+                    lines.shift if lines[0].empty?
+
+                    puts "        #{lines.join("\n      ")}"
                 end
                 display_common_information(pkg_name, default_packages, revdeps)
             end
@@ -204,7 +203,7 @@ module Autoproj
                     else
                         layout_selection = layout_selection.dup
                         layout_selection.delete(pkg_name)
-                        puts "  is directly selected by the manifest via #{layout_selection.to_a.join(", ")}"
+                        puts "  is directly selected by the manifest via #{layout_selection.to_a.join(', ')}"
                     end
                 else
                     puts "  is not directly selected by the manifest"
@@ -221,8 +220,8 @@ module Autoproj
                 if pkg_revdeps.empty?
                     puts "  no reverse dependencies"
                 else
-                    puts "  direct reverse dependencies: #{pkg_revdeps.sort.join(", ")}"
-                    puts "  recursive reverse dependencies: #{all_revdeps.sort.join(", ")}"
+                    puts "  direct reverse dependencies: #{pkg_revdeps.sort.join(', ')}"
+                    puts "  recursive reverse dependencies: #{all_revdeps.sort.join(', ')}"
                 end
 
                 selections = Set.new
@@ -241,7 +240,7 @@ module Autoproj
                             puts "    FAILED"
                         else
                             paths.sort.uniq.each do |p|
-                                puts "    #{p.join(">")}"
+                                puts "    #{p.join('>')}"
                             end
                         end
                     end
@@ -285,8 +284,8 @@ module Autoproj
             def vcs_to_array(vcs)
                 if vcs.kind_of?(Hash)
                     options = vcs.dup
-                    type = options.delete('type')
-                    url  = options.delete('url')
+                    type = options.delete("type")
+                    url  = options.delete("url")
                 else
                     options = vcs.options
                     type = vcs.type
@@ -294,8 +293,8 @@ module Autoproj
                 end
 
                 fields = []
-                fields << ['type', type] if type
-                fields << ['url', url] if url
+                fields << ["type", type] if type
+                fields << ["url", url] if url
                 fields = fields.concat(options.to_a.sort_by { |k, _| k.to_s })
                 fields.map do |key, value|
                     if value.respond_to?(:to_str) && File.file?(value) && value =~ /^\//

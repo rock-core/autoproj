@@ -1,5 +1,5 @@
-require 'autoproj/test'
-require 'autoproj/cli/clean'
+require "autoproj/test"
+require "autoproj/cli/clean"
 
 module Autoproj
     module CLI
@@ -37,8 +37,8 @@ module Autoproj
             end
 
             it "cleans recursively if no packages have been given on the command line" do
-                pkg0 = ws_add_package_to_layout :cmake, 'package'
-                pkg1 = ws_define_package :cmake, 'other'
+                pkg0 = ws_add_package_to_layout :cmake, "package"
+                pkg1 = ws_define_package :cmake, "other"
                 pkg0.depends_on pkg1
                 flexmock(pkg0.autobuild).should_receive(:prepare_for_rebuild).once
                 flexmock(pkg1.autobuild).should_receive(:prepare_for_rebuild).once
@@ -46,8 +46,8 @@ module Autoproj
             end
 
             it "cleans only explicitely selected packages if no packages have been given on the command line and :deps is false" do
-                pkg0 = ws_add_package_to_layout :cmake, 'package'
-                pkg1 = ws_define_package :cmake, 'other'
+                pkg0 = ws_add_package_to_layout :cmake, "package"
+                pkg1 = ws_define_package :cmake, "other"
                 pkg0.depends_on pkg1
                 flexmock(pkg0.autobuild).should_receive(:prepare_for_rebuild).once
                 flexmock(pkg1.autobuild).should_receive(:prepare_for_rebuild).never
@@ -55,23 +55,22 @@ module Autoproj
             end
 
             it "cleans only explicitely given packages by default" do
-                pkg0 = ws_add_package_to_layout :cmake, 'package'
-                pkg1 = ws_define_package :cmake, 'other'
+                pkg0 = ws_add_package_to_layout :cmake, "package"
+                pkg1 = ws_define_package :cmake, "other"
                 pkg0.depends_on pkg1
                 flexmock(pkg0.autobuild).should_receive(:prepare_for_rebuild).once
                 flexmock(pkg1.autobuild).should_receive(:prepare_for_rebuild).never
-                cli.run(['package'])
+                cli.run(["package"])
             end
 
             it "cleans explicitely given packages and their dependency if :deps is set" do
-                pkg0 = ws_add_package_to_layout :cmake, 'package'
-                pkg1 = ws_define_package :cmake, 'other'
+                pkg0 = ws_add_package_to_layout :cmake, "package"
+                pkg1 = ws_define_package :cmake, "other"
                 pkg0.depends_on pkg1
                 flexmock(pkg0.autobuild).should_receive(:prepare_for_rebuild).once
                 flexmock(pkg1.autobuild).should_receive(:prepare_for_rebuild).once
-                cli.run(['package'], deps: true)
+                cli.run(["package"], deps: true)
             end
         end
     end
 end
-

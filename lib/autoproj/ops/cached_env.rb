@@ -1,9 +1,9 @@
-require 'autobuild/environment'
+require "autobuild/environment"
 
 module Autoproj
     module Ops
         def self.cached_env_path(root_dir)
-            File.join(root_dir, '.autoproj', 'env.yml')
+            File.join(root_dir, ".autoproj", "env.yml")
         end
 
         def self.load_cached_env(root_dir)
@@ -11,7 +11,7 @@ module Autoproj
             if File.file?(path)
                 env = YAML.safe_load(File.read(path))
                 Autobuild::Environment::ExportedEnvironment.new(
-                    env['set'], env['unset'], env['update'])
+                    env["set"], env["unset"], env["update"])
             end
         end
 
@@ -24,7 +24,7 @@ module Autoproj
                 rescue Exception
                 end
 
-            env = Hash['set' => env.set, 'unset' => env.unset, 'update' => env.update]
+            env = Hash["set" => env.set, "unset" => env.unset, "update" => env.update]
             if env != existing
                 Ops.atomic_write(path) do |io|
                     io.write YAML.dump(env)

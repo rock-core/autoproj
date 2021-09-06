@@ -1,5 +1,5 @@
-require 'autoproj/test'
-require 'autoproj/aruba_minitest'
+require "autoproj/test"
+require "autoproj/aruba_minitest"
 
 module Autoproj
     module CLI
@@ -11,12 +11,12 @@ module Autoproj
                     File.join("..", "..", "bin"), __dir__)
                 gemfile = generate_local_gemfile
                 run_command_and_stop "#{Gem.ruby} "\
-                    "#{File.join(@autoproj_bin_dir, "autoproj_install")} "\
+                    "#{File.join(@autoproj_bin_dir, 'autoproj_install')} "\
                     "--no-interactive --gemfile=#{gemfile}",
                     exit_timeout: 120
-                @bundle_bin = File.join(expand_path('.'),
+                @bundle_bin = File.join(expand_path("."),
                     ".autoproj", "bin", "bundle")
-                @autoproj_bin = File.join(expand_path('.'),
+                @autoproj_bin = File.join(expand_path("."),
                     ".autoproj", "bin", "autoproj")
             end
 
@@ -35,12 +35,12 @@ module Autoproj
                 run_command_and_stop(
                     "git clone https://github.com/rock-core/autoproj-ci"
                 )
-                cd 'autoproj-ci'
+                cd "autoproj-ci"
                 run_command_and_stop("git branch autoproj-test-suite")
                 head = run_command_and_stop("git rev-parse HEAD").stdout.strip
                 # Change HEAD and master
                 run_command_and_stop("git commit --allow-empty -m \"blank commit\"")
-                cd '..'
+                cd ".."
 
                 run_command_and_stop "#{@autoproj_bin} plugin install autoproj-ci "\
                                      "--git #{expand_path('autoproj-ci')} "\
@@ -60,4 +60,3 @@ module Autoproj
         end
     end
 end
-

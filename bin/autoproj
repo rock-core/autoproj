@@ -1,11 +1,11 @@
 #! /usr/bin/env ruby
 
-require 'autoproj/cli'
-require 'autoproj/cli/main'
+require "autoproj/cli"
+require "autoproj/cli/main"
 argv = Autoproj::CLI.basic_setup
 
 begin
     Autoproj::CLI::Main.start(argv)
-rescue Interrupt # rubocop:disable Lint/HandleExceptions
+rescue Interrupt
     # Already notified in the reporting infrastructure
 end

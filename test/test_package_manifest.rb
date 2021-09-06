@@ -1,18 +1,18 @@
-require 'autoproj/test'
+require "autoproj/test"
 
 module Autoproj
     describe PackageManifest do
         attr_reader :pkg
 
         before do
-            @pkg = flexmock(name: 'test')
+            @pkg = flexmock(name: "test")
         end
 
         it "raises a PackageException if the manifest is invalid" do
             e = assert_raises(Autobuild::PackageException) do
                 Autoproj::PackageManifest.parse(pkg, "<package")
             end
-            assert_equal 'test', e.target # the package name
+            assert_equal "test", e.target # the package name
         end
 
         it "is not null by default" do
@@ -33,7 +33,7 @@ module Autoproj
                 @manifest = PackageManifest.new(pkg)
             end
             it "calls #each_dependency from #each_package_dependency" do
-                block = Proc.new {}
+                block = proc {}
                 flexmock(manifest).should_receive(:each_dependency).once.
                     with(modes = flexmock, block)
                 _, err = capture_deprecation_message do
@@ -42,7 +42,7 @@ module Autoproj
                 assert_match(/WARN: Autoproj::PackageManifest#each_package_dependency is deprecated, call #each_dependency instead/, err)
             end
             it "calls #each_dependency from #each_os_dependency" do
-                block = Proc.new {}
+                block = proc {}
                 flexmock(manifest).should_receive(:each_dependency).once.
                     with(modes = flexmock, block)
                 _, err = capture_deprecation_message do
@@ -124,11 +124,11 @@ module Autoproj
                 end
                 it "parses the name attribute" do
                     dependency = parse_dependency("<package><depend name='test'/></package>")
-                    assert_equal 'test', dependency.name
+                    assert_equal "test", dependency.name
                 end
                 it "parses the package attribute" do
                     dependency = parse_dependency("<package><depend package='test'/></package>")
-                    assert_equal 'test', dependency.name
+                    assert_equal "test", dependency.name
                 end
                 it "has no modes by default" do
                     dependency = parse_dependency("<package><depend package='test'/></package>")
@@ -136,7 +136,7 @@ module Autoproj
                 end
                 it "parses the modes attribute" do
                     dependency = parse_dependency("<package><depend package='test' modes='doc,test'/></package>")
-                    assert_equal ['doc', 'test'], dependency.modes
+                    assert_equal %w[doc test], dependency.modes
                 end
                 it "handles an empty modes attribute" do
                     dependency = parse_dependency("<package><depend package='test' modes=''/></package>")
@@ -164,11 +164,11 @@ module Autoproj
                 end
                 it "parses the name attribute" do
                     dependency = parse_dependency("<package><depend_optional name='test'/></package>")
-                    assert_equal 'test', dependency.name
+                    assert_equal "test", dependency.name
                 end
                 it "parses the package attribute" do
                     dependency = parse_dependency("<package><depend_optional package='test'/></package>")
-                    assert_equal 'test', dependency.name
+                    assert_equal "test", dependency.name
                 end
                 it "is optional by default" do
                     dependency = parse_dependency("<package><depend_optional package='test'/></package>")
@@ -184,7 +184,7 @@ module Autoproj
                 end
                 it "parses a depend_optional tag modes attribute" do
                     dependency = parse_dependency("<package><depend_optional package='test' modes='doc,test'/></package>")
-                    assert_equal ['doc', 'test'], dependency.modes
+                    assert_equal %w[doc test], dependency.modes
                 end
             end
 
@@ -196,23 +196,23 @@ module Autoproj
                 end
                 it "parses the name attribute" do
                     dependency = parse_dependency("<package><doc_depend name='test'/></package>")
-                    assert_equal 'test', dependency.name
+                    assert_equal "test", dependency.name
                 end
                 it "parses the package attribute" do
                     dependency = parse_dependency("<package><doc_depend package='test'/></package>")
-                    assert_equal 'test', dependency.name
+                    assert_equal "test", dependency.name
                 end
                 it "has the tag's mode by default" do
                     dependency = parse_dependency("<package><doc_depend package='test'/></package>")
-                    assert_equal ['doc'], dependency.modes
+                    assert_equal ["doc"], dependency.modes
                 end
                 it "adds the values of the 'modes' attribute" do
                     dependency = parse_dependency("<package><doc_depend package='test' modes='test'/></package>")
-                    assert_equal ['doc', 'test'], dependency.modes
+                    assert_equal %w[doc test], dependency.modes
                 end
                 it "handles an empty modes attribute" do
                     dependency = parse_dependency("<package><doc_depend package='test' modes=''/></package>")
-                    assert_equal ['doc'], dependency.modes
+                    assert_equal ["doc"], dependency.modes
                 end
                 it "is not optional by default" do
                     dependency = parse_dependency("<package><doc_depend package='test'/></package>")
@@ -236,11 +236,11 @@ module Autoproj
                 end
                 it "parses the name attribute" do
                     dependency = parse_dependency("<package><rosdep name='test'/></package>")
-                    assert_equal 'test', dependency.name
+                    assert_equal "test", dependency.name
                 end
                 it "parses the package attribute" do
                     dependency = parse_dependency("<package><rosdep package='test'/></package>")
-                    assert_equal 'test', dependency.name
+                    assert_equal "test", dependency.name
                 end
                 it "has no modes by default" do
                     dependency = parse_dependency("<package><rosdep package='test'/></package>")
@@ -248,7 +248,7 @@ module Autoproj
                 end
                 it "parses the modes attribute" do
                     dependency = parse_dependency("<package><rosdep package='test' modes='doc,test'/></package>")
-                    assert_equal ['doc', 'test'], dependency.modes
+                    assert_equal %w[doc test], dependency.modes
                 end
                 it "handles an empty modes attribute" do
                     dependency = parse_dependency("<package><rosdep package='test' modes=''/></package>")
@@ -271,40 +271,40 @@ module Autoproj
 
         describe "authors" do
             it "parses the author tag" do
-                manifest = PackageManifest.parse(pkg, '<package><author>Firstname Lastname/name@domain</author><author>Author2/author2@domain</author></package>')
-                assert_equal [PackageManifest::ContactInfo.new('Firstname Lastname', 'name@domain'),
-                              PackageManifest::ContactInfo.new('Author2', 'author2@domain')], manifest.authors
+                manifest = PackageManifest.parse(pkg, "<package><author>Firstname Lastname/name@domain</author><author>Author2/author2@domain</author></package>")
+                assert_equal [PackageManifest::ContactInfo.new("Firstname Lastname", "name@domain"),
+                              PackageManifest::ContactInfo.new("Author2", "author2@domain")], manifest.authors
             end
             it "yields the author names and emails" do
                 manifest = PackageManifest.new(pkg)
-                manifest.authors << PackageManifest::ContactInfo.new('name', 'email')
-                assert_equal [['name', 'email']], manifest.each_author.to_a
+                manifest.authors << PackageManifest::ContactInfo.new("name", "email")
+                assert_equal [%w[name email]], manifest.each_author.to_a
             end
         end
 
         describe "maintainers" do
             it "parses the maintainer tag" do
-                manifest = PackageManifest.parse(pkg, '<package><maintainer>Firstname Lastname/name@domain</maintainer><maintainer>Author2/author2@domain</maintainer></package>')
-                assert_equal [PackageManifest::ContactInfo.new('Firstname Lastname', 'name@domain'),
-                              PackageManifest::ContactInfo.new('Author2', 'author2@domain')], manifest.maintainers
+                manifest = PackageManifest.parse(pkg, "<package><maintainer>Firstname Lastname/name@domain</maintainer><maintainer>Author2/author2@domain</maintainer></package>")
+                assert_equal [PackageManifest::ContactInfo.new("Firstname Lastname", "name@domain"),
+                              PackageManifest::ContactInfo.new("Author2", "author2@domain")], manifest.maintainers
             end
             it "yields the maintainer names and emails" do
                 manifest = PackageManifest.new(pkg)
-                manifest.maintainers << PackageManifest::ContactInfo.new('name', 'email')
-                assert_equal [['name', 'email']], manifest.each_maintainer.to_a
+                manifest.maintainers << PackageManifest::ContactInfo.new("name", "email")
+                assert_equal [%w[name email]], manifest.each_maintainer.to_a
             end
         end
 
         describe "#each_rock_maintainer" do
             it "parses the rock_maintainer tag" do
-                manifest = PackageManifest.parse(pkg, '<package><rock_maintainer>Firstname Lastname/name@domain</rock_maintainer><rock_maintainer>Author2/author2@domain</rock_maintainer></package>')
-                assert_equal [PackageManifest::ContactInfo.new('Firstname Lastname', 'name@domain'),
-                              PackageManifest::ContactInfo.new('Author2', 'author2@domain')], manifest.rock_maintainers
+                manifest = PackageManifest.parse(pkg, "<package><rock_maintainer>Firstname Lastname/name@domain</rock_maintainer><rock_maintainer>Author2/author2@domain</rock_maintainer></package>")
+                assert_equal [PackageManifest::ContactInfo.new("Firstname Lastname", "name@domain"),
+                              PackageManifest::ContactInfo.new("Author2", "author2@domain")], manifest.rock_maintainers
             end
             it "yields the rock maintainer names and emails" do
                 manifest = PackageManifest.new(pkg)
-                manifest.rock_maintainers << PackageManifest::ContactInfo.new('name', 'email')
-                assert_equal [['name', 'email']], manifest.each_rock_maintainer.to_a
+                manifest.rock_maintainers << PackageManifest::ContactInfo.new("name", "email")
+                assert_equal [%w[name email]], manifest.each_rock_maintainer.to_a
             end
         end
 
@@ -314,27 +314,27 @@ module Autoproj
                 @manifest = PackageManifest.new(pkg)
             end
             it "yields the dependency names and optional attribute" do
-                manifest.add_dependency 'mandatory'
-                manifest.add_dependency 'optional', optional: true
-                assert_equal Set[['mandatory', false], ['optional', true]],
+                manifest.add_dependency "mandatory"
+                manifest.add_dependency "optional", optional: true
+                assert_equal Set[["mandatory", false], ["optional", true]],
                     manifest.each_dependency.to_set
             end
             it "does not yield dependencies restricted to certain modes if the mode is not provided" do
-                manifest.add_dependency 'test', modes: ['doc']
+                manifest.add_dependency "test", modes: ["doc"]
                 assert_equal Set[],
                     manifest.each_dependency.to_set
             end
             it "does yield dependencies that have no mode restriction a mode is provided" do
-                manifest.add_dependency 'general'
-                manifest.add_dependency 'doc', modes: ['doc']
-                assert_equal Set[['general', false], ['doc', false]],
-                    manifest.each_dependency(['doc']).to_set
+                manifest.add_dependency "general"
+                manifest.add_dependency "doc", modes: ["doc"]
+                assert_equal Set[["general", false], ["doc", false]],
+                    manifest.each_dependency(["doc"]).to_set
             end
             it "does yield dependencies restricted to certain modes if the mode is provided" do
-                manifest.add_dependency 'test', modes: ['test']
-                manifest.add_dependency 'doc_and_test', modes: ['doc', 'test']
-                assert_equal Set[['test', false], ['doc_and_test', false]],
-                    manifest.each_dependency(['test']).to_set
+                manifest.add_dependency "test", modes: ["test"]
+                manifest.add_dependency "doc_and_test", modes: %w[doc test]
+                assert_equal Set[["test", false], ["doc_and_test", false]],
+                    manifest.each_dependency(["test"]).to_set
             end
         end
 
@@ -397,7 +397,7 @@ module Autoproj
                         end
                         it "parses the dependency name" do
                             dependency = parse_dependency("<package><#{tag}>test</#{tag}></package>")
-                            assert_equal 'test', dependency.name
+                            assert_equal "test", dependency.name
                         end
                         it "is not optional" do
                             dependency = parse_dependency("<package><#{tag}>test</#{tag}></package>")
@@ -415,7 +415,7 @@ module Autoproj
                         end
                         it "parses the dependency name and mode" do
                             dependency = parse_dependency("<package><#{tag}>test</#{tag}></package>")
-                            assert_equal 'test', dependency.name
+                            assert_equal "test", dependency.name
                             assert_equal [mode], dependency.modes
                         end
                         it "is not optional" do
@@ -429,21 +429,21 @@ module Autoproj
             describe "authors" do
                 it "parses the author tag" do
                     manifest = subject_parse('<package><author email="name@domain">Firstname Lastname</author><author email="author2@domain">Author2</author></package>')
-                    assert_equal [PackageManifest::ContactInfo.new('Firstname Lastname', 'name@domain'),
-                                  PackageManifest::ContactInfo.new('Author2', 'author2@domain')], manifest.authors
+                    assert_equal [PackageManifest::ContactInfo.new("Firstname Lastname", "name@domain"),
+                                  PackageManifest::ContactInfo.new("Author2", "author2@domain")], manifest.authors
                 end
             end
 
             describe "maintainers" do
                 it "parses the maintainer tag" do
                     manifest = subject_parse('<package><maintainer email="name@domain">Firstname Lastname</maintainer><maintainer email="author2@domain">Author2</maintainer></package>')
-                    assert_equal [PackageManifest::ContactInfo.new('Firstname Lastname', 'name@domain'),
-                                  PackageManifest::ContactInfo.new('Author2', 'author2@domain')], manifest.maintainers
+                    assert_equal [PackageManifest::ContactInfo.new("Firstname Lastname", "name@domain"),
+                                  PackageManifest::ContactInfo.new("Author2", "author2@domain")], manifest.maintainers
                 end
             end
         end
 
-        #def test_complete_manifest
+        # def test_complete_manifest
         #    deps = [['dep1', false], ['dep2', false]]
         #    opt_deps = [['opt_dep1', true], ['opt_dep2', true]]
         #    osdeps = [['osdep1', false]]
@@ -458,9 +458,9 @@ module Autoproj
 
         #    assert_equal('the_url', manifest.url)
         #    assert_equal('BSD', manifest.license)
-        #end
+        # end
 
-        #def test_empty_manifest
+        # def test_empty_manifest
         #    data = File.join(DATA_DIR, 'empty_manifest.xml')
         #    manifest = Autoproj::PackageManifest.load(pkg, data)
 
@@ -475,18 +475,15 @@ module Autoproj
 
         #    assert_equal(nil, manifest.url)
         #    assert_equal(nil, manifest.license)
-        #end
+        # end
 
-        #def test_failure_on_wrong_document
+        # def test_failure_on_wrong_document
         #    data = File.join(DATA_DIR, 'invalid_manifest.xml')
         #    assert_raises(Autobuild::PackageException) { Autoproj::PackageManifest.load(pkg, data) }
-        #end
+        # end
     end
 end
 
 class TC_PackageManifest < Minitest::Test
-
-    DATA_DIR = File.expand_path('data', File.dirname(__FILE__))
-
+    DATA_DIR = File.expand_path("data", File.dirname(__FILE__))
 end
-

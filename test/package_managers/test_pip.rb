@@ -1,4 +1,4 @@
-require 'autoproj/test'
+require "autoproj/test"
 
 module Autoproj
     module PackageManagers
@@ -12,12 +12,12 @@ module Autoproj
                 ws.config.set("USE_PYTHON", true)
 
                 @pip_manager = PipManager.new(ws)
-                Autobuild.programs['pip'] = 'mypip'
+                Autobuild.programs["pip"] = "mypip"
             end
 
             def teardown
                 super
-                Autobuild.programs['pip'] = nil
+                Autobuild.programs["pip"] = nil
             end
 
             def test_install_packages
@@ -25,7 +25,7 @@ module Autoproj
 
                 packages = %w[pkg0 pkg1 pkg2]
                 subprocess.should_receive(:run).explicitly.
-                    with(any, any, 'mypip', 'install', '--user', 'pkg0', 'pkg1', 'pkg2', any).once
+                    with(any, any, "mypip", "install", "--user", "pkg0", "pkg1", "pkg2", any).once
                 pip_manager.install(packages)
             end
 
@@ -36,7 +36,7 @@ module Autoproj
                 pip_manager.silent = false
                 subprocess.should_receive(:run).explicitly.never
                 flexmock($stdin).should_receive(:readline).once.and_return
-                pip_manager.install([['pkg0']])
+                pip_manager.install([["pkg0"]])
             end
 
             def test_no_use_python

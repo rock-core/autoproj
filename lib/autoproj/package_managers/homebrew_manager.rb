@@ -16,7 +16,7 @@ module Autoproj
                 packages = packages.uniq
                 command_line = "brew info --json=v1 #{packages.join(' ')}"
                 result = Autoproj.bundler_with_unbundled_env do
-                    (Autobuild::Subprocess.run 'autoproj', 'osdeps', command_line).first
+                    (Autobuild::Subprocess.run "autoproj", "osdeps", command_line).first
                 end
 
                 begin
@@ -53,4 +53,3 @@ module Autoproj
         end
     end
 end
-

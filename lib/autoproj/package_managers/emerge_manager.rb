@@ -11,4 +11,3 @@ module Autoproj
         end
     end
 end
-

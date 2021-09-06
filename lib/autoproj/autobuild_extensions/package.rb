@@ -68,7 +68,7 @@ module Autoproj
             # package
             def remove_obsolete_installed_orogen_package(name)
                 post_install do
-                    path = File.join(prefix, 'lib', 'pkgconfig')
+                    path = File.join(prefix, "lib", "pkgconfig")
                     Dir.glob(File.join(path, "#{name}-*.pc")) do |pcfile|
                         Autoproj.message "  removing obsolete file #{pcfile}", :bold
                         FileUtils.rm_f pcfile
@@ -100,7 +100,7 @@ module Autoproj
             end
 
             def autoproj_name # :nodoc:
-                srcdir.gsub(/^#{Regexp.quote(ws.root_dir)}\//, '')
+                srcdir.gsub(/^#{Regexp.quote(ws.root_dir)}\//, "")
             end
 
             def depends_on(name)
@@ -169,21 +169,19 @@ module Autoproj
                     else raise Autoproj::InternalError, "expected package type to be either :osdeps or :package, got #{type.inspect}"
                     end
                 end
-                return pkg_autobuild, pkg_osdeps
+                [pkg_autobuild, pkg_osdeps]
             end
 
             def partition_optional_dependencies
                 packages, osdeps = [], []
                 optional_dependencies.each do |name|
-                    begin
-                        pkg_autobuild, pkg_osdeps = partition_package(name)
-                        packages.concat(pkg_autobuild)
-                        osdeps.concat(pkg_osdeps)
-                    rescue Autoproj::PackageNotFound
-                        # Simply ignore non-existent optional dependencies
-                    end
+                    pkg_autobuild, pkg_osdeps = partition_package(name)
+                    packages.concat(pkg_autobuild)
+                    osdeps.concat(pkg_osdeps)
+                rescue Autoproj::PackageNotFound
+                    # Simply ignore non-existent optional dependencies
                 end
-                return packages, osdeps
+                [packages, osdeps]
             end
         end
     end

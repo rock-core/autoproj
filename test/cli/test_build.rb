@@ -1,6 +1,6 @@
-require 'autoproj/test'
-require 'autoproj/cli/main'
-require 'autoproj/cli/build'
+require "autoproj/test"
+require "autoproj/cli/main"
+require "autoproj/cli/build"
 
 module Autoproj
     module CLI
@@ -22,7 +22,7 @@ module Autoproj
                         flexmock(Update).new_instances.
                             should_receive(:run).with([], hsh(deps: false)).once
                         in_ws do
-                            Main.start(['build', '-n', '--silent'])
+                            Main.start(["build", "-n", "--silent"])
                         end
                     end
                 end
@@ -33,10 +33,10 @@ module Autoproj
                     # during env.sh generation if the load failed, in case
                     # the layout could not be resolved
                     dir = make_tmpdir
-                    File.open(ws.manifest_file_path, 'w') do |io|
+                    File.open(ws.manifest_file_path, "w") do |io|
                         manifest_data = {
-                            'package_sets' => [dir],
-                            'layout' => ['some']
+                            "package_sets" => [dir],
+                            "layout" => ["some"]
                         }
                         YAML.dump(manifest_data, io)
                     end
@@ -61,15 +61,15 @@ module Autoproj
 
                 describe "the amake mode" do
                     it "sets the selection to the current directory" do
-                        selection, _ = cli.validate_options([], amake: true)
+                        selection, = cli.validate_options([], amake: true)
                         assert_equal ["#{Dir.pwd}/"], selection
                     end
                     it "leaves an explicit selection alone" do
-                        selection, _ = cli.validate_options(['/a/path'], amake: true)
-                        assert_equal ['/a/path'], selection
+                        selection, = cli.validate_options(["/a/path"], amake: true)
+                        assert_equal ["/a/path"], selection
                     end
                     it "leaves an empty selection alone if --all is given" do
-                        selection, _ = cli.validate_options([], amake: true, all: true)
+                        selection, = cli.validate_options([], amake: true, all: true)
                         assert_equal [], selection
                     end
                     it "sets the 'all' flag automatically if given no explicit arguments and the working directory is the workspace's root" do
@@ -80,7 +80,7 @@ module Autoproj
                     end
                     it "does not set the 'all' flag automatically if given explicit arguments even if the working directory is the workspace's root" do
                         Dir.chdir(ws.root_dir) do
-                            args, options = cli.validate_options(['arg'], amake: true)
+                            args, options = cli.validate_options(["arg"], amake: true)
                             refute options[:all]
                         end
                     end
@@ -89,6 +89,3 @@ module Autoproj
         end
     end
 end
-
-
-

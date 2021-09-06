@@ -1,5 +1,5 @@
-require 'tempfile'
-require 'json'
+require "tempfile"
+require "json"
 
 module Autoproj
     # Manager for OS repository provided by package sets
@@ -62,12 +62,12 @@ module Autoproj
         end
 
         def entry_matches?(entry, identifiers)
-            !(entry.keys.first.split(',').map(&:strip) & identifiers).empty?
+            !(entry.keys.first.split(",").map(&:strip) & identifiers).empty?
         end
 
         def resolved_entries
             os_name, os_version = operating_system
-            os_version << 'default' unless os_version.include?('default')
+            os_version << "default" unless os_version.include?("default")
 
             distribution_filtered = definitions.select do |entry|
                 entry_matches?(entry, os_name)

@@ -11,10 +11,14 @@ module Autoproj
             attr_reader :ws
 
             attr_writer :enabled
-            def enabled?; !!@enabled end
+            def enabled?
+                !!@enabled
+            end
 
             attr_writer :silent
-            def silent?; !!@silent end
+            def silent?
+                !!@silent
+            end
 
             # Whether this package manager should be called even if no packages
             # should be installed
@@ -68,4 +72,3 @@ module Autoproj
         end
     end
 end
-

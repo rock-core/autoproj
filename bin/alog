@@ -1,10 +1,10 @@
 #! /usr/bin/env ruby
 
-require 'autoproj/cli/main'
-require 'autoproj/cli/locate'
+require "autoproj/cli/main"
+require "autoproj/cli/locate"
 
 argv = Autoproj::CLI.basic_setup
-if argv.include?('--help') || argv.include?('help')
+if argv.include?("--help") || argv.include?("help")
     puts "Usage:"
     puts "  alog [package]"
     puts

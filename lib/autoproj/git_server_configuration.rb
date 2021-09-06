@@ -2,15 +2,15 @@ module Autoproj
     GIT_SERVER_CONFIG_VARS = %w{_ROOT _PUSH_ROOT _PRIVATE_ROOT}
 
     GIT_SERVER_ACCESS_METHODS = Hash[
-        'git' => 'git,ssh',
-        'ssh' => 'ssh,ssh',
-        'http' => 'http,http']
+        "git" => "git,ssh",
+        "ssh" => "ssh,ssh",
+        "http" => "http,http"]
 
 
     # @api private
     #
     # Helper for {.git_server_configuration}
-    def self.git_server_validate_config_value(base_url, value, disabled_methods: )
+    def self.git_server_validate_config_value(base_url, value, disabled_methods:)
         values = (GIT_SERVER_ACCESS_METHODS[value] || value).split(",")
         values.each do |access_method|
             if !GIT_SERVER_ACCESS_METHODS.has_key?(access_method)
@@ -25,7 +25,7 @@ module Autoproj
     # @api private
     #
     # Helper for {.git_server_configuration}
-    def self.git_server_resolve_master_config(name, config, base_url: , git_url: , http_url: , ssh_url: , disabled_methods: )
+    def self.git_server_resolve_master_config(name, config, base_url:, git_url:, http_url:, ssh_url:, disabled_methods:)
         access_mode = config.get(name)
         begin
             git_server_validate_config_value(base_url, access_mode, disabled_methods: disabled_methods)
@@ -35,7 +35,7 @@ module Autoproj
             access_mode = config.get(name)
         end
         access_mode = GIT_SERVER_ACCESS_METHODS[access_mode] || access_mode
-        pull, push, private_pull = access_mode.split(',')
+        pull, push, private_pull = access_mode.split(",")
         private_pull ||= push
         [[pull, "_ROOT"], [push, "_PUSH_ROOT"], [private_pull, "_PRIVATE_ROOT"]].each do |method, var_suffix|
             url = if method == "git" then git_url
@@ -44,7 +44,7 @@ module Autoproj
                   end
             config.set("#{name}#{var_suffix}", url)
         end
-        return pull, push, private_pull
+        [pull, push, private_pull]
     end
 
     # Adds the relevant options to handle a gitorious server
@@ -67,26 +67,27 @@ module Autoproj
     # which would be expanded to the expected URLs for pull and push.
     #
     def self.git_server_configuration(name, base_url,
-            git_url: "git://#{base_url}",
-            http_url: "https://git.#{base_url}",
-            ssh_url: "git@#{base_url}:",
-            default: 'http,ssh',
-            disabled_methods: [],
-            config: Autoproj.config,
-            fallback_to_http: nil,
-            lazy: false)
+        git_url: "git://#{base_url}",
+        http_url: "https://git.#{base_url}",
+        ssh_url: "git@#{base_url}:",
+        default: "http,ssh",
+        disabled_methods: [],
+        config: Autoproj.config,
+        fallback_to_http: nil,
+        lazy: false)
 
         disabled_methods = Array(disabled_methods)
 
         long_doc = [
-            "How should I interact with #{base_url} (#{(GIT_SERVER_ACCESS_METHODS.keys - disabled_methods).sort.join(", ")})",
+            "How should I interact with #{base_url} (#{(GIT_SERVER_ACCESS_METHODS.keys - disabled_methods).sort.join(', ')})",
             "If you give one value, it's going to be the method used for all access",
             "If you give multiple values, comma-separated, the first one will be",
             "used for pulling and the second one for pushing. An optional third value",
             "will be used to pull from private repositories (the same than pushing is",
-            "used by default)"]
+            "used by default)"
+        ]
 
-        config.declare name, 'string', default: default, doc: long_doc do |value|
+        config.declare name, "string", default: default, doc: long_doc do |value|
             git_server_validate_config_value(base_url, value, disabled_methods: disabled_methods)
         end
 
@@ -122,10 +123,10 @@ module Autoproj
                     config.get("#{name}_ROOT")
                 end
             push_base_url = config.get("#{name}_PUSH_ROOT")
-            Hash[type: 'git',
+            Hash[type: "git",
                  url: "#{pull_base_url}#{url}",
                  push_to: "#{push_base_url}#{url}",
-                 interactive: (private && private_pull == 'http'),
+                 interactive: (private && private_pull == "http"),
                  retry_count: 10,
                  repository_id: "#{name.downcase}:#{url}"].merge(vcs_options)
         end
@@ -141,6 +142,6 @@ module Autoproj
 end
 
 if !$autoproj_disable_github_gitorious_definitions
-    Autoproj.git_server_configuration('GITORIOUS', 'gitorious.org', default: 'http,ssh', disabled_methods: 'git', lazy: true)
-    Autoproj.git_server_configuration('GITHUB', 'github.com', http_url: 'https://github.com', default: 'http,ssh')
+    Autoproj.git_server_configuration("GITORIOUS", "gitorious.org", default: "http,ssh", disabled_methods: "git", lazy: true)
+    Autoproj.git_server_configuration("GITHUB", "github.com", http_url: "https://github.com", default: "http,ssh")
 end

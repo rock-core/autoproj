@@ -38,7 +38,7 @@ module Autoproj
                     first_line
                 else
                     remaining = remaining.join("\n").split("\n").join("\n    ")
-                    Autoproj.color(first_line, :bold) + "\n    " + remaining
+                    "#{Autoproj.color(first_line, :bold)}\n#{remaining}"
                 end
             else
                 doc
@@ -52,11 +52,11 @@ module Autoproj
         # default value
         def ensure_value(current_value)
             if !current_value.nil?
-                return current_value.to_s, false
+                [current_value.to_s, false]
             elsif options[:default]
-                return options[:default].to_str, true
+                [options[:default].to_str, true]
             else
-                return '', true
+                ["", true]
             end
         end
 
@@ -67,16 +67,15 @@ module Autoproj
         # @param [String] current_value the option's current value
         # @param [String] doc a string to override the default option banner
         def ask(current_value, doc = nil)
-            value,_ = ensure_value(current_value)
+            value, = ensure_value(current_value)
 
             STDOUT.print "  #{doc || self.doc} [#{value}] "
             STDOUT.flush
             answer = STDIN.readline.chomp
-            if answer == ''
+            if answer == ""
                 answer = value
             end
             validate(answer)
-
         rescue InputError => e
             Autoproj.message("invalid value: #{e.message}", :red)
             retry
@@ -96,7 +95,7 @@ module Autoproj
             elsif FALSE_STRINGS.include?(value.downcase)
                 false
             else
-                raise InputError, "invalid boolean value '#{value}', accepted values are '#{TRUE_STRINGS.join(", ")}' for true, and '#{FALSE_STRINGS.join(", ")} for false"
+                raise InputError, "invalid boolean value '#{value}', accepted values are '#{TRUE_STRINGS.join(', ')}' for true, and '#{FALSE_STRINGS.join(', ')} for false"
             end
         end
 
@@ -116,4 +115,3 @@ module Autoproj
         end
     end
 end
-

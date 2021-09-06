@@ -5,27 +5,25 @@ module Autoproj
         class ShellScriptManager < Manager
             def self.execute(command_line, with_locking, with_root, env: Autobuild.env)
                 if with_locking
-                    File.open('/tmp/autoproj_osdeps_lock', 'w') do |lock_io|
-                        begin
-                            until lock_io.flock(File::LOCK_EX | File::LOCK_NB)
-                                Autoproj.message "  waiting for other autoproj "\
-                                                 "instances to finish their osdeps "\
-                                                 "installation"
-                                sleep 5
-                            end
-                            return execute(command_line, false, with_root, env: env)
-                        ensure
-                            lock_io.flock(File::LOCK_UN)
+                    File.open("/tmp/autoproj_osdeps_lock", "w") do |lock_io|
+                        until lock_io.flock(File::LOCK_EX | File::LOCK_NB)
+                            Autoproj.message "  waiting for other autoproj "\
+                                                "instances to finish their osdeps "\
+                                                "installation"
+                            sleep 5
                         end
+                        return execute(command_line, false, with_root, env: env)
+                    ensure
+                        lock_io.flock(File::LOCK_UN)
                     end
                 end
 
                 if with_root
-                    sudo = Autobuild.tool_in_path('sudo', env: env)
+                    sudo = Autobuild.tool_in_path("sudo", env: env)
                     command_line = [sudo, *command_line]
                 end
 
-                Autobuild::Subprocess.run 'autoproj', 'osdeps', *command_line
+                Autobuild::Subprocess.run "autoproj", "osdeps", *command_line
             end
 
             # Overrides the {#needs_locking?} flag
@@ -90,7 +88,7 @@ module Autoproj
             # @param [Boolean] needs_root if the command lines should be started
             #   as root or not. See {#needs_root?}
             def initialize(ws, needs_locking, user_install_cmd,
-                           auto_install_cmd, needs_root = true)
+                auto_install_cmd, needs_root = true)
                 super(ws)
                 @needs_locking = needs_locking
                 @user_install_cmd = user_install_cmd
@@ -108,9 +106,9 @@ module Autoproj
             #   If given, it overrides the default value stored in
             #   {#user_install_cmd]
             def generate_user_os_script(os_packages,
-                                        user_install_cmd: self.user_install_cmd)
+                user_install_cmd: self.user_install_cmd)
                 if user_install_cmd
-                    user_install_cmd.join(" ") + " " + os_packages.join("' '")
+                    generate_script(user_install_cmd, os_packages)
                 else generate_auto_os_script(os_packages)
                 end
             end
@@ -125,8 +123,15 @@ module Autoproj
             #   If given, it overrides the default value stored in
             #   {#auto_install_cmd]
             def generate_auto_os_script(os_packages,
-                                        auto_install_cmd: self.auto_install_cmd)
-                auto_install_cmd.join(" ") + " " + os_packages.join("' '")
+                auto_install_cmd: self.auto_install_cmd)
+                generate_script(auto_install_cmd, os_packages)
+            end
+
+            # Helper for {#generate_user_os_script} and {#generate_auto_os_script}
+            def generate_script(cmd, args)
+                cmd = cmd.join(" ")
+                args = args.join("' '")
+                "#{cmd} #{args}"
             end
 
             # Handles interaction with the user
@@ -183,8 +188,8 @@ module Autoproj
             #   packages. See the option in {#generate_auto_os_script}
             # @return [Boolean] true if packages got installed, false otherwise
             def install(packages, filter_uptodate_packages: false, install_only: false,
-                        auto_install_cmd: self.auto_install_cmd,
-                        user_install_cmd: self.user_install_cmd)
+                auto_install_cmd: self.auto_install_cmd,
+                user_install_cmd: self.user_install_cmd)
                 return if packages.empty?
 
                 handled_os = ws.supported_operating_system?

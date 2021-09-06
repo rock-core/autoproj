@@ -1,4 +1,4 @@
-require 'erb'
+require "erb"
 module Autoproj
     module Ops
         # Operations related to building packages
@@ -89,7 +89,7 @@ module Autoproj
             def build_packages(all_enabled_packages, options = Hash.new)
                 if @report_path
                     reporting = Ops::PhaseReporting.new(
-                        'build', @report_path, method(:package_metadata)
+                        "build", @report_path, method(:package_metadata)
                     )
                 end
 
@@ -99,11 +99,10 @@ module Autoproj
                 begin
                     Autobuild.apply(
                         all_enabled_packages,
-                        "autoproj-build", ['build'], options
+                        "autoproj-build", ["build"], options
                     ) do |pkg, phase|
-                        reporting&.report_incremental(pkg) if phase == 'build'
+                        reporting&.report_incremental(pkg) if phase == "build"
                     end
-
                 ensure
                     packages = all_enabled_packages.map do |name|
                         @manifest.find_autobuild_package(name)

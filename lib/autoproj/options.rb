@@ -67,6 +67,7 @@ module Autoproj
     class << self
         attr_accessor :reconfigure
     end
-    def self.reconfigure?; @reconfigure end
+    def self.reconfigure?
+        @reconfigure
+    end
 end
-

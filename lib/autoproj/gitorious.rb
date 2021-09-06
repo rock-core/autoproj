@@ -1,1 +1,1 @@
-require 'autoproj/git_server_configuration'
+require "autoproj/git_server_configuration"

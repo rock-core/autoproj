@@ -19,7 +19,9 @@ module Autoproj
         #
         # Use {.all}
         class All
-            def match(pkg); true end
+            def match(pkg)
+                true
+            end
         end
 
         # Get a query that matches anything
@@ -57,13 +59,13 @@ module Autoproj
         # @api private
         #
         # Parse a single field in a query (i.e. a FIELD[=~]VALUE string)
-        # 
+        #
         # This is NOT meant to be used directly. Subclasses are supposed to
         # redefine .parse to create the relevant match object.
         def self.parse(str, allowed_fields: [], default_fields: Hash.new)
             if parsed = /[=~]/.match(str)
                 field, value = parsed.pre_match, parsed.post_match
-                partial = (parsed[0] == '~')
+                partial = (parsed[0] == "~")
             else
                 raise ArgumentError, "invalid query string '#{str}', expected FIELD and VALUE separated by either = or ~"
             end
@@ -75,13 +77,13 @@ module Autoproj
                 raise ArgumentError, "'#{field}' is not a known query key"
             end
 
-            fields = field.split('.')
-            return fields, value, partial
+            fields = field.split(".")
+            [fields, value, partial]
         end
 
         # Parse a complete query
         def self.parse_query(query, *args)
-            query = query.split(':')
+            query = query.split(":")
             query = query.map do |str|
                 parse(str, *args)
             end
@@ -125,4 +127,3 @@ module Autoproj
         end
     end
 end
-

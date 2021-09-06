@@ -1,5 +1,5 @@
 # Define the github handler
-require 'autoproj/git_server_configuration'
+require "autoproj/git_server_configuration"
 
 # Comment this line if you want Autoproj to import the overall shell
 # environment. The default is to reset all build-related environment variables,
@@ -19,4 +19,3 @@ Autobuild::CMake.show_make_messages = true
 # handler will remove installed files that are not part of the package anymore.
 Autoproj.config.separate_prefixes = true
 Autobuild::CMake.delete_obsolete_files_in_prefix = Autoproj.config.separate_prefixes?
-

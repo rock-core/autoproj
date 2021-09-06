@@ -1,6 +1,6 @@
-require 'autoproj/test'
-require 'autoproj/cli/main'
-require 'autoproj/cli/update'
+require "autoproj/test"
+require "autoproj/cli/main"
+require "autoproj/cli/update"
 
 module Autoproj
     module CLI
@@ -17,7 +17,7 @@ module Autoproj
                         flexmock(Update).new_instances.
                             should_receive(:run).with([], hsh(deps: false)).once
                         in_ws do
-                            Main.start(['update', '-n', '--silent'])
+                            Main.start(["update", "-n", "--silent"])
                         end
                     end
                 end
@@ -36,19 +36,19 @@ module Autoproj
 
                 describe "the aup mode" do
                     it "sets the selection to the current directory" do
-                        selection, _ = cli.validate_options([], aup: true)
+                        selection, = cli.validate_options([], aup: true)
                         assert_equal ["#{Dir.pwd}/"], selection
                     end
                     it "leaves an explicit selection alone" do
-                        selection, _ = cli.validate_options(['/a/path'], aup: true)
-                        assert_equal ['/a/path'], selection
+                        selection, = cli.validate_options(["/a/path"], aup: true)
+                        assert_equal ["/a/path"], selection
                     end
                     it "leaves an empty selection alone if --config is given" do
-                        selection, _ = cli.validate_options([], aup: true, config: true)
+                        selection, = cli.validate_options([], aup: true, config: true)
                         assert_equal [], selection
                     end
                     it "leaves an empty selection alone if --all is given" do
-                        selection, _ = cli.validate_options([], aup: true, all: true)
+                        selection, = cli.validate_options([], aup: true, all: true)
                         assert_equal [], selection
                     end
                     it "sets the 'all' flag automatically if given no explicit arguments and the working directory is the workspace's root" do
@@ -59,7 +59,7 @@ module Autoproj
                     end
                     it "does not set the 'all' flag automatically if given explicit arguments even if the working directory is the workspace's root" do
                         Dir.chdir(ws.root_dir) do
-                            _args, options = cli.validate_options(['arg'], aup: true)
+                            _args, options = cli.validate_options(["arg"], aup: true)
                             refute options[:all]
                         end
                     end
@@ -78,18 +78,18 @@ module Autoproj
                     end
 
                     it "normalizes --mainline" do
-                        _, options = cli.validate_options([], mainline: 'mainline')
+                        _, options = cli.validate_options([], mainline: "mainline")
                         assert_equal true, options[:mainline]
                     end
 
                     it "normalizes --mainline=true" do
-                        _, options = cli.validate_options([], mainline: 'true')
+                        _, options = cli.validate_options([], mainline: "true")
                         assert_equal true, options[:mainline]
                     end
 
                     it "leaves an explicit --mainline=package_set_name" do
-                        _, options = cli.validate_options([], mainline: 'package_set_name')
-                        assert_equal 'package_set_name', options[:mainline]
+                        _, options = cli.validate_options([], mainline: "package_set_name")
+                        assert_equal "package_set_name", options[:mainline]
                     end
                 end
 
@@ -145,32 +145,32 @@ module Autoproj
                     end
 
                     it "updates configuration and packages if a configuration path and a non-configuration path is selected" do
-                        _, options = cli.validate_options([ws.config_dir, '/a/path'], Hash.new)
+                        _, options = cli.validate_options([ws.config_dir, "/a/path"], Hash.new)
                         assert_equal [false, true, true], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "only updates packages if a non-configuration path is selected an nothing else was selected explicitely" do
-                        _, options = cli.validate_options(['/a/path'], Hash.new)
+                        _, options = cli.validate_options(["/a/path"], Hash.new)
                         assert_equal [false, false, true], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "updates configuration and packages if a non-configuration path is selected and --config was given" do
-                        _, options = cli.validate_options(['/a/path'], config: true)
+                        _, options = cli.validate_options(["/a/path"], config: true)
                         assert_equal [false, true, true], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "updates autoproj and packages if a non-configuration path is selected and --config was given" do
-                        _, options = cli.validate_options(['/a/path'], autoproj: true)
+                        _, options = cli.validate_options(["/a/path"], autoproj: true)
                         assert_equal [true, false, true], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "updates autoproj, configuration and packages if a non-configuration path is selected and both --autoproj and --config were given" do
-                        _, options = cli.validate_options(['/a/path'], autoproj: true, config: true)
+                        _, options = cli.validate_options(["/a/path"], autoproj: true, config: true)
                         assert_equal [true, true, true], options.values_at(:autoproj, :config, :packages)
                     end
 
                     it "updates autoproj, the configuration and the packages if both configuration and package paths were selected and --autoproj was given" do
-                        _, options = cli.validate_options([ws.config_dir, '/a/path'], autoproj: true)
+                        _, options = cli.validate_options([ws.config_dir, "/a/path"], autoproj: true)
                         assert_equal [true, true, true], options.values_at(:autoproj, :config, :packages)
                     end
                 end
@@ -212,14 +212,14 @@ module Autoproj
                     cli.run([], packages: true, checkout_only: true, osdeps: true)
                 end
                 it "raises CLIInvalidSelection if an excluded package is in the dependency tree" do
-                    pkg0 = ws_add_package_to_layout :cmake, 'pkg0'
-                    pkg1 = ws_define_package :cmake, 'pkg1'
+                    pkg0 = ws_add_package_to_layout :cmake, "pkg0"
+                    pkg1 = ws_define_package :cmake, "pkg1"
                     pkg0.depends_on pkg1
                     selection = PackageSelection.new
-                    selection.select('pkg0', 'pkg0')
-                    @ws.manifest.exclude_package 'pkg1', 'test'
+                    selection.select("pkg0", "pkg0")
+                    @ws.manifest.exclude_package "pkg1", "test"
                     assert_raises(CLIInvalidSelection) do
-                        cli.run(['pkg0'], packages: true, checkout_only: true, osdeps: true)
+                        cli.run(["pkg0"], packages: true, checkout_only: true, osdeps: true)
                     end
                 end
 
@@ -311,18 +311,18 @@ module Autoproj
                     it "performs osdep import based on the return value of #import_packages if the package set import failed but not the package update" do
                         mock_package_set_failure
                         flexmock(Ops::Import).new_instances.should_receive(:import_packages).
-                            and_return([[], ['test']])
+                            and_return([[], ["test"]])
                         flexmock(ws).should_receive(:install_os_packages).once.
-                            with(['test'], Hash)
+                            with(["test"], Hash)
                         assert_raises(pkg_set_failure) do
                             cli.run([], keep_going: true, packages: true, osdeps: true)
                         end
                     end
 
                     it "performs osdep import based on the value encoded in the import failure exception if the package import failed" do
-                        mock_package_failure(osdep_packages: ['test'])
+                        mock_package_failure(osdep_packages: ["test"])
                         flexmock(ws).should_receive(:install_os_packages).once.
-                            with(['test'], Hash)
+                            with(["test"], Hash)
                         assert_raises(pkg_failure) do
                             cli.run([], keep_going: true, packages: true, osdeps: true)
                         end
@@ -332,5 +332,3 @@ module Autoproj
         end
     end
 end
-
-

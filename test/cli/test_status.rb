@@ -1,6 +1,6 @@
-require 'autoproj/test'
-require 'autoproj/cli/main'
-require 'autoproj/cli/status'
+require "autoproj/test"
+require "autoproj/cli/main"
+require "autoproj/cli/status"
 
 module Autoproj
     module CLI
@@ -16,11 +16,10 @@ module Autoproj
                     flexmock(Status).new_instances.
                         should_receive(:run).with([], hsh(deps: false)).once
                     in_ws do
-                        Main.start(['status', '-n'])
+                        Main.start(["status", "-n"])
                     end
                 end
             end
         end
     end
 end
-

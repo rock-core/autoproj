@@ -1,4 +1,4 @@
-require 'autoproj/cli/inspection_tool'
+require "autoproj/cli/inspection_tool"
 module Autoproj
     module CLI
         class Envsh < InspectionTool
@@ -16,4 +16,3 @@ module Autoproj
         end
     end
 end
-

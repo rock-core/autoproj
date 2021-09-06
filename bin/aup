@@ -1,6 +1,6 @@
 #! /usr/bin/env ruby
 
-require 'autoproj/cli/main'
+require "autoproj/cli/main"
 
 argv = Autoproj::CLI.basic_setup
 
@@ -11,10 +11,10 @@ class Aup < Autoproj::CLI::Main
 end
 
 begin
-    if argv.include?('--help') || argv.include?('help')
-        Aup.start(['help', 'update'])
+    if argv.include?("--help") || argv.include?("help")
+        Aup.start(%w[help update])
     else
-        Aup.start(['update', *argv, '--aup'])
+        Aup.start(["update", *argv, "--aup"])
     end
 rescue Interrupt
     # Already notified in the reporting infrastructure

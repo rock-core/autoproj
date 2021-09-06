@@ -10,6 +10,8 @@ module Autoproj
             attr_reader :package_set
             def initialize(package_set)
                 @package_set = package_set
+
+                super()
             end
         end
 
@@ -85,7 +87,9 @@ module Autoproj
 
         # If true, this package set has been loaded because another set imports
         # it. If false, it is loaded explicitely by the user
-        def explicit?; !!@explicit end
+        def explicit?
+            !!@explicit
+        end
         attr_writer :explicit
 
         # Definition of key => value mappings used to resolve e.g. $KEY values
@@ -113,7 +117,9 @@ module Autoproj
         attr_writer :auto_imports
         # If true (the default), imports listed in this package set will be
         # automatically loaded by autoproj
-        def auto_imports?; !!@auto_imports end
+        def auto_imports?
+            !!@auto_imports
+        end
 
         # The VCS definition entries from the 'imports' section of the YAML file
         # @return [Array<VCSDefinition>]
@@ -147,7 +153,8 @@ module Autoproj
         def initialize(
             ws, vcs,
             name: self.class.name_of(ws, vcs),
-            raw_local_dir: self.class.raw_local_dir_of(ws, vcs))
+            raw_local_dir: self.class.raw_local_dir_of(ws, vcs)
+        )
 
             @ws = ws
             @vcs = vcs
@@ -164,14 +171,14 @@ module Autoproj
             @all_osdeps = []
             @all_osrepos = []
             @constants_definitions = Hash.new
-            @required_autoproj_version = '0'
+            @required_autoproj_version = "0"
             @version_control = Array.new
             @overrides = Array.new
             @raw_local_dir = raw_local_dir
-            @default_importer = VCSDefinition.from_raw({ type: 'none' })
+            @default_importer = VCSDefinition.from_raw({ type: "none" })
 
-            @imports  = Set.new
-            @imports_vcs  = Array.new
+            @imports = Set.new
+            @imports_vcs = Array.new
             @imported_from = Array.new
             @explicit = false
             @auto_imports = true
@@ -208,16 +215,22 @@ module Autoproj
 
         # True if this source has already been checked out on the local autoproj
         # installation
-        def present?; File.directory?(raw_local_dir) end
+        def present?
+            File.directory?(raw_local_dir)
+        end
         # True if this is the main package set (i.e. the main autoproj
         # configuration)
-        def main?; false end
+        def main?
+            false
+        end
         # True if this source is local, i.e. is not under a version control
-        def local?; vcs.local? end
+        def local?
+            vcs.local?
+        end
         # True if this source defines nothing
         def empty?
             version_control.empty? && overrides.empty?
-                !each_package.find { true } &&
+            !each_package.find { true } &&
                 !File.exist?(File.join(raw_local_dir, "overrides.rb")) &&
                 !File.exist?(File.join(raw_local_dir, "init.rb"))
         end
@@ -254,7 +267,7 @@ module Autoproj
         def self.name_of(ws, vcs, raw_local_dir: raw_local_dir_of(ws, vcs), ignore_load_errors: false)
             if File.directory?(raw_local_dir)
                 begin
-                    return raw_description_file(raw_local_dir, package_set_name: "#{vcs.type}:#{vcs.url}")['name']
+                    return raw_description_file(raw_local_dir, package_set_name: "#{vcs.type}:#{vcs.url}")["name"]
                 rescue ConfigError
                     raise if !ignore_load_errors
                 end
@@ -271,7 +284,7 @@ module Autoproj
         def self.raw_local_dir_of(ws, vcs)
             if vcs.needs_import?
                 repository_id = vcs.create_autobuild_importer.repository_id
-                path = File.join(ws.remotes_dir, repository_id.gsub(/[^\w]/, '_'))
+                path = File.join(ws.remotes_dir, repository_id.gsub(/[^\w]/, "_"))
                 File.expand_path(path)
             elsif !vcs.none?
                 File.expand_path(vcs.url)
@@ -297,7 +310,7 @@ module Autoproj
             options, vcs_spec = Kernel.filter_options spec, auto_imports: true
 
             vcs_spec = Autoproj.expand(vcs_spec, vars)
-            return VCSDefinition.from_raw(vcs_spec, from: from, raw: raw), options
+            [VCSDefinition.from_raw(vcs_spec, from: from, raw: raw), options]
         end
 
         # Returns a string that uniquely represents the version control
@@ -328,9 +341,9 @@ module Autoproj
         # For local sources, is simply returns the path to the source directory.
         def user_local_dir
             if local?
-                return vcs.url
+                vcs.url
             else
-                File.join(ws.config_dir, 'remotes', name)
+                File.join(ws.config_dir, "remotes", name)
             end
         end
 
@@ -366,9 +379,9 @@ module Autoproj
                 end
             end
 
-            if yaml.has_key?('overrides')
-                yaml['overrides'] ||= Array.new
-                if !yaml['overrides'].respond_to?(:to_ary)
+            if yaml.has_key?("overrides")
+                yaml["overrides"] ||= Array.new
+                if !yaml["overrides"].respond_to?(:to_ary)
                     raise ConfigError.new(yaml_path), "expected the 'overrides' entry to be an array"
                 end
             end
@@ -404,7 +417,7 @@ module Autoproj
                     end
                 end
             end
-            if !source_definition['name']
+            if !source_definition["name"]
                 raise ConfigError.new(master_source_file), "#{master_source_file} does not have a 'name' field"
             end
 
@@ -461,7 +474,7 @@ module Autoproj
         end
 
         # Add a new entry in the list of version control resolutions
-        def add_overrides_entry(matcher, vcs_definition, file: '#add_overrides_entry')
+        def add_overrides_entry(matcher, vcs_definition, file: "#add_overrides_entry")
             if (last_entry = overrides.last) && last_entry[0] == file
                 last_entry[1] << [matcher, vcs_definition]
             else
@@ -472,15 +485,15 @@ module Autoproj
         # Path to the source.yml file
         def source_file
             if local_dir
-                File.join(local_dir, 'source.yml')
+                File.join(local_dir, "source.yml")
             end
         end
 
         # Load the source.yml file and resolves all information it contains.
         def load_description_file
             source_definition = raw_description_file
-            name = source_definition['name']
-            if name !~ /^[\w\.-]+$/
+            name = source_definition["name"]
+            if name !~ /^[\w.-]+$/
                 raise ConfigError.new(source_file),
                     "in #{source_file}: invalid source name '#{@name}': source names can only contain alphanumeric characters, and .-_"
             elsif name == "local"
@@ -492,18 +505,18 @@ module Autoproj
         end
 
         def load_overrides(source_definition)
-            if data = source_definition['overrides']
+            if data = source_definition["overrides"]
                 [[source_file, data]]
             end
         end
 
         def parse_source_definition(source_definition)
-            @name = source_definition['name'] || self.name
+            @name = source_definition["name"] || name
             @required_autoproj_version = source_definition.fetch(
-                'required_autoproj_version', self.required_autoproj_version)
+                "required_autoproj_version", required_autoproj_version)
 
             # Compute the definition of constants
-            if new_constants = source_definition['constants']
+            if new_constants = source_definition["constants"]
                 Autoproj.in_file(source_file) do
                     variables = inject_constants_and_config_for_expansion(Hash.new)
                     @constants_definitions = Autoproj.resolve_constant_definitions(
@@ -511,9 +524,9 @@ module Autoproj
                 end
             end
 
-            if new_imports = source_definition['imports']
+            if new_imports = source_definition["imports"]
                 variables = inject_constants_and_config_for_expansion(Hash.new)
-                @imports_vcs  = Array(new_imports).map do |set_def|
+                @imports_vcs = Array(new_imports).map do |set_def|
                     if !set_def.kind_of?(Hash) && !set_def.respond_to?(:to_str)
                         raise ConfigError.new(source_file), "in #{source_file}: "\
                             "wrong format for 'imports' section. Expected an array of "\
@@ -528,15 +541,15 @@ module Autoproj
                 end
             end
 
-            if new_version_control = source_definition['version_control']
+            if new_version_control = source_definition["version_control"]
                 invalidate_importer_definitions_cache
-                @version_control = normalize_vcs_list('version_control', source_file,
+                @version_control = normalize_vcs_list("version_control", source_file,
                     new_version_control)
 
                 Autoproj.in_file(source_file) do
                     default_vcs_spec, raw = version_control_field(
-                        'default', version_control,
-                        file: source_file, section: 'version_control'
+                        "default", version_control,
+                        file: source_file, section: "version_control"
                     )
                     if default_vcs_spec
                         @default_importer = VCSDefinition.from_raw(default_vcs_spec,
@@ -546,7 +559,7 @@ module Autoproj
             end
             if new_overrides = load_overrides(source_definition)
                 @overrides = new_overrides.map do |file, entries|
-                    [file, normalize_vcs_list('overrides', file, entries)]
+                    [file, normalize_vcs_list("overrides", file, entries)]
                 end
             end
         end
@@ -562,9 +575,9 @@ module Autoproj
                 "AUTOPROJ_ROOT" => ws.root_dir,
                 "AUTOPROJ_CONFIG" => ws.config_dir,
                 "AUTOPROJ_SOURCE_DIR" => local_dir].
-                merge(manifest.constant_definitions).
-                merge(constants_definitions).
-                merge(additional_expansions)
+                   merge(manifest.constant_definitions).
+                   merge(constants_definitions).
+                   merge(additional_expansions)
 
             config = ws.config
             Hash.new do |h, k|
@@ -591,7 +604,7 @@ module Autoproj
         #
         # Converts a number to an ordinal string representation (i.e. 1st, 25th)
         def number_to_nth(number)
-            Hash[1 => '1st', 2 => '2nd', 3 => '3rd'].fetch(number, "#{number}th")
+            Hash[1 => "1st", 2 => "2nd", 3 => "3rd"].fetch(number, "#{number}th")
         end
 
         # @api private
@@ -619,7 +632,7 @@ module Autoproj
                     #
                     # In that case, we should have the package name as
                     # "name => nil". Check that.
-                    name, _ = spec.find { |n, v| v.nil? }
+                    name, = spec.find { |n, v| v.nil? }
                     if name
                         spec.delete(name)
                     else
@@ -629,7 +642,7 @@ module Autoproj
                     name, spec = spec.to_a.first
                     if spec.respond_to?(:to_str)
                         if spec == "none"
-                            spec = Hash['type' => "none"]
+                            spec = Hash["type" => "none"]
                         else
                             raise ConfigError.new, "invalid VCS specification in the #{section_name} section of #{file}: '#{name}: #{spec}'. One can only use this shorthand to declare the absence of a VCS with the 'none' keyword"
                         end
@@ -640,7 +653,7 @@ module Autoproj
 
                 name_match = name
                 if name_match =~ /[^\w\/-]/
-                    name_match = Regexp.new("^" + name_match)
+                    name_match = Regexp.new("^#{name_match}")
                 end
 
                 [name_match, spec]
@@ -656,7 +669,7 @@ module Autoproj
         #   The Hash part is nil if there are no matching entries. Hash keys are
         #   normalized to symbols
         def version_control_field(package_name, entry_list, validate: true,
-                                  file: source_file, section: nil)
+            file: source_file, section: nil)
             raw = []
             vcs_spec = entry_list.inject({}) do |resolved_spec, (name_match, spec)|
                 next(resolved_spec) unless name_match === package_name
@@ -666,7 +679,7 @@ module Autoproj
                     VCSDefinition.update_raw_vcs_spec(resolved_spec, spec)
                 rescue ArgumentError => e
                     raise ConfigError.new,
-                          'invalid VCS definition while resolving package '\
+                          "invalid VCS definition while resolving package "\
                           "'#{package_name}', entry '#{name_match}' of "\
                           "#{section ? "section '#{section}'" : ''}: "\
                           "#{e.message}", e.backtrace
@@ -676,8 +689,8 @@ module Autoproj
             return nil, [] if vcs_spec.empty?
 
             expansions = {
-                'PACKAGE' => package_name,
-                'PACKAGE_BASENAME' => File.basename(package_name)
+                "PACKAGE" => package_name,
+                "PACKAGE_BASENAME" => File.basename(package_name)
             }
 
             vcs_spec = expand(vcs_spec, expansions)
@@ -686,7 +699,7 @@ module Autoproj
             end
 
             # Resolve relative paths w.r.t. the workspace root dir
-            if (url = (vcs_spec.delete('url') || vcs_spec.delete(:url)))
+            if (url = (vcs_spec.delete("url") || vcs_spec.delete(:url)))
                 vcs_spec[:url] = VCSDefinition.to_absolute_url(url, ws.root_dir)
             end
 
@@ -697,7 +710,7 @@ module Autoproj
                     VCSDefinition.from_raw(vcs_spec)
                 rescue ArgumentError => e
                     raise ConfigError.new,
-                          'invalid resulting VCS definition for package '\
+                          "invalid resulting VCS definition for package "\
                           "'#{package_name}': #{e.message}",
                           e.backtrace
                 end
@@ -725,7 +738,7 @@ module Autoproj
             importer_definitions_cache[package_name] ||= Autoproj.in_file source_file do
                 vcs_spec, raw = version_control_field(
                     package_name, version_control,
-                    file: source_file, section: 'version_control'
+                    file: source_file, section: "version_control"
                 )
                 if vcs_spec
                     VCSDefinition.from_raw(vcs_spec, raw: raw, from: self)
@@ -758,19 +771,17 @@ module Autoproj
                     Autoproj.in_file file do
                         version_control_field(
                             key, file_overrides,
-                            validate: false, file: file, section: 'overrides'
+                            validate: false, file: file, section: "overrides"
                         )
                     end
 
                 if new_spec
                     Autoproj.in_file file do
-                        begin
-                            vcs = vcs.update(new_spec, raw: new_raw_entry, from: self)
-                        rescue ConfigError => e
-                            raise ConfigError.new, "invalid resulting VCS specification "\
-                                                   "in the overrides section for "\
-                                                   "#{key}: #{e.message}"
-                        end
+                        vcs = vcs.update(new_spec, raw: new_raw_entry, from: self)
+                    rescue ConfigError => e
+                        raise ConfigError.new,
+                              "invalid resulting VCS specification in the overrides "\
+                              "section for #{key}: #{e.message}"
                     end
                 end
             end
@@ -818,4 +829,3 @@ module Autoproj
         end
     end
 end
-

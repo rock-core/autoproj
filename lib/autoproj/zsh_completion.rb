@@ -1,25 +1,25 @@
-require 'autoproj/shell_completion'
+require "autoproj/shell_completion"
 
 module Autoproj
     # This class generates shell completion for code for a given Thor subclasss
     class ZshCompletion < ShellCompletion
-        MAIN_FUNCTION_TEMPLATE = 'main.zsh.erb'
-        SUBCOMMAND_FUNCTION_TEMPLATE = 'subcommand.zsh.erb'
+        MAIN_FUNCTION_TEMPLATE = "main.zsh.erb"
+        SUBCOMMAND_FUNCTION_TEMPLATE = "subcommand.zsh.erb"
 
         def setup_file_completion(metadata)
-            metadata[:completer] = '_files'
+            metadata[:completer] = "_files"
         end
 
         def setup_executable_completion(metadata)
-            metadata[:completer] = '_path_commands'
+            metadata[:completer] = "_path_commands"
         end
 
         def setup_package_completion(metadata)
-            metadata[:completer] = '_autoproj_installed_packages'
+            metadata[:completer] = "_autoproj_installed_packages"
         end
 
         def disable_completion(metadata)
-            metadata[:completer] = ':'
+            metadata[:completer] = ":"
         end
 
         def quote(s)
@@ -35,9 +35,8 @@ module Autoproj
             if names.size == 1
                 names.first
             else
-                '{' + names.join(',') + '}'
+                "{#{names.join(',')}}"
             end
         end
     end
 end
-

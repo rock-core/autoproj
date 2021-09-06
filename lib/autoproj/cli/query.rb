@@ -1,5 +1,5 @@
-require 'autoproj'
-require 'autoproj/cli/inspection_tool'
+require "autoproj"
+require "autoproj/cli/inspection_tool"
 
 module Autoproj
     module CLI
@@ -17,7 +17,7 @@ module Autoproj
                 matches.sort_by { |priority, pkg| [priority, pkg.name] }
             end
 
-            def run(query_string, format: '$NAME', search_all: false, only_present: false, osdeps: false)
+            def run(query_string, format: "$NAME", search_all: false, only_present: false, osdeps: false)
                 initialize_and_load
                 all_selected_packages, all_selected_osdeps_packages, * =
                     finalize_setup([], non_imported_packages: :return)
@@ -29,7 +29,7 @@ module Autoproj
                 end
             end
 
-            def query_os_packages(query_string, selected_packages, format: '$NAME', search_all: false)
+            def query_os_packages(query_string, selected_packages, format: "$NAME", search_all: false)
                 if query_string.empty?
                     query = OSPackageQuery.all
                 else
@@ -67,14 +67,14 @@ module Autoproj
 
             def format_osdep_package(format, priority, name, handler, real_package_name)
                 fields = Hash.new
-                fields['NAME']     = name
-                fields['PRIORITY'] = priority
-                fields['HANDLER']  = handler
-                fields['REAL_PACKAGE']  = real_package_name
+                fields["NAME"]     = name
+                fields["PRIORITY"] = priority
+                fields["HANDLER"]  = handler
+                fields["REAL_PACKAGE"] = real_package_name
                 Autoproj.expand(format, fields)
             end
 
-            def query_source_packages(query_string, selected_packages, format: '$NAME', search_all: false, only_present: false)
+            def query_source_packages(query_string, selected_packages, format: "$NAME", search_all: false, only_present: false)
                 if query_string.empty?
                     query = SourcePackageQuery.all
                 else
@@ -105,18 +105,17 @@ module Autoproj
             def format_source_package(format, priority, package)
                 autobuild_package = package.autobuild
                 fields = Hash.new
-                fields['SRCDIR']   = autobuild_package.srcdir
-                fields['BUILDDIR'] = if autobuild_package.respond_to?(:builddir)
+                fields["SRCDIR"]   = autobuild_package.srcdir
+                fields["BUILDDIR"] = if autobuild_package.respond_to?(:builddir)
                                          autobuild_package.builddir
                                      end
-                fields['PREFIX']   = autobuild_package.prefix
-                fields['NAME']     = package.name
-                fields['PRIORITY'] = priority
-                fields['URL']      = (package.vcs.url if !package.vcs.none?)
-                fields['PRESENT']  = File.directory?(autobuild_package.srcdir)
+                fields["PREFIX"]   = autobuild_package.prefix
+                fields["NAME"]     = package.name
+                fields["PRIORITY"] = priority
+                fields["URL"]      = (package.vcs.url if !package.vcs.none?)
+                fields["PRESENT"]  = File.directory?(autobuild_package.srcdir)
                 Autoproj.expand(format, fields)
             end
         end
     end
 end
-

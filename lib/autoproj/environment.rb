@@ -9,7 +9,7 @@ module Autoproj
 
         def prepare(root_dir)
             @root_dir = root_dir
-            set 'AUTOPROJ_CURRENT_ROOT', root_dir
+            set "AUTOPROJ_CURRENT_ROOT", root_dir
             super()
         end
 
@@ -18,17 +18,17 @@ module Autoproj
         end
 
         def env_filename(shell, *subdir)
-            env_filename = if shell == 'sh'
+            env_filename = if shell == "sh"
                                ENV_FILENAME
                            else
-                               (Pathname(ENV_FILENAME).sub_ext '').to_s.concat(".#{shell}")
+                               (Pathname(ENV_FILENAME).sub_ext "").to_s.concat(".#{shell}")
                            end
 
             File.join(root_dir, *subdir, env_filename)
         end
 
         def each_env_filename(*subdir)
-            (['sh'] + Autoproj.workspace.config.user_shells).to_set.each do |shell|
+            (["sh"] + Autoproj.workspace.config.user_shells).to_set.each do |shell|
                 yield shell, env_filename(shell, *subdir)
             end
         end
@@ -41,7 +41,7 @@ module Autoproj
                 shell_helpers: true
 
             shell_dir = File.expand_path(File.join("..", "..", "shell"), File.dirname(__FILE__))
-            completion_dir = File.join(shell_dir, 'completion')
+            completion_dir = File.join(shell_dir, "completion")
             env_updated = false
 
             each_env_filename(*[subdir].compact) do |shell, filename|
@@ -59,7 +59,7 @@ module Autoproj
                     rescue SystemCallError
                     end
 
-                StringIO.open(new_content = String.new, 'w') do |io|
+                StringIO.open(new_content = String.new, "w") do |io|
                     if inherit?
                         io.write <<-EOF
                         if test -n "$AUTOPROJ_CURRENT_ROOT" && test "$AUTOPROJ_CURRENT_ROOT" != "#{root_dir}"; then
@@ -97,15 +97,15 @@ module Autoproj
         env.add_path(name, *value)
     end
     # @deprecated call Autoproj.env.source_after instead
-    def self.env_source_file(file, shell: 'sh')
+    def self.env_source_file(file, shell: "sh")
         env.source_after(file, shell: shell)
     end
     # @deprecated call Autoproj.env.source_after instead
-    def self.env_source_after(file, shell: 'sh')
+    def self.env_source_after(file, shell: "sh")
         env.source_after(file, shell: shell)
     end
     # @deprecated call Autoproj.env.source_before instead
-    def self.env_source_before(file, shell: 'sh')
+    def self.env_source_before(file, shell: "sh")
         env.source_before(file, shell: shell)
     end
     # @deprecated call Autoproj.env.inherit instead

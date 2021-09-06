@@ -1,6 +1,6 @@
-require 'rbconfig'
-require 'autoproj/cli/inspection_tool'
-require 'autoproj/ops/watch'
+require "rbconfig"
+require "autoproj/cli/inspection_tool"
+require "autoproj/ops/watch"
 module Autoproj
     module CLI
         class Watch < InspectionTool
@@ -13,7 +13,7 @@ module Autoproj
 
             def validate_options(unused, options = {})
                 _, options = super(unused, options)
-                @show_events   = options[:show_events]
+                @show_events = options[:show_events]
                 nil
             end
 
@@ -24,13 +24,11 @@ module Autoproj
             def update_workspace
                 initialize_and_load
 
-                source_packages, _ = finalize_setup([])
+                source_packages, = finalize_setup([])
                 @source_packages_dirs = source_packages.map do |pkg_name|
                     ws.manifest.find_autobuild_package(pkg_name).srcdir
                 end
-                @pkg_sets_dirs = ws.manifest.each_package_set.map do |pkg_set|
-                    pkg_set.raw_local_dir
-                end
+                @pkg_sets_dirs = ws.manifest.each_package_set.map(&:raw_local_dir)
                 export_env_sh(shell_helpers: ws.config.shell_helpers?)
             end
 
@@ -45,9 +43,9 @@ module Autoproj
                 @package_sets = []
 
                 @source_packages_dirs = installation_manifest.each_package.
-                    map(&:srcdir)
+                                        map(&:srcdir)
                 @package_sets = installation_manifest.each_package_set.
-                    map(&:raw_local_dir)
+                                map(&:raw_local_dir)
             end
 
             def callback
@@ -66,7 +64,7 @@ module Autoproj
                 notifier.watch(dir, :move, :create, :delete, :modify, :dont_follow, *inotify_flags) do |e|
                     file_name = e.absolute_name[strip_dir_range]
                     included = included_paths.empty? ||
-                        included_paths.any? { |rx| rx === file_name }
+                               included_paths.any? { |rx| rx === file_name }
                     if included
                         included = !excluded_paths.any? { |rx| rx === file_name }
                     end
@@ -81,9 +79,9 @@ module Autoproj
                     next unless File.exist? pkg_srcdir
                     create_dir_watcher(pkg_srcdir, included_paths: ["manifest.xml", "package.xml"])
 
-                    manifest_file = File.join(pkg_srcdir, 'manifest.xml')
+                    manifest_file = File.join(pkg_srcdir, "manifest.xml")
                     create_file_watcher(manifest_file) if File.exist? manifest_file
-                    ros_manifest_file = File.join(pkg_srcdir, 'package.xml')
+                    ros_manifest_file = File.join(pkg_srcdir, "package.xml")
                     create_file_watcher(ros_manifest_file) if File.exist? ros_manifest_file
                 end
             end
@@ -106,16 +104,16 @@ module Autoproj
             end
 
             def assert_watchers_available
-                return if RbConfig::CONFIG['target_os'] =~ /linux/
+                return if RbConfig::CONFIG["target_os"] =~ /linux/
 
-                puts 'error: Workspace watching not available on this platform'
+                puts "error: Workspace watching not available on this platform"
                 exit 1
             end
 
             def setup_notifier
                 assert_watchers_available
 
-                require 'rb-inotify'
+                require "rb-inotify"
                 @notifier = INotify::Notifier.new
             end
 
@@ -132,7 +130,7 @@ module Autoproj
                 cleanup
                 args = []
                 args << "--show-events" if show_events?
-                exec($PROGRAM_NAME, 'watch', *args)
+                exec($PROGRAM_NAME, "watch", *args)
             end
 
             def run(**)
@@ -146,13 +144,13 @@ module Autoproj
                 setup_notifier
                 start_watchers
 
-                puts 'Watching workspace, press ^C to quit...'
+                puts "Watching workspace, press ^C to quit..."
                 notifier.run
 
-                puts 'Workspace changed...'
+                puts "Workspace changed..."
                 restart
             rescue Interrupt
-                puts 'Exiting...'
+                puts "Exiting..."
             ensure
                 cleanup
             end

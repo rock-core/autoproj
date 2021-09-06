@@ -1,7 +1,7 @@
-require 'autoproj'
-require 'autoproj/cli/inspection_tool'
-require 'autoproj/ops/tools'
-require 'autoproj/ops/snapshot'
+require "autoproj"
+require "autoproj/cli/inspection_tool"
+require "autoproj/ops/tools"
+require "autoproj/ops/snapshot"
 
 module Autoproj
     module CLI
@@ -9,22 +9,22 @@ module Autoproj
             DEFAULT_VERSIONS_FILE_BASENAME = Ops::Snapshot::DEFAULT_VERSIONS_FILE_BASENAME
 
             def default_versions_file
-                File.join( ws.overrides_dir, DEFAULT_VERSIONS_FILE_BASENAME )
+                File.join(ws.overrides_dir, DEFAULT_VERSIONS_FILE_BASENAME)
             end
 
             def validate_options(packages, options = Hash.new)
                 packages, options = super
                 if !options[:save].nil?
                     options[:save] = case options[:save]
-                                     when '.'
+                                     when "."
                                          nil
-                                     when 'save'
+                                     when "save"
                                          default_versions_file
                                      else
                                          options[:save].to_str
                                      end
                 end
-                return packages, options
+                [packages, options]
             end
 
             def run(user_selection, options)
@@ -51,8 +51,8 @@ module Autoproj
                     versions += ops.snapshot_package_sets(nil, only_local: options[:only_local])
                 end
                 if snapshot_packages
-                    versions += ops.snapshot_packages(packages, 
-                        nil, 
+                    versions += ops.snapshot_packages(packages,
+                        nil,
                         only_local: options[:only_local],
                         fingerprint: options[:fingerprint])
                 end
@@ -67,4 +67,3 @@ module Autoproj
         end
     end
 end
-

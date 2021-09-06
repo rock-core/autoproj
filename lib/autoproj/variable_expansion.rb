@@ -97,7 +97,7 @@ module Autoproj
     # refers to variables defined in +constants+
     def self.resolve_constant_definitions(constants, definitions = Hash.new)
         definitions = definitions.merge(constants)
-        
+
         all_resolutions = Hash.new
         resolution_cache = Hash.new
         constants.each do |key, value|
@@ -106,4 +106,3 @@ module Autoproj
         all_resolutions
     end
 end
-

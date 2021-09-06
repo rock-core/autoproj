@@ -1,4 +1,4 @@
-require 'autoproj/cli/base'
+require "autoproj/cli/base"
 module Autoproj
     module CLI
         class Reconfigure < Base
@@ -16,4 +16,3 @@ module Autoproj
         end
     end
 end
-

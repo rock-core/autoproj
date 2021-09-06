@@ -1,5 +1,5 @@
-require 'autoproj/cli/inspection_tool'
-require 'tty/prompt'
+require "autoproj/cli/inspection_tool"
+require "tty/prompt"
 
 module Autoproj
     module CLI
@@ -12,12 +12,12 @@ module Autoproj
                         raise Interrupt
                     end
                 end
-                return packages, options
+                [packages, options]
             end
 
             def run(selection, options = Hash.new)
                 initialize_and_load
-                packages, _ = normalize_command_line_package_selection(selection)
+                packages, = normalize_command_line_package_selection(selection)
 
                 deps = if options.has_key?(:deps)
                            options[:deps]
@@ -29,7 +29,7 @@ module Autoproj
                     packages,
                     recursive: deps)
                 if source_packages.empty?
-                    raise CLIInvalidArguments, "no packages or OS packages match #{selection.join(" ")}"
+                    raise CLIInvalidArguments, "no packages or OS packages match #{selection.join(' ')}"
                 end
 
                 source_packages.each do |pkg_name|
@@ -40,4 +40,3 @@ module Autoproj
         end
     end
 end
-

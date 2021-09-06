@@ -1,6 +1,6 @@
-require 'pathname'
-require 'autoproj/exceptions'
-require 'autobuild/environment'
+require "pathname"
+require "autoproj/exceptions"
+require "autobuild/environment"
 
 module Autoproj
     module Ops
@@ -10,7 +10,7 @@ module Autoproj
         # `cmd` is not executable. Otherwise, looks for an executable named
         # `cmd` in PATH and returns it, or raises if it cannot be found. The
         # exception contains a more detailed reason for failure
-        # 
+        #
         #
         # @param [String] cmd
         # @return [String] the resolved program
@@ -20,7 +20,7 @@ module Autoproj
             path = Pathname.new(cmd)
             if path.absolute?
                 if path.file? && path.executable?
-                    return cmd
+                    cmd
                 elsif path.exist?
                     raise ExecutableNotFound.new(cmd), "given command `#{cmd}` exists but is not an executable file"
                 else
@@ -33,7 +33,7 @@ module Autoproj
                 absolute = Autobuild::Environment.find_executable_in_path(cmd, path_entries)
 
                 if absolute
-                    return absolute
+                    absolute
                 elsif file = Autobuild::Environment.find_in_path(cmd, path_entries)
                     raise ExecutableNotFound.new(cmd), "`#{cmd}` resolves to #{file} which is not executable"
                 else

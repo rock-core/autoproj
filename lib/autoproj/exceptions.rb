@@ -1,4 +1,4 @@
-require 'autobuild/exceptions'
+require "autobuild/exceptions"
 
 module Autoproj
     class ConfigError < RuntimeError
@@ -50,6 +50,8 @@ module Autoproj
         attr_reader :name
         def initialize(name)
             @name = name
+
+            super()
         end
     end
 
@@ -67,6 +69,8 @@ module Autoproj
         attr_reader :selection
         def initialize(selection)
             @selection = selection
+
+            super()
         end
     end
 
@@ -90,5 +94,3 @@ module Autoproj
     # Raised by 'which' when an executable cannot be found
     class ExecutableNotFound < ArgumentError; end
 end
-
-

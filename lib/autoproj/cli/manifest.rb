@@ -1,10 +1,10 @@
-require 'autoproj'
-require 'autoproj/cli/base'
+require "autoproj"
+require "autoproj/cli/base"
 module Autoproj
     module CLI
         class Manifest < Base
             def validate_options(args, options)
-                return args, options
+                [args, options]
             end
 
             def run(name, options = Hash.new)
@@ -34,7 +34,7 @@ module Autoproj
                         Autoproj.error "failed to load #{full_path}"
                         raise
                     end
-                    ws.config.set 'manifest_name', File.basename(full_path)
+                    ws.config.set "manifest_name", File.basename(full_path)
                     ws.save_config
                     Autoproj.message "set manifest to #{full_path}"
                 else
@@ -47,4 +47,3 @@ module Autoproj
         end
     end
 end
-

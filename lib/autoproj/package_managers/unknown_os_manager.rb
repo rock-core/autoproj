@@ -10,8 +10,8 @@ module Autoproj
 
             def osdeps_interaction_unknown_os(osdeps)
                 puts <<-EOMSG
-  #{Autoproj.color("The build process requires some other software packages to be installed on our operating system", :bold)}
-  #{Autoproj.color("If they are already installed, simply ignore this message", :red)}
+  #{Autoproj.color('The build process requires some other software packages to be installed on our operating system', :bold)}
+  #{Autoproj.color('If they are already installed, simply ignore this message', :red)}
 
     #{osdeps.to_a.sort.join("\n    ")}
 
@@ -25,7 +25,7 @@ module Autoproj
 
             def install(osdeps)
                 if silent?
-                    return false
+                    false
                 else
                     osdeps = osdeps.to_set
                     osdeps -= @installed_osdeps
@@ -33,10 +33,9 @@ module Autoproj
                         result = osdeps_interaction_unknown_os(osdeps)
                     end
                     @installed_osdeps |= osdeps
-                    return result
+                    result
                 end
             end
         end
     end
 end
-

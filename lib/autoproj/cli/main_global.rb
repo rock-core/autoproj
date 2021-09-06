@@ -1,7 +1,7 @@
 module Autoproj
     module CLI
         class MainGlobal < Thor
-            namespace 'global'
+            namespace "global"
 
             WorkspaceDir = Struct.new :name, :path, :present
 
@@ -10,7 +10,7 @@ module Autoproj
                     ws.each_with_object({}) do |w, h|
                         w_dirs = %w[root_dir prefix_dir build_dir].map do |name|
                             dir = w.public_send(name)
-                            if dir.start_with?('/')
+                            if dir.start_with?("/")
                                 WorkspaceDir.new(name, dir, File.directory?(dir))
                             end
                         end.compact
@@ -20,23 +20,21 @@ module Autoproj
                 end
 
                 def filter_removed_workspaces(dirs)
-                    dirs.delete_if do |w, w_dirs|
-                        w_dirs.none? { |d| d.present }
-                    end
+                    dirs.delete_if { |w, w_dirs| w_dirs.none?(&:present) }
                 end
             end
 
-            desc 'register', 'register the current workspace'
+            desc "register", "register the current workspace"
             def register
-                require 'autoproj'
+                require "autoproj"
                 ws = Workspace.default
                 ws.load_config
                 ws.register_workspace
             end
 
-            desc 'status', 'display information about the known workspaces'
+            desc "status", "display information about the known workspaces"
             def status
-                require 'autoproj'
+                require "autoproj"
                 ws = Workspace.registered_workspaces
                 fields = Workspace::RegisteredWorkspace.members.map(&:to_s)
 
@@ -50,9 +48,9 @@ module Autoproj
                     lines = w_dirs.map do |d|
                         status =
                             if d.present
-                                Autobuild.color('present', :green)
+                                Autobuild.color("present", :green)
                             else
-                                Autobuild.color('absent', :yellow)
+                                Autobuild.color("absent", :yellow)
                             end
 
                         format(format, "#{d.name}:", d.path, status)

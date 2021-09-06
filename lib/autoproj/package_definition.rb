@@ -48,7 +48,7 @@ module Autoproj
         # @return [Array<String>]
         def modes
             @modes + autobuild.utilities
-                     .values.find_all(&:enabled?).map(&:name)
+                              .values.find_all(&:enabled?).map(&:name)
         end
 
         # The package name
@@ -83,19 +83,17 @@ module Autoproj
         def apply_dependencies_from_manifest
             manifest = autobuild.description
             manifest.each_dependency(modes) do |name, is_optional|
-                begin
-                    if is_optional
-                        autobuild.optional_dependency name
-                    else
-                        autobuild.depends_on name
-                    end
-                rescue ConfigError => e
-                    raise PackageNotFound.new(manifest.path),
-                          "manifest #{manifest.path} of #{self.name} from "\
-                          "#{package_set.name} lists '#{name}' as dependency, "\
-                          'but it is neither a normal package nor an osdeps '\
-                          "package. osdeps reports: #{e.message}", e.backtrace
+                if is_optional
+                    autobuild.optional_dependency name
+                else
+                    autobuild.depends_on name
                 end
+            rescue ConfigError => e
+                raise PackageNotFound.new(manifest.path),
+                      "manifest #{manifest.path} of #{self.name} from "\
+                      "#{package_set.name} lists '#{name}' as dependency, "\
+                      "but it is neither a normal package nor an osdeps "\
+                      "package. osdeps reports: #{e.message}", e.backtrace
             end
         end
     end

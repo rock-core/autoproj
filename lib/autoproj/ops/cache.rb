@@ -12,20 +12,18 @@ module Autoproj
 
             def with_retry(count)
                 (count + 1).times do |i|
-                    begin
-                        break yield
-                    rescue Autobuild::SubcommandFailed
-                        if i == count
-                            raise
-                        else
-                            Autobuild.message "  failed, retrying (#{i}/#{count})"
-                        end
+                    break yield
+                rescue Autobuild::SubcommandFailed
+                    if i == count
+                        raise
+                    else
+                        Autobuild.message "  failed, retrying (#{i}/#{count})"
                     end
                 end
             end
 
             def git_cache_dir
-                File.join(cache_dir, 'git')
+                File.join(cache_dir, "git")
             end
 
             def cache_git(pkg, checkout_only: false)
@@ -34,37 +32,37 @@ module Autoproj
 
                 pkg.importer.local_branch = nil
                 pkg.importer.remote_branch = nil
-                pkg.importer.remote_name = 'autobuild'
+                pkg.importer.remote_name = "autobuild"
 
                 unless File.directory?(pkg.importdir)
                     FileUtils.mkdir_p File.dirname(pkg.importdir)
                     Autobuild::Subprocess.run(
                         "autoproj-cache", "import", Autobuild.tool(:git),
-                        "--git-dir", pkg.importdir, 'init', "--bare"
+                        "--git-dir", pkg.importdir, "init", "--bare"
                     )
                 end
                 pkg.importer.update_remotes_configuration(pkg, only_local: false)
 
                 with_retry(10) do
                     Autobuild::Subprocess.run(
-                        'autoproj-cache', :import, Autobuild.tool('git'),
-                        '--git-dir', pkg.importdir, 'remote', 'update', 'autobuild'
+                        "autoproj-cache", :import, Autobuild.tool("git"),
+                        "--git-dir", pkg.importdir, "remote", "update", "autobuild"
                     )
                 end
                 with_retry(10) do
                     Autobuild::Subprocess.run(
-                        'autoproj-cache', :import, Autobuild.tool('git'),
-                        '--git-dir', pkg.importdir, 'fetch', 'autobuild', '--tags'
+                        "autoproj-cache", :import, Autobuild.tool("git"),
+                        "--git-dir", pkg.importdir, "fetch", "autobuild", "--tags"
                     )
                 end
                 Autobuild::Subprocess.run(
-                    'autoproj-cache', :import, Autobuild.tool('git'),
-                    '--git-dir', pkg.importdir, 'gc', '--prune=all'
+                    "autoproj-cache", :import, Autobuild.tool("git"),
+                    "--git-dir", pkg.importdir, "gc", "--prune=all"
                 )
             end
 
             def archive_cache_dir
-                File.join(cache_dir, 'archives')
+                File.join(cache_dir, "archives")
             end
 
             def cache_archive(pkg)
@@ -75,7 +73,7 @@ module Autoproj
             end
 
             def create_or_update(*package_names, all: true, keep_going: false,
-                                 checkout_only: false)
+                checkout_only: false)
                 FileUtils.mkdir_p cache_dir
 
                 packages =
@@ -128,10 +126,10 @@ module Autoproj
                         raise unless keep_going
 
                         pkg.error "       failed to cache #{pkg.name}, "\
-                                  'but going on as requested'
+                                  "but going on as requested"
                         lines = e.to_s.split('\n')
                         lines = e.message.split('\n') if lines.empty?
-                        lines = ['unknown error'] if lines.empty?
+                        lines = ["unknown error"] if lines.empty?
                         pkg.message(lines.shift, :red, :bold)
                         lines.each do |line|
                             pkg.message(line)
@@ -142,15 +140,15 @@ module Autoproj
             end
 
             def gems_cache_dir
-                File.join(cache_dir, 'package_managers', 'gem')
+                File.join(cache_dir, "package_managers", "gem")
             end
 
             def create_or_update_gems(keep_going: true, compile_force: false, compile: [])
                 # Note: this might directly copy into the cache directoy, and
                 # we support it later
-                cache_dir = File.join(@ws.prefix_dir, 'gems', 'vendor', 'cache')
+                cache_dir = File.join(@ws.prefix_dir, "gems", "vendor", "cache")
                 PackageManagers::BundlerManager.run_bundler(
-                    @ws, 'cache'
+                    @ws, "cache"
                 )
 
                 FileUtils.mkdir_p(gems_cache_dir) unless File.exist?(gems_cache_dir)
@@ -209,23 +207,23 @@ module Autoproj
             end
 
             def guess_gem_program
-                return Autobuild.programs['gem'] if Autobuild.programs['gem']
+                return Autobuild.programs["gem"] if Autobuild.programs["gem"]
 
-                ruby_bin = RbConfig::CONFIG['RUBY_INSTALL_NAME']
-                ruby_bindir = RbConfig::CONFIG['bindir']
+                ruby_bin = RbConfig::CONFIG["RUBY_INSTALL_NAME"]
+                ruby_bindir = RbConfig::CONFIG["bindir"]
 
-                candidates = ['gem']
+                candidates = ["gem"]
                 candidates << "gem#{$1}" if ruby_bin =~ /^ruby(.+)$/
 
                 candidates.each do |gem_name|
                     if File.file?(gem_full_path = File.join(ruby_bindir, gem_name))
-                        Autobuild.programs['gem'] = gem_full_path
-                        return Autobuild.programs['gem']
+                        Autobuild.programs["gem"] = gem_full_path
+                        return Autobuild.programs["gem"]
                     end
                 end
 
                 raise ArgumentError,
-                      'cannot find a gem program (tried '\
+                      "cannot find a gem program (tried "\
                       "#{candidates.sort.join(', ')} in #{ruby_bindir})"
             end
 
@@ -237,8 +235,8 @@ module Autoproj
                         ["--exclude", n]
                     end
                 end
-                unless system(Autobuild.tool('ruby'), '-S', guess_gem_program,
-                              'compile', '--output', output, *artifacts, gem_path)
+                unless system(Autobuild.tool("ruby"), "-S", guess_gem_program,
+                              "compile", "--output", output, *artifacts, gem_path)
                     raise CompilationFailed, "#{gem_path} failed to compile"
                 end
             end

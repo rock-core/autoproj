@@ -1,9 +1,9 @@
-require 'yaml'
-require 'csv'
-require 'utilrb/kernel/options'
-require 'set'
+require "yaml"
+require "csv"
+require "utilrb/kernel/options"
+require "set"
 
-require 'win32/dir' if RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)!
+require "win32/dir" if RbConfig::CONFIG["host_os"] =~ %r!(msdos|mswin|djgpp|mingw|[Ww]indows)!
 
 module Autoproj
     # The Manifest class represents the information included in the main
@@ -74,22 +74,22 @@ module Autoproj
         # Initialize the manifest from a hash, as loaded from a manifest file
         def initialize_from_hash(data)
             @data = data
-            @ignored_packages |= (data['ignored_packages'] || Set.new).to_set
-            @ignored_packages |= (data['ignore_packages'] || Set.new).to_set
+            @ignored_packages |= (data["ignored_packages"] || Set.new).to_set
+            @ignored_packages |= (data["ignore_packages"] || Set.new).to_set
             invalidate_ignored_package_names
-            @manifest_exclusions |= (data['exclude_packages'] || Set.new).to_set
+            @manifest_exclusions |= (data["exclude_packages"] || Set.new).to_set
 
             normalized_layout = Hash.new
             compute_normalized_layout(
                 normalized_layout,
-                '/',
-                data['layout'] || Hash.new)
+                "/",
+                data["layout"] || Hash.new)
             @normalized_layout = normalized_layout
-            @has_layout = !!data['layout']
+            @has_layout = !!data["layout"]
 
-            if data['constants']
+            if data["constants"]
                 @constant_definitions =
-                    Autoproj.resolve_constant_definitions(data['constants'])
+                    Autoproj.resolve_constant_definitions(data["constants"])
             end
         end
 
@@ -115,7 +115,7 @@ module Autoproj
         def add_package_to_layout(package)
             package_name = validate_package_name_argument(package)
             @has_layout = true
-            normalized_layout[package_name] = '/'
+            normalized_layout[package_name] = "/"
         end
 
         # Add a package into the layout
@@ -128,7 +128,7 @@ module Autoproj
         def add_metapackage_to_layout(metapackage)
             validate_metapackage_in_self(metapackage)
             @has_layout = true
-            normalized_layout[metapackage.name] = '/'
+            normalized_layout[metapackage.name] = "/"
         end
 
         # Add a constant definition, used when resolving $CONSTANT in loaded
@@ -157,10 +157,12 @@ module Autoproj
         # is not available on the current operating system, or simply return it
         #
         # @return [Boolean]
-        def accept_unavailable_osdeps?; !!@accept_unavailable_osdeps end
+        def accept_unavailable_osdeps?
+            !!@accept_unavailable_osdeps
+        end
 
         # Sets {#accept_unavailable_osdeps?}
-        def accept_unavailable_osdeps=(flag); @accept_unavailable_osdeps = flag end
+        attr_writer :accept_unavailable_osdeps
 
         attr_reader :constant_definitions
 
@@ -320,7 +322,7 @@ module Autoproj
 
             if !explicitely_selected_in_layout?(package_name) && excluded_in_manifest?(package_name)
                 true
-            elsif automatic_exclusions.any? { |pkg_name, | pkg_name == package_name }
+            elsif automatic_exclusions.any? { |pkg_name,| pkg_name == package_name }
                 true
             else
                 false
@@ -678,17 +680,15 @@ module Autoproj
 
             result = []
             pkg_names.each do |pkg|
-                begin
-                    result.concat(resolve_single_package_name(pkg))
-                rescue PackageUnavailable => e
-                    if include_unavailable
-                        result.concat([[:osdeps, pkg]])
-                    else
-                        raise e, "cannot resolve #{pkg}: #{e}", e.backtrace
-                    end
-                rescue PackageNotFound => e
+                result.concat(resolve_single_package_name(pkg))
+            rescue PackageUnavailable => e
+                if include_unavailable
+                    result.concat([[:osdeps, pkg]])
+                else
                     raise e, "cannot resolve #{pkg}: #{e}", e.backtrace
                 end
+            rescue PackageNotFound => e
+                raise e, "cannot resolve #{pkg}: #{e}", e.backtrace
             end
             result
         end
@@ -726,7 +726,7 @@ module Autoproj
         #   into a package
         def resolve_package_name_as_source_package(name)
             if pkg = find_autobuild_package(name)
-                return [[:package, pkg.name]]
+                [[:package, pkg.name]]
             else
                 raise PackageNotFound, "cannot resolve #{name}: it is neither a package nor an osdep"
             end
@@ -748,7 +748,7 @@ module Autoproj
         #   fallback defined with {#add_osdeps_overrides}.
         #   If true, it will return it as an osdep.
         def resolve_package_name_as_osdep(name)
-	    osdeps_availability = os_package_resolver.availability_of(name)
+            osdeps_availability = os_package_resolver.availability_of(name)
             if osdeps_availability == OSPackageResolver::NO_PACKAGE
                 raise PackageNotFound, "#{name} is not an osdep"
             end
@@ -760,13 +760,13 @@ module Autoproj
                 (osdeps_availability == OSPackageResolver::IGNORE)
             osdeps_overrides = self.osdeps_overrides[name]
             if osdeps_overrides && (!osdeps_available || osdeps_overrides[:force])
-                return osdeps_overrides[:packages].inject([]) do |result, src_pkg_name|
+                osdeps_overrides[:packages].inject([]) do |result, src_pkg_name|
                     result.concat(resolve_package_name_as_source_package(src_pkg_name))
                 end.uniq
             elsif !osdeps_available && (pkg = find_autobuild_package(name))
-                return [[:package, pkg.name]]
+                [[:package, pkg.name]]
             elsif osdeps_available || accept_unavailable_osdeps?
-                return [[:osdeps, name]]
+                [[:osdeps, name]]
             elsif osdeps_availability == OSPackageResolver::WRONG_OS
                 raise PackageUnavailable, "#{name} is an osdep, but it is not available for this operating system (#{os_package_resolver.operating_system})"
             elsif osdeps_availability == OSPackageResolver::UNKNOWN_OS
@@ -834,19 +834,23 @@ module Autoproj
         # @return [PackageSelection]
         def layout_packages(validate = true)
             result = PackageSelection.new
-            Autoproj.in_file(self.file) do
+            Autoproj.in_file(file) do
                 normalized_layout.each_key do |pkg_or_set|
-                    begin
-                        weak = if meta = metapackages[pkg_or_set]
-                                   meta.weak_dependencies?
-                               end
-
-                        resolve_package_name(pkg_or_set).each do |pkg_type, pkg_name|
-                            result.select(pkg_or_set, pkg_name, osdep: (pkg_type == :osdeps), weak: weak)
+                    weak =
+                        if (meta = metapackages[pkg_or_set])
+                            meta.weak_dependencies?
                         end
-                    rescue PackageNotFound => e
-                        raise e, "#{pkg_or_set}, which is selected in the layout, is unknown: #{e.message}", e.backtrace
+
+                    resolve_package_name(pkg_or_set).each do |pkg_type, pkg_name|
+                        result.select(
+                            pkg_or_set, pkg_name,
+                            osdep: (pkg_type == :osdeps),
+                            weak: weak
+                        )
                     end
+                rescue PackageNotFound => e
+                    raise e, "#{pkg_or_set}, which is selected in the layout, "\
+                             "is unknown: #{e.message}", e.backtrace
                 end
             end
 
@@ -981,7 +985,7 @@ module Autoproj
                     return place
                 end
             end
-            '/'
+            "/"
         end
 
         class NoPackageXML < ConfigError; end
@@ -1014,7 +1018,7 @@ module Autoproj
                 manifest_paths = [File.join(package.srcdir, "manifest.xml")]
                 if package_set.local_dir
                     manifest_paths << File.join(
-                        package_set.local_dir, "manifests", package.name + ".xml")
+                        package_set.local_dir, "manifests", "#{package.name}.xml")
                 end
                 manifest_path = manifest_paths.find do |path|
                     File.file?(path)
@@ -1118,7 +1122,7 @@ module Autoproj
             result = PackageSelection.new
 
             all_selected_packages = self.all_selected_packages.to_set
-            all_source_package_names = self.all_package_names
+            all_source_package_names = all_package_names
             all_osdeps_package_names = os_package_resolver.all_package_names
             selection.each do |sel|
                 match_pkg_name = Regexp.new(Regexp.quote(sel))
@@ -1154,12 +1158,12 @@ module Autoproj
                     not_selected_partial_matches.clear
                 end
 
-                matches = [exact_matches, selected_partial_matches, not_selected_partial_matches].
-                    find { |m| !m.empty? }
-                if matches
-                    matches.each do |pkg_name, _|
-                        update_selection(result, sel, pkg_name, true)
-                    end
+                matches =
+                    [exact_matches, selected_partial_matches, not_selected_partial_matches]
+                    .find { |m| !m.empty? }
+
+                matches&.each do |pkg_name, _|
+                    update_selection(result, sel, pkg_name, true)
                 end
             end
 
@@ -1168,7 +1172,7 @@ module Autoproj
             end
 
             nonresolved = selection - result.matches.keys
-            return result, nonresolved
+            [result, nonresolved]
         end
 
         attr_reader :moved_packages

@@ -1,9 +1,9 @@
 module Autoproj
     module CLI
         class MainDoc < Thor
-            namespace 'doc'
+            namespace "doc"
 
-            default_command 'exec'
+            default_command "exec"
 
             no_commands do
                 def report(report_options = Hash.new)
@@ -22,11 +22,11 @@ module Autoproj
                 end
             end
 
-            desc 'enable [PACKAGES]', 'enable docs for the given packages (or for all packages if none are given)'
+            desc "enable [PACKAGES]", "enable docs for the given packages (or for all packages if none are given)"
             option :deps, type: :boolean, default: false,
-                desc: 'controls whether the dependencies of the packages given on the command line should be enabled as well (the default is not)'
+                desc: "controls whether the dependencies of the packages given on the command line should be enabled as well (the default is not)"
             def enable(*packages)
-                require 'autoproj/cli/doc'
+                require "autoproj/cli/doc"
                 report(silent: true) do
                     cli = Doc.new
                     args = cli.validate_options(packages, options)
@@ -34,11 +34,11 @@ module Autoproj
                 end
             end
 
-            desc 'disable [PACKAGES]', 'disable docs for the given packages (or for all packages if none are given)'
+            desc "disable [PACKAGES]", "disable docs for the given packages (or for all packages if none are given)"
             option :deps, type: :boolean, default: false,
-                desc: 'controls whether the dependencies of the packages given on the command line should be disabled as well (the default is not)'
+                desc: "controls whether the dependencies of the packages given on the command line should be disabled as well (the default is not)"
             def disable(*packages)
-                require 'autoproj/cli/doc'
+                require "autoproj/cli/doc"
                 report(silent: true) do
                     cli = Doc.new
                     args = cli.validate_options(packages, options)
@@ -46,11 +46,11 @@ module Autoproj
                 end
             end
 
-            desc 'list [PACKAGES]', 'show doc enable/disable status for the given packages (or all packages if none are given)'
+            desc "list [PACKAGES]", "show doc enable/disable status for the given packages (or all packages if none are given)"
             option :deps, type: :boolean, default: true,
-                desc: 'controls whether the dependencies of the packages given on the command line should be disabled as well (the default is not)'
+                desc: "controls whether the dependencies of the packages given on the command line should be disabled as well (the default is not)"
             def list(*packages)
-                require 'autoproj/cli/doc'
+                require "autoproj/cli/doc"
                 report(silent: true) do
                     cli = Doc.new
                     args = cli.validate_options(packages, options)
@@ -58,21 +58,21 @@ module Autoproj
                 end
             end
 
-            desc 'exec [PACKAGES]', 'generate documentation for the given packages, or all if no packages are given on the command line'
+            desc "exec [PACKAGES]", "generate documentation for the given packages, or all if no packages are given on the command line"
             option :deps, type: :boolean, default: false,
-                desc: 'controls whether to generate documentation of the dependencies of the packages given on the command line (the default is not)'
-            option :no_deps_shortcut, hide: true, aliases: '-n', type: :boolean,
-                desc: 'provide -n for --no-deps'
+                desc: "controls whether to generate documentation of the dependencies of the packages given on the command line (the default is not)"
+            option :no_deps_shortcut, hide: true, aliases: "-n", type: :boolean,
+                desc: "provide -n for --no-deps"
             option :parallel, aliases: :p, type: :numeric,
-                desc: 'maximum number of parallel jobs'
+                desc: "maximum number of parallel jobs"
             option :tool, type: :boolean, default: false,
                 desc: "run in tool mode, which do not redirect the subcommand's outputs"
             option :color, type: :boolean, default: TTY::Color.color?,
-                desc: 'enables or disables colored display (enabled by default if the terminal supports it)'
+                desc: "enables or disables colored display (enabled by default if the terminal supports it)"
             option :progress, type: :boolean, default: TTY::Color.color?,
-                desc: 'enables or disables progress display (enabled by default if the terminal supports it)'
+                desc: "enables or disables progress display (enabled by default if the terminal supports it)"
             def exec(*packages)
-                require 'autoproj/cli/doc'
+                require "autoproj/cli/doc"
                 options = self.options.merge(parent_options)
                 report do |extra_options|
                     cli = Doc.new

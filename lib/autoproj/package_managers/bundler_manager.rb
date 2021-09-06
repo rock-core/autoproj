@@ -1,4 +1,4 @@
-require 'bundler'
+require "bundler"
 module Autoproj
     module PackageManagers
         # Package manager interface for the RubyGems system
@@ -49,23 +49,23 @@ module Autoproj
 
                 config = ws.config
 
-                env.add_path 'PATH', File.join(ws.prefix_dir, 'gems', 'bin')
-                env.add_path 'PATH', File.join(ws.dot_autoproj_dir, 'bin')
-                env.set 'GEM_HOME', config.gems_gem_home
-                env.clear 'GEM_PATH'
+                env.add_path "PATH", File.join(ws.prefix_dir, "gems", "bin")
+                env.add_path "PATH", File.join(ws.dot_autoproj_dir, "bin")
+                env.set "GEM_HOME", config.gems_gem_home
+                env.clear "GEM_PATH"
                 if (bundler_version = config.bundler_version)
-                    env.set 'BUNDLER_VERSION', bundler_version
+                    env.set "BUNDLER_VERSION", bundler_version
                 else
-                    env.clear 'BUNDLER_VERSION'
+                    env.clear "BUNDLER_VERSION"
                 end
 
-                gemfile_path = File.join(ws.prefix_dir, 'gems', 'Gemfile')
-                env.set('BUNDLE_GEMFILE', gemfile_path) if File.file?(gemfile_path)
+                gemfile_path = File.join(ws.prefix_dir, "gems", "Gemfile")
+                env.set("BUNDLE_GEMFILE", gemfile_path) if File.file?(gemfile_path)
 
                 if cache_dir && File.exist?(cache_dir)
-                    vendor_dir = File.join(File.dirname(gemfile_path), 'vendor')
+                    vendor_dir = File.join(File.dirname(gemfile_path), "vendor")
                     FileUtils.mkdir_p vendor_dir
-                    bundler_cache_dir = File.join(vendor_dir, 'cache')
+                    bundler_cache_dir = File.join(vendor_dir, "cache")
                     if File.writable?(cache_dir)
                         create_cache_symlink(cache_dir, bundler_cache_dir)
                     else
@@ -75,16 +75,16 @@ module Autoproj
                     end
                 end
 
-                Autobuild.programs['bundler'] =
-                    Autobuild.programs['bundle'] =
-                    File.join(ws.dot_autoproj_dir, 'bin', 'bundle')
+                Autobuild.programs["bundler"] =
+                    Autobuild.programs["bundle"] =
+                        File.join(ws.dot_autoproj_dir, "bin", "bundle")
 
-                env.init_from_env 'RUBYLIB'
-                env.inherit 'RUBYLIB'
+                env.init_from_env "RUBYLIB"
+                env.inherit "RUBYLIB"
                 # Sanitize the rubylib we get from the environment by removing
                 # anything that comes from Gem or Bundler
                 original_rubylib =
-                    (env['RUBYLIB'] || "").split(File::PATH_SEPARATOR).find_all do |p|
+                    (env["RUBYLIB"] || "").split(File::PATH_SEPARATOR).find_all do |p|
                         !p.start_with?(Bundler.rubygems.gem_dir) &&
                             Bundler.rubygems.gem_path
                                    .none? { |gem_p| p.start_with?(gem_p) }
@@ -97,22 +97,22 @@ module Autoproj
                     #
                     # This allows to use a binstub generated for one of ruby
                     # interpreter version on our workspace
-                    env.system_env['RUBYLIB'] = []
-                    env.original_env['RUBYLIB'] = (original_rubylib - system_rubylib)
+                    env.system_env["RUBYLIB"] = []
+                    env.original_env["RUBYLIB"] = (original_rubylib - system_rubylib)
                                                   .join(File::PATH_SEPARATOR)
                 end
 
                 ws.config.each_reused_autoproj_installation do |p|
                     reused_w = ws.new(p)
-                    env.add_path 'PATH', File.join(reused_w.prefix_dir, 'gems', 'bin')
+                    env.add_path "PATH", File.join(reused_w.prefix_dir, "gems", "bin")
                 end
 
                 prefix_gems = File.join(ws.prefix_dir, "gems")
                 FileUtils.mkdir_p prefix_gems
-                gemfile = File.join(prefix_gems, 'Gemfile')
+                gemfile = File.join(prefix_gems, "Gemfile")
                 unless File.exist?(gemfile)
                     Ops.atomic_write(gemfile) do |io|
-                        dot_autoproj_gemfile = File.join(ws.dot_autoproj_dir, 'Gemfile')
+                        dot_autoproj_gemfile = File.join(ws.dot_autoproj_dir, "Gemfile")
                         io.puts "eval_gemfile \"#{dot_autoproj_gemfile}\""
                     end
                 end
@@ -152,7 +152,7 @@ module Autoproj
                 FileUtils.rm_f bundler_cache_dir if File.symlink?(bundler_cache_dir)
                 FileUtils.mkdir_p bundler_cache_dir
 
-                Dir.glob(File.join(cache_dir, '*.gem')) do |path_src|
+                Dir.glob(File.join(cache_dir, "*.gem")) do |path_src|
                     path_dest = File.join(bundler_cache_dir, File.basename(path_src))
                     next if File.exist?(path_dest)
 
@@ -162,7 +162,7 @@ module Autoproj
 
             # Enumerate the per-gem build configurations
             def self.per_gem_build_config(ws)
-                ws.config.get('bundler.build', {})
+                ws.config.get("bundler.build", {})
             end
 
             # Add new build configuration arguments for a given gem
@@ -170,9 +170,9 @@ module Autoproj
             # This is meant to be used from the Autoproj configuration files,
             # e.g. overrides.rb or package configuration
             def self.add_build_configuration_for(gem_name, build_config, ws: Autoproj.workspace)
-                c = ws.config.get('bundler.build', {})
+                c = ws.config.get("bundler.build", {})
                 c[gem_name] = [c[gem_name], build_config].compact.join(" ")
-                ws.config.set('bundler.build', c)
+                ws.config.set("bundler.build", c)
             end
 
             # Set the build configuration for the given gem
@@ -180,9 +180,9 @@ module Autoproj
             # This is meant to be used from the Autoproj configuration files,
             # e.g. overrides.rb or package configuration
             def self.configure_build_for(gem_name, build_config, ws: Autoproj.workspace)
-                c = ws.config.get('bundler.build', {})
+                c = ws.config.get("bundler.build", {})
                 c[gem_name] = build_config
-                ws.config.set('bundler.build', c)
+                ws.config.set("bundler.build", c)
             end
 
             # Removes build configuration flags for the given gem
@@ -190,9 +190,9 @@ module Autoproj
             # This is meant to be used from the Autoproj configuration files,
             # e.g. overrides.rb or package configuration
             def self.remove_build_configuration_for(gem_name, ws: Autoproj.workspace)
-                c = ws.config.get('bundler.build', {})
+                c = ws.config.get("bundler.build", {})
                 c.delete(gem_name)
-                ws.config.set('bundler.build', c)
+                ws.config.set("bundler.build", c)
             end
 
             # @api private
@@ -203,7 +203,7 @@ module Autoproj
             #   should be updated
             # @return [void]
             def self.apply_build_config(ws)
-                root_dir = File.join(ws.prefix_dir, 'gems')
+                root_dir = File.join(ws.prefix_dir, "gems")
                 current_config_path = File.join(root_dir, ".bundle", "config")
                 current_config =
                     if File.file?(current_config_path)
@@ -234,7 +234,7 @@ module Autoproj
 
                 if new_config != current_config
                     FileUtils.mkdir_p File.dirname(current_config_path)
-                    File.open(current_config_path, 'w') do |io|
+                    File.open(current_config_path, "w") do |io|
                         io.write new_config.join
                     end
                 end
@@ -250,10 +250,10 @@ module Autoproj
             # @param [Array<String>] system_rubylib the rubylib entries that are
             #   set by the underlying ruby interpreter itself
             def update_env_rubylib(bundle_rubylib, system_rubylib = discover_rubylib)
-                current = (ws.env.resolved_env['RUBYLIB'] || '')
+                current = (ws.env.resolved_env["RUBYLIB"] || "")
                           .split(File::PATH_SEPARATOR) + system_rubylib
                 (bundle_rubylib - current).each do |p|
-                    ws.env.add_path('RUBYLIB', p)
+                    ws.env.add_path("RUBYLIB", p)
                 end
             end
 
@@ -321,21 +321,21 @@ module Autoproj
             )
                 FileUtils.rm "#{gemfile}.lock" if update && File.file?("#{gemfile}.lock")
 
-                options << '--path' << gem_path
+                options << "--path" << gem_path
                 options << "--shebang" << Gem.ruby
                 options << "--binstubs" << binstubs if binstubs
 
                 apply_build_config(ws)
 
                 connections = Set.new
-                run_bundler(ws, 'install', *options,
+                run_bundler(ws, "install", *options,
                             bundler_version: bundler_version,
                             gem_home: gem_home, gemfile: gemfile) do |line|
                     case line
                     when /Installing (.*)/
                         Autobuild.message "  bundler: installing #{$1}"
                     when /Fetching.*from (.*)/
-                        host = $1.gsub(/\.+$/, '')
+                        host = $1.gsub(/\.+$/, "")
                         unless connections.include?(host)
                             Autobuild.message "  bundler: connected to #{host}"
                             connections << host
@@ -345,41 +345,41 @@ module Autoproj
             end
 
             def self.bundle_gem_path(ws, gem_name,
-                                     bundler_version: ws.config.bundler_version,
-                                     gem_home: nil, gemfile: nil)
+                bundler_version: ws.config.bundler_version,
+                gem_home: nil, gemfile: nil)
                 path = String.new
                 run_bundler(
-                    ws, 'show', gem_name,
+                    ws, "show", gem_name,
                     bundler_version: bundler_version, gem_home: gem_home,
                     gemfile: gemfile) { |line| path << line }
                 path.chomp
             end
 
             def self.default_bundler(ws)
-                File.join(ws.dot_autoproj_dir, 'bin', 'bundle')
+                File.join(ws.dot_autoproj_dir, "bin", "bundle")
             end
 
             def self.run_bundler(ws, *commandline,
-                                 bundler_version: ws.config.bundler_version,
-                                 gem_home: ws.config.gems_gem_home,
-                                 gemfile: default_gemfile_path(ws))
-                bundle = Autobuild.programs['bundle'] || default_bundler(ws)
+                bundler_version: ws.config.bundler_version,
+                gem_home: ws.config.gems_gem_home,
+                gemfile: default_gemfile_path(ws))
+                bundle = Autobuild.programs["bundle"] || default_bundler(ws)
 
                 Autoproj.bundler_with_unbundled_env do
                     bundler_version_env =
                         if bundler_version
-                            { 'BUNDLER_VERSION' => bundler_version }
+                            { "BUNDLER_VERSION" => bundler_version }
                         else
                             {}
                         end
                     target_env = Hash[
-                        'GEM_HOME' => gem_home,
-                        'GEM_PATH' => nil,
-                        'BUNDLE_GEMFILE' => gemfile,
-                        'RUBYOPT' => nil,
-                        'RUBYLIB' => rubylib_for_bundler,
+                        "GEM_HOME" => gem_home,
+                        "GEM_PATH" => nil,
+                        "BUNDLE_GEMFILE" => gemfile,
+                        "RUBYOPT" => nil,
+                        "RUBYLIB" => rubylib_for_bundler,
                     ].merge(bundler_version_env)
-                    ws.run('autoproj', 'osdeps',
+                    ws.run("autoproj", "osdeps",
                            bundle, *commandline,
                            working_directory: File.dirname(gemfile),
                            env: target_env) { |line| yield(line) if block_given? }
@@ -401,10 +401,10 @@ module Autoproj
                         begin Bundler::Dsl.evaluate(gemfile, nil, [])
                         rescue Exception => e
                             cleaned_message = e
-                                .message
-                                .gsub(/There was an error parsing([^:]+)/,
-                                      "Error in gem definitions")
-                                .gsub(/#  from.*/, '')
+                                              .message
+                                              .gsub(/There was an error parsing([^:]+)/,
+                                                    "Error in gem definitions")
+                                              .gsub(/#  from.*/, "")
                             raise ConfigError, cleaned_message
                         end
                     gems_remotes |= bundler_def.send(:sources).rubygems_remotes.to_set
@@ -415,7 +415,7 @@ module Autoproj
                                     dependencies[group_name][platform_name][d.name] = d
                                 end
                             else
-                                dependencies[group_name][''][d.name] = d
+                                dependencies[group_name][""][d.name] = d
                             end
                         end
                     end
@@ -424,7 +424,7 @@ module Autoproj
                 contents = []
                 gems_remotes.each do |g|
                     g = g.to_s
-                    g = g[0..-2] if g.end_with?('/')
+                    g = g[0..-2] if g.end_with?("/")
                     contents << "source '#{g}'"
                 end
                 valid_keys = %w[group groups git path glob name branch ref tag
@@ -445,11 +445,11 @@ module Autoproj
                                 options = options.map { |k, v| "#{k}: \"#{v}\"" }
                             end
                             contents << ["  #{platform_indent}gem \"#{d.name}\",
-                                         \"#{d.requirement}\"", *options].join(', ')
+                                         \"#{d.requirement}\"", *options].join(", ")
                         end
-                        contents << '  end' unless platform_name.empty?
+                        contents << "  end" unless platform_name.empty?
                     end
-                    contents << 'end'
+                    contents << "end"
                 end
                 contents.join("\n")
             end
@@ -457,7 +457,7 @@ module Autoproj
             def workspace_configuration_gemfiles
                 gemfiles = []
                 ws.manifest.each_package_set do |source|
-                    pkg_set_gemfile = File.join(source.local_dir, 'Gemfile')
+                    pkg_set_gemfile = File.join(source.local_dir, "Gemfile")
                     if source.local_dir && File.file?(pkg_set_gemfile)
                         gemfiles << pkg_set_gemfile
                     end
@@ -470,7 +470,7 @@ module Autoproj
             end
 
             def self.default_gemfile_path(ws)
-                File.join(ws.prefix_dir, 'gems', 'Gemfile')
+                File.join(ws.prefix_dir, "gems", "Gemfile")
             end
 
             def install(gems, filter_uptodate_packages: false, install_only: false)
@@ -487,17 +487,17 @@ module Autoproj
                 backup_files(backups)
                 unless File.file?("#{gemfile_path}.orig")
                     Ops.atomic_write("#{gemfile_path}.orig") do |io|
-                        dot_autoproj_gemfile = File.join(ws.dot_autoproj_dir, 'Gemfile')
+                        dot_autoproj_gemfile = File.join(ws.dot_autoproj_dir, "Gemfile")
                         io.puts "eval_gemfile \"#{dot_autoproj_gemfile}\""
                     end
                 end
 
                 gemfiles = workspace_configuration_gemfiles
-                gemfiles << File.join(ws.dot_autoproj_dir, 'Gemfile')
+                gemfiles << File.join(ws.dot_autoproj_dir, "Gemfile")
 
                 # Save the osdeps entries in a temporary gemfile and finally
                 # merge the whole lot of it
-                gemfile_contents = Tempfile.open 'autoproj-gemfile' do |io|
+                gemfile_contents = Tempfile.open "autoproj-gemfile" do |io|
                     gems.sort.each do |name|
                         name, version = parse_package_entry(name)
                         io.puts "gem \"#{name}\", \"#{version || '>= 0'}\""
@@ -520,7 +520,7 @@ module Autoproj
                 end
 
                 options = Array.new
-                binstubs_path = File.join(root_dir, 'bin')
+                binstubs_path = File.join(root_dir, "bin")
                 if updated || !install_only || !File.file?("#{gemfile_path}.lock")
                     self.class.run_bundler_install(ws, gemfile_path, *options,
                                                    binstubs: binstubs_path)
@@ -540,20 +540,20 @@ module Autoproj
                 raise
             ensure
                 if binstubs_path
-                    FileUtils.rm_f File.join(binstubs_path, 'bundle')
-                    FileUtils.rm_f File.join(binstubs_path, 'bundler')
+                    FileUtils.rm_f File.join(binstubs_path, "bundle")
+                    FileUtils.rm_f File.join(binstubs_path, "bundler")
                 end
                 backup_clean(backups)
             end
 
             def discover_rubylib
-                require 'bundler'
-                Tempfile.open 'autoproj-rubylib' do |io|
+                require "bundler"
+                Tempfile.open "autoproj-rubylib" do |io|
                     result = Autoproj.bundler_unbundled_system(
-                        Hash['RUBYLIB' => nil],
-                        Autobuild.tool('ruby'), '-e', 'puts $LOAD_PATH',
+                        Hash["RUBYLIB" => nil],
+                        Autobuild.tool("ruby"), "-e", "puts $LOAD_PATH",
                         out: io,
-                        err: '/dev/null')
+                        err: "/dev/null")
                     if result
                         io.rewind
                         io.readlines.map(&:chomp).find_all { |l| !l.empty? }
@@ -567,18 +567,18 @@ module Autoproj
             end
 
             def discover_bundle_rubylib(silent_errors: false)
-                require 'bundler'
-                gemfile = File.join(ws.prefix_dir, 'gems', 'Gemfile')
+                require "bundler"
+                gemfile = File.join(ws.prefix_dir, "gems", "Gemfile")
                 silent_redirect = Hash.new
                 silent_redirect[:err] = :close if silent_errors
                 env = ws.env.resolved_env
-                Tempfile.open 'autoproj-rubylib' do |io|
+                Tempfile.open "autoproj-rubylib" do |io|
                     result = Autoproj.bundler_unbundled_system(
-                        Hash['GEM_HOME' => env['GEM_HOME'], 'GEM_PATH' => env['GEM_PATH'],
-                             'BUNDLE_GEMFILE' => gemfile, 'RUBYOPT' => nil,
-                             'RUBYLIB' => self.class.rubylib_for_bundler],
-                        Autobuild.tool('ruby'), '-rbundler/setup',
-                        '-e', 'puts $LOAD_PATH',
+                        Hash["GEM_HOME" => env["GEM_HOME"], "GEM_PATH" => env["GEM_PATH"],
+                             "BUNDLE_GEMFILE" => gemfile, "RUBYOPT" => nil,
+                             "RUBYLIB" => self.class.rubylib_for_bundler],
+                        Autobuild.tool("ruby"), "-rbundler/setup",
+                        "-e", "puts $LOAD_PATH",
                         out: io, **silent_redirect)
 
                     if result

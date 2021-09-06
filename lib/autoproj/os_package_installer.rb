@@ -1,36 +1,36 @@
 # frozen_string_literal: true
 
-require 'autoproj/package_managers/manager'
-require 'autoproj/package_managers/unknown_os_manager'
-require 'autoproj/package_managers/shell_script_manager'
+require "autoproj/package_managers/manager"
+require "autoproj/package_managers/unknown_os_manager"
+require "autoproj/package_managers/shell_script_manager"
 
-require 'autoproj/package_managers/apt_dpkg_manager'
-require 'autoproj/package_managers/emerge_manager'
-require 'autoproj/package_managers/homebrew_manager'
-require 'autoproj/package_managers/pacman_manager'
-require 'autoproj/package_managers/pkg_manager'
-require 'autoproj/package_managers/port_manager'
-require 'autoproj/package_managers/yum_manager'
-require 'autoproj/package_managers/zypper_manager'
+require "autoproj/package_managers/apt_dpkg_manager"
+require "autoproj/package_managers/emerge_manager"
+require "autoproj/package_managers/homebrew_manager"
+require "autoproj/package_managers/pacman_manager"
+require "autoproj/package_managers/pkg_manager"
+require "autoproj/package_managers/port_manager"
+require "autoproj/package_managers/yum_manager"
+require "autoproj/package_managers/zypper_manager"
 
-require 'autoproj/package_managers/bundler_manager'
-require 'autoproj/package_managers/pip_manager'
+require "autoproj/package_managers/bundler_manager"
+require "autoproj/package_managers/pip_manager"
 
 module Autoproj
     class OSPackageInstaller
         attr_reader :ws
 
         PACKAGE_MANAGERS = Hash[
-           'apt-dpkg' => PackageManagers::AptDpkgManager,
-           'gem'      => PackageManagers::BundlerManager,
-           'emerge'   => PackageManagers::EmergeManager,
-           'pacman'   => PackageManagers::PacmanManager,
-           'brew'     => PackageManagers::HomebrewManager,
-           'yum'      => PackageManagers::YumManager,
-           'macports' => PackageManagers::PortManager,
-           'zypper'   => PackageManagers::ZypperManager,
-           'pip'      => PackageManagers::PipManager ,
-           'pkg'      => PackageManagers::PkgManager
+           "apt-dpkg" => PackageManagers::AptDpkgManager,
+           "gem"      => PackageManagers::BundlerManager,
+           "emerge"   => PackageManagers::EmergeManager,
+           "pacman"   => PackageManagers::PacmanManager,
+           "brew"     => PackageManagers::HomebrewManager,
+           "yum"      => PackageManagers::YumManager,
+           "macports" => PackageManagers::PortManager,
+           "zypper"   => PackageManagers::ZypperManager,
+           "pip"      => PackageManagers::PipManager,
+           "pkg"      => PackageManagers::PkgManager
         ]
 
         attr_reader :os_package_resolver
@@ -83,10 +83,10 @@ module Autoproj
             package_managers.each(&block)
         end
 
-        HANDLE_ALL  = 'all'
-        HANDLE_RUBY = 'ruby'
-        HANDLE_OS   = 'os'
-        HANDLE_NONE = 'none'
+        HANDLE_ALL  = "all"
+        HANDLE_RUBY = "ruby"
+        HANDLE_OS   = "os"
+        HANDLE_NONE = "none"
 
         def osdeps_mode_option_unsupported_os(config)
             long_doc = <<-EOT
@@ -117,16 +117,16 @@ about the OS packages that you will need to install manually.
 
 So, what do you want ? (all, none or a comma-separated list of: gem pip)
             EOT
-            message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (all, none or a comma-separated list of: gem pip) ?", long_doc.strip ]
+            message = ["Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (all, none or a comma-separated list of: gem pip) ?", long_doc.strip]
 
-            config.declare 'osdeps_mode', 'string',
-                default: 'ruby',
+            config.declare "osdeps_mode", "string",
+                default: "ruby",
                 doc: message,
                 lowercase: true
         end
 
         def osdeps_mode_option_supported_os(config)
-            long_doc =<<-EOT
+            long_doc = <<-EOT
 The software packages that autoproj will have to build may require other
 prepackaged softwares (a.k.a. OS dependencies) to be installed (RubyGems
 packages, packages from your operating system/distribution, ...). Autoproj
@@ -158,10 +158,10 @@ about the OS packages that you will need to install manually.
 
 So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             EOT
-            message = [ "Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (all, none or a comma-separated list of: os gem pip) ?", long_doc.strip ]
+            message = ["Which prepackaged software (a.k.a. 'osdeps') should autoproj install automatically (all, none or a comma-separated list of: os gem pip) ?", long_doc.strip]
 
-            config.declare 'osdeps_mode', 'string',
-                           default: 'all',
+            config.declare "osdeps_mode", "string",
+                           default: "all",
                            doc: message,
                            lowercase: true
         end
@@ -175,21 +175,21 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
         end
 
         def osdeps_mode_string_to_value(string)
-            user_modes = string.to_s.downcase.split(',')
+            user_modes = string.to_s.downcase.split(",")
             modes = []
             user_modes.each do |str|
                 case str
-                when 'all'  then modes.concat(%w[os gem pip])
-                when 'ruby' then modes << 'gem'
-                when 'gem'  then modes << 'gem'
-                when 'pip'  then modes << 'pip'
-                when 'os'   then modes << 'os'
-                when 'none' then
+                when "all"  then modes.concat(%w[os gem pip])
+                when "ruby" then modes << "gem"
+                when "gem"  then modes << "gem"
+                when "pip"  then modes << "pip"
+                when "os"   then modes << "os"
+                when "none" then # rubocop:disable Lint/EmptyWhen
                 else
                     if package_managers.key?(str)
                         modes << str
                     else
-                        raise ArgumentError, "#{str} is not a known package handler, known handlers are #{package_managers.keys.sort.join(", ")}"
+                        raise ArgumentError, "#{str} is not a known package handler, known handlers are #{package_managers.keys.sort.join(', ')}"
                     end
                 end
             end
@@ -197,7 +197,7 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
         end
 
         def configure_manager
-            os_package_manager.configure_manager if osdeps_mode.include?('os')
+            os_package_manager.configure_manager if osdeps_mode.include?("os")
         end
 
         # If set to true (the default), #install will try to remove the list of
@@ -231,14 +231,14 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
             config = ws.config
             while true
                 mode =
-                    if !config.has_value_for?('osdeps_mode') && mode_name = ENV['AUTOPROJ_OSDEPS_MODE']
+                    if !config.has_value_for?("osdeps_mode") && mode_name = ENV["AUTOPROJ_OSDEPS_MODE"]
                         begin osdeps_mode_string_to_value(mode_name)
                         rescue ArgumentError
                             Autoproj.warn "invalid osdeps mode given through AUTOPROJ_OSDEPS_MODE (#{mode})"
                             nil
                         end
                     else
-                        mode_name = config.get('osdeps_mode')
+                        mode_name = config.get("osdeps_mode")
                         begin osdeps_mode_string_to_value(mode_name)
                         rescue ArgumentError
                             Autoproj.warn "invalid osdeps mode stored in configuration file"
@@ -248,13 +248,13 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
 
                 if mode
                     @osdeps_mode = mode
-                    config.set('osdeps_mode', mode_name, true)
+                    config.set("osdeps_mode", mode_name, true)
                     return mode
                 end
 
                 # Invalid configuration values. Retry
-                config.reset('osdeps_mode')
-                ENV['AUTOPROJ_OSDEPS_MODE'] = nil
+                config.reset("osdeps_mode")
+                ENV["AUTOPROJ_OSDEPS_MODE"] = nil
             end
         end
 
@@ -275,17 +275,17 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
                 handler.enabled = false
             end
             osdeps_mode.each do |m|
-                if m == 'os'
+                if m == "os"
                     os_package_manager.enabled = true
                 elsif pkg = package_managers[m]
                     pkg.enabled = true
                 else
-                    Autoproj.warn "osdep handler #{m.inspect} found in osdep_mode has no handler, available handlers are #{package_managers.keys.map(&:inspect).sort.join(", ")}"
+                    Autoproj.warn "osdep handler #{m.inspect} found in osdep_mode has no handler, available handlers are #{package_managers.keys.map(&:inspect).sort.join(', ')}"
                 end
             end
-            os_package_manager.silent = self.silent?
+            os_package_manager.silent = silent?
             package_managers.each_value do |v|
-                v.silent = self.silent?
+                v.silent = silent?
             end
 
             enabled_handlers = []
@@ -379,7 +379,7 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
                 # get the complete list of osdep packages
                 if manager.strict? && !all_osdep_packages
                     if !manager_selected.empty?
-                        raise InternalError, "requesting to install the osdeps #{partitioned_packages[manager].to_a.sort.join(", ")} through #{manager_name} but the complete list of osdep packages managed by this manager was not provided. This would break the workspace"
+                        raise InternalError, "requesting to install the osdeps #{partitioned_packages[manager].to_a.sort.join(', ')} through #{manager_name} but the complete list of osdep packages managed by this manager was not provided. This would break the workspace"
                     end
                     next
                 end
@@ -413,7 +413,7 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
 
                     partitioned_packages[nested_manager] += deps
                     partitioned_packages = resolve_managers_dependencies(partitioned_packages) if enable_recursion
-               end
+                end
             end
             partitioned_packages
         end
@@ -451,4 +451,3 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
         end
     end
 end
-

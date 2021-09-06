@@ -3,7 +3,7 @@ module Autoproj
     # in autoproj/
     class LocalPackageSet < PackageSet
         def initialize(ws, local_dir: ws.config_dir)
-            super(ws, VCSDefinition.none, name: 'main configuration', raw_local_dir: local_dir)
+            super(ws, VCSDefinition.none, name: "main configuration", raw_local_dir: local_dir)
             @local_dir = local_dir
         end
 
@@ -47,7 +47,7 @@ module Autoproj
         # Load the files in overrides.d in addition to the overrides: field in
         # the yaml file
         def load_overrides(source_definition)
-            files = Dir.glob(File.join( ws.overrides_dir, "*.yml" ) ).sort
+            files = Dir.glob(File.join(ws.overrides_dir, "*.yml")).sort
             overrides = files.map do |file|
                 source_data = Autoproj.in_file(file, Autoproj::YAML_LOAD_ERROR) do
                     YAML.load(File.read(file)) || Array.new
@@ -55,7 +55,7 @@ module Autoproj
                 source_data =
                     if source_data.respond_to?(:to_ary)
                         source_data
-                    else source_data['overrides'] || Hash.new
+                    else source_data["overrides"] || Hash.new
                     end
                 [file, source_data]
             end
@@ -64,9 +64,9 @@ module Autoproj
 
         def raw_description_file
             description = Hash[
-                'imports' => Array.new,
-                'version_control' => Array.new,
-                'overrides' => Array.new]
+                "imports" => Array.new,
+                "version_control" => Array.new,
+                "overrides" => Array.new]
             if File.file?(overrides_file_path)
                 overrides_data = Autoproj.in_file(overrides_file_path, Autoproj::YAML_LOAD_ERROR) do
                     YAML.load(File.read(overrides_file_path)) || Hash.new
@@ -79,9 +79,9 @@ module Autoproj
             manifest_data = Autoproj.in_file(manifest_path, Autoproj::YAML_LOAD_ERROR) do
                 YAML.load(File.read(manifest_path)) || Hash.new
             end
-            description['imports'] = description['imports'].
-                concat(manifest_data['package_sets'] || Array.new)
-            description['name'] = name
+            description["imports"] = description["imports"].
+                                     concat(manifest_data["package_sets"] || Array.new)
+            description["name"] = name
             description
         end
     end
