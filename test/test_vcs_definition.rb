@@ -18,7 +18,9 @@ module Autoproj
             end
 
             it "normalizes the standard format" do
-                vcs = VCSDefinition.normalize_vcs_hash("type" => "git", "url" => "u", "branch" => "b")
+                vcs = VCSDefinition.normalize_vcs_hash(
+                    { "type" => "git", "url" => "u", "branch" => "b" }
+                )
                 assert_equal Hash[type: "git", url: "u", branch: "b"], vcs
             end
 
@@ -56,8 +58,8 @@ module Autoproj
             end
 
             it "expands a source handler when the specification is a single string" do
-                Autoproj.add_source_handler "custom_handler" do |url, options|
-                    Hash[url: url, type: "local"].merge(options)
+                Autoproj.add_source_handler "custom_handler" do |url, **options|
+                    { url: url, type: "local" }.merge(options)
                 end
                 vcs = VCSDefinition.normalize_vcs_hash("custom_handler:test")
                 assert_equal Hash[url: "test", type: "local"], vcs
@@ -67,7 +69,9 @@ module Autoproj
                 Autoproj.add_source_handler "custom_handler" do |url, options|
                     Hash[url: url, type: "local"].merge(options)
                 end
-                vcs = VCSDefinition.normalize_vcs_hash(Hash["custom_handler" => "test", "other" => "option"])
+                vcs = VCSDefinition.normalize_vcs_hash(
+                    { "custom_handler" => "test", "other" => "option" }
+                )
                 assert_equal Hash[url: "test", type: "local", other: "option"], vcs
             end
         end
@@ -75,19 +79,20 @@ module Autoproj
         describe ".from_raw" do
             it "raises if the VCS has no type" do
                 e = assert_raises(ArgumentError) do
-                    VCSDefinition.from_raw(url: "test")
+                    VCSDefinition.from_raw({ url: "test" })
                 end
-                assert_equal "the source specification { url: test } normalizes into { url: test }, which does not have a VCS type",
+                assert_equal "the source specification { url: test } normalizes "\
+                             "into { url: test }, which does not have a VCS type",
                              e.message
             end
             it "raises if the VCS has no URL and type is not 'none'" do
                 assert_raises(ArgumentError) do
-                    VCSDefinition.from_raw(type: "local")
+                    VCSDefinition.from_raw({ type: "local" })
                 end
             end
             it "passes if the VCS type is none and there is no URL" do
                 assert_raises(ArgumentError) do
-                    VCSDefinition.from_raw(type: "local")
+                    VCSDefinition.from_raw({ type: "local" })
                 end
             end
         end
@@ -109,15 +114,24 @@ module Autoproj
                 assert_kind_of Autobuild::Git, importer
                 assert_equal "https://github.com", importer.repository
             end
-            it "registers the various versions of the history if the importer supports declare_alternate_repository" do
+            it "registers the various versions of the history if the importer supports "\
+               "declare_alternate_repository" do
                 ws_create
                 base_package_set = ws_define_package_set "base"
-                base_vcs = Autoproj::VCSDefinition.from_raw(Hash[type: "git", url: "https://github.com"], from: base_package_set)
+                base_vcs = Autoproj::VCSDefinition.from_raw(
+                    { type: "git", url: "https://github.com" }, from: base_package_set
+                )
                 override_package_set = ws_define_package_set "override"
-                override_vcs = base_vcs.update(Hash[url: "https://github.com/fork"], from: override_package_set)
+                override_vcs = base_vcs.update(
+                    { url: "https://github.com/fork" }, from: override_package_set
+                )
                 importer = override_vcs.create_autobuild_importer
-                assert_equal [["base", "https://github.com", "https://github.com"],
-                              ["override", "https://github.com/fork", "https://github.com/fork"]], importer.additional_remotes
+                assert_equal(
+                    [
+                        ["base", "https://github.com", "https://github.com"],
+                        ["override", "https://github.com/fork", "https://github.com/fork"]
+                    ], importer.additional_remotes
+                )
             end
         end
 
@@ -176,7 +190,10 @@ module Autoproj
                 end
 
                 it "returns false for non-null definitions" do
-                    right = VCSDefinition.from_raw(type: "local", url: "/path/to/somewhere/else", garbage_option: false)
+                    right = VCSDefinition.from_raw(
+                        { type: "local", url: "/path/to/somewhere/else",
+                          garbage_option: false }
+                    )
                     refute_equal left, right
                 end
             end
@@ -185,17 +202,26 @@ module Autoproj
                 attr_reader :left
 
                 before do
-                    @left = VCSDefinition.from_raw(type: "local", url: "/path/to", garbage_option: true)
+                    @left = VCSDefinition.from_raw(
+                        { type: "local", url: "/path/to", garbage_option: true }
+                    )
                 end
 
                 it "only compares against the URL for local VCS" do
-                    right = VCSDefinition.from_raw(type: "local", url: "/path/to", garbage_option: false)
+                    right = VCSDefinition.from_raw(
+                        { type: "local", url: "/path/to", garbage_option: false }
+                    )
                     assert_equal left, right
-                    right = VCSDefinition.from_raw(type: "local", url: "/path/to/somewhere/else", garbage_option: false)
+                    right = VCSDefinition.from_raw(
+                        { type: "local", url: "/path/to/somewhere/else",
+                          garbage_option: false }
+                    )
                     refute_equal left, right
                 end
                 it "returns false for non-local VCSes even if they have the same URL" do
-                    right = VCSDefinition.from_raw(type: "git", url: "/path/to", garbage_option: false)
+                    right = VCSDefinition.from_raw(
+                        { type: "git", url: "/path/to", garbage_option: false }
+                    )
                     refute_equal left, right
                 end
             end
@@ -204,25 +230,34 @@ module Autoproj
                 attr_reader :left
 
                 before do
-                    @left = VCSDefinition.from_raw(type: "git", url: "/path/to", branch: "master")
+                    @left = VCSDefinition.from_raw(
+                        { type: "git", url: "/path/to", branch: "master" }
+                    )
                 end
 
                 it "returns false for a null VCS" do
                     refute_equal left, VCSDefinition.none
                 end
                 it "returns false for a local VCS" do
-                    refute_equal left, VCSDefinition.from_raw(type: "local", url: "/path/to")
+                    refute_equal left, VCSDefinition.from_raw(
+                        { type: "local", url: "/path/to" }
+                    )
                 end
                 it "delegates to the autobuild importer's #source_id implementation" do
-                    flexmock(left).should_receive(:create_autobuild_importer)
-                                  .and_return(flexmock(source_id: (source_id = flexmock)))
+                    flexmock(left)
+                        .should_receive(:create_autobuild_importer)
+                        .and_return(flexmock(source_id: (source_id = flexmock)))
 
-                    right = VCSDefinition.from_raw(type: "git", url: "/path/to", branch: "arbitrary")
+                    right = VCSDefinition.from_raw(
+                        { type: "git", url: "/path/to", branch: "arbitrary" }
+                    )
                     flexmock(right).should_receive(:create_autobuild_importer)
                                    .and_return(flexmock(source_id: source_id))
                     assert_equal left, right
 
-                    right = VCSDefinition.from_raw(type: "git", url: "/path/to", branch: "arbitrary")
+                    right = VCSDefinition.from_raw(
+                        { type: "git", url: "/path/to", branch: "arbitrary" }
+                    )
                     flexmock(right).should_receive(:create_autobuild_importer)
                                    .and_return(flexmock(source_id: flexmock))
                     refute_equal left, right

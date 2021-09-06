@@ -203,7 +203,7 @@ TEST FORMAT pkg os_indep test3
                     flexmock(package.autobuild).should_receive(:respond_to?).with(:builddir).and_return(false)
                     flexmock(package.autobuild).should_receive(:builddir).never
                     package.autobuild.prefix = prefix = File.join(ws.root_dir, "prefix")
-                    package.vcs = VCSDefinition.from_raw(type: "local", url: "/test")
+                    package.vcs = VCSDefinition.from_raw({ type: "local", url: "/test" })
                     assert_equal "base/cmake #{srcdir} #{prefix} 0 /test false",
                                  cli.format_source_package("$NAME $SRCDIR $PREFIX $PRIORITY $URL $PRESENT",
                                                            0, package)
@@ -215,7 +215,7 @@ TEST FORMAT pkg os_indep test3
                     package.autobuild.builddir = File.join(ws.root_dir, "build")
                     flexmock(package.autobuild).should_receive(:respond_to?).with(:builddir).and_return(false)
                     package.autobuild.prefix = File.join(ws.root_dir, "prefix")
-                    package.vcs = VCSDefinition.from_raw(type: "local", url: "/test")
+                    package.vcs = VCSDefinition.from_raw({ type: "local", url: "/test" })
                     exception = assert_raises(ArgumentError) do
                         cli.format_source_package("$NAME $SRCDIR $BUILDDIR $PREFIX $PRIORITY $URL $PRESENT",
                                                   0, package)

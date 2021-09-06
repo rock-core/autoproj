@@ -353,14 +353,14 @@ module Autoproj
                 original_vcs = VCSDefinition.from_raw({ type: "git", url: "https://github.com" })
                 package_set.add_raw_imported_set(original_vcs, auto_imports: false)
                 assert_loads_value "imports_vcs",
-                                   [[VCSDefinition.from_raw("type" => "local", "url" => "path/to/package"), Hash[auto_imports: false]]],
+                                   [[VCSDefinition.from_raw({ "type" => "local", "url" => "path/to/package" }), Hash[auto_imports: false]]],
                                    [[original_vcs, Hash[auto_imports: false]]],
                                    source_definition: Hash["imports" => Array[Hash["type" => "local", "url" => "path/to/package", "auto_imports" => false]]]
             end
 
             it "expands constants in the imports" do
                 package_set.add_raw_imported_set(
-                    VCSDefinition.from_raw(type: "git", url: "https://github.com"),
+                    VCSDefinition.from_raw({ type: "git", url: "https://github.com" }),
                     auto_imports: false
                 )
 
@@ -375,7 +375,7 @@ module Autoproj
 
             it "expands configuration variables in the imports" do
                 package_set.add_raw_imported_set(
-                    VCSDefinition.from_raw(type: "git", url: "https://github.com"),
+                    VCSDefinition.from_raw({ type: "git", url: "https://github.com" }),
                     auto_imports: false
                 )
                 ws.config.set "test", "path/to/package"
@@ -439,7 +439,7 @@ module Autoproj
             end
 
             it "leaves the default VCS if the new version control field has no 'default' entry" do
-                vcs = VCSDefinition.from_raw("type" => "local", "url" => "test")
+                vcs = VCSDefinition.from_raw({ "type" => "local", "url" => "test" })
                 package_set.default_importer = vcs
                 source_definitions = Hash["version_control" => Array[]]
                 package_set.parse_source_definition(source_definitions)

@@ -228,7 +228,7 @@ module Autoproj
                 assert_equal "cannot find a package called does_not_exist", e.message
             end
             it "raises if a package is resolved as an osdep" do
-                ws_define_osdep_entries "osdep" => Hash["test_os_family" => "pkg"]
+                ws_define_osdep_entries({ "osdep" => Hash["test_os_family" => "pkg"] })
                 e = assert_raises(ArgumentError) do
                     manifest.metapackage "test", "osdep"
                 end
@@ -242,7 +242,7 @@ module Autoproj
                 assert_equal [[:package, "test"]], manifest.resolve_package_name("test")
             end
             it "resolves OS packages" do
-                manifest.os_package_resolver.merge OSPackageResolver.new("test" => Hash["test_os_family" => "bla"])
+                manifest.os_package_resolver.merge OSPackageResolver.new({ "test" => Hash["test_os_family" => "bla"] })
                 assert_equal [[:osdeps, "test"]], manifest.resolve_package_name("test")
             end
             it "resolves OS packages into its overrides on OSes where the package is not available" do
@@ -336,7 +336,7 @@ module Autoproj
             end
 
             it "resolves and marks osdeps properly" do
-                ws_define_osdep_entries "osdep_package" => Hash["test_os_family" => "pkg"]
+                ws_define_osdep_entries({ "osdep_package" => Hash["test_os_family" => "pkg"] })
                 manifest.initialize_from_hash("layout" => Array["osdep_package"])
                 sel = manifest.layout_packages
                 assert_equal ["osdep_package"], sel.each_osdep_package_name.to_a
@@ -353,7 +353,7 @@ module Autoproj
 
         describe "#all_selected_packages" do
             it "returns all the layout packages as well as their dependencies" do
-                ws_define_osdep_entries "dependency_os_package" => Hash["test_os_family" => "pkg"]
+                ws_define_osdep_entries({ "dependency_os_package" => Hash["test_os_family" => "pkg"] })
                 ws_add_osdep_entries_to_layout "direct_os_package" => Hash["test_os_family" => "pkg"]
                 ws_define_package :cmake, "dependency_package"
                 ws_add_package_to_layout :cmake, "direct_package" do |pkg|
@@ -368,7 +368,7 @@ module Autoproj
 
         describe "#default_packages" do
             it "returns the set of packages directly selected by the manifest" do
-                ws_define_osdep_entries "dependency_os_package" => Hash["test_os_family" => "pkg"]
+                ws_define_osdep_entries({ "dependency_os_package" => Hash["test_os_family" => "pkg"] })
                 ws_add_osdep_entries_to_layout "direct_os_package" => Hash["test_os_family" => "pkg"]
                 ws_define_package :cmake, "dependency_package"
                 ws_add_package_to_layout :cmake, "direct_package" do |pkg|
@@ -381,7 +381,7 @@ module Autoproj
             end
 
             it "returns the set of defined source packages if no layout is given" do
-                ws_define_osdep_entries "dependency_os_package" => Hash["test_os_family" => "pkg"]
+                ws_define_osdep_entries({ "dependency_os_package" => Hash["test_os_family" => "pkg"] })
                 ws_define_package :cmake, "dependency_package"
                 ws_define_package :cmake, "direct_package" do |pkg|
                     pkg.depends_on "dependency_package"
@@ -570,7 +570,7 @@ module Autoproj
                 assert_equal [], sel.each_osdep_package_name.to_a
             end
             it "selects an osdeps package by name" do
-                ws_define_osdep_entries "osdep" => "ignore"
+                ws_define_osdep_entries({ "osdep" => "ignore" })
                 sel, nonresolved = manifest.expand_package_selection(["osdep"])
                 assert nonresolved.empty?
                 assert_equal Set["osdep"], sel.match_for("osdep")

@@ -347,7 +347,7 @@ gem 'autobuild', path: '#{autobuild_dir}'
         end
 
         def ws_create_local_package_set(name, path, source_data: Hash.new, **options)
-            vcs = VCSDefinition.from_raw(type: "local", url: path)
+            vcs = VCSDefinition.from_raw({ type: "local", url: path })
             package_set = PackageSet.new(ws, vcs, name: name, **options)
             FileUtils.mkdir_p(path)
             File.open(File.join(path, "source.yml"), "w") do |io|

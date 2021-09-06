@@ -72,7 +72,7 @@ module Autoproj
 
                 describe "handling of osdep packages" do
                     it "displays the package information" do
-                        ws_define_osdep_entries("base/cmake" => "gem")
+                        ws_define_osdep_entries({ "base/cmake" => "gem" })
                         flexmock(cli).should_receive(:display_osdep_package)
                                      .with("base/cmake", PackageSelection, Hash, true).once
                         cli.run(["base/cmake"])
@@ -81,7 +81,7 @@ module Autoproj
                         Autoproj.silent = true
                         ws_add_package_to_layout :cmake, "base/cmake"
                         ws.manifest.add_osdeps_overrides "base/cmake", force: true
-                        ws_define_osdep_entries("base/cmake" => "gem")
+                        ws_define_osdep_entries({ "base/cmake" => "gem" })
                         flexmock(cli).should_receive(:display_source_package)
                                      .with("base/cmake", PackageSelection, Hash, env: false).once
                         flexmock(cli).should_receive(:display_osdep_package)
@@ -91,7 +91,7 @@ module Autoproj
                     it "displays both the source and the osdep if the osdep is marked as nonexistent and there is a source package" do
                         Autoproj.silent = true
                         ws_add_package_to_layout :cmake, "base/cmake"
-                        ws_define_osdep_entries("base/cmake" => "nonexistent")
+                        ws_define_osdep_entries({ "base/cmake" => "nonexistent" })
                         flexmock(cli).should_receive(:display_source_package)
                                      .with("base/cmake", PackageSelection, Hash, env: false).once
                         flexmock(cli).should_receive(:display_osdep_package)
@@ -99,7 +99,7 @@ module Autoproj
                         cli.run(["base/cmake"])
                     end
                     it "passes the set of default packages to the display method" do
-                        ws_define_osdep_entries("base/cmake" => "gem")
+                        ws_define_osdep_entries({ "base/cmake" => "gem" })
                         ws_add_osdep_entries_to_layout("base/types" => "gem")
                         flexmock(cli).should_receive(:display_osdep_package)
                                      .with("base/cmake",
@@ -108,7 +108,7 @@ module Autoproj
                         cli.run(["base/cmake"])
                     end
                     it "passes the reverse dependencies to the display method" do
-                        ws_define_osdep_entries("base/cmake" => "gem")
+                        ws_define_osdep_entries({ "base/cmake" => "gem" })
                         flexmock(ws.manifest).should_receive(:compute_revdeps)
                                              .once.and_return(revdeps = flexmock)
                         flexmock(cli).should_receive(:display_osdep_package)
@@ -211,17 +211,17 @@ module Autoproj
                 end
 
                 it "displays per-manager packages" do
-                    ws_define_osdep_entries "test" => "gem"
+                    ws_define_osdep_entries({ "test" => "gem" })
                     assert_displays "test", true, "  os: gem"
                 end
 
                 it "handles a non-resolvable package" do
-                    ws_define_osdep_entries "test" => "nonexistent"
+                    ws_define_osdep_entries({ "test" => "nonexistent" })
                     assert_displays "test", false, "  there is an osdep definition for test, and it explicitely states that this package does not exist on your OS"
                 end
 
                 it "indicates if the osdep would not be used by autoproj" do
-                    ws_define_osdep_entries "test" => "gem"
+                    ws_define_osdep_entries({ "test" => "gem" })
                     assert_displays "test", false, "  is present, but won't be used by autoproj for 'test'"
                 end
 

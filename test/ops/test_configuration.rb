@@ -151,12 +151,12 @@ module Autoproj
                         @pkg_set_1 = ws_create_git_package_set "test.pkg.set"
                         @root_package_set = ws.manifest.main_package_set
                         root_package_set.add_raw_imported_set \
-                            VCSDefinition.from_raw("type" => "git", "url" => pkg_set_0)
+                            VCSDefinition.from_raw({ "type" => "git", "url" => pkg_set_0 })
                     end
 
                     it "uses only the first" do
                         root_package_set.add_raw_imported_set \
-                            VCSDefinition.from_raw("type" => "git", "url" => pkg_set_1)
+                            VCSDefinition.from_raw({ "type" => "git", "url" => pkg_set_1 })
                         package_sets, = ops.load_and_update_package_sets(root_package_set)
                         assert_equal 2, package_sets.size
                         assert_same root_package_set, package_sets.first
@@ -165,7 +165,7 @@ module Autoproj
 
                     it "ensures that the user link in remotes/ points to the first match" do
                         root_package_set.add_raw_imported_set \
-                            VCSDefinition.from_raw("type" => "git", "url" => pkg_set_1)
+                            VCSDefinition.from_raw({ "type" => "git", "url" => pkg_set_1 })
                         package_sets, = ops.load_and_update_package_sets(root_package_set)
                         assert_equal pkg_set_0, package_sets[1].vcs.url
                         assert_equal package_sets[1].raw_local_dir, File.readlink(
@@ -177,7 +177,7 @@ module Autoproj
                         importing_pkg_set = ws_create_git_package_set "importing.pkg.set",
                                                                       "imports" => Array["type" => "git", "url" => pkg_set_1]
                         root_package_set.add_raw_imported_set \
-                            VCSDefinition.from_raw("type" => "git", "url" => importing_pkg_set)
+                            VCSDefinition.from_raw({ "type" => "git", "url" => importing_pkg_set })
                         package_sets, = ops.load_and_update_package_sets(root_package_set)
 
                         assert_equal 3, package_sets.size

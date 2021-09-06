@@ -5,9 +5,9 @@ module Autoproj
         before do
             ws_create
             ws_create_os_package_resolver
-            ws_define_osdep_entries("pkg1" => { "os" => "test" })
-            ws_define_osdep_entries("pkg2" => { "os" => "test" })
-            ws_define_osdep_entries("another" => { "os_indep" => "something_else" })
+            ws_define_osdep_entries({ "pkg1" => { "os" => "test" } })
+            ws_define_osdep_entries({ "pkg2" => { "os" => "test" } })
+            ws_define_osdep_entries({ "another" => { "os_indep" => "something_else" } })
         end
 
         describe "#match" do

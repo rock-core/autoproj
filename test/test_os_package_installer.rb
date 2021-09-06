@@ -23,8 +23,8 @@ module Autoproj
 
         describe "#resolve_and_partition_osdep_packages" do
             before do
-                ws_define_osdep_entries "pkg0" => Hash["os" => "os:pkg0"]
-                ws_define_osdep_entries "pkg1" => Hash["os" => "os:pkg1"]
+                ws_define_osdep_entries({ "pkg0" => Hash["os" => "os:pkg0"] })
+                ws_define_osdep_entries({ "pkg1" => Hash["os" => "os:pkg1"] })
             end
 
             it "returns the selected packages for managers that are not strict" do
@@ -69,24 +69,24 @@ module Autoproj
                     .resolve_and_partition_osdep_packages([])
             end
             it "adds manager's os dependencies to packages" do
-                ws_define_osdep_entries "dependency" => Hash["os" => "dependency_pkg"]
-                ws_define_osdep_entries "pkg2" => Hash["os_indep" => "pkg2"]
+                ws_define_osdep_entries({ "dependency" => Hash["os" => "dependency_pkg"] })
+                ws_define_osdep_entries({ "pkg2" => Hash["os_indep" => "pkg2"] })
 
                 os_indep_manager.should_receive(:os_dependencies).and_return(["dependency"])
                 assert_equal Hash[os_manager => Set["os:pkg0", "dependency_pkg"], os_indep_manager => Set["pkg2"]],
                              os_package_installer.resolve_and_partition_osdep_packages(%w[pkg0 pkg2])
             end
             it "returns the manager's dependencies" do
-                ws_define_osdep_entries "dependency" => Hash["os" => "dependency_pkg"]
-                ws_define_osdep_entries "pkg2" => Hash["os_indep" => "pkg2"]
+                ws_define_osdep_entries({ "dependency" => Hash["os" => "dependency_pkg"] })
+                ws_define_osdep_entries({ "pkg2" => Hash["os_indep" => "pkg2"] })
 
                 os_indep_manager.should_receive(:os_dependencies).and_return(["dependency"])
                 assert_equal Hash[os_manager => Set["dependency_pkg"], os_indep_manager => Set["pkg2"]],
                              os_package_installer.resolve_and_partition_osdep_packages(["pkg2"])
             end
             it "resolves manager's dependencies recursively" do
-                ws_define_osdep_entries "dependency" => Hash["os" => "dependency_pkg"]
-                ws_define_osdep_entries "dependency-foo" => Hash["os_indep" => "dependency_foo"]
+                ws_define_osdep_entries({ "dependency" => Hash["os" => "dependency_pkg"] })
+                ws_define_osdep_entries({ "dependency-foo" => Hash["os_indep" => "dependency_foo"] })
 
                 os_indep_manager.should_receive(:os_dependencies).and_return(["dependency"])
                 os_manager.should_receive(:os_dependencies).and_return(["dependency-foo"])
@@ -94,7 +94,7 @@ module Autoproj
                              os_package_installer.resolve_and_partition_osdep_packages(["pkg0"])
             end
             it "does not add manager's os dependencies if manager not being used" do
-                ws_define_osdep_entries "dependency" => Hash["os" => "dependency_pkg"]
+                ws_define_osdep_entries({ "dependency" => Hash["os" => "dependency_pkg"] })
 
                 os_indep_manager.should_receive(:os_dependencies).and_return(["dependency"])
                 assert_equal Hash[os_manager => Set["os:pkg0"]],
@@ -103,10 +103,10 @@ module Autoproj
         end
         describe "#install" do
             it "installs the resolved packages" do
-                ws_define_osdep_entries({
-                                            "pkg0" => ["test_os_family" => "test_os_pkg"],
-                                            "pkg1" => ["os_indep" => "test_os_indep_pkg"]
-                                        })
+                ws_define_osdep_entries(
+                    { "pkg0" => ["test_os_family" => "test_os_pkg"],
+                      "pkg1" => ["os_indep" => "test_os_indep_pkg"] }
+                )
 
                 os_manager.should_receive(:install)
                           .with(["test_os_pkg"], install_only: false, filter_uptodate_packages: true)
@@ -117,9 +117,7 @@ module Autoproj
             end
 
             it "performs the install without problem even if the os package manager is not involved" do
-                ws_define_osdep_entries({
-                                            "pkg" => ["os_indep" => "test_os_indep_pkg"]
-                                        })
+                ws_define_osdep_entries({ "pkg" => ["os_indep" => "test_os_indep_pkg"] })
                 os_manager.should_receive(:install).never
                 os_indep_manager.should_receive(:install)
                                 .with(["test_os_indep_pkg"], install_only: false, filter_uptodate_packages: true)
