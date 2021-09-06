@@ -1,0 +1,30 @@
+name: Unit Tests
+
+on: [pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ruby-version: ["2.7", "2.6", "2.5"]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby ${{ matrix.ruby-version }}
+    # To automatically get bug fixes and new Ruby versions for ruby/setup-ruby,
+    # change this to (see https://github.com/ruby/setup-ruby#versioning):
+    # uses: ruby/setup-ruby@v1
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+    - name: Install dependencies
+      run: bundle install
+    - name: Run tests
+      run: bundle exec rake test
+      env:
+        GIT_AUTHOR_NAME: autobuild CI Git Identity
+        GIT_AUTHOR_EMAIL: autobuild@github.actions
+        GIT_COMMITTER_NAME: autobuild CI Git Identity
+        GIT_COMMITTER_EMAIL: autobuild@github.actions
