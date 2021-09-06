@@ -78,22 +78,22 @@ module Autoproj
                                  checkout_only: false)
                 FileUtils.mkdir_p cache_dir
 
-                if package_names.empty?
-                    packages =
+                packages =
+                    if package_names.empty?
                         if all
                             manifest.each_autobuild_package
                         else
                             manifest.all_selected_source_packages.map(&:autobuild)
                         end
-                else
-                    packages = package_names.map do |name|
-                        if (pkg = manifest.find_autobuild_package(name))
-                            pkg
-                        else
-                            raise PackageNotFound, "no package named #{name}"
+                    else
+                        package_names.map do |name|
+                            if (pkg = manifest.find_autobuild_package(name))
+                                pkg
+                            else
+                                raise PackageNotFound, "no package named #{name}"
+                            end
                         end
                     end
-                end
 
                 packages = packages.sort_by(&:name)
 

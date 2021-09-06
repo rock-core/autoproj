@@ -30,11 +30,16 @@ module Autoproj
         end
 
         def create_osdep(data, file = nil, operating_system: self.operating_system)
-            if data
-                osdeps = OSPackageResolver.new(Hash['pkg' => data], file, operating_system: operating_system)
-            else
-                osdeps = OSPackageResolver.new(Hash.new, file, operating_system: operating_system)
-            end
+            osdeps =
+                if data
+                    OSPackageResolver.new(
+                        Hash['pkg' => data], file, operating_system: operating_system
+                    )
+                else
+                    OSPackageResolver.new(
+                        Hash.new, file, operating_system: operating_system
+                    )
+                end
 
             # Mock the package handlers
             osdeps.os_package_manager = 'apt-dpkg'
