@@ -769,11 +769,10 @@ module Autoproj
                 map(&:name)
         end
 
-        # Update this workspace's installation manifest
+        # Generate a {InstallationManifest} with the currently known information
         #
-        # @param [Array<String>] package_names the name of the packages that
-        #   should be updated
-        def export_installation_manifest
+        # @return [InstallationManifest]
+        def installation_manifest
             selected_packages = manifest.all_selected_source_packages
             install_manifest = InstallationManifest.new(installation_manifest_path)
 
@@ -788,7 +787,15 @@ module Autoproj
                 install_manifest.add_package(pkg)
             end
             # And save
-            install_manifest.save
+            install_manifest
+        end
+
+        # Update this workspace's installation manifest
+        #
+        # @param [Array<String>] package_names the name of the packages that
+        #   should be updated
+        def export_installation_manifest
+            installation_manifest.save
         end
 
         # The environment as initialized by all selected packages

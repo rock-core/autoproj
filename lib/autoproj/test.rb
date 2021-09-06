@@ -399,6 +399,10 @@ gem 'autobuild', path: '#{autobuild_dir}'
             package.package_set.add_version_control_entry(package.name, vcs_spec)
         end
 
+        def ws_resolve_vcs(package)
+            package.vcs = ws.manifest.importer_definition_for(package)
+        end
+
         def ws_define_package_overrides(package, package_set, vcs_spec)
             package_set.add_overrides_entry(package.name, vcs_spec)
         end

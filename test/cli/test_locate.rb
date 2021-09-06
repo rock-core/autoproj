@@ -88,9 +88,9 @@ module Autoproj
                 before do
                     @user_dir = make_tmpdir
                     @raw_dir  = make_tmpdir
-                    @pkg_set = InstallationManifest::PackageSet.new(
+                    pkg_set = InstallationManifest::PackageSet.new(
                         'rock.core', Hash.new, raw_dir, user_dir)
-                    installation_manifest.add_package_set(pkg_set)
+                    @pkg_set = installation_manifest.add_package_set(pkg_set)
                     cli.update_from_installation_manifest(installation_manifest)
                 end
                 it "returns nil if nothing matches" do

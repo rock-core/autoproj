@@ -8,33 +8,76 @@ module Autoproj
         attr_reader :path
         attr_reader :packages
         attr_reader :package_sets
-        def initialize(path)
+
+        def initialize(path = nil)
             @path = path
             @packages = Hash.new
             @package_sets = Hash.new
         end
 
         def exist?
-            File.exist?(path)
+            File.exist?(path) if path
         end
 
+        # Add a {PackageDefinition} to this manifest
+        #
+        # @return [Package] the package in the installation manifest format
         def add_package(pkg)
-            packages[pkg.name] = pkg
+            packages[pkg.name] =
+                case pkg
+                when PackageDefinition
+                    v = pkg.autobuild
+                    Package.new(
+                        v.name, v.class.name, pkg.vcs.to_hash, v.srcdir,
+                        (v.importdir if v.respond_to?(:importdir)),
+                        v.prefix,
+                        (v.builddir if v.respond_to?(:builddir)),
+                        v.logdir, v.dependencies
+                    )
+                else
+                    pkg
+                end
         end
 
+        # Add a {Autoproj::PackageSet} to this manifest
+        #
+        # @return [PackageSet] the package set in the installation manifest format
         def add_package_set(pkg_set)
-            package_sets[pkg_set.name] = pkg_set
+            package_sets[pkg_set.name] = PackageSet.new(
+                pkg_set.name, pkg_set.vcs.to_hash,
+                pkg_set.raw_local_dir, pkg_set.user_local_dir
+            )
         end
 
+        # Enumerate this {InstallationManifest}'s package sets
+        #
+        # @yieldparam [PackageSet]
         def each_package_set(&block)
             package_sets.each_value(&block)
         end
 
+        # Enumerate this {InstallationManifest}'s packages
+        #
+        # @yieldparam [Package]
         def each_package(&block)
             packages.each_value(&block)
         end
 
-        def load
+        # Resolve a package set by name
+        #
+        # @return [Package]
+        def find_package_set_by_name(name)
+            @package_sets[name]
+        end
+
+        # Resolve a package by name
+        #
+        # @return [Package]
+        def find_package_by_name(name)
+            @packages[name]
+        end
+
+        def load(path = @path)
             @packages = Hash.new
             raw = YAML.load(File.open(path))
             if raw.respond_to?(:to_str) # old CSV-based format
@@ -61,25 +104,15 @@ module Autoproj
         end
 
         # Save the installation manifest
-        def save(path = self.path)
+        def save(path = @path)
             Ops.atomic_write(path) do |io|
-                marshalled_package_sets = each_package_set.map do |v|
-                    Hash['package_set' => v.name,
-                         'vcs' => v.vcs.to_hash,
-                         'raw_local_dir' => v.raw_local_dir,
-                         'user_local_dir' => v.user_local_dir]
+                marshalled_package_sets = each_package_set.map do |pkg_set|
+                    set = pkg_set.to_h.transform_keys(&:to_s)
+                    set["package_set"] = set["name"]
+                    set
                 end
-                marshalled_packages = each_package.map do |package_def|
-                    v = package_def.autobuild
-                    Hash['name' => v.name,
-                         'type' => v.class.name,
-                         'vcs' => package_def.vcs.to_hash,
-                         'srcdir' => v.srcdir,
-                         'importdir' => (v.importdir if v.respond_to?(:importdir)),
-                         'builddir' => (v.builddir if v.respond_to?(:builddir)),
-                         'logdir' => v.logdir,
-                         'prefix' => v.prefix,
-                         'dependencies' => v.dependencies]
+                marshalled_packages = each_package.map do |pkg|
+                    pkg.to_h.transform_keys(&:to_s)
                 end
                 io.write YAML.dump(marshalled_package_sets + marshalled_packages)
             end
