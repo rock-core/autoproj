@@ -43,7 +43,7 @@ module Autoproj
                         "--git-dir", pkg.importdir, 'init', "--bare"
                     )
                 end
-                pkg.importer.update_remotes_configuration(pkg)
+                pkg.importer.update_remotes_configuration(pkg, only_local: false)
 
                 with_retry(10) do
                     Autobuild::Subprocess.run(
