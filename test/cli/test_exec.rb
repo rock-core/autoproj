@@ -186,7 +186,6 @@ module Autoproj
 
                 it "runs normally" do
                     FileUtils.chmod_R "a-w", expand_path(".")
-                    dir = make_tmpdir
                     cmd = run_command_and_stop(
                         "#{@autoproj_bin} exec --package subdir test --some --arg"
                     )

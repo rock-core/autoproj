@@ -28,8 +28,8 @@ module Autoproj
                     it "warn if an ignored package is selected" do
                         ws_add_package_to_layout :cmake, "pkg0"
                         @ws.manifest.ignore_package "pkg0"
-                        out, err = capture_subprocess_io do
-                            selection, non_resolved = @base.resolve_user_selection([])
+                        _, err = capture_subprocess_io do
+                            selection, = @base.resolve_user_selection([])
                             import = Autoproj::Ops::Import.new(@ws)
                             import.import_packages(selection)
                         end
@@ -38,8 +38,8 @@ module Autoproj
                     end
 
                     it "raises CLIInvalidSelection if a package set that depends on an excluded package is being selected" do
-                        pkg_set = ws_add_package_set_to_layout "test"
-                        pkg0 = ws_define_package :cmake, "pkg0"
+                        ws_add_package_set_to_layout "test"
+                        ws_define_package :cmake, "pkg0"
                         @ws.manifest.metapackage "test", "pkg0"
                         @ws.manifest.exclude_package "pkg0", "test"
 

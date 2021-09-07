@@ -671,7 +671,7 @@ module Autoproj
                 manifest.load_package_manifest(pkg)
             end
             it "ignores a package.xml if it is not explicitely enabled" do
-                manifest_path = ws_create_package_file pkg, "package.xml", "<package />"
+                ws_create_package_file pkg, "package.xml", "<package />"
                 flexmock(Autoproj).should_receive(:warn)
                                   .with("test from pkg_set does not have a manifest")
                                   .once
@@ -810,7 +810,7 @@ module Autoproj
                 end
             end
             it "raises if there is a different package set in self with the same name" do
-                pkg_set = ws_define_package_set "pkg_set"
+                ws_define_package_set "pkg_set"
                 assert_raises(UnregisteredPackageSet) do
                     @ws.manifest.validate_package_set_in_self(flexmock(name: "test"))
                 end

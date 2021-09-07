@@ -75,13 +75,13 @@ module Autoproj
                     end
                     it "sets the 'all' flag automatically if given no explicit arguments and the working directory is the workspace's root" do
                         Dir.chdir(ws.root_dir) do
-                            args, options = cli.validate_options([], amake: true)
+                            _, options = cli.validate_options([], amake: true)
                             assert options[:all]
                         end
                     end
                     it "does not set the 'all' flag automatically if given explicit arguments even if the working directory is the workspace's root" do
                         Dir.chdir(ws.root_dir) do
-                            args, options = cli.validate_options(["arg"], amake: true)
+                            _, options = cli.validate_options(["arg"], amake: true)
                             refute options[:all]
                         end
                     end
