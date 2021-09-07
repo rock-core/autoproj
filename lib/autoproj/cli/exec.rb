@@ -24,29 +24,71 @@ module Autoproj
                     environment_from_export(env, ENV)
             end
 
-            def run(cmd, *args, use_cached_env: Ops.watch_running?(@root_dir))
-                env = load_cached_env if use_cached_env
+            def try_loading_installation_manifest
+                Autoproj::InstallationManifest.from_workspace_root(@root_dir)
+            rescue
+            end
 
-                unless env
+            PACKAGE_ROOT_PATH_RX = /^(srcdir|builddir|prefix):(.*)$/
+
+            def resolve_package_root_path(package, manifest)
+                if (m = PACKAGE_ROOT_PATH_RX.match(package))
+                    kind = m[1]
+                    name = m[2]
+                else
+                    kind = "srcdir"
+                    name = package
+                end
+
+                unless (pkg = manifest.find_package_by_name(name))
+                    raise ArgumentError, "no package #{name} in this workspace"
+                end
+
+                unless (dir = pkg.send(kind))
+                    raise CLIInvalidArguments, "package #{pkg.name} has no #{kind}"
+                end
+
+                dir
+            end
+
+            def run(
+                cmd, *args,
+                use_cached_env: Ops.watch_running?(@root_dir),
+                interactive: nil,
+                package: nil, chdir: nil
+            )
+                env = load_cached_env if use_cached_env
+                manifest = try_loading_installation_manifest if use_cached_env
+
+                if !env || (package && !manifest)
                     require 'autoproj'
                     require 'autoproj/cli/inspection_tool'
                     ws = Workspace.from_dir(@root_dir)
+                    ws.config.interactive = interactive unless interactive.nil?
                     loader = InspectionTool.new(ws)
-                    loader.initialize_and_load
-                    loader.finalize_setup(Array.new)
+                    loader.initialize_and_load(read_only: true)
+                    loader.finalize_setup(read_only: true)
                     env = ws.full_env.resolved_env
+                    manifest = ws.installation_manifest if package
+                end
+
+                root_path = resolve_package_root_path(package, manifest) if package
+                chdir ||= root_path
+                if chdir
+                    chdir = File.expand_path(chdir, root_path)
+                    chdir_kw = { chdir: chdir }
                 end
 
                 path = env['PATH'].split(File::PATH_SEPARATOR)
                 program =
-                    begin Ops.which(cmd, path_entries: path)
+                    begin Ops.which(cmd, path_entries: [chdir, *path].compact)
                     rescue ::Exception => e
                         require 'autoproj'
                         raise CLIInvalidArguments, e.message, e.backtrace
                     end
 
                 begin
-                    ::Process.exec(env, program, *args)
+                    ::Process.exec(env, program, *args, **(chdir_kw || {}))
                 rescue ::Exception => e
                     require 'autoproj'
                     raise CLIInvalidArguments, e.message, e.backtrace
@@ -55,5 +97,3 @@ module Autoproj
         end
     end
 end
-
-

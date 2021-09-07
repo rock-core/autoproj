@@ -352,12 +352,14 @@ module Autoproj
         #
         # @param [Boolean] load_global_configuration if true, load the global
         #   autoprojrc file if it exists. Otherwise, ignore it.
-        def setup(load_global_configuration: true)
+        def setup(load_global_configuration: true, read_only: false)
             setup_ruby_version_handling
             migrate_bundler_and_autoproj_gem_layout
             load_config
-            register_workspace
-            rewrite_shims
+            unless read_only
+                register_workspace
+                rewrite_shims
+            end
             autodetect_operating_system
             config.validate_ruby_executable
             Autobuild.programs['ruby'] = config.ruby_executable
@@ -370,9 +372,11 @@ module Autoproj
             manifest.load(manifest_file_path) if File.exist?(manifest_file_path)
 
             Autobuild.prefix = prefix_dir
-            FileUtils.mkdir_p File.join(prefix_dir, '.autoproj')
-            Ops.atomic_write(File.join(prefix_dir, '.autoproj', 'config.yml')) do |io|
-                io.puts "workspace: \"#{root_dir}\""
+            unless read_only
+                FileUtils.mkdir_p File.join(prefix_dir, '.autoproj')
+                Ops.atomic_write(File.join(prefix_dir, '.autoproj', 'config.yml')) do |io|
+                    io.puts "workspace: \"#{root_dir}\""
+                end
             end
 
             Autobuild.srcdir = source_dir
@@ -389,7 +393,7 @@ module Autoproj
                 end
             end
             setup_os_package_installer
-            install_ruby_shims
+            install_ruby_shims unless read_only
         end
 
         def install_ruby_shims
@@ -754,13 +758,13 @@ module Autoproj
         #
         # This must be done after all ignores/excludes and package selection
         # have been properly set up (a.k.a. after package import)
-        def finalize_setup
+        def finalize_setup(read_only: false)
             # Finally, disable all ignored packages on the autobuild side
             manifest.each_ignored_package(&:disable)
 
             # We now have processed the process setup blocks. All configuration
             # should be done and we can save the configuration data.
-            config.save
+            config.save unless read_only
         end
 
         def all_present_packages
@@ -769,11 +773,10 @@ module Autoproj
                 map(&:name)
         end
 
-        # Update this workspace's installation manifest
+        # Generate a {InstallationManifest} with the currently known information
         #
-        # @param [Array<String>] package_names the name of the packages that
-        #   should be updated
-        def export_installation_manifest
+        # @return [InstallationManifest]
+        def installation_manifest
             selected_packages = manifest.all_selected_source_packages
             install_manifest = InstallationManifest.new(installation_manifest_path)
 
@@ -788,7 +791,15 @@ module Autoproj
                 install_manifest.add_package(pkg)
             end
             # And save
-            install_manifest.save
+            install_manifest
+        end
+
+        # Update this workspace's installation manifest
+        #
+        # @param [Array<String>] package_names the name of the packages that
+        #   should be updated
+        def export_installation_manifest
+            installation_manifest.save
         end
 
         # The environment as initialized by all selected packages
