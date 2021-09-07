@@ -7,6 +7,9 @@ module Autoproj
             include ArubaMinitest
 
             before do
+                @home_dir = make_tmpdir
+                unset_bundler_env_vars
+                set_environment_variable "HOME", @home_dir
                 @autoproj_bin_dir = File.expand_path(
                     File.join("..", "..", "bin"), __dir__
                 )
@@ -40,6 +43,8 @@ module Autoproj
                 run_command_and_stop("git branch autoproj-test-suite")
                 head = run_command_and_stop("git rev-parse HEAD").stdout.strip
                 # Change HEAD and master
+                run_command_and_stop("git config user.email you@example.com")
+                run_command_and_stop("git config user.name Example")
                 run_command_and_stop("git commit --allow-empty -m \"blank commit\"")
                 cd ".."
 
@@ -57,6 +62,12 @@ module Autoproj
                 cmd = run_command "#{@autoproj_bin} help git",
                                   fail_on_error: false
                 assert cmd.exit_status != 0
+            end
+
+            def run_command(cmd, **kw_args)
+                Bundler.with_unbundled_env do
+                    super
+                end
             end
         end
     end

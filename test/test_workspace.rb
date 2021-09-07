@@ -184,7 +184,6 @@ module Autoproj
                 install_dir, = invoke_test_script(
                     "install.sh",
                     "--gems-path=#{gems_path}",
-                    "--gem-source", "http://localhost:8808",
                     gemfile_source: <<-AUTOPROJ_GEMFILE
                         source 'https://rubygems.org'
                         source 'http://localhost:8808'

@@ -6,41 +6,22 @@ module Autoproj
         describe Install do
             before do
                 skip "long test" if skip_long_tests?
-
-                prepare_fixture_gem_home
-                start_gem_server
             end
 
-            it "installs fine when using the default gem source" do
-                shared_dir = make_tmpdir
-                autoproj_dir  = find_gem_dir("autoproj").full_gem_path
-                autobuild_dir = find_gem_dir("autobuild").full_gem_path
-                gemfile_source = <<~GEMFILE
-                    source "https://rubygems.org"
-                    gem "autoproj", path: "#{autoproj_dir}"
-                    gem "autobuild", path: "#{autobuild_dir}"
-                GEMFILE
-
-                invoke_test_script "install.sh",
-                                   use_autoproj_from_rubygems: true,
-                                   env: Hash["HOME" => shared_dir],
-                                   gemfile_source: gemfile_source
+            it "installs autoproj" do
+                invoke_test_script "install.sh"
             end
 
             it "may install non-interactively" do
-                shared_dir = make_tmpdir
                 invoke_test_script "install.sh",
-                                   env: { "HOME" => shared_dir },
                                    interactive: false,
                                    seed_config: nil
             end
 
             it "the non-interactive installs also ignore non-empty directories" do
-                shared_dir = make_tmpdir
                 install_dir = make_tmpdir
                 FileUtils.touch File.join(install_dir, "somefile")
                 invoke_test_script "install.sh",
-                                   env: Hash["HOME" => shared_dir],
                                    dir: install_dir,
                                    interactive: false,
                                    seed_config: nil
@@ -85,8 +66,9 @@ module Autoproj
                         shared_dir, ".local", "share", "autoproj",
                         "gems", Autoproj::Configuration.gems_path_suffix
                     )
-                    @install_dir, = invoke_test_script "install.sh",
-                                                       env: Hash["HOME" => shared_dir]
+                    @install_dir, = invoke_test_script(
+                        "install.sh", env: { "HOME" => shared_dir }
+                    )
                 end
 
                 it "saves a shim to the installed bundler" do
@@ -121,12 +103,12 @@ module Autoproj
                 end
 
                 it "sets the environment to point RubyGems to the shared location" do
-                    assert_equal shared_gem_home, workspace_env("GEM_HOME")
-                    assert_equal "", workspace_env("GEM_PATH")
+                    assert_equal shared_gem_home, workspace_env(@install_dir, "GEM_HOME")
+                    assert_equal "", workspace_env(@install_dir, "GEM_PATH")
                 end
 
                 it "does not add the shared locations' bin to PATH" do
-                    refute workspace_env("PATH").split(":").include?(shared_gem_home)
+                    refute workspace_env(@install_dir, "PATH").split(":").include?(shared_gem_home)
                 end
 
                 it "installs all gems in the shared folder" do
@@ -144,9 +126,10 @@ module Autoproj
 
                 before do
                     @shared_dir = make_tmpdir
-                    @shared_gem_home = File.join(shared_dir, Autoproj::Configuration.gems_path_suffix)
-                    @install_dir, = invoke_test_script "install.sh",
-                                                       "--gems-path=#{shared_dir}"
+                    @shared_gem_home =
+                        File.join(shared_dir, Autoproj::Configuration.gems_path_suffix)
+                    @install_dir, =
+                        invoke_test_script("install.sh", "--gems-path=#{shared_dir}")
                 end
 
                 it "saves a shim to the installed bundler" do
@@ -181,13 +164,13 @@ module Autoproj
                 end
 
                 it "sets the environment to point RubyGems to the shared location" do
-                    assert_equal shared_gem_home, workspace_env("GEM_HOME")
-                    assert_equal "", workspace_env("GEM_PATH")
+                    assert_equal shared_gem_home, workspace_env(@install_dir, "GEM_HOME")
+                    assert_equal "", workspace_env(@install_dir, "GEM_PATH")
                 end
 
                 it "does not add the shared locations' bin to PATH" do
                     expected_path = File.join(shared_gem_home, "bin")
-                    refute workspace_env("PATH").split(":").include?(expected_path)
+                    refute_includes workspace_env(@install_dir, "PATH").split(":"), expected_path
                 end
 
                 it "installs all gems in the shared folder" do

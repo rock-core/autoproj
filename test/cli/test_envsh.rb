@@ -7,6 +7,9 @@ module Autoproj
             include ArubaMinitest
 
             before do
+                @home_dir = make_tmpdir
+                unset_bundler_env_vars
+                set_environment_variable "HOME", @home_dir
                 @autoproj_bin_dir = File.expand_path(
                     File.join("..", "..", "bin"), __dir__
                 )

@@ -129,19 +129,20 @@ module Autoproj
         def autoproj_gemfile_to_local_checkout
             autoproj_dir  = find_gem_dir("autoproj").full_gem_path
             autobuild_dir = find_gem_dir("autobuild").full_gem_path
-            "source \"http://localhost:8808\"
-gem 'autoproj', path: '#{autoproj_dir}'
-gem 'autobuild', path: '#{autobuild_dir}'
-"
+            <<~GEMFILE
+                source "https://rubygems.org"
+                gem "autoproj", path: "#{autoproj_dir}"
+                gem "autobuild", path: "#{autobuild_dir}"
+            GEMFILE
         end
 
         def invoke_test_script(name, *arguments,
-            dir: nil,
+            dir: make_tmpdir,
             gemfile_source: nil,
             use_autoproj_from_rubygems: (ENV["USE_AUTOPROJ_FROM_RUBYGEMS"] == "1"),
             interactive: true,
             seed_config: File.join(scripts_dir, "seed-config.yml"),
-            env: Hash.new, display_output: false, copy_from: nil,
+            env: {}, display_output: false, copy_from: nil,
             **system_options)
             package_base_dir = File.expand_path(File.join("..", ".."), __dir__)
 
@@ -150,15 +151,19 @@ gem 'autobuild', path: '#{autobuild_dir}'
                 raise ArgumentError, "no test script #{name} in #{scripts_dir}"
             end
 
+            if env["HOME"]
+                @home_dir = env["HOME"]
+            else
+                env["HOME"] = (@home_dir ||= make_tmpdir)
+            end
             arguments << "--seed-config" << seed_config if seed_config
-            dir ||= make_tmpdir
 
             if gemfile_source || !use_autoproj_from_rubygems
                 gemfile_path = File.join(dir, "Gemfile-dev")
                 File.open(gemfile_path, "w") do |io|
                     io.puts(gemfile_source || autoproj_gemfile_to_local_checkout)
                 end
-                arguments << "--gemfile" << gemfile_path << "--gem-source" << "http://localhost:8808"
+                arguments << "--gemfile" << gemfile_path
             end
 
             arguments << "--no-interactive" unless interactive
@@ -277,8 +282,8 @@ gem 'autobuild', path: '#{autobuild_dir}'
             output
         end
 
-        def workspace_env(varname)
-            _, stdout, = invoke_test_script "display-env.sh", varname, dir: install_dir
+        def workspace_env(dir, varname)
+            _, stdout, = invoke_test_script "display-env.sh", varname, dir: dir
             stdout.chomp
         end
 

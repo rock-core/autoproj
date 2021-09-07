@@ -393,7 +393,9 @@ module Autoproj
 
                 # Shut up the bundler warning about 'bin' not being in PATH
                 env = self.env
-                env["PATH"] += [File.join(gems_gem_home, "bin")]
+                env = env.merge(
+                    { "PATH" => env["PATH"] + [File.join(gems_gem_home, "bin")] }
+                )
                 result = system(
                     env_for_child(env),
                     Gem.ruby, gem_program, "install",
