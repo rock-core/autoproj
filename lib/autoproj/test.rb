@@ -223,7 +223,9 @@ module Autoproj
                 )
 
                 unless File.file?(bundler_filename)
-                    raise "cannot download the bundler gem"
+                    existing = Dir.enum_for(:glob, File.join(vendor, "*")).to_a.sort
+                    raise "cannot download the bundler gem. "\
+                          "Expected #{bundler_filename}, found: #{existing.join(', ')}"
                 end
             end
 
