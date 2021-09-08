@@ -60,6 +60,8 @@ module Autoproj
                       "Autoproj test suite"
             end
 
+            Autobuild.progress_display_mode = :newline
+
             if defined?(Autoproj::CLI::Main)
                 Autoproj::CLI::Main.default_report_on_package_failures = :raise
             end
