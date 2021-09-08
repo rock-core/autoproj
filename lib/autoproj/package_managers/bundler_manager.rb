@@ -257,24 +257,6 @@ module Autoproj
                 end
             end
 
-            # @api private
-            #
-            # Parse an osdep entry into a gem name and gem version
-            #
-            # The 'gem' entries in the osdep files can contain a version
-            # specification. This method parses the two parts and return them
-            #
-            # @param [String] entry the osdep entry
-            # @return [(String,String),(String,nil)] the gem name, and an
-            #   optional version specification
-            def parse_package_entry(entry)
-                if entry =~ /^([^><=~]*)([><=~]+.*)$/
-                    [$1.strip, $2.strip]
-                else
-                    [entry]
-                end
-            end
-
             class NotCleanState < RuntimeError; end
 
             # @api private
@@ -474,6 +456,57 @@ module Autoproj
                 File.join(ws.prefix_dir, "gems", "Gemfile")
             end
 
+            GemEntry = Struct.new :name, :version, :options do
+                def self.parse(object)
+                    if object.respond_to?(:to_str)
+                        parse_from_string(object)
+                    elsif object.respond_to?(:to_hash)
+                        parse_from_hash(object)
+                    else
+                        raise ArgumentError,
+                              "expected #{object} to either be a string or a map"
+                    end
+                end
+
+                # Parse an osdep entry string into a gem name and gem version
+                #
+                # The 'gem' entries in the osdep files can contain a version
+                # specification. This method parses the two parts and return them
+                #
+                # @param [String] entry the osdep entry
+                # @return [(String,String),(String,nil)] the gem name, and an
+                #   optional version specification
+                def self.parse_from_string(entry)
+                    if entry =~ /^([^><=~]*)([><=~]+.*)$/
+                        GemEntry.new($1.strip, $2.strip, {})
+                    else
+                        GemEntry.new(entry, nil, {})
+                    end
+                end
+
+                # Parse an option hash into a GemEntry
+                def self.parse_from_hash(hash)
+                    hash = hash.dup
+                    unless (name = hash.delete("name"))
+                        raise ArgumentError,
+                              "expected gem entry #{hash} to have at least a 'name' key"
+                    end
+
+                    version = hash.delete("version")
+                    GemEntry.new(name, version, hash)
+                end
+
+                def to_gemfile_line
+                    options_s = options.map { |k, v| "#{k}: \"#{v}\"" }.join(", ")
+                    entries = [
+                        "\"#{name}\"",
+                        ("\"#{version}\"" if version),
+                        (options_s unless options_s.empty?)
+                    ].compact
+                    "gem #{entries.join(', ')}"
+                end
+            end
+
             def install(gems, filter_uptodate_packages: false, install_only: false)
                 gemfile_path = self.class.default_gemfile_path(ws)
                 root_dir = File.dirname(gemfile_path)
@@ -499,10 +532,10 @@ module Autoproj
                 # Save the osdeps entries in a temporary gemfile and finally
                 # merge the whole lot of it
                 gemfile_contents = Tempfile.open "autoproj-gemfile" do |io|
-                    gems.sort.each do |name|
-                        name, version = parse_package_entry(name)
-                        io.puts "gem \"#{name}\", \"#{version || '>= 0'}\""
-                    end
+                    gems.map { |entry| GemEntry.parse(entry) }
+                        .sort_by(&:name)
+                        .each { |entry| io.puts entry.to_gemfile_line }
+
                     io.flush
                     gemfiles.unshift io.path
                     # The autoproj gemfile needs to be last, we really don't
