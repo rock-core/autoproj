@@ -7,6 +7,8 @@ module Autoproj
             include ArubaMinitest
 
             before do
+                skip "long test" if skip_long_tests?
+
                 @autoproj_bin_dir = File.expand_path(
                     File.join("..", "..", "bin"), __dir__
                 )

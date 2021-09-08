@@ -7,6 +7,8 @@ module Autoproj
             include ArubaMinitest
 
             before do
+                skip "long test" if skip_long_tests?
+
                 @home_dir = make_tmpdir
                 unset_bundler_env_vars
                 set_environment_variable "HOME", @home_dir
