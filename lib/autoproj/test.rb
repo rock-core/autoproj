@@ -222,7 +222,7 @@ module Autoproj
                     Bundler::VERSION, "bundler", chdir: vendor
                 )
 
-                unless File.file?(bundler_filename)
+                unless File.file?(cached_bundler_gem)
                     existing = Dir.enum_for(:glob, File.join(vendor, "*")).to_a.sort
                     raise "cannot download the bundler gem. "\
                           "Expected #{bundler_filename}, found: #{existing.join(', ')}"
