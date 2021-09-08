@@ -267,8 +267,21 @@ module Autoproj
                     raise ArgumentError, "invalid osdeps definition: "\
                         "found an #{key.class} as a key in #{path.join('/')}. "\
                         "Don't forget to put quotes around numbers"
-                elsif !value && (key.kind_of?(Hash) || key.kind_of?(Array))
+                elsif !value && key.kind_of?(Hash)
                     verify_definitions(key)
+                elsif !value && key.kind_of?(Array)
+                    key.each do |entry|
+                        next if entry.respond_to?(:to_str)
+                        if !entry.respond_to?(:to_hash)
+                            raise ArgumentError,
+                                  "invalid osdeps definition: found #{entry} as a value "\
+                                  "in #{path.join('/')}. Was expecting a string or a hash"
+                        elsif !entry["name"]
+                            raise ArgumentError,
+                                  "invalid osdeps definition: found #{entry} as a value "\
+                                  "in #{path.join('/')}. Was expecting a 'name' field."
+                        end
+                    end
                 end
                 next unless value
 
@@ -515,8 +528,7 @@ module Autoproj
 
             # Partition the found definition in all entries that are interesting
             # for us: toplevel os-independent package managers, os-dependent
-            # package managers and os-independent package managers selected by
-            # OS or version
+            # package managers and os-independent package managers selected by # OS or version
             if os_names.empty?
                 os_names = ['default']
                 os_versions = ['default']
@@ -560,9 +572,7 @@ module Autoproj
                 end
             end
 
-            result.each do |args|
-                args.last.freeze
-            end
+            result.each { |args| args.last.freeze }
             result.freeze
             if resolve_recursive
                 resolve_package_cache[name] = result
@@ -646,6 +656,7 @@ module Autoproj
                         partition_osdep_map_entry(names, values, osdep_name,
                             handler_names, excluded, keys, found_keys, additional_keys)
                 end
+
                 found ||= entry_found
                 nonexistent ||= entry_nonexistent
                 result.concat(entry_names)
@@ -694,14 +705,22 @@ module Autoproj
                     [false, false, []]
                 end
             elsif names.respond_to?(:to_hash)
-                rec_found, rec_result = partition_osdep_entry(osdep_name,
-                    names, handler_names, excluded, keys, *additional_keys)
-                if rec_found == FOUND_NONEXISTENT
-                    [false, true, rec_result]
-                elsif rec_found == FOUND_PACKAGES
-                    [true, false, rec_result]
+                if keys.empty? && additional_keys.empty?
+                    if excluded.include?(names["name"])
+                        return [false, false, []]
+                    else
+                        return [true, false, [names]]
+                    end
                 else
-                    [false, false, []]
+                    rec_found, rec_result = partition_osdep_entry(osdep_name,
+                        names, handler_names, excluded, keys, *additional_keys)
+                    if rec_found == FOUND_NONEXISTENT
+                        [false, true, rec_result]
+                    elsif rec_found == FOUND_PACKAGES
+                        [true, false, rec_result]
+                    else
+                        [false, false, []]
+                    end
                 end
             else
                 [false, false, []]
@@ -719,7 +738,8 @@ module Autoproj
                     find { |k| names.any? { |name_tag| k == name_tag.downcase } }
                 if matching_handler
                     rec_found, rec_result = partition_osdep_entry(
-                        osdep_name, values, nil, excluded, keys, *additional_keys)
+                        osdep_name, values, nil, excluded, []
+                    )
                     if rec_found == FOUND_NONEXISTENT
                         result = [false, true, rec_result]
                     elsif rec_found == FOUND_PACKAGES

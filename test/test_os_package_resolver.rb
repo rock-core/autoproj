@@ -30,11 +30,16 @@ module Autoproj
         end
 
         def create_osdep(data, file = nil, operating_system: self.operating_system)
-            if data
-                osdeps = OSPackageResolver.new(Hash['pkg' => data], file, operating_system: operating_system)
-            else
-                osdeps = OSPackageResolver.new(Hash.new, file, operating_system: operating_system)
-            end
+            entries =
+                if data
+                    { 'pkg' => data }
+                else
+                    {}
+                end
+
+            osdeps = OSPackageResolver.new(
+                entries, file, operating_system: operating_system
+            )
 
             # Mock the package handlers
             osdeps.os_package_manager = 'apt-dpkg'
@@ -352,6 +357,14 @@ module Autoproj
             data = ['gem', { 'test' => { 'gem' => 'gempkg' } } ]
             osdeps = create_osdep(data)
             expected = [['gem', FOUND_PACKAGES, ['pkg', 'gempkg']]]
+            assert_equal expected, osdeps.resolve_package('pkg')
+        end
+
+        it "resolves package entries that are hashes" do
+            entry = { "name" => 'gempkg', "version" => ">= 2.0" }
+            data = { 'test' => [{ 'gem' => [entry] }] }
+            osdeps = create_osdep(data)
+            expected = [['gem', FOUND_PACKAGES, [entry]]]
             assert_equal expected, osdeps.resolve_package('pkg')
         end
 
