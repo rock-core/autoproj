@@ -30,9 +30,10 @@ module Autoproj
         end
 
         it "registers a package set" do
+            options = {} # workaround 2.6 brokenness
             ws_set = ws_define_package_set(
                 "bla", VCSDefinition.from_raw({ type: "git", url: "somewhere" }),
-                **{}
+                **options
             )
 
             pkg_set = @manifest.add_package_set(ws_set)
@@ -50,9 +51,10 @@ module Autoproj
             )
             ws_resolve_vcs(pkg_def)
 
+            options = {} # Workaround 2.6 brokenness
             ws_set = ws_define_package_set(
                 "bla", VCSDefinition.from_raw({ type: "git", url: "somewhere" }),
-                **{}
+                **options
             )
 
             @manifest.add_package_set(ws_set)

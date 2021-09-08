@@ -345,9 +345,12 @@ module Autoproj
         end
 
         def ws_define_package_set(
-            name, vcs = VCSDefinition.from_raw({ type: "none" }), **options
+            name, vcs = VCSDefinition.from_raw({ type: "none" }),
+            raw_local_dir: PackageSet.raw_local_dir_of(ws, vcs)
         )
-            package_set = PackageSet.new(ws, vcs, name: name, **options)
+            package_set = PackageSet.new(
+                ws, vcs, name: name, raw_local_dir: raw_local_dir
+            )
             ws.manifest.register_package_set(package_set)
             package_set
         end
