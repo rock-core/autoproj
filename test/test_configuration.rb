@@ -390,7 +390,7 @@ module Autoproj
                 default_value = "option-defaultvalue"
                 @config.declare(option_name, "string", default: default_value)
                 assert @config.interactive?
-                assert_raises Timeout::Error do
+                assert_raises Timeout::Error, EOFError do
                     Timeout.timeout(3) do
                         @config.configure(option_name)
                     end
