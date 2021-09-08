@@ -800,7 +800,6 @@ require 'bundler/setup'
     end
 end
 
-
 ENV.delete("BUNDLE_GEMFILE")
 ENV.delete("RUBYLIB")
 ops = Autoproj::Ops::Install.new(Dir.pwd)

@@ -9,7 +9,6 @@ elsif ENV["AUTOPROJ_CURRENT_ROOT"] && (ENV["AUTOPROJ_CURRENT_ROOT"] != Dir.pwd)
 end
 
 require 'autoproj/ops/install'
-
 ENV.delete("BUNDLE_GEMFILE")
 ENV.delete("RUBYLIB")
 ops = Autoproj::Ops::Install.new(Dir.pwd)
