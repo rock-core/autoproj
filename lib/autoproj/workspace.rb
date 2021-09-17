@@ -1,5 +1,5 @@
-require 'autoproj/ops/loader'
-require 'xdg'
+require "autoproj/ops/loader"
+require "xdg"
 
 module Autoproj
     class Workspace < Ops::Loader
@@ -52,11 +52,12 @@ module Autoproj
         attr_reader :osdep_suffixes
 
         def initialize(root_dir,
-                       os_package_resolver: OSPackageResolver.new,
-                       package_managers: OSPackageInstaller::PACKAGE_MANAGERS,
-                       os_repository_resolver: OSRepositoryResolver.new(
-                            operating_system: os_package_resolver.operating_system),
-                       os_repository_installer: OSRepositoryInstaller.new(self))
+            os_package_resolver: OSPackageResolver.new,
+            package_managers: OSPackageInstaller::PACKAGE_MANAGERS,
+            os_repository_resolver: OSRepositoryResolver.new(
+                operating_system: os_package_resolver.operating_system
+            ),
+            os_repository_installer: OSRepositoryInstaller.new(self))
             @root_dir = root_dir
             @root_path = Pathname.new(root_dir)
             @ruby_version_keyword = "ruby#{RUBY_VERSION.split('.')[0, 2].join('')}"
@@ -65,7 +66,7 @@ module Autoproj
             @loader = loader
             @env = Environment.new
             env.prepare(root_dir)
-            env.source_before(File.join(dot_autoproj_dir, 'env.sh'))
+            env.source_before(File.join(dot_autoproj_dir, "env.sh"))
 
             @os_repository_resolver = os_repository_resolver
             @os_repository_installer = os_repository_installer
@@ -74,7 +75,8 @@ module Autoproj
             @config = Configuration.new(config_file_path)
 
             @os_package_installer = OSPackageInstaller.new(
-                self, os_package_resolver, package_managers: package_managers)
+                self, os_package_resolver, package_managers: package_managers
+            )
             super(root_dir)
         end
 
@@ -83,7 +85,7 @@ module Autoproj
         # @return [String,nil] the root path, or nil if one did not yet source
         #   the workspace's env.sh
         def self.autoproj_current_root
-            if (env = ENV['AUTOPROJ_CURRENT_ROOT'])
+            if (env = ENV["AUTOPROJ_CURRENT_ROOT"])
                 env unless env.empty?
             end
         end
@@ -119,7 +121,7 @@ module Autoproj
             elsif Autoproj.find_v1_workspace_dir(dir = Autoproj.default_find_base_dir)
                 raise OutdatedWorkspace, "#{dir} looks like a v1 workspace, "\
                     "run autoproj upgrade before continuing"
-            elsif (envvar = ENV['AUTOPROJ_CURRENT_ROOT'])
+            elsif (envvar = ENV["AUTOPROJ_CURRENT_ROOT"])
                 raise NotWorkspace, "AUTOPROJ_CURRENT_ROOT is currently set "\
                     "to #{envvar}, but that is not an Autoproj workspace"
             else
@@ -166,13 +168,13 @@ module Autoproj
         #
         # @return [String]
         def config_dir
-            File.join(root_dir, 'autoproj')
+            File.join(root_dir, "autoproj")
         end
 
         # The directory under which autoproj saves all its internal
         # configuration and files
         def dot_autoproj_dir
-            File.join(root_dir, '.autoproj')
+            File.join(root_dir, ".autoproj")
         end
 
         # The installation manifest
@@ -182,12 +184,12 @@ module Autoproj
 
         # The path to the workspace configuration file
         def config_file_path
-            File.join(dot_autoproj_dir, 'config.yml')
+            File.join(dot_autoproj_dir, "config.yml")
         end
 
         # The path to the workspace's manifest file
         def manifest_file_path
-            File.join(root_dir, 'autoproj', config.get('manifest_name', 'manifest'))
+            File.join(root_dir, "autoproj", config.get("manifest_name", "manifest"))
         end
 
         # Return the directory in which remote package set definition should be
@@ -213,7 +215,7 @@ module Autoproj
 
         # Change {#build_dir}
         def build_dir=(path)
-            config.set 'build', path, true
+            config.set "build", path, true
         end
 
         # (see Configuration#source_dir)
@@ -227,11 +229,11 @@ module Autoproj
 
         # Change {#source_dir}
         def source_dir=(path)
-            config.set 'source', path, true
+            config.set "source", path, true
         end
 
         def log_dir
-            File.join(prefix_dir, 'log')
+            File.join(prefix_dir, "log")
         end
 
         OVERRIDES_DIR = "overrides.d".freeze
@@ -279,23 +281,23 @@ module Autoproj
                 config.reset
                 config.load(path: config_file_path, reconfigure: reconfigure)
                 manifest.vcs =
-                    if (raw_vcs = config.get('manifest_source', nil))
+                    if (raw_vcs = config.get("manifest_source", nil))
                         VCSDefinition.from_raw(raw_vcs)
                     else
-                        local_vcs = { type: 'local', url: config_dir }
+                        local_vcs = { type: "local", url: config_dir }
                         VCSDefinition.from_raw(local_vcs)
                     end
 
                 if config.source_dir && Pathname.new(config.source_dir).absolute?
-                    raise ConfigError, 'source dir path configuration must be relative'
+                    raise ConfigError, "source dir path configuration must be relative"
                 end
 
                 os_package_resolver.prefer_indep_over_os_packages =
                     config.prefer_indep_over_os_packages?
                 os_package_resolver.operating_system ||=
-                    config.get('operating_system', nil)
+                    config.get("operating_system", nil)
                 os_repository_resolver.operating_system ||=
-                    config.get('operating_system', nil)
+                    config.get("operating_system", nil)
             end
             @config
         end
@@ -322,7 +324,7 @@ module Autoproj
                 ensure
                     Autobuild.progress_done :operating_system_autodetection
                 end
-                config.set('operating_system', os_package_resolver.operating_system, true)
+                config.set("operating_system", os_package_resolver.operating_system, true)
             end
         end
 
@@ -344,7 +346,7 @@ module Autoproj
         end
 
         def setup_ruby_version_handling
-            os_package_resolver.add_aliases('ruby' => ruby_version_keyword)
+            os_package_resolver.add_aliases("ruby" => ruby_version_keyword)
             osdep_suffixes << ruby_version_keyword
         end
 
@@ -362,7 +364,7 @@ module Autoproj
             end
             autodetect_operating_system
             config.validate_ruby_executable
-            Autobuild.programs['ruby'] = config.ruby_executable
+            Autobuild.programs["ruby"] = config.ruby_executable
             config.apply_autobuild_configuration
             load_autoprojrc if load_global_configuration
             load_main_initrb
@@ -373,8 +375,8 @@ module Autoproj
 
             Autobuild.prefix = prefix_dir
             unless read_only
-                FileUtils.mkdir_p File.join(prefix_dir, '.autoproj')
-                Ops.atomic_write(File.join(prefix_dir, '.autoproj', 'config.yml')) do |io|
+                FileUtils.mkdir_p File.join(prefix_dir, ".autoproj")
+                Ops.atomic_write(File.join(prefix_dir, ".autoproj", "config.yml")) do |io|
                     io.puts "workspace: \"#{root_dir}\""
                 end
             end
@@ -386,7 +388,7 @@ module Autoproj
                 os_package_installer.each_manager_with_name do |name, manager|
                     next unless manager.respond_to?(:cache_dir=)
 
-                    manager_cache_path = File.join(cache_dir, 'package_managers', name)
+                    manager_cache_path = File.join(cache_dir, "package_managers", name)
                     if File.directory?(manager_cache_path)
                         manager.cache_dir = manager_cache_path
                     end
@@ -398,24 +400,24 @@ module Autoproj
 
         def install_ruby_shims
             install_suffix = ""
-            if (match = /ruby(.*)$/.match(RbConfig::CONFIG['RUBY_INSTALL_NAME']))
+            if (match = /ruby(.*)$/.match(RbConfig::CONFIG["RUBY_INSTALL_NAME"]))
                 install_suffix = match[1]
             end
 
-            bindir = File.join(prefix_dir, 'bin')
+            bindir = File.join(prefix_dir, "bin")
             FileUtils.mkdir_p bindir
-            env.add 'PATH', bindir
+            env.add "PATH", bindir
 
-            Ops.atomic_write(File.join(bindir, 'ruby')) do |io|
+            Ops.atomic_write(File.join(bindir, "ruby")) do |io|
                 io.puts "#! /bin/sh"
                 io.puts "exec #{config.ruby_executable} \"$@\""
             end
-            FileUtils.chmod 0o755, File.join(bindir, 'ruby')
+            FileUtils.chmod 0o755, File.join(bindir, "ruby")
 
             %w[gem irb testrb].each do |name|
                 # Look for the corresponding gem program
                 prg_name = "#{name}#{install_suffix}"
-                if File.file?(prg_path = File.join(RbConfig::CONFIG['bindir'], prg_name))
+                if File.file?(prg_path = File.join(RbConfig::CONFIG["bindir"], prg_name))
                     Ops.atomic_write(File.join(bindir, name)) do |io|
                         io.puts "#! #{config.ruby_executable}"
                         io.puts "exec \"#{prg_path}\", *ARGV"
@@ -426,14 +428,14 @@ module Autoproj
         end
 
         def rewrite_shims
-            gemfile  = File.join(dot_autoproj_dir, 'Gemfile')
-            binstubs = File.join(dot_autoproj_dir, 'bin')
+            gemfile  = File.join(dot_autoproj_dir, "Gemfile")
+            binstubs = File.join(dot_autoproj_dir, "bin")
             Ops::Install.rewrite_shims(binstubs, config.ruby_executable,
                                        root_dir, gemfile, config.gems_gem_home)
         end
 
         def update_bundler
-            require 'autoproj/ops/install'
+            require "autoproj/ops/install"
             gem_program = Ops::Install.guess_gem_program
             install = Ops::Install.new(root_dir)
             Autoproj.message "  updating bundler"
@@ -449,13 +451,13 @@ module Autoproj
 
             # This is a guard to avoid infinite recursion in case the user is
             # running autoproj osdeps --force
-            return if ENV['AUTOPROJ_RESTARTING'] == '1'
+            return if ENV["AUTOPROJ_RESTARTING"] == "1"
 
-            gemfile  = File.join(dot_autoproj_dir, 'Gemfile')
-            binstubs = File.join(dot_autoproj_dir, 'bin')
+            gemfile  = File.join(dot_autoproj_dir, "Gemfile")
+            binstubs = File.join(dot_autoproj_dir, "bin")
             if restart_on_update
                 old_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(
-                    self, 'autoproj', gemfile: gemfile
+                    self, "autoproj", gemfile: gemfile
                 )
             end
             begin
@@ -468,7 +470,7 @@ module Autoproj
             end
             if restart_on_update
                 new_autoproj_path = PackageManagers::BundlerManager.bundle_gem_path(
-                    self, 'autoproj', gemfile: gemfile
+                    self, "autoproj", gemfile: gemfile
                 )
             end
 
@@ -482,8 +484,8 @@ module Autoproj
                 #
                 # ...But first save the configuration (!)
                 config.save
-                ENV['AUTOPROJ_RESTARTING'] = '1'
-                require 'rbconfig'
+                ENV["AUTOPROJ_RESTARTING"] = "1"
+                require "rbconfig"
                 exec(config.ruby_executable, $PROGRAM_NAME, *ARGV)
             end
         end
@@ -500,12 +502,12 @@ module Autoproj
         end
 
         def migrate_bundler_and_autoproj_gem_layout
-            if !File.directory?(File.join(dot_autoproj_dir, 'autoproj'))
+            if !File.directory?(File.join(dot_autoproj_dir, "autoproj"))
                 return
             else
-                config_path = File.join(dot_autoproj_dir, 'config.yml')
+                config_path = File.join(dot_autoproj_dir, "config.yml")
                 config = YAML.safe_load(File.read(config_path))
-                return if config['gems_install_path']
+                return if config["gems_install_path"]
             end
 
             Autoproj.silent = false
@@ -548,11 +550,11 @@ module Autoproj
 
         def self.find_path(xdg_var, xdg_path, home_path)
             home_dir = begin Dir.home
-                       rescue ArgumentError
-                           return
-                       end
+            rescue ArgumentError
+                return
+            end
 
-            xdg_path  = File.join(XDG[xdg_var].to_path, 'autoproj', xdg_path)
+            xdg_path  = File.join(XDG[xdg_var].to_path, "autoproj", xdg_path)
             home_path = File.join(home_dir, home_path)
 
             if File.exist?(xdg_path)
@@ -565,25 +567,25 @@ module Autoproj
         end
 
         def self.find_user_config_path(xdg_path, home_path = xdg_path)
-            find_path('CONFIG_HOME', xdg_path, home_path)
+            find_path("CONFIG_HOME", xdg_path, home_path)
         end
 
         def self.rcfile_path
-            find_user_config_path('rc', '.autoprojrc')
+            find_user_config_path("rc", ".autoprojrc")
         end
 
         def self.find_user_data_path(xdg_path, home_path = xdg_path)
-            find_path('DATA_HOME', xdg_path, File.join('.autoproj', home_path))
+            find_path("DATA_HOME", xdg_path, File.join(".autoproj", home_path))
         end
 
         def self.find_user_cache_path(xdg_path, home_path = xdg_path)
-            find_path('CACHE_HOME', xdg_path, File.join('.autoproj', home_path))
+            find_path("CACHE_HOME", xdg_path, File.join(".autoproj", home_path))
         end
 
         RegisteredWorkspace = Struct.new :root_dir, :prefix_dir, :build_dir
 
         def self.registered_workspaces
-            path = find_user_data_path('workspaces.yml')
+            path = find_user_data_path("workspaces.yml")
             if File.file?(path)
                 yaml = (YAML.safe_load(File.read(path)) || [])
                 fields = RegisteredWorkspace.members.map(&:to_s)
@@ -598,12 +600,12 @@ module Autoproj
 
         def self.save_registered_workspaces(workspaces)
             workspaces = workspaces.map do |w|
-                Hash['root_dir' => w.root_dir,
-                     'prefix_dir' => w.prefix_dir,
-                     'build_dir' => w.build_dir]
+                Hash["root_dir" => w.root_dir,
+                     "prefix_dir" => w.prefix_dir,
+                     "build_dir" => w.build_dir]
             end
 
-            path = find_user_data_path('workspaces.yml')
+            path = find_user_data_path("workspaces.yml")
             FileUtils.mkdir_p(File.dirname(path))
             Ops.atomic_write(path) do |io|
                 io.write YAML.dump(workspaces)
@@ -636,26 +638,26 @@ module Autoproj
         end
 
         def load_package_sets(only_local: false,
-                              checkout_only: true,
-                              reconfigure: false,
-                              keep_going: false,
-                              mainline: nil,
-                              reset: false,
-                              retry_count: nil)
+            checkout_only: true,
+            reconfigure: false,
+            keep_going: false,
+            mainline: nil,
+            reset: false,
+            retry_count: nil)
             return unless File.file?(manifest_file_path) # empty install, just return
 
-            Ops::Configuration.new(self).
-                load_package_sets(only_local: only_local,
-                                  checkout_only: checkout_only,
-                                  keep_going: keep_going,
-                                  reset: reset,
-                                  retry_count: retry_count,
-                                  mainline: mainline)
+            Ops::Configuration.new(self)
+                              .load_package_sets(only_local: only_local,
+                                                 checkout_only: checkout_only,
+                                                 keep_going: keep_going,
+                                                 reset: reset,
+                                                 retry_count: retry_count,
+                                                 mainline: mainline)
         end
 
         def load_packages(selection = manifest.default_packages(false), options = {})
-            options = Hash[warn_about_ignored_packages: true, checkout_only: true].
-                merge(options)
+            options = Hash[warn_about_ignored_packages: true, checkout_only: true]
+                      .merge(options)
             ops = Ops::Import.new(self)
             ops.import_packages(selection, options)
         end
@@ -713,7 +715,7 @@ module Autoproj
             pkg.builddir = compute_builddir(pkg) if pkg.respond_to?(:builddir)
 
             pkg.prefix = File.join(prefix_dir, prefixdir)
-            pkg.doc_target_dir = File.join(prefix_dir, 'doc', pkg_name)
+            pkg.doc_target_dir = File.join(prefix_dir, "doc", pkg_name)
             pkg.logdir = File.join(pkg.prefix, "log")
         end
 
@@ -768,9 +770,9 @@ module Autoproj
         end
 
         def all_present_packages
-            manifest.each_autobuild_package.
-                find_all { |pkg| File.directory?(pkg.srcdir) }.
-                map(&:name)
+            manifest.each_autobuild_package
+                    .find_all { |pkg| File.directory?(pkg.srcdir) }
+                    .map(&:name)
         end
 
         # Generate a {InstallationManifest} with the currently known information
@@ -873,7 +875,7 @@ module Autoproj
         end
 
         def install_os_repositories
-            return unless os_package_installer.osdeps_mode.include?('os')
+            return unless os_package_installer.osdeps_mode.include?("os")
 
             os_repository_installer.install_os_repositories
         end
@@ -891,7 +893,7 @@ module Autoproj
         #   configure the package
         # @return [PackageDefinition]
         def define_package(package_type, package_name, block = nil,
-                           package_set = manifest.main_package_set, file = nil)
+            package_set = manifest.main_package_set, file = nil)
             autobuild_package = Autobuild.send(package_type, package_name)
             register_package(autobuild_package, block, package_set, file)
         end
@@ -907,7 +909,7 @@ module Autoproj
         #   configure the package
         # @return [PackageDefinition]
         def register_package(package, block = nil,
-                             package_set = manifest.main_package_set, file = nil)
+            package_set = manifest.main_package_set, file = nil)
             pkg = manifest.register_package(package, block, package_set, file)
             pkg.autobuild.ws = self
             pkg
@@ -926,7 +928,7 @@ module Autoproj
         # @raise [ExecutableNotFound] if an executable file named `cmd` cannot
         #   be found
         def which(cmd, _path_entries: nil)
-            Ops.which(cmd, path_entries: -> { full_env.value('PATH') || Array.new })
+            Ops.which(cmd, path_entries: -> { full_env.value("PATH") || Array.new })
         end
     end
 

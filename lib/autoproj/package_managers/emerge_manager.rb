@@ -5,10 +5,9 @@ module Autoproj
         class EmergeManager < ShellScriptManager
             def initialize(ws)
                 super(ws, true,
-                        %w{emerge},
-                        %w{emerge --noreplace})
+                        %w[emerge],
+                        %w[emerge --noreplace])
             end
         end
     end
 end
-

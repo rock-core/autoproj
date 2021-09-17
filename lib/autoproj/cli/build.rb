@@ -1,5 +1,5 @@
-require 'autoproj/cli/update'
-require 'autoproj/ops/build'
+require "autoproj/cli/update"
+require "autoproj/ops/build"
 
 module Autoproj
     module CLI
@@ -7,7 +7,8 @@ module Autoproj
             def validate_options(selected_packages, options)
                 selected_packages, options =
                     super(selected_packages, options.merge(
-                        checkout_only: true, aup: options[:amake]))
+                        checkout_only: true, aup: options[:amake]
+                    ))
 
                 options[:deps] = false if options[:no_deps_shortcut]
                 if options[:deps].nil?
@@ -60,8 +61,8 @@ module Autoproj
                     if command_line_selection.empty?
                         # If we don't have an explicit package selection, we want to
                         # make sure that the user really wants this
-                        mode_name = if build_options[:rebuild] then 'rebuild'
-                                    else 'force-build'
+                        mode_name = if build_options[:rebuild] then "rebuild"
+                                    else "force-build"
                                     end
                         if build_options[:confirm] != false
                             opt = BuildOption.new(

@@ -1,4 +1,4 @@
-require 'autoproj/test'
+require "autoproj/test"
 
 describe Autoproj do
     describe ".report" do
@@ -6,7 +6,7 @@ describe Autoproj do
             before do
                 @exception = Autobuild::Exception.new("test", "test")
                 ws_create
-                @pkg = ws_define_package :cmake, 'test'
+                @pkg = ws_define_package :cmake, "test"
             end
 
             it "returns an exception raised by the block and reports it" do
@@ -58,7 +58,7 @@ describe Autoproj do
             before do
                 @exception = Autobuild::Exception.new("test", "test")
                 ws_create
-                @pkg = ws_define_package :cmake, 'test'
+                @pkg = ws_define_package :cmake, "test"
             end
 
             it "returns an exception raised by the block and reports it" do
@@ -110,7 +110,7 @@ describe Autoproj do
             before do
                 @exception = Autobuild::Exception.new("test", "test")
                 ws_create
-                @pkg = ws_define_package :cmake, 'test'
+                @pkg = ws_define_package :cmake, "test"
             end
 
             it "returns an exception raised by the block and exits" do
@@ -164,7 +164,7 @@ describe Autoproj do
             before do
                 @exception = Autobuild::Exception.new("test", "test")
                 ws_create
-                @pkg = ws_define_package :cmake, 'test'
+                @pkg = ws_define_package :cmake, "test"
             end
 
             it "exits without reporting an exception raised by the block" do
@@ -218,7 +218,7 @@ describe Autoproj do
             before do
                 @exception = Autobuild::Exception.new("test", "test")
                 ws_create
-                @pkg = ws_define_package :cmake, 'test'
+                @pkg = ws_define_package :cmake, "test"
             end
 
             it "passes through an exception raised by the block" do

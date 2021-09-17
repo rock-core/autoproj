@@ -9,9 +9,9 @@ module Autoproj
             end
 
             def osrepos_interaction_unknown_os
-                Autoproj.message 'The build process requires some repositories to be added on our operating system', :bold
-                Autoproj.message 'If they are already added, simply ignore this message', :bold
-                Autoproj.message 'Press ENTER to continue ', :bold
+                Autoproj.message "The build process requires some repositories to be added on our operating system", :bold
+                Autoproj.message "If they are already added, simply ignore this message", :bold
+                Autoproj.message "Press ENTER to continue ", :bold
 
                 STDIN.readline
                 nil

@@ -1,7 +1,7 @@
-require 'autoproj/cli'
-require 'autoproj/cli/inspection_tool'
-require 'autoproj/cli/update'
-require 'autoproj/cli/versions'
+require "autoproj/cli"
+require "autoproj/cli/inspection_tool"
+require "autoproj/cli/update"
+require "autoproj/cli/versions"
 
 module Autoproj
     module CLI
@@ -24,7 +24,8 @@ module Autoproj
                 # Checkout the version file
                 versions_file = File.join(
                     Workspace::OVERRIDES_DIR,
-                    Versions::DEFAULT_VERSIONS_FILE_BASENAME)
+                    Versions::DEFAULT_VERSIONS_FILE_BASENAME
+                )
                 begin
                     file_data = importer.show(pkg, ref_name, versions_file)
                     versions_path = File.join(ws.config_dir, versions_file)
@@ -34,23 +35,19 @@ module Autoproj
                         FileUtils.cp versions_path, old_versions_path
                     end
                     FileUtils.mkdir_p File.join(ws.config_dir, Workspace::OVERRIDES_DIR)
-                    File.open(versions_path, 'w') do |io|
+                    File.open(versions_path, "w") do |io|
                         io.write file_data
                     end
 
                     update = CLI::Update.new
                     run_args = update.run([], reset: true)
-
                 ensure
-                    if !options[:freeze]
+                    unless options[:freeze]
                         FileUtils.rm_f versions_path
-                        if old_versions_path
-                            FileUtils.mv old_versions_path, versions_path
-                        end
+                        FileUtils.mv old_versions_path, versions_path if old_versions_path
                     end
                 end
             end
         end
     end
 end
-

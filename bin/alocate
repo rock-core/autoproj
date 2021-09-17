@@ -1,6 +1,6 @@
 #! /usr/bin/env ruby
 
-require 'autoproj/cli/main'
+require "autoproj/cli/main"
 argv = Autoproj::CLI.basic_setup
 
 class Alocate < Autoproj::CLI::Main
@@ -10,10 +10,10 @@ class Alocate < Autoproj::CLI::Main
 end
 
 begin
-    if argv.include?('--help') || argv.include?('help')
-        Alocate.start(['help', 'locate'])
+    if argv.include?("--help") || argv.include?("help")
+        Alocate.start(%w[help locate])
     else
-        Alocate.start(['locate', *argv])
+        Alocate.start(["locate", *argv])
     end
 rescue Interrupt
     # Already notified in the reporting infrastructure

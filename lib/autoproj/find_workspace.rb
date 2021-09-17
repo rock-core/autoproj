@@ -1,10 +1,10 @@
-require 'pathname'
-require 'yaml'
+require "pathname"
+require "yaml"
 
 module Autoproj
     # The base path from which we search for workspaces
     def self.default_find_base_dir
-        ENV['AUTOPROJ_CURRENT_ROOT'] || Dir.pwd
+        ENV["AUTOPROJ_CURRENT_ROOT"] || Dir.pwd
     end
 
     # Looks for the autoproj workspace that is related to a given directory
@@ -29,19 +29,16 @@ module Autoproj
     #   if base_dir is not part of a workspace
     def self.find_v2_workspace_config(base_dir)
         path = Pathname.new(base_dir).expand_path
-        while !path.root?
-            if (path + ".autoproj" + "config.yml").exist?
-                break
-            end
+        until path.root?
+            break if path.join(".autoproj", "config.yml").exist?
+
             path = path.parent
         end
 
-        if path.root?
-            return
-        end
+        return if path.root?
 
-        config_path = path + ".autoproj" + "config.yml"
-        return path.to_s, (YAML.load(config_path.read) || Hash.new)
+        config_path = path.join(".autoproj", "config.yml")
+        [path.to_s, (YAML.load(config_path.read) || Hash.new)]
     end
 
     # @private
@@ -58,17 +55,18 @@ module Autoproj
     #   there's none
     def self.find_v2_root_dir(base_dir, config_field_name)
         path, config = find_v2_workspace_config(base_dir)
-        return if !path
+        return unless path
+
         result = config[config_field_name] || path.to_s
         result = File.expand_path(result, path.to_s)
-        if result == path.to_s
-            return result
-        end
+        return result if result == path.to_s
+
         resolved = find_v2_root_dir(result, config_field_name)
 
         if !resolved || (resolved != result)
             raise ArgumentError, "found #{path} as possible workspace root for #{base_dir}, but it contains a configuration file that points to #{result} and #{result} is not an autoproj workspace root"
         end
+
         resolved
     end
 
@@ -84,7 +82,7 @@ module Autoproj
                 ws_path, ws_config = find_v2_workspace_config(p)
                 if ws_path
                     known_workspace_dirs << "#{ws_path}/"
-                    if ws_dir = ws_config['workspace']
+                    if (ws_dir = ws_config["workspace"])
                         known_workspace_dirs << "#{ws_dir}/"
                     end
                     false
@@ -97,12 +95,12 @@ module Autoproj
 
     # {#find_workspace_dir} for v2 workspaces
     def self.find_v2_workspace_dir(base_dir = default_find_base_dir)
-        find_v2_root_dir(base_dir, 'workspace')
+        find_v2_root_dir(base_dir, "workspace")
     end
 
     # {#find_prefix_dir} for v2 workspaces
     def self.find_v2_prefix_dir(base_dir = default_find_base_dir)
-        find_v2_root_dir(base_dir, 'prefix')
+        find_v2_root_dir(base_dir, "prefix")
     end
 
     # {#find_workspace_dir} for v1 workspaces
@@ -110,15 +108,12 @@ module Autoproj
     # Note that for v1 workspaces {#find_prefix_dir} cannot be implemented
     def self.find_v1_workspace_dir(base_dir = default_find_base_dir)
         path = Pathname.new(base_dir)
-        while !path.root?
-            if (path + "autoproj").exist?
-                if !(path + ".autoproj").exist?
-                    return path.to_s
-                end
+        until path.root?
+            if path.join("autoproj").exist?
+                return path.to_s unless path.join(".autoproj").exist?
             end
             path = path.parent
         end
         nil
     end
 end
-

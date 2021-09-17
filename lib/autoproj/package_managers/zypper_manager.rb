@@ -1,11 +1,11 @@
 module Autoproj
     module PackageManagers
-        #Package manger for OpenSuse and Suse (untested)
+        # Package manger for OpenSuse and Suse (untested)
         class ZypperManager < ShellScriptManager
             def initialize(ws)
                 super(ws, true,
-                        %w{zypper install},
-                        %w{zypper -n install})
+                        %w[zypper install],
+                        %w[zypper -n install])
             end
 
             def filter_uptodate_packages(packages)
@@ -13,9 +13,9 @@ module Autoproj
                 has_all_pkgs = $?.success?
 
                 if !has_all_pkgs
-                    return packages # let zypper filter, we need root now anyways
-                else 
-                    return []
+                    packages # let zypper filter, we need root now anyways
+                else
+                    []
                 end
             end
 
@@ -27,14 +27,12 @@ module Autoproj
                 patterns, packages = packages.partition { |pkg| pkg =~ /^@/ }
                 patterns = patterns.map { |str| str[1..-1] }
                 result = false
-                if !patterns.empty?
+                unless patterns.empty?
                     result |= super(patterns,
-                                    auto_install_cmd: %w{zypper --non-interactive install --type pattern},
-                                    user_install_cmd: %w{zypper install --type pattern})
+                                    auto_install_cmd: %w[zypper --non-interactive install --type pattern],
+                                    user_install_cmd: %w[zypper install --type pattern])
                 end
-                if !packages.empty?
-                    result |= super(packages)
-                end
+                result |= super(packages) unless packages.empty?
                 if result
                     # Invalidate caching of installed packages, as we just
                     # installed new packages !
@@ -44,4 +42,3 @@ module Autoproj
         end
     end
 end
-

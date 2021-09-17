@@ -16,10 +16,9 @@ module Autoproj
             EXPECTED_ROOT_ENTRIES = [".", "..", "autoproj_bootstrap",
                                      ".autoproj", "bootstrap.sh", ENV_FILENAME].to_set
 
-
             def check_root_dir_empty?
-                (ENV['AUTOPROJ_NONINTERACTIVE'] != '1') &&
-                    (ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] != '1')
+                (ENV["AUTOPROJ_NONINTERACTIVE"] != "1") &&
+                    (ENV["AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR"] != "1")
             end
 
             # Verifies that {#root_dir} contains only expected entries, to make
@@ -28,23 +27,21 @@ module Autoproj
             # If the environment variable AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR
             # is set to 1, the check is skipped
             def check_root_dir_empty
-                require 'set'
+                require "set"
                 curdir_entries = Dir.entries(ws.root_dir).map { |p| File.basename(p) }.to_set -
-                    EXPECTED_ROOT_ENTRIES
+                                 EXPECTED_ROOT_ENTRIES
                 return if curdir_entries.empty?
 
-                while true
+                loop do
                     print "The current directory is not empty, continue bootstrapping anyway ? [yes] "
                     STDOUT.flush
                     answer = STDIN.readline.chomp
-                    if answer == "no"
-                        raise Interrupt, "Interrupted by user"
-                    end
+                    raise Interrupt, "Interrupted by user" if answer == "no"
 
                     if answer == "" || answer == "yes"
                         # Set this environment variable since we might restart
                         # autoproj later on.
-                        ENV['AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR'] = '1'
+                        ENV["AUTOPROJ_BOOTSTRAP_IGNORE_NONEMPTY_DIR"] = "1"
                         return
                     else
                         STDOUT.puts "invalid answer. Please answer 'yes' or 'no'"
@@ -62,29 +59,27 @@ module Autoproj
             # @param [Array<String>] reuse set of autoproj roots that are being reused
             # @raise ConfigError
             def validate_autoproj_current_root(reuse)
-                if current_root = ENV['AUTOPROJ_CURRENT_ROOT']
-                    # Allow having a current root only if it is being reused
-                    if (current_root != ws.root_dir) && !reuse.include?(current_root)
-                        Autoproj.error "the env.sh from #{ENV['AUTOPROJ_CURRENT_ROOT']} seem to already be sourced"
-                        Autoproj.error "start a new shell and try to bootstrap again"
-                        Autoproj.error ""
-                        Autoproj.error "you are allowed to boostrap from another autoproj installation"
-                        Autoproj.error "only if you reuse it with the --reuse flag"
-                        raise Autobuild::Exception, ""
-                    end
-                end
+                return unless (current_root = ENV["AUTOPROJ_CURRENT_ROOT"])
+                return if (current_root == ws.root_dir) || reuse.include?(current_root)
+
+                Autoproj.error "the env.sh from #{ENV['AUTOPROJ_CURRENT_ROOT']} seem to already be sourced"
+                Autoproj.error "start a new shell and try to bootstrap again"
+                Autoproj.error ""
+                Autoproj.error "you are allowed to boostrap from another autoproj installation"
+                Autoproj.error "only if you reuse it with the --reuse flag"
+                raise Autobuild::Exception, ""
             end
 
-            MAIN_CONFIGURATION_TEMPLATE = File.expand_path(File.join("..", "..", "..", "samples", 'autoproj'), File.dirname(__FILE__))
+            MAIN_CONFIGURATION_TEMPLATE = File.expand_path(File.join("..", "..", "..", "samples", "autoproj"), File.dirname(__FILE__))
 
             def bootstrap(buildconf_info,
-                          check_root_dir_empty: check_root_dir_empty?,
-                          reuse: Array.new)
+                check_root_dir_empty: check_root_dir_empty?,
+                reuse: Array.new)
                 self.check_root_dir_empty if check_root_dir_empty
                 validate_autoproj_current_root(reuse)
 
                 ws.config.validate_ruby_executable
-                ws.config.set 'reused_autoproj_installations', reuse, true
+                ws.config.set "reused_autoproj_installations", reuse, true
                 ws.env.export_env_sh(shell_helpers: ws.config.shell_helpers?)
 
                 # If we are not getting the installation setup from a VCS, copy the template
@@ -97,10 +92,10 @@ module Autoproj
                     manifest_url = buildconf_info.first
                     Autoproj.message("autoproj: downloading manifest file #{manifest_url}", :bold)
                     manifest_data =
-                        begin open(manifest_url) { |file| file.read }
+                        begin open(manifest_url, &:read)
                         rescue
                             # Delete the autoproj directory
-                            FileUtils.rm_rf 'autoproj'
+                            FileUtils.rm_rf "autoproj"
                             raise ConfigError.new, "cannot read file / URL #{manifest_url}, did you mean 'autoproj bootstrap VCSTYPE #{manifest_url}' ?"
                         end
 
@@ -122,9 +117,11 @@ module Autoproj
                 if args.first =~ /^(\w+)=/
                     # First argument is an option string, we are simply setting the
                     # options without changing the type/url
-                    type, url = vcs.type, vcs.url
+                    type = vcs.type
+                    url = vcs.url
                 else
-                    type, url = args.shift, args.shift
+                    type = args.shift
+                    url = args.shift
                 end
                 options = args
 
@@ -133,7 +130,7 @@ module Autoproj
                 if vcs.type == type && vcs.url == url
                     vcs = vcs.to_hash
                     options.each do |opt|
-                        opt_name, opt_value = opt.split('=')
+                        opt_name, opt_value = opt.split("=")
                         vcs[opt_name.to_sym] = opt_value
                     end
                     # Validate the VCS definition, but save the hash as-is
@@ -145,10 +142,10 @@ module Autoproj
                 else
                     # We will have to delete the current autoproj directory. Ask the user.
                     opt = Autoproj::BuildOption.new("delete current config", "boolean",
-                                Hash[:default => "false",
-                                    :doc => "delete the current configuration ? (required to switch)"], nil)
+                                                    Hash[default: "false",
+                                                         doc: "delete the current configuration ? (required to switch)"], nil)
 
-                    return if !opt.ask(nil)
+                    return unless opt.ask(nil)
 
                     do_switch_config(true, type, url, *options)
                     ws.config.save
@@ -163,9 +160,7 @@ module Autoproj
                 vcs_def[:url]  = VCSDefinition.to_absolute_url(url, ws.root_dir)
                 options.each do |opt|
                     name, value = opt.split("=")
-                    if value =~ /^\d+$/
-                        value = Integer(value)
-                    end
+                    value = Integer(value) if value =~ /^\d+$/
 
                     vcs_def[name] = value
                 end
@@ -193,7 +188,8 @@ module Autoproj
                 ops.update_configuration_repository(
                     vcs,
                     "autoproj main configuration",
-                    config_dir)
+                    config_dir
+                )
 
                 # If the new tree has a configuration file, load it but override
                 # the already known parameters once it is loaded
@@ -207,9 +203,9 @@ module Autoproj
                 # options will not be reused
                 #
                 # TODO: cleanup the options to only keep the relevant ones
-                vcs_def = Hash['type' => type, 'url' => url]
+                vcs_def = Hash["type" => type, "url" => url]
                 options.each do |opt|
-                    opt_name, opt_val = opt.split '='
+                    opt_name, opt_val = opt.split "="
                     vcs_def[opt_name] = opt_val
                 end
                 # Validate the option hash, just in case
@@ -217,7 +213,6 @@ module Autoproj
                 # Save the new options
                 ws.config.set "manifest_source", vcs_def.dup, true
                 ws.config.save
-
             rescue Exception => e
                 Autoproj.error "switching configuration failed: #{e.message}"
                 if backup_name
@@ -227,12 +222,8 @@ module Autoproj
                 end
                 raise
             ensure
-                if backup_name
-                    FileUtils.rm_rf backup_name
-                end
+                FileUtils.rm_rf backup_name if backup_name
             end
         end
     end
 end
-
-

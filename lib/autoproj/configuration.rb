@@ -1,8 +1,8 @@
-require 'backports/2.4.0/float/dup'
-require 'backports/2.4.0/fixnum/dup'
-require 'backports/2.4.0/nil_class/dup'
-require 'backports/2.4.0/false_class/dup'
-require 'backports/2.4.0/true_class/dup'
+require "backports/2.4.0/float/dup"
+require "backports/2.4.0/fixnum/dup"
+require "backports/2.4.0/nil_class/dup"
+require "backports/2.4.0/false_class/dup"
+require "backports/2.4.0/true_class/dup"
 
 module Autoproj
     # Class that does the handling of configuration options as well as
@@ -89,14 +89,13 @@ module Autoproj
             overrides[option_name] = value
         end
 
-        # Remove a specific override
-        def reset_overrides(name)
-            @overrides.delete(name)
-        end
-
         # Remove all overrides
-        def reset_overrides
-            @overrides.clear
+        def reset_overrides(*names)
+            if names.empty?
+                @overrides.clear
+            else
+                names.each { |n| @overrides.delete(n) }
+            end
         end
 
         # Tests whether a value is set for the given option name
@@ -108,32 +107,26 @@ module Autoproj
 
         # Get the value for a given option
         def get(key, *default_value)
-            if overrides.has_key?(key)
-                return overrides[key].dup
-            end
+            return overrides[key].dup if overrides.has_key?(key)
 
             has_value = config.has_key?(key)
             value, validated = config[key]
 
             if !declared?(key)
                 if has_value
-                    return value.dup
+                    value.dup
                 elsif default_value.empty?
                     raise ConfigError, "undeclared option '#{key}'"
                 else
                     default_value.first.dup
                 end
+            elsif validated
+                doc = declared_options[key].short_doc
+                doc = "#{doc}:" if doc[-1, 1] != "?"
+                displayed_options[key] = value
+                value.dup
             else
-                if validated
-                    doc = declared_options[key].short_doc
-                    if doc[-1, 1] != "?"
-                        doc = "#{doc}:"
-                    end
-                    displayed_options[key] = value
-                    value.dup
-                else
-                    configure(key).dup
-                end
+                configure(key).dup
             end
         end
 
@@ -184,8 +177,8 @@ module Autoproj
         # @return [Object] the new option value
         # @raise ConfigError if the option is not declared
         def configure(option_name)
-            if opt = declared_options[option_name]
-                if current_value = config[option_name]
+            if (opt = declared_options[option_name])
+                if (current_value = config[option_name])
                     current_value = current_value.first
                 end
                 is_default = false
@@ -210,15 +203,13 @@ module Autoproj
 
         def load(path: self.path, reconfigure: false)
             current_keys = @config.keys
-            if h = YAML.load(File.read(path))
-                h.each do |key, value|
-                    current_keys.delete(key)
-                    set(key, value, !reconfigure)
-                end
-                if current_keys.empty?
-                    @modified = false
-                end
+            return unless (h = YAML.load(File.read(path)))
+
+            h.each do |key, value|
+                current_keys.delete(key)
+                set(key, value, !reconfigure)
             end
+            @modified = false if current_keys.empty?
         end
 
         def reconfigure!
@@ -245,35 +236,35 @@ module Autoproj
         end
 
         def each_reused_autoproj_installation(&block)
-            if has_value_for?('reused_autoproj_installations')
-                get('reused_autoproj_installations').each(&block)
+            if has_value_for?("reused_autoproj_installations")
+                get("reused_autoproj_installations").each(&block)
             else [].each(&block)
             end
         end
 
         def import_log_enabled?
-            get('import_log_enabled', true)
+            get("import_log_enabled", true)
         end
 
         def import_log_enabled=(value)
-            set('import_log_enabled', !!value)
+            set("import_log_enabled", !!value)
         end
 
         def parallel_build_level
-            get('parallel_build_level', nil) || Autobuild.parallel_build_level
+            get("parallel_build_level", nil) || Autobuild.parallel_build_level
         end
 
         def parallel_build_level=(level)
-            set('parallel_build_level', level)
+            set("parallel_build_level", level)
             Autobuild.parallel_build_level = level
         end
 
         def parallel_import_level
-            get('parallel_import_level', 10)
+            get("parallel_import_level", 10)
         end
 
         def parallel_import_level=(level)
-            set('parallel_import_level', level)
+            set("parallel_import_level", level)
         end
 
         # The user-wide place where RubyGems installs gems
@@ -283,8 +274,8 @@ module Autoproj
 
         # The Ruby platform and version-specific subdirectory used by bundler and rubygem
         def self.gems_path_suffix
-            @gems_path_suffix ||= Pathname.new(Gem.user_dir).
-                relative_path_from(Pathname.new(dot_gem_dir)).to_s
+            @gems_path_suffix ||= Pathname.new(Gem.user_dir)
+                                          .relative_path_from(Pathname.new(dot_gem_dir)).to_s
         end
 
         # The gem install root into which the workspace gems are installed
@@ -300,7 +291,7 @@ module Autoproj
         # @param [Workspace] ws the workspace whose gems are being considered
         # @return [String]
         def gems_install_path
-            get('gems_install_path')
+            get("gems_install_path")
         end
 
         # The GEM_HOME into which the workspace gems are installed
@@ -313,55 +304,54 @@ module Autoproj
 
         # The full path to the expected ruby executable
         def ruby_executable
-            if path = get('ruby_executable', nil)
-                path
-            else
+            unless (path = get("ruby_executable", nil))
                 path = OSPackageResolver.autodetect_ruby_program
-                set('ruby_executable', path, true)
-                path
+                set("ruby_executable", path, true)
             end
+
+            path
         end
 
         # Verify that the Ruby executable that is being used to run autoproj
         # matches the one expected in the configuration
         def validate_ruby_executable
-            actual   = OSPackageResolver.autodetect_ruby_program
-            if has_value_for?('ruby_executable')
-                expected = get('ruby_executable')
+            actual = OSPackageResolver.autodetect_ruby_program
+            if has_value_for?("ruby_executable")
+                expected = get("ruby_executable")
                 if expected != actual
                     raise ConfigError.new, "this autoproj installation was bootstrapped using #{expected}, but you are currently running under #{actual}. Changing the Ruby executable for in an existing autoproj workspace is unsupported"
                 end
             else
-                set('ruby_executable', actual, true)
+                set("ruby_executable", actual, true)
             end
         end
 
         def use_prerelease?
             use_prerelease =
-                if env_flag = ENV['AUTOPROJ_USE_PRERELEASE']
-                    env_flag == '1'
-                elsif has_value_for?('autoproj_use_prerelease')
-                    get('autoproj_use_prerelease')
+                if (env_flag = ENV["AUTOPROJ_USE_PRERELEASE"])
+                    env_flag == "1"
+                elsif has_value_for?("autoproj_use_prerelease")
+                    get("autoproj_use_prerelease")
                 end
             set "autoproj_use_prerelease", (use_prerelease ? true : false), true
             use_prerelease
         end
 
         def shell_helpers?
-            get 'shell_helpers', true
+            get "shell_helpers", true
         end
 
         def shell_helpers=(flag)
-            set 'shell_helpers', flag, true
+            set "shell_helpers", flag, true
         end
 
         def bundler_version
-            get 'bundler_version', nil
+            get "bundler_version", nil
         end
 
         def apply_autobuild_configuration
-            if has_value_for?('autobuild')
-                params = get('autobuild')
+            if has_value_for?("autobuild")
+                params = get("autobuild")
                 if params.kind_of?(Hash)
                     params.each do |k, v|
                         Autobuild.send("#{k}=", v)
@@ -372,17 +362,17 @@ module Autoproj
 
         # A cache directory for autobuild's importers
         def importer_cache_dir
-            get('importer_cache_dir', nil)
+            get("importer_cache_dir", nil)
         end
 
         # Set import and gem cache directory
         def importer_cache_dir=(path)
-            set('importer_cache_dir', path, true)
+            set("importer_cache_dir", path, true)
         end
 
         # Sets the directory in which packages will be installed
         def prefix_dir=(path)
-            set('prefix', path, true)
+            set("prefix", path, true)
         end
 
         # The directory in which packages will be installed.
@@ -394,19 +384,19 @@ module Autoproj
         #
         # @return [String]
         def prefix_dir
-            get('prefix', 'install')
+            get("prefix", "install")
         end
 
         # Sets the shells used in this workspace.
         def user_shells=(shells)
-            set('user_shells', shells, true)
+            set("user_shells", shells, true)
         end
 
         # The shells used in this workspace.
         #
         # @return [Array<String>]
         def user_shells
-            get('user_shells', [])
+            get("user_shells", [])
         end
 
         # Defines the temporary area in which packages should put their build
@@ -420,7 +410,7 @@ module Autoproj
         #
         # @return [String]
         def build_dir
-            get('build', 'build')
+            get("build", "build")
         end
 
         # Defines a folder to which source packages will be layed out relative to
@@ -432,7 +422,7 @@ module Autoproj
         #
         # @return [String,nil]
         def source_dir
-            get('source', nil)
+            get("source", nil)
         end
 
         # Returns true if there should be one prefix per package
@@ -441,14 +431,14 @@ module Autoproj
         #
         # @return [Boolean]
         def separate_prefixes?
-            get('separate_prefixes', false)
+            get("separate_prefixes", false)
         end
 
         # Controls whether there should be one prefix per package
         #
         # @see separate_prefixes?
         def separate_prefixes=(flag)
-            set('separate_prefixes', flag, true)
+            set("separate_prefixes", flag, true)
         end
 
         # Returns true if packages and prefixes should be auto-generated, based
@@ -459,7 +449,7 @@ module Autoproj
         #
         # @return [Boolean]
         def randomize_layout?
-            get('randomize_layout', false)
+            get("randomize_layout", false)
         end
 
         # Sets whether the layout should be randomized
@@ -467,7 +457,7 @@ module Autoproj
         # @return [Boolean]
         # @see randomize_layout?
         def randomize_layout=(value)
-            set('randomize_layout', value, true)
+            set("randomize_layout", value, true)
         end
 
         # Returns true if the configuration should be performed interactively
@@ -477,17 +467,18 @@ module Autoproj
         def interactive?
             if !interactive.nil?
                 return interactive
-            elsif ENV['AUTOPROJ_NONINTERACTIVE'] == '1'
+            elsif ENV["AUTOPROJ_NONINTERACTIVE"] == "1"
                 return false
             elsif has_value_for?("interactive")
-                return get('interactive')
+                return get("interactive")
             end
+
             true
         end
 
         DEFAULT_UTILITY_SETUP = Hash[
-            'doc' => true,
-            'test' => false]
+            "doc" => true,
+            "test" => false]
 
         # The configuration key that should be used to store the utility
         # enable/disable information
@@ -596,7 +587,7 @@ module Autoproj
         #
         # This is false by default
         def prefer_indep_over_os_packages?
-            get('prefer_indep_over_os_packages', false)
+            get("prefer_indep_over_os_packages", false)
         end
 
         # The configuration as a key => value map

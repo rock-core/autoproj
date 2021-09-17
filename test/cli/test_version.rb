@@ -1,6 +1,6 @@
-require 'autoproj/test'
-require 'autoproj/cli/main'
-require 'autoproj/cli/version'
+require "autoproj/test"
+require "autoproj/cli/main"
+require "autoproj/cli/version"
 
 module Autoproj
     module CLI
@@ -20,12 +20,10 @@ module Autoproj
                 it "version with dependencies" do
                     # 'm' for make dot match newline
                     assert_output(/autoproj version: #{Autoproj::VERSION}\n.*specified.*autobuild.*/m) do
-                        Dir.chdir(@ws.root_dir) { Main.start(["version","--deps"]) }
+                        Dir.chdir(@ws.root_dir) { Main.start(["version", "--deps"]) }
                     end
                 end
             end
         end
     end
 end
-
-

@@ -1,7 +1,7 @@
-require 'tty/color'
-require 'autoproj'
-require 'autoproj/autobuild'
-require 'autoproj/cli'
+require "tty/color"
+require "autoproj"
+require "autoproj/autobuild"
+require "autoproj/cli"
 
 module Autoproj
     module CLI
@@ -30,7 +30,7 @@ module Autoproj
             def normalize_command_line_package_selection(selection)
                 selection = selection.map do |name|
                     if File.directory?(name)
-                        File.expand_path(name) + "/"
+                        "#{File.expand_path(name)}/"
                     else
                         name
                     end
@@ -39,7 +39,7 @@ module Autoproj
                 config_selected = false
                 selection.delete_if do |name|
                     if name =~ /^#{Regexp.quote(ws.config_dir)}(?:#{File::SEPARATOR}|$)/ ||
-                        name =~ /^#{Regexp.quote(ws.remotes_dir)}(?:#{File::SEPARATOR}|$)/
+                       name =~ /^#{Regexp.quote(ws.remotes_dir)}(?:#{File::SEPARATOR}|$)/
                         config_selected = true
                     elsif (ws.config_dir + File::SEPARATOR) =~ /^#{Regexp.quote(name)}/
                         config_selected = true
@@ -47,7 +47,7 @@ module Autoproj
                     end
                 end
 
-                return selection, config_selected
+                [selection, config_selected]
             end
 
             # Resolve a user-provided selection
@@ -64,7 +64,7 @@ module Autoproj
                             raise CLIInvalidSelection, e.message, e.backtrace
                         end
                     if Autoproj.verbose
-                        Autoproj.message "selected packages: #{selection.each_package_name.to_a.sort.join(", ")}"
+                        Autoproj.message "selected packages: #{selection.each_package_name.to_a.sort.join(', ')}"
                     end
                     return selection, []
                 end
@@ -79,8 +79,9 @@ module Autoproj
                 # Try to auto-add stuff if nonresolved
                 nonresolved.delete_if do |sel|
                     sel = File.expand_path(sel)
-                    next if !File.directory?(sel)
-                    while sel != '/'
+                    next unless File.directory?(sel)
+
+                    while sel != "/"
                         handler, srcdir = Autoproj.package_handler_for(sel)
                         if handler
                             Autoproj.message "  auto-adding #{srcdir} using the #{handler.gsub(/_package/, '')} package handler"
@@ -99,9 +100,9 @@ module Autoproj
                 end
 
                 if Autoproj.verbose
-                    Autoproj.message "selected packages: #{selected_packages.each_package_name.to_a.sort.join(", ")}"
+                    Autoproj.message "selected packages: #{selected_packages.each_package_name.to_a.sort.join(', ')}"
                 end
-                return selected_packages, nonresolved
+                [selected_packages, nonresolved]
             end
 
             # Resolves the user-provided selection into the set of packages that
@@ -139,7 +140,7 @@ module Autoproj
             #
             # @see resolve_user_selection
             def resolve_selection(user_selection, checkout_only: true, only_local: false, recursive: true, non_imported_packages: :ignore, auto_exclude: false)
-                resolved_selection, _ = resolve_user_selection(user_selection, filter: false)
+                resolved_selection, = resolve_user_selection(user_selection, filter: false)
 
                 ops = Ops::Import.new(ws)
                 source_packages, osdep_packages = ops.import_packages(
@@ -149,7 +150,8 @@ module Autoproj
                     recursive: recursive,
                     warn_about_ignored_packages: false,
                     non_imported_packages: non_imported_packages,
-                    auto_exclude: auto_exclude)
+                    auto_exclude: auto_exclude
+                )
 
                 [source_packages, osdep_packages, resolved_selection]
             rescue ExcludedSelection => e
@@ -169,8 +171,8 @@ module Autoproj
                         !(resolved_selection.ignored?(pkg_name) ||
                           resolved_selection.excluded?(pkg_name))
                 end
-                if !not_matched.empty?
-                    raise CLIInvalidArguments, "autoproj: wrong package selection on command line, cannot find a match for #{not_matched.to_a.sort.join(", ")}"
+                unless not_matched.empty?
+                    raise CLIInvalidArguments, "autoproj: wrong package selection on command line, cannot find a match for #{not_matched.to_a.sort.join(', ')}"
                 end
             end
 
@@ -182,12 +184,12 @@ module Autoproj
 
             def self.validate_options(args, options)
                 options, remaining = filter_options options,
-                    silent: false,
-                    verbose: false,
-                    debug: false,
-                    color: TTY::Color.color?,
-                    progress: TTY::Color.color?,
-                    parallel: nil
+                                                    silent: false,
+                                                    verbose: false,
+                                                    debug: false,
+                                                    color: TTY::Color.color?,
+                                                    progress: TTY::Color.color?,
+                                                    parallel: nil
 
                 Autoproj.silent = options[:silent]
                 Autobuild.color = options[:color]
@@ -207,13 +209,12 @@ module Autoproj
                     Autobuild.debug = true
                 end
 
-
-                if level = options[:parallel]
+                if (level = options[:parallel])
                     Autobuild.parallel_build_level = Integer(level)
                     remaining[:parallel] = Integer(level)
                 end
 
-                return args, remaining.to_sym_keys
+                [args, remaining.to_sym_keys]
             end
 
             def export_env_sh(shell_helpers: ws.config.shell_helpers?)
@@ -239,4 +240,3 @@ module Autoproj
         end
     end
 end
-

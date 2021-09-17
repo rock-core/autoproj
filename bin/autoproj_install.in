@@ -1,20 +1,19 @@
 #! /usr/bin/ruby
 
-if RUBY_VERSION < "2.3.0"
-    STDERR.puts "autoproj requires Ruby >= 2.3.0"
+if RUBY_VERSION < "2.5.0"
+    STDERR.puts "autoproj requires Ruby >= 2.5.0"
     exit 1
-elsif ENV['AUTOPROJ_CURRENT_ROOT'] && (ENV['AUTOPROJ_CURRENT_ROOT'] != Dir.pwd)
+elsif ENV["AUTOPROJ_CURRENT_ROOT"] && (ENV["AUTOPROJ_CURRENT_ROOT"] != Dir.pwd)
     STDERR.puts "it seems that you've already loaded an env.sh script in this console, open a new console and try again"
     exit 1
 end
 
 require 'autoproj/ops/install'
-
-ENV.delete('BUNDLE_GEMFILE')
-ENV.delete('RUBYLIB')
+ENV.delete("BUNDLE_GEMFILE")
+ENV.delete("RUBYLIB")
 ops = Autoproj::Ops::Install.new(Dir.pwd)
 
-existing_config = File.join(Dir.pwd, '.autoproj', 'config.yml')
+existing_config = File.join(Dir.pwd, ".autoproj", "config.yml")
 if File.file?(existing_config)
     puts "Found existing configuration, using it as seed"
     puts "use --no-seed-config to avoid this behavior"

@@ -1,7 +1,7 @@
-require 'autoproj/test'
-require 'autoproj/ops/build'
-require 'json'
-require 'timecop'
+require "autoproj/test"
+require "autoproj/ops/build"
+require "json"
+require "timecop"
 
 module Autoproj
     module Ops
@@ -34,7 +34,7 @@ module Autoproj
                 %w[pkg0 pkg1 pkg2].each do |pkg_name|
                     @reporting.should_receive(:report_incremental)
                               .once.with(->(p) { p.name == pkg_name }).pass_thru do
-                        assert current_report['build_report']['packages'][pkg_name]
+                        assert current_report["build_report"]["packages"][pkg_name]
                     end
                 end
 
@@ -46,12 +46,12 @@ module Autoproj
                 json = current_report
                 assert_equal(
                     {
-                        'build_report' => {
-                            'timestamp' => Time.now.to_s,
-                            'packages' => {
-                                'pkg0' => { 'invoked' => true, 'success' => true },
-                                'pkg1' => { 'invoked' => true, 'success' => false },
-                                'pkg2' => { 'invoked' => false, 'success' => false }
+                        "build_report" => {
+                            "timestamp" => Time.now.to_s,
+                            "packages" => {
+                                "pkg0" => { "invoked" => true, "success" => true },
+                                "pkg1" => { "invoked" => true, "success" => false },
+                                "pkg2" => { "invoked" => false, "success" => false }
                             }
                         }
                     }, json
@@ -65,4 +65,3 @@ module Autoproj
         end
     end
 end
-

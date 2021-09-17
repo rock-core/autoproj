@@ -1,9 +1,11 @@
-require 'yaml'
-require 'csv'
-require 'utilrb/kernel/options'
-require 'set'
+require "yaml"
+require "csv"
+require "utilrb/kernel/options"
+require "set"
 
-require 'win32/dir' if RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)!
+if RbConfig::CONFIG["host_os"] =~ %r{(msdos|mswin|djgpp|mingw|[Ww]indows)}
+    require "win32/dir"
+end
 
 module Autoproj
     # The Manifest class represents the information included in the main
@@ -74,22 +76,23 @@ module Autoproj
         # Initialize the manifest from a hash, as loaded from a manifest file
         def initialize_from_hash(data)
             @data = data
-            @ignored_packages |= (data['ignored_packages'] || Set.new).to_set
-            @ignored_packages |= (data['ignore_packages'] || Set.new).to_set
+            @ignored_packages |= (data["ignored_packages"] || Set.new).to_set
+            @ignored_packages |= (data["ignore_packages"] || Set.new).to_set
             invalidate_ignored_package_names
-            @manifest_exclusions |= (data['exclude_packages'] || Set.new).to_set
+            @manifest_exclusions |= (data["exclude_packages"] || Set.new).to_set
 
             normalized_layout = Hash.new
             compute_normalized_layout(
                 normalized_layout,
-                '/',
-                data['layout'] || Hash.new)
+                "/",
+                data["layout"] || Hash.new
+            )
             @normalized_layout = normalized_layout
-            @has_layout = !!data['layout']
+            @has_layout = !!data["layout"]
 
-            if data['constants']
+            if data["constants"]
                 @constant_definitions =
-                    Autoproj.resolve_constant_definitions(data['constants'])
+                    Autoproj.resolve_constant_definitions(data["constants"])
             end
         end
 
@@ -115,7 +118,7 @@ module Autoproj
         def add_package_to_layout(package)
             package_name = validate_package_name_argument(package)
             @has_layout = true
-            normalized_layout[package_name] = '/'
+            normalized_layout[package_name] = "/"
         end
 
         # Add a package into the layout
@@ -128,7 +131,7 @@ module Autoproj
         def add_metapackage_to_layout(metapackage)
             validate_metapackage_in_self(metapackage)
             @has_layout = true
-            normalized_layout[metapackage.name] = '/'
+            normalized_layout[metapackage.name] = "/"
         end
 
         # Add a constant definition, used when resolving $CONSTANT in loaded
@@ -157,10 +160,12 @@ module Autoproj
         # is not available on the current operating system, or simply return it
         #
         # @return [Boolean]
-        def accept_unavailable_osdeps?; !!@accept_unavailable_osdeps end
+        def accept_unavailable_osdeps?
+            !!@accept_unavailable_osdeps
+        end
 
         # Sets {#accept_unavailable_osdeps?}
-        def accept_unavailable_osdeps=(flag); @accept_unavailable_osdeps = flag end
+        attr_writer :accept_unavailable_osdeps
 
         attr_reader :constant_definitions
 
@@ -240,6 +245,7 @@ module Autoproj
                 if require_existing && !has_package?(package)
                     raise PackageNotFound, "no package named #{package} in #{self}"
                 end
+
                 package
             end
         end
@@ -275,9 +281,7 @@ module Autoproj
         #
         # Do not use directly, use {#ignored?} instead
         def cache_ignored_package_names
-            if @ignored_package_names
-                return @ignored_package_names
-            end
+            return @ignored_package_names if @ignored_package_names
 
             @ignored_package_names = each_package_definition.find_all do |pkg|
                 ignored_packages.any? do |l|
@@ -298,7 +302,8 @@ module Autoproj
         #
         # @yieldparam [Autobuild::Package]
         def each_ignored_package
-            return enum_for(__method__) if !block_given?
+            return enum_for(__method__) unless block_given?
+
             cache_ignored_package_names.each do |pkg_name|
                 yield(find_autobuild_package(pkg_name))
             end
@@ -320,7 +325,7 @@ module Autoproj
 
             if !explicitely_selected_in_layout?(package_name) && excluded_in_manifest?(package_name)
                 true
-            elsif automatic_exclusions.any? { |pkg_name, | pkg_name == package_name }
+            elsif automatic_exclusions.any? { |pkg_name,| pkg_name == package_name }
                 true
             else
                 false
@@ -329,7 +334,8 @@ module Autoproj
 
         # Enumerates the package names of all ignored packages
         def each_excluded_package
-            return enum_for(__method__) if !block_given?
+            return enum_for(__method__) unless block_given?
+
             each_autobuild_package do |pkg|
                 yield(pkg) if excluded?(pkg.name)
             end
@@ -358,10 +364,14 @@ module Autoproj
         # Exclude +package_name+ from the build. +reason+ is a string describing
         # why the package is to be excluded.
         def exclude_package(package_name, reason)
-            package = validate_package_name_argument(package_name, require_existing: false)
-            if meta = find_metapackage(package)
+            package = validate_package_name_argument(
+                package_name, require_existing: false
+            )
+            if (meta = find_metapackage(package))
                 meta.each_package do |pkg|
-                    automatic_exclusions[pkg.name] = "#{meta.name} is an excluded metapackage, and it includes #{pkg.name}: #{reason}"
+                    automatic_exclusions[pkg.name] =
+                        "#{meta.name} is an excluded metapackage, "\
+                        "and it includes #{pkg.name}: #{reason}"
                 end
             else
                 automatic_exclusions[package] = reason
@@ -388,11 +398,11 @@ module Autoproj
         # disabled on this particular operating system.
         def exclusion_reason(package_name)
             package_name = validate_package_name_argument(package_name)
-            if message = automatic_exclusions[package_name]
+            if (message = automatic_exclusions[package_name])
                 return message
             end
 
-            if !explicitely_selected_in_layout?(package_name)
+            unless explicitely_selected_in_layout?(package_name)
                 manifest_exclusions.each do |matcher|
                     if (pkg_set = metapackages[matcher]) && pkg_set.include?(package_name)
                         return "#{pkg_set.name} is a metapackage listed in the exclude_packages section of the manifest, and it includes #{package_name}"
@@ -421,12 +431,10 @@ module Autoproj
 
         # Like #each_package_set, but filters out local package sets
         def each_remote_package_set
-            return enum_for(__method__) if !block_given?
+            return enum_for(__method__) unless block_given?
 
             each_package_set do |pkg_set|
-                if !pkg_set.local?
-                    yield(pkg_set)
-                end
+                yield(pkg_set) unless pkg_set.local?
             end
         end
 
@@ -466,9 +474,7 @@ module Autoproj
         def register_package(package, block = nil, package_set = main_package_set, file = nil)
             invalidate_ignored_package_names
             pkg = PackageDefinition.new(package, package_set, file)
-            if block
-                pkg.add_setup_block(block)
-            end
+            pkg.add_setup_block(block) if block
             @packages[package.name] = pkg
             metapackage pkg.package_set.name, pkg.autobuild
             metapackage "#{pkg.package_set.name}.all", pkg.autobuild
@@ -507,11 +513,11 @@ module Autoproj
         #
         # Unlike {#find_package_definition}, raise if the package does not exist
         def package_definition_by_name(name)
-            if pkg = find_package_definition(name)
-                pkg
-            else
+            unless (pkg = find_package_definition(name))
                 raise ArgumentError, "no package defined named '#{name}'"
             end
+
+            pkg
         end
 
         # The autobuild description of a package by its name
@@ -519,16 +525,15 @@ module Autoproj
         # @param [String,#name] name the package name
         # @return [Autobuild::Package,nil]
         def find_autobuild_package(name)
-            if pkg = find_package_definition(name)
-                pkg.autobuild
-            end
+            find_package_definition(name)&.autobuild
         end
 
         # Lists all defined packages
         #
         # @yieldparam [PackageDefinition] pkg
         def each_package_definition(&block)
-            return enum_for(__method__) if !block_given?
+            return enum_for(__method__) unless block_given?
+
             packages.each_value(&block)
         end
 
@@ -536,7 +541,8 @@ module Autoproj
         #
         # @yieldparam [Autobuild::Package] pkg
         def each_autobuild_package
-            return enum_for(__method__) if !block_given?
+            return enum_for(__method__) unless block_given?
+
             each_package_definition { |pkg| yield(pkg.autobuild) }
         end
 
@@ -564,18 +570,17 @@ module Autoproj
 
             package_sets = each_package_set.to_a.dup
             index = package_sets.find_index(package_set)
-            if !index
+            unless index
                 raise RuntimeError, "found inconsistency: package #{package_name} is not in a package set of #{self}"
             end
 
-            if package_sets[0, index + 1].include?(mainline)
-                return vcs
-            end
+            return vcs if package_sets[0, index + 1].include?(mainline)
 
             # Then apply the overrides
             package_sets[(index + 1)..-1].inject(vcs) do |updated_vcs, pkg_set|
                 updated_vcs = pkg_set.overrides_for(package_name, updated_vcs, require_existing: false)
                 return updated_vcs if pkg_set == mainline
+
                 updated_vcs
             end
         end
@@ -641,11 +646,11 @@ module Autoproj
         # @return [PackageSet] the package set
         # @raise [ArgumentError] if none exists with that name
         def package_set(name)
-            if set = find_package_set(name)
-                set
-            else
+            unless (set = find_package_set(name))
                 raise ArgumentError, "no package set called #{name} exists"
             end
+
+            set
         end
 
         # The root package set, which represents the workspace itself
@@ -670,25 +675,24 @@ module Autoproj
         #   fallback defined with {#add_osdeps_overrides}. If true, it will
         #   return such a package as an osdep.
         def resolve_package_name(name, include_unavailable: false)
-            if pkg_set = find_metapackage(name)
-                pkg_names = pkg_set.each_package.map(&:name)
-            else
-                pkg_names = [name.to_str]
-            end
+            pkg_names =
+                if (pkg_set = find_metapackage(name))
+                    pkg_set.each_package.map(&:name)
+                else
+                    [name.to_str]
+                end
 
             result = []
             pkg_names.each do |pkg|
-                begin
-                    result.concat(resolve_single_package_name(pkg))
-                rescue PackageUnavailable => e
-                    if include_unavailable
-                        result.concat([[:osdeps, pkg]])
-                    else
-                        raise e, "cannot resolve #{pkg}: #{e}", e.backtrace
-                    end
-                rescue PackageNotFound => e
+                result.concat(resolve_single_package_name(pkg))
+            rescue PackageUnavailable => e
+                if include_unavailable
+                    result.concat([[:osdeps, pkg]])
+                else
                     raise e, "cannot resolve #{pkg}: #{e}", e.backtrace
                 end
+            rescue PackageNotFound => e
+                raise e, "cannot resolve #{pkg}: #{e}", e.backtrace
             end
             result
         end
@@ -725,11 +729,12 @@ module Autoproj
         # @raise PackageNotFound if the given package name cannot be resolved
         #   into a package
         def resolve_package_name_as_source_package(name)
-            if pkg = find_autobuild_package(name)
-                return [[:package, pkg.name]]
-            else
-                raise PackageNotFound, "cannot resolve #{name}: it is neither a package nor an osdep"
+            unless (pkg = find_autobuild_package(name))
+                raise PackageNotFound,
+                      "cannot resolve #{name}: it is neither a package nor an osdep"
             end
+
+            [[:package, pkg.name]]
         end
 
         # @api private
@@ -748,7 +753,7 @@ module Autoproj
         #   fallback defined with {#add_osdeps_overrides}.
         #   If true, it will return it as an osdep.
         def resolve_package_name_as_osdep(name)
-	    osdeps_availability = os_package_resolver.availability_of(name)
+            osdeps_availability = os_package_resolver.availability_of(name)
             if osdeps_availability == OSPackageResolver::NO_PACKAGE
                 raise PackageNotFound, "#{name} is not an osdep"
             end
@@ -760,13 +765,13 @@ module Autoproj
                 (osdeps_availability == OSPackageResolver::IGNORE)
             osdeps_overrides = self.osdeps_overrides[name]
             if osdeps_overrides && (!osdeps_available || osdeps_overrides[:force])
-                return osdeps_overrides[:packages].inject([]) do |result, src_pkg_name|
+                osdeps_overrides[:packages].inject([]) do |result, src_pkg_name|
                     result.concat(resolve_package_name_as_source_package(src_pkg_name))
                 end.uniq
             elsif !osdeps_available && (pkg = find_autobuild_package(name))
-                return [[:package, pkg.name]]
+                [[:package, pkg.name]]
             elsif osdeps_available || accept_unavailable_osdeps?
-                return [[:osdeps, name]]
+                [[:osdeps, name]]
             elsif osdeps_availability == OSPackageResolver::WRONG_OS
                 raise PackageUnavailable, "#{name} is an osdep, but it is not available for this operating system (#{os_package_resolver.operating_system})"
             elsif osdeps_availability == OSPackageResolver::UNKNOWN_OS
@@ -802,9 +807,9 @@ module Autoproj
             packages.each do |arg|
                 if !arg.respond_to?(:to_str)
                     meta.add(arg)
-                elsif pkg = find_autobuild_package(arg)
+                elsif (pkg = find_autobuild_package(arg))
                     meta.add(pkg)
-                elsif pkg_set = find_metapackage(arg)
+                elsif (pkg_set = find_metapackage(arg))
                     pkg_set.each_package do |pkg_in_set|
                         meta.add(pkg_in_set)
                     end
@@ -815,9 +820,7 @@ module Autoproj
                 end
             end
 
-            if block
-                meta.instance_eval(&block)
-            end
+            meta.instance_eval(&block) if block
             meta
         end
 
@@ -834,19 +837,23 @@ module Autoproj
         # @return [PackageSelection]
         def layout_packages(validate = true)
             result = PackageSelection.new
-            Autoproj.in_file(self.file) do
+            Autoproj.in_file(file) do
                 normalized_layout.each_key do |pkg_or_set|
-                    begin
-                        weak = if meta = metapackages[pkg_or_set]
-                                   meta.weak_dependencies?
-                               end
-
-                        resolve_package_name(pkg_or_set).each do |pkg_type, pkg_name|
-                            result.select(pkg_or_set, pkg_name, osdep: (pkg_type == :osdeps), weak: weak)
+                    weak =
+                        if (meta = metapackages[pkg_or_set])
+                            meta.weak_dependencies?
                         end
-                    rescue PackageNotFound => e
-                        raise e, "#{pkg_or_set}, which is selected in the layout, is unknown: #{e.message}", e.backtrace
+
+                    resolve_package_name(pkg_or_set).each do |pkg_type, pkg_name|
+                        result.select(
+                            pkg_or_set, pkg_name,
+                            osdep: (pkg_type == :osdeps),
+                            weak: weak
+                        )
                     end
+                rescue PackageNotFound => e
+                    raise e, "#{pkg_or_set}, which is selected in the layout, "\
+                             "is unknown: #{e.message}", e.backtrace
                 end
             end
 
@@ -937,6 +944,7 @@ module Autoproj
                 all_package_names.each do |pkg_name|
                     package_type, package_name = resolve_single_package_name(pkg_name).first
                     next if excluded?(package_name) || ignored?(package_name)
+
                     result.select(package_name, package_name, osdep: (package_type == :osdeps))
                 end
                 result
@@ -968,20 +976,18 @@ module Autoproj
             package_name = validate_package_name_argument(package_name)
 
             matches = [package_name]
-            if source_package = find_package_definition(package_name)
+            if (source_package = find_package_definition(package_name))
                 each_metapackage do |meta|
-                    if meta.include?(source_package)
-                        matches << meta.name
-                    end
+                    matches << meta.name if meta.include?(source_package)
                 end
             end
 
             matches.each do |name|
-                if place = normalized_layout[name]
+                if (place = normalized_layout[name])
                     return place
                 end
             end
-            '/'
+            "/"
         end
 
         class NoPackageXML < ConfigError; end
@@ -993,12 +999,14 @@ module Autoproj
         def load_package_manifest(pkg)
             if pkg.respond_to?(:to_str)
                 pkg_definition = find_package_definition(pkg)
-                if !pkg_definition
+                unless pkg_definition
                     raise ArgumentError, "#{pkg} is not a known package in #{self}"
                 end
+
                 pkg = pkg_definition
             end
-            package, package_set = pkg.autobuild, pkg.package_set
+            package = pkg.autobuild
+            package_set = pkg.package_set
 
             # Look for the package's manifest.xml, but fallback to a manifest in
             # the package set if present
@@ -1009,19 +1017,20 @@ module Autoproj
                     "no package.xml file" unless File.file?(manifest_path)
 
                 manifest = PackageManifest.load(package, manifest_path,
-                    ros_manifest: true)
+                                                ros_manifest: true)
             else
                 manifest_paths = [File.join(package.srcdir, "manifest.xml")]
                 if package_set.local_dir
                     manifest_paths << File.join(
-                        package_set.local_dir, "manifests", package.name + ".xml")
+                        package_set.local_dir, "manifests", "#{package.name}.xml"
+                    )
                 end
                 manifest_path = manifest_paths.find do |path|
                     File.file?(path)
                 end
                 if manifest_path
                     manifest = PackageManifest.load(package, manifest_path,
-                        ros_manifest: false)
+                                                    ros_manifest: false)
                 end
             end
 
@@ -1072,9 +1081,7 @@ module Autoproj
         # The :force option allows to force the usage of the source package(s),
         # regardless of the availability of the osdeps package.
         def add_osdeps_overrides(osdeps_name, package: osdeps_name, packages: [], force: false)
-            if package
-                packages << package
-            end
+            packages << package if package
             packages.each { |pkg_name| resolve_package_name(pkg_name) }
             @osdeps_overrides[osdeps_name.to_s] = Hash[packages: packages, force: force]
         end
@@ -1091,7 +1098,8 @@ module Autoproj
         #
         # Helper for {#expand_package_selection}
         def update_selection(selection, user_selection_string, name, weak)
-            source_packages, osdeps = Array.new, Array.new
+            source_packages = Array.new
+            osdeps = Array.new
             resolve_package_name(name).each do |type, resolved_name|
                 if type == :package
                     source_packages << resolved_name
@@ -1099,10 +1107,10 @@ module Autoproj
                     osdeps << resolved_name
                 end
             end
-            if !source_packages.empty?
+            unless source_packages.empty?
                 selection.select(user_selection_string, source_packages, osdep: false, weak: weak)
             end
-            if !osdeps.empty?
+            unless osdeps.empty?
                 selection.select(user_selection_string, osdeps, osdep: true, weak: weak)
             end
         end
@@ -1118,7 +1126,7 @@ module Autoproj
             result = PackageSelection.new
 
             all_selected_packages = self.all_selected_packages.to_set
-            all_source_package_names = self.all_package_names
+            all_source_package_names = all_package_names
             all_osdeps_package_names = os_package_resolver.all_package_names
             selection.each do |sel|
                 match_pkg_name = Regexp.new(Regexp.quote(sel))
@@ -1150,25 +1158,21 @@ module Autoproj
                     all_matches.partition { |_, exact_match| exact_match }
                 selected_partial_matches, not_selected_partial_matches =
                     partial_matches.partition { |pkg_name, _| all_selected_packages.include?(pkg_name) }
-                if result.has_match_for?(sel)
-                    not_selected_partial_matches.clear
-                end
+                not_selected_partial_matches.clear if result.has_match_for?(sel)
 
-                matches = [exact_matches, selected_partial_matches, not_selected_partial_matches].
-                    find { |m| !m.empty? }
-                if matches
-                    matches.each do |pkg_name, _|
-                        update_selection(result, sel, pkg_name, true)
-                    end
+                matches =
+                    [exact_matches, selected_partial_matches, not_selected_partial_matches]
+                    .find { |m| !m.empty? }
+
+                matches&.each do |pkg_name, _|
+                    update_selection(result, sel, pkg_name, true)
                 end
             end
 
-            if filter
-                result.filter_excluded_and_ignored_packages(self)
-            end
+            result.filter_excluded_and_ignored_packages(self) if filter
 
             nonresolved = selection - result.matches.keys
-            return result, nonresolved
+            [result, nonresolved]
         end
 
         attr_reader :moved_packages
@@ -1211,9 +1215,7 @@ module Autoproj
         # Declare that we should reuse the autoproj installation present at the
         # given path
         def reuse(workspace_root)
-            if reused_installations.any? { |mnf| mnf.path == workspace_root }
-                return
-            end
+            return if reused_installations.any? { |mnf| mnf.path == workspace_root }
 
             manifest = InstallationManifest.from_workspace_root(workspace_root)
             manifest.load
@@ -1226,14 +1228,16 @@ module Autoproj
 
     def self.manifest
         Autoproj.warn_deprecated(
-            __method__, "use workspace.manifest instead")
+            __method__, "use workspace.manifest instead"
+        )
 
         workspace.manifest
     end
 
     def self.osdeps
         Autoproj.warn_deprecated(
-            __method__, "use workspace.os_package_resolver or workspace.os_package_installer instead")
+            __method__, "use workspace.os_package_resolver or workspace.os_package_installer instead"
+        )
 
         workspace.os_package_resolver
     end

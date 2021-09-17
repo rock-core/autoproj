@@ -89,14 +89,16 @@ module Autoproj
                 save(path)
             else
                 raw.each do |entry|
-                    if entry['package_set']
+                    if entry["package_set"]
                         pkg_set = PackageSet.new(
-                            entry['package_set'], entry['vcs'], entry['raw_local_dir'], entry['user_local_dir'])
+                            entry["package_set"], entry["vcs"], entry["raw_local_dir"], entry["user_local_dir"]
+                        )
                         package_sets[pkg_set.name] = pkg_set
                     else
                         pkg = Package.new(
-                            entry['name'], entry['type'], entry['vcs'], entry['srcdir'], entry['importdir'],
-                            entry['prefix'], entry['builddir'], entry['logdir'], entry['dependencies'])
+                            entry["name"], entry["type"], entry["vcs"], entry["srcdir"], entry["importdir"],
+                            entry["prefix"], entry["builddir"], entry["logdir"], entry["dependencies"]
+                        )
                         packages[pkg.name] = pkg
                     end
                 end
@@ -124,18 +126,18 @@ module Autoproj
         # @param [String] root_dir
         # @return [String]
         def self.path_for_workspace_root(root_dir)
-            File.join(root_dir, '.autoproj', 'installation-manifest')
+            File.join(root_dir, ".autoproj", "installation-manifest")
         end
 
         def self.from_workspace_root(root_dir)
             path = path_for_workspace_root(root_dir)
             manifest = InstallationManifest.new(path)
-            if !manifest.exist?
+            unless manifest.exist?
                 raise ConfigError.new, "no #{path} file found. You should probably rerun autoproj envsh in that folder first"
             end
+
             manifest.load
             manifest
         end
     end
 end
-

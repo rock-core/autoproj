@@ -1,6 +1,6 @@
-require 'autoproj/repository_managers/manager'
-require 'autoproj/repository_managers/unknown_os_manager'
-require 'autoproj/repository_managers/apt'
+require "autoproj/repository_managers/manager"
+require "autoproj/repository_managers/unknown_os_manager"
+require "autoproj/repository_managers/apt"
 
 module Autoproj
     class OSRepositoryInstaller
@@ -11,7 +11,7 @@ module Autoproj
         attr_reader :repository_managers
 
         OS_REPOSITORY_MANAGERS = {
-            'debian' => RepositoryManagers::APT
+            "debian" => RepositoryManagers::APT
         }.freeze
 
         def initialize(ws)

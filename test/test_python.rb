@@ -1,5 +1,5 @@
-require 'autoproj/python'
-require 'autoproj/test'
+require "autoproj/python"
+require "autoproj/test"
 
 module Autoproj
     module Python
@@ -62,8 +62,8 @@ module Autoproj
                 python_bin_resolved, _version_resolved = Autoproj::Python.custom_resolve_python(bin: @test_python)
                 assert(python_bin_resolved)
                 assert_raises do
-                  Autoproj::Python.custom_resolve_python(bin: @test_python,
-                                                         version: ">100.0")
+                    Autoproj::Python.custom_resolve_python(bin: @test_python,
+                                                           version: ">100.0")
                 end
 
                 assert_raises { Autoproj::Python.custom_resolve_python(bin: "no-existing-python") }
@@ -109,8 +109,8 @@ module Autoproj
                 end
                 # rubocop:enable Style/HashEachMethods
                 assert(found_path)
-                assert(!@ws.config.has_value_for?('python_executable'))
-                assert(!@ws.config.has_value_for?('python_version'))
+                assert(!@ws.config.has_value_for?("python_executable"))
+                assert(!@ws.config.has_value_for?("python_version"))
 
                 assert_raises { Autoproj::Python.activate_python_path(@pkg, ws: @ws, version: ">100.0") }
 
@@ -121,14 +121,14 @@ module Autoproj
 
             it "does not update python path" do
                 @ws.config.reset
-                @ws.config.set('interactive', false)
-                @ws.config.set('USE_PYTHON', false)
+                @ws.config.set("interactive", false)
+                @ws.config.set("USE_PYTHON", false)
 
-                pkg = flexmock('testpkg')
+                pkg = flexmock("testpkg")
                 prefix = File.join(@ws.root_dir, "install", "testpkg")
                 pkg.should_receive(:prefix).and_return(prefix)
-                assert(!@ws.config.has_value_for?('python_executable'))
-                assert(!@ws.config.has_value_for?('python_version'))
+                assert(!@ws.config.has_value_for?("python_executable"))
+                assert(!@ws.config.has_value_for?("python_version"))
 
                 bin, version, path = Autoproj::Python.activate_python_path(pkg, ws: @ws)
                 assert(!(bin || version || path))
@@ -136,13 +136,13 @@ module Autoproj
 
             it "does activate_python" do
                 Autoproj::Python.activate_python(ws: @ws)
-                assert(@ws.config.has_value_for?('python_executable'))
-                assert(@ws.config.has_value_for?('python_version'))
+                assert(@ws.config.has_value_for?("python_executable"))
+                assert(@ws.config.has_value_for?("python_version"))
 
                 python_bin = File.join(@ws.root_dir, "install", "bin", "python")
                 assert(File.exist?(python_bin))
                 python_version = Autoproj::Python.get_python_version(python_bin)
-                assert(python_version == @ws.config.get('python_version'))
+                assert(python_version == @ws.config.get("python_version"))
 
                 pip_bin = File.join(@ws.root_dir, "install", "bin", "pip")
                 assert(File.exist?(pip_bin))
@@ -153,24 +153,24 @@ module Autoproj
 
             it "does setup python" do
                 @ws.config.reset
-                @ws.config.set('interactive', false)
-                @ws.config.set('USE_PYTHON', true)
+                @ws.config.set("interactive", false)
+                @ws.config.set("USE_PYTHON", true)
                 @ws.config.set("osdeps_mode", "all")
                 Autoproj::Python.setup_python_configuration_options(ws: @ws)
-                assert(@ws.config.get('USE_PYTHON'))
-                assert(@ws.config.get('python_executable'))
-                assert(@ws.config.get('python_version'))
+                assert(@ws.config.get("USE_PYTHON"))
+                assert(@ws.config.get("python_executable"))
+                assert(@ws.config.get("python_version"))
 
                 @ws.config.reset
-                @ws.config.set('interactive', false)
+                @ws.config.set("interactive", false)
                 Autoproj::Python.setup_python_configuration_options(ws: @ws)
-                if Autoproj::VERSION > '2.11.0'
-                    assert(!@ws.config.get('USE_PYTHON'))
+                if Autoproj::VERSION > "2.11.0"
+                    assert(!@ws.config.get("USE_PYTHON"))
                 else
-                    assert(@ws.config.get('USE_PYTHON') == 'no')
+                    assert(@ws.config.get("USE_PYTHON") == "no")
                 end
-                assert(!@ws.config.has_value_for?('python_executable'))
-                assert(!@ws.config.has_value_for?('python_version'))
+                assert(!@ws.config.has_value_for?("python_executable"))
+                assert(!@ws.config.has_value_for?("python_version"))
             end
         end
     end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'autoproj/package_managers/debian_version'
+require "autoproj/package_managers/debian_version"
 
 module Autoproj
     module PackageManagers
@@ -21,19 +21,19 @@ module Autoproj
             def configure_manager
                 super
                 ws.config.declare(
-                    'apt_dpkg_update', 'boolean',
-                    default: 'yes',
-                    doc: ['Would you like autoproj to keep apt packages up-to-date?']
+                    "apt_dpkg_update", "boolean",
+                    default: "yes",
+                    doc: ["Would you like autoproj to keep apt packages up-to-date?"]
                 )
                 keep_uptodate?
             end
 
             def keep_uptodate?
-                ws.config.get('apt_dpkg_update')
+                ws.config.get("apt_dpkg_update")
             end
 
             def keep_uptodate=(flag)
-                ws.config.set('apt_dpkg_update', flag, true)
+                ws.config.set("apt_dpkg_update", flag, true)
             end
 
             def self.parse_package_status(
@@ -48,7 +48,7 @@ module Autoproj
                         end
                     end
                     if virtual && paragraph =~ /^Provides: (.*)$/
-                        installed_packages.merge($1.split(',').map(&:strip))
+                        installed_packages.merge($1.split(",").map(&:strip))
                     end
                 end
             end
@@ -76,7 +76,7 @@ module Autoproj
             end
 
             def self.parse_apt_cache_paragraph(paragraph)
-                version = '0'
+                version = "0"
                 if (paragraph_m = /^Package: (.*)$/.match(paragraph))
                     package_name = paragraph_m[1]
                     version_m = /^Version: (.*)$/.match(paragraph)
@@ -87,7 +87,7 @@ module Autoproj
 
             def self.parse_packages_versions(packages)
                 packages_versions = {}
-                apt_cache_show = `apt-cache show --no-all-versions #{packages.join(' ')}`
+                apt_cache_show = `apt-cache show --no-all-versions #{packages.join(" ")}`
                 apt_cache_show = StringScanner.new(apt_cache_show)
                 return packages_versions unless apt_cache_show.scan(/Package: /)
 
@@ -115,7 +115,7 @@ module Autoproj
             # On a dpkg-enabled system, checks if the provided package is installed
             # and returns true if it is the case
             def installed?(package_name, filter_uptodate_packages: false,
-                                         install_only: false)
+                install_only: false)
                 unless @installed_packages && @installed_versions
                     @installed_packages, @installed_versions =
                         self.class.parse_dpkg_status(status_file)

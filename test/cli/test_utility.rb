@@ -1,27 +1,28 @@
-require 'autoproj/test'
-require 'autoproj/cli/utility'
-require 'timecop'
+require "autoproj/test"
+require "autoproj/cli/utility"
+require "timecop"
 
 module Autoproj
     module CLI
         describe Utility do
             attr_reader :cli
             attr_reader :ws
+
             before do
                 @ws = ws_create
-                @one = ws_add_package_to_layout :cmake, 'one'
-                @two = ws_add_package_to_layout :cmake, 'two'
-                @three = ws_define_package :cmake, 'three'
+                @one = ws_add_package_to_layout :cmake, "one"
+                @two = ws_add_package_to_layout :cmake, "two"
+                @three = ws_define_package :cmake, "three"
 
                 @utility_class = Class.new(Autobuild::Utility)
                 Autobuild.register_utility_class(
-                    'unittest', @utility_class
+                    "unittest", @utility_class
                 )
 
-                @report_path = @ws.utility_report_path('unittest')
-                @one.autobuild.utility('unittest').task {}
-                @two.autobuild.utility('unittest').task {}
-                @cli = Utility.new(ws, name: 'unittest', report_path: @report_path)
+                @report_path = @ws.utility_report_path("unittest")
+                @one.autobuild.utility("unittest").task {}
+                @two.autobuild.utility("unittest").task {}
+                @cli = Utility.new(ws, name: "unittest", report_path: @report_path)
                 @reporting = flexmock(Ops::PhaseReporting).new_instances
                 flexmock(cli)
             end
@@ -36,13 +37,13 @@ module Autoproj
                     end
                 end
                 it "throws if the selected package is excluded from build" do
-                    ws.manifest.exclude_package('two', 'test')
+                    ws.manifest.exclude_package("two", "test")
                     assert_raises(Autoproj::CLI::CLIInvalidSelection) do
                         cli.run(%w[two])
                     end
                 end
                 it "throws if the selected package is not in the layout" do
-                    ws.manifest.ignore_package('three')
+                    ws.manifest.ignore_package("three")
                     assert_raises(Autoproj::CLI::CLIInvalidArguments) do
                         cli.run(%w[three])
                     end
@@ -63,16 +64,16 @@ module Autoproj
                 it "creates a valid report incrementally" do
                     @reporting.should_receive(:report_incremental)
                               .once.with(->(p) { p.name == "one" }).pass_thru do
-                        assert current_report['unittest_report']['packages']['one']
+                        assert current_report["unittest_report"]["packages"]["one"]
                     end
                     @reporting.should_receive(:report_incremental)
                               .once.with(->(p) { p.name == "two" }).pass_thru do
-                        assert current_report['unittest_report']['packages']['two']
+                        assert current_report["unittest_report"]["packages"]["two"]
                     end
                     @cli.run(%w[one two])
 
                     assert_equal %w[one two].to_set,
-                                 current_report['unittest_report']['packages'].keys.to_set
+                                 current_report["unittest_report"]["packages"].keys.to_set
                 end
 
                 it "creates a report on failure" do
@@ -108,17 +109,17 @@ module Autoproj
 
                     Timecop.freeze
                     report = JSON.parse(File.read(@report_path))
-                    assert_equal Time.now.to_s, report['unittest_report']['timestamp']
-                    packages = report['unittest_report']['packages']
+                    assert_equal Time.now.to_s, report["unittest_report"]["timestamp"]
+                    packages = report["unittest_report"]["packages"]
                     assert_equal 1, packages.size
-                    assert(one = packages['one'])
-                    assert_equal '/some/path', one['source_dir']
-                    assert_equal '/some/other/path', one['target_dir']
-                    assert_same true, one['available']
-                    assert_same true, one['enabled']
-                    assert_same true, one['invoked']
-                    assert_same true, one['success']
-                    assert_same false, one['installed']
+                    assert(one = packages["one"])
+                    assert_equal "/some/path", one["source_dir"]
+                    assert_equal "/some/other/path", one["target_dir"]
+                    assert_same true, one["available"]
+                    assert_same true, one["enabled"]
+                    assert_same true, one["invoked"]
+                    assert_same true, one["success"]
+                    assert_same false, one["installed"]
                 end
             end
 

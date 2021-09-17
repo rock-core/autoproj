@@ -34,11 +34,13 @@ module Autoproj
         RawEntry      = Struct.new :package_set, :file, :vcs
 
         def initialize(type, url, vcs_options, from: nil, raw: [], history: [])
-            if !raw.respond_to?(:to_ary)
+            unless raw.respond_to?(:to_ary)
                 raise ArgumentError, "wrong format for the raw field (#{raw.inspect})"
             end
 
-            @type, @url, @options = type, url, vcs_options
+            @type = type
+            @url = url
+            @options = vcs_options
             if type != "none" && type != "local" && !Autobuild.respond_to?(type)
                 raise ConfigError.new, "version control #{type} is unknown to autoproj"
             end
@@ -49,17 +51,17 @@ module Autoproj
 
         # Create a null VCS object
         def self.none
-            from_raw({ type: 'none' })
+            from_raw({ type: "none" })
         end
 
         # Whether there is actually a version control definition
         def none?
-            @type == 'none'
+            @type == "none"
         end
 
         # Whether this points to a local directory
         def local?
-            @type == 'local'
+            @type == "local"
         end
 
         # Converts self to a Hash description that could be passed to {.from_raw}
@@ -83,7 +85,7 @@ module Autoproj
             if !new.has_key?(:type) || (type == new[:type])
                 new = to_hash.merge(new)
                 new_raw = self.raw + raw
-                new_history = self.history
+                new_history = history
             end
             self.class.from_raw(new, from: from, history: new_history, raw: new_raw)
         end
@@ -135,15 +137,15 @@ module Autoproj
                 raise ArgumentError, "invalid syntax"
             elsif plain.size == 1
                 short_url = plain.first
-                vcs, *url = short_url.split(':')
+                vcs, *url = short_url.split(":")
 
                 # Check if VCS is a known version control system or source handler
                 # shortcut. If it is not, look for a local directory called
                 # short_url
                 if Autobuild.respond_to?(vcs)
-                    spec.merge!(type: vcs, url: url.join(':'))
+                    spec.merge!(type: vcs, url: url.join(":"))
                 elsif Autoproj.has_source_handler?(vcs)
-                    spec = Autoproj.call_source_handler(vcs, url.join(':'), spec)
+                    spec = Autoproj.call_source_handler(vcs, url.join(":"), spec)
                 else
                     source_dir =
                         if Pathname.new(short_url).absolute?
@@ -155,18 +157,18 @@ module Autoproj
                                   "VCS path '#{short_url}' is relative and no "\
                                   "base_dir was given"
                         end
-                    if !File.directory?(source_dir)
+                    unless File.directory?(source_dir)
                         raise ArgumentError,
                               "'#{short_url}' is neither a remote source "\
-                              'specification, nor an existing local directory'
+                              "specification, nor an existing local directory"
                     end
-                    spec.merge!(type: 'local', url: source_dir)
+                    spec.merge!(type: "local", url: source_dir)
                 end
             end
 
             spec, vcs_options = Kernel.filter_options spec, type: nil, url: nil
             spec.merge!(vcs_options)
-            if !spec[:url]
+            unless spec[:url]
                 # Verify that none of the keys are source handlers. If it is the
                 # case, convert
                 filtered_spec = Hash.new
@@ -186,7 +188,7 @@ module Autoproj
         #
         # Converts a raw spec (a hash, really) into a nicely formatted string
         def self.raw_spec_to_s(spec)
-            "{ #{spec.sort_by(&:first).map { |k, v| "#{k}: #{v}" }.join(", ")} }"
+            "{ #{spec.sort_by(&:first).map { |k, v| "#{k}: #{v}" }.join(', ')} }"
         end
 
         # Converts a 'raw' VCS representation to a normalized hash.
@@ -201,19 +203,19 @@ module Autoproj
         #   expected format
         def self.from_raw(spec, from: nil, raw: [], history: [])
             normalized_spec = normalize_vcs_hash(spec)
-            if !(type = normalized_spec.delete(:type))
+            unless (type = normalized_spec.delete(:type))
                 raise ArgumentError,
                       "the source specification #{raw_spec_to_s(spec)} normalizes "\
                       "into #{raw_spec_to_s(normalized_spec)}, "\
-                      'which does not have a VCS type'
+                      "which does not have a VCS type"
             end
 
-            if !(url  = normalized_spec.delete(:url)) && type != 'none'
+            if !(url  = normalized_spec.delete(:url)) && type != "none"
                 raise ArgumentError,
                       "the source specification #{raw_spec_to_s(spec)} normalizes "\
                       "into #{raw_spec_to_s(normalized_spec)}, "\
-                      'which does not have a URL. '\
-                      'Only VCS of type \'none\' do not require one'
+                      "which does not have a URL. "\
+                      "Only VCS of type 'none' do not require one"
             end
 
             VCSDefinition.new(
@@ -222,7 +224,8 @@ module Autoproj
         end
 
         def ==(other_vcs)
-            return false if !other_vcs.kind_of?(VCSDefinition)
+            return false unless other_vcs.kind_of?(VCSDefinition)
+
             if local?
                 other_vcs.local? && url == other_vcs.url
             elsif other_vcs.local?
@@ -246,22 +249,21 @@ module Autoproj
             to_hash == other_vcs.to_hash
         end
 
-        ABSOLUTE_PATH_OR_URI = /^([\w+]+:\/)?\/|^[:\w]+\@|^(\w+\@)?[\w\.-]+:/
+        ABSOLUTE_PATH_OR_URI = /^([\w+]+:\/)?\/|^[:\w]+@|^(\w+@)?[\w.-]+:/
 
         def self.to_absolute_url(url, root_dir)
-            if url && url !~ ABSOLUTE_PATH_OR_URI
-                url = File.expand_path(url, root_dir)
-            end
+            url = File.expand_path(url, root_dir) if url && url !~ ABSOLUTE_PATH_OR_URI
             url
         end
 
         # Whether the underlying package needs to be imported
         def needs_import?
-            type != 'none' && type != 'local'
+            type != "none" && type != "local"
         end
 
         def overrides_key
             return if none?
+
             if local?
                 "local:#{url}"
             else
@@ -274,7 +276,7 @@ module Autoproj
         #
         # @return [Autobuild::Importer,nil] the autobuild importer
         def create_autobuild_importer
-            return if !needs_import?
+            return unless needs_import?
 
             importer = Autobuild.send(type, url, options)
             if importer.respond_to?(:declare_alternate_repository)
@@ -282,6 +284,7 @@ module Autoproj
                     package_set = entry.package_set
                     vcs         = entry.vcs
                     next if !package_set || package_set.main?
+
                     importer.declare_alternate_repository(package_set.name, vcs.url, vcs.options)
                 end
             end
@@ -294,8 +297,8 @@ module Autoproj
                 "none"
             else
                 desc = "#{type}:#{url}"
-                if !options.empty?
-                    desc = "#{desc} #{options.to_a.sort_by { |key, _| key.to_s }.map { |key, value| "#{key}=#{value}" }.join(" ")}"
+                unless options.empty?
+                    desc = "#{desc} #{options.to_a.sort_by { |key, _| key.to_s }.map { |key, value| "#{key}=#{value}" }.join(' ')}"
                 end
                 desc
             end

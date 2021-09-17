@@ -1,4 +1,4 @@
-require 'autoproj/test'
+require "autoproj/test"
 
 module Autoproj
     describe SourcePackageQuery do
@@ -8,44 +8,43 @@ module Autoproj
 
         describe "#match" do
             before do
-                @pkg = ws_define_package 'cmake', 'test/package'
+                @pkg = ws_define_package "cmake", "test/package"
             end
 
             it "returns nil if no method matches" do
-                q = SourcePackageQuery.new(['autobuild', 'name'], 'not_matching', false)
+                q = SourcePackageQuery.new(%w[autobuild name], "not_matching", false)
                 assert_nil q.match(@pkg)
             end
 
             it "returns EXACT if the field matches the value" do
-                q = SourcePackageQuery.new(['autobuild', 'name'], 'test/package', false)
+                q = SourcePackageQuery.new(%w[autobuild name], "test/package", false)
                 assert_equal SourcePackageQuery::EXACT, q.match(@pkg)
             end
 
             it "returns PARTIAL on a partial match if partial matching is enabled" do
-                q = SourcePackageQuery.new(['autobuild', 'name'], 'package', true)
+                q = SourcePackageQuery.new(%w[autobuild name], "package", true)
                 assert_equal SourcePackageQuery::PARTIAL, q.match(@pkg)
             end
 
             it "returns nil on a partial match if partial matching is disabled" do
-                q = SourcePackageQuery.new(['autobuild', 'name'], 'package', false)
+                q = SourcePackageQuery.new(%w[autobuild name], "package", false)
                 assert_nil q.match(@pkg)
             end
-        
+
             it "returns DIR_PREFIX_STRONG if the value is slash-separated and the last value is exact" do
-                q = SourcePackageQuery.new(['autobuild', 'name'], 'te/package', true)
+                q = SourcePackageQuery.new(%w[autobuild name], "te/package", true)
                 assert_equal SourcePackageQuery::DIR_PREFIX_STRONG, q.match(@pkg)
             end
             it "disables DIR_PREFIX_STRONG matching if partial match is disabled" do
-                q = SourcePackageQuery.new(['autobuild', 'name'], 'te/package', false)
+                q = SourcePackageQuery.new(%w[autobuild name], "te/package", false)
                 assert_nil q.match(@pkg)
             end
             it "returns DIR_PREFIX_WEAK if the value is slash-separated and the last value is not exact" do
-                q = SourcePackageQuery.new(['autobuild', 'name'], 'te/p', true)
+                q = SourcePackageQuery.new(%w[autobuild name], "te/p", true)
                 assert_equal SourcePackageQuery::DIR_PREFIX_WEAK, q.match(@pkg)
-
             end
             it "disables DIR_PREFIX_WEAK matching if partial match is disabled" do
-                q = SourcePackageQuery.new(['autobuild', 'name'], 'te/p', false)
+                q = SourcePackageQuery.new(%w[autobuild name], "te/p", false)
                 assert_nil q.match(@pkg)
             end
         end
@@ -58,15 +57,14 @@ module Autoproj
                 assert_equal 2, sub.size
 
                 q0 = sub[0]
-                assert_equal ['autobuild', 'name'], q0.fields
-                assert_equal 'test', q0.value
+                assert_equal %w[autobuild name], q0.fields
+                assert_equal "test", q0.value
                 assert q0.partial?
                 q1 = sub[1]
-                assert_equal ['autobuild', 'srcdir'], q1.fields
-                assert_equal 'test', q1.value
+                assert_equal %w[autobuild srcdir], q1.fields
+                assert_equal "test", q1.value
                 assert q1.partial?
             end
         end
     end
 end
-

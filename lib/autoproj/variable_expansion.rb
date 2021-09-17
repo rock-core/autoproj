@@ -32,17 +32,15 @@ module Autoproj
     # If the values listed in +definitions+ also contain configuration
     # variables, they do not get expanded
     def self.single_expansion(data, definitions)
-        if !data.respond_to?(:to_str)
-            return data
-        end
+        return data unless data.respond_to?(:to_str)
 
         data = data.gsub(/(.|^)\$(\w+)/) do |constant_name|
             prefix = constant_name[0, 1]
-            if prefix == "\\"
-                next(constant_name[1..-1])
-            end
+            next(constant_name[1..-1]) if prefix == "\\"
+
             if prefix == "$"
-                prefix, constant_name = "", constant_name[1..-1]
+                prefix = ""
+                constant_name = constant_name[1..-1]
             else
                 constant_name = constant_name[2..-1]
             end
@@ -75,6 +73,7 @@ module Autoproj
             if contains_expansion?(value)
                 raise ConfigError.new, "some expansions are not defined in #{value.inspect}"
             end
+
             value
         end
     end
@@ -97,7 +96,7 @@ module Autoproj
     # refers to variables defined in +constants+
     def self.resolve_constant_definitions(constants, definitions = Hash.new)
         definitions = definitions.merge(constants)
-        
+
         all_resolutions = Hash.new
         resolution_cache = Hash.new
         constants.each do |key, value|
@@ -106,4 +105,3 @@ module Autoproj
         all_resolutions
     end
 end
-

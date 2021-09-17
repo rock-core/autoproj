@@ -1,5 +1,5 @@
-require 'autoproj/test'
-require 'autoproj/ops/watch'
+require "autoproj/test"
+require "autoproj/ops/watch"
 
 module Autoproj
     module Ops

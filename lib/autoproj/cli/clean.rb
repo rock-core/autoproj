@@ -1,5 +1,5 @@
-require 'autoproj/cli/inspection_tool'
-require 'tty/prompt'
+require "autoproj/cli/inspection_tool"
+require "tty/prompt"
 
 module Autoproj
     module CLI
@@ -8,16 +8,16 @@ module Autoproj
                 packages, options = super
                 if packages.empty? && !options[:all]
                     prompt = TTY::Prompt.new
-                    if !prompt.yes?("this is going to clean all packages. Is that really what you want ?")
+                    unless prompt.yes?("this is going to clean all packages. Is that really what you want ?")
                         raise Interrupt
                     end
                 end
-                return packages, options
+                [packages, options]
             end
 
             def run(selection, options = Hash.new)
                 initialize_and_load
-                packages, _ = normalize_command_line_package_selection(selection)
+                packages, = normalize_command_line_package_selection(selection)
 
                 deps = if options.has_key?(:deps)
                            options[:deps]
@@ -27,17 +27,17 @@ module Autoproj
 
                 source_packages, * = resolve_selection(
                     packages,
-                    recursive: deps)
+                    recursive: deps
+                )
                 if source_packages.empty?
-                    raise CLIInvalidArguments, "no packages or OS packages match #{selection.join(" ")}"
+                    raise CLIInvalidArguments, "no packages or OS packages match #{selection.join(' ')}"
                 end
 
                 source_packages.each do |pkg_name|
-                    ws.manifest.find_autobuild_package(pkg_name).
-                        prepare_for_rebuild
+                    ws.manifest.find_autobuild_package(pkg_name)
+                      .prepare_for_rebuild
                 end
             end
         end
     end
 end
-

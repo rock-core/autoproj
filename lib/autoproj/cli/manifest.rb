@@ -1,10 +1,10 @@
-require 'autoproj'
-require 'autoproj/cli/base'
+require "autoproj"
+require "autoproj/cli/base"
 module Autoproj
     module CLI
         class Manifest < Base
             def validate_options(args, options)
-                return args, options
+                [args, options]
             end
 
             def run(name, options = Hash.new)
@@ -21,11 +21,12 @@ module Autoproj
                         full_path = File.join(ws.config_dir, name)
                     end
 
-                    if !File.file?(full_path)
+                    unless File.file?(full_path)
                         alternative_full_path = File.join(ws.config_dir, "manifest.#{name}")
-                        if !File.file?(alternative_full_path)
+                        unless File.file?(alternative_full_path)
                             raise CLIInvalidArguments, "neither #{full_path} nor #{alternative_full_path} exist"
                         end
+
                         full_path = alternative_full_path
                     end
                     begin
@@ -34,7 +35,7 @@ module Autoproj
                         Autoproj.error "failed to load #{full_path}"
                         raise
                     end
-                    ws.config.set 'manifest_name', File.basename(full_path)
+                    ws.config.set "manifest_name", File.basename(full_path)
                     ws.save_config
                     Autoproj.message "set manifest to #{full_path}"
                 else
@@ -47,4 +48,3 @@ module Autoproj
         end
     end
 end
-

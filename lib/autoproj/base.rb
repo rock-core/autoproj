@@ -1,4 +1,4 @@
-require 'yaml'
+require "yaml"
 module Autoproj
     YAML_LOAD_ERROR =
         if defined? Psych::SyntaxError

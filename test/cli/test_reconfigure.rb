@@ -1,6 +1,6 @@
-require 'autoproj/test'
-require 'autoproj/aruba_minitest'
-require 'autoproj/cli/reconfigure'
+require "autoproj/test"
+require "autoproj/aruba_minitest"
+require "autoproj/cli/reconfigure"
 
 module Autoproj
     module CLI
@@ -9,7 +9,7 @@ module Autoproj
 
             before do
                 @ws = ws_create(make_tmpdir, partial_config: true)
-                set_environment_variable 'AUTOPROJ_CURRENT_ROOT', ws.root_dir
+                set_environment_variable "AUTOPROJ_CURRENT_ROOT", ws.root_dir
                 @autoproj_bin = File.expand_path(
                     File.join("..", "..", "bin", "autoproj"), __dir__
                 )

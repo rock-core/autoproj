@@ -1,4 +1,4 @@
-require 'autoproj/cli/base'
+require "autoproj/cli/base"
 
 module Autoproj
     module CLI
@@ -15,15 +15,15 @@ module Autoproj
                 end
 
                 common_args = [Autobuild.tool(:git), "--git-dir=#{ws.config_dir}/.git"]
-                if since = options[:since]
-                    exec(*common_args, 'diff', parse_log_entry(since), 'autoproj@{0}')
+                if (since = options[:since])
+                    exec(*common_args, "diff", parse_log_entry(since), "autoproj@{0}")
                 elsif args.empty?
-                    exec(*common_args, 'reflog',
-                        Ops::Snapshot.import_state_log_ref, '--format=%Cgreen%gd %Cblue%cr %Creset%gs')
+                    exec(*common_args, "reflog",
+                         Ops::Snapshot.import_state_log_ref, "--format=%Cgreen%gd %Cblue%cr %Creset%gs")
                 elsif options[:diff]
-                    exec(*common_args, 'diff', *args.map { |entry| parse_log_entry(entry) })
+                    exec(*common_args, "diff", *args.map { |entry| parse_log_entry(entry) })
                 else
-                    exec(*common_args, 'show', *args.map { |entry| parse_log_entry(entry) })
+                    exec(*common_args, "show", *args.map { |entry| parse_log_entry(entry) })
                 end
             end
 

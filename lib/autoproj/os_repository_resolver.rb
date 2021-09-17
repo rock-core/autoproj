@@ -1,5 +1,5 @@
-require 'tempfile'
-require 'json'
+require "tempfile"
+require "json"
 
 module Autoproj
     # Manager for OS repository provided by package sets
@@ -11,7 +11,9 @@ module Autoproj
         attr_accessor :operating_system
 
         def self.load(file)
-            raise ArgumentError, "no such file or directory: #{file}" unless File.file?(file)
+            unless File.file?(file)
+                raise ArgumentError, "no such file or directory: #{file}"
+            end
 
             error_t = if defined? Psych::SyntaxError
                           [ArgumentError, Psych::SyntaxError]
@@ -62,12 +64,12 @@ module Autoproj
         end
 
         def entry_matches?(entry, identifiers)
-            !(entry.keys.first.split(',').map(&:strip) & identifiers).empty?
+            !(entry.keys.first.split(",").map(&:strip) & identifiers).empty?
         end
 
         def resolved_entries
             os_name, os_version = operating_system
-            os_version << 'default' unless os_version.include?('default')
+            os_version << "default" unless os_version.include?("default")
 
             distribution_filtered = definitions.select do |entry|
                 entry_matches?(entry, os_name)

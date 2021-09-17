@@ -5,10 +5,13 @@ module Autoproj
                 true
             end
         end
+
         class CLIInvalidArguments < CLIException
         end
+
         class CLIAmbiguousArguments < CLIException
         end
+
         class CLIInvalidSelection < CLIException
         end
 
@@ -20,10 +23,9 @@ module Autoproj
                     :find_files
                 end
 
-            Gem.send(finder_name, 'autoproj-*', true).each do |path|
+            Gem.send(finder_name, "autoproj-*", true).each do |path|
                 require path
             end
         end
     end
 end
-

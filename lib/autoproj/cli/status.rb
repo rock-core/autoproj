@@ -1,5 +1,5 @@
-require 'autoproj/cli/inspection_tool'
-require 'tty-spinner'
+require "autoproj/cli/inspection_tool"
+require "tty-spinner"
 
 module Autoproj
     module CLI
@@ -7,27 +7,24 @@ module Autoproj
             def validate_options(packages, options)
                 packages, options = super
                 options[:progress] = Autobuild.progress_display_enabled?
-                if options[:no_deps_shortcut]
-                    options[:deps] = false
-                end
-                if options[:deps].nil? && packages.empty?
-                    options[:deps] = true
-                end
-                return packages, options
+                options[:deps] = false if options[:no_deps_shortcut]
+                options[:deps] = true if options[:deps].nil? && packages.empty?
+                [packages, options]
             end
 
             def run(user_selection, options = Hash.new)
                 initialize_and_load(mainline: options[:mainline])
                 packages, *, config_selected = finalize_setup(
                     user_selection,
-                    recursive: options[:deps])
+                    recursive: options[:deps]
+                )
 
                 if options[:config].nil?
                     options[:config] = user_selection.empty? || config_selected
                 end
 
                 if packages.empty?
-                    Autoproj.error "no packages or OS packages match #{user_selection.join(" ")}"
+                    Autoproj.error "no packages or OS packages match #{user_selection.join(' ')}"
                     return
                 end
 
@@ -39,14 +36,15 @@ module Autoproj
 
                 if options[:config]
                     pkg_sets = ws.manifest.each_package_set.to_a
-                    if !pkg_sets.empty?
+                    unless pkg_sets.empty?
                         Autoproj.message("autoproj: displaying status of configuration", :bold)
                         display_status(
                             pkg_sets,
                             parallel: options[:parallel],
                             snapshot: options[:snapshot],
                             only_local: options[:only_local],
-                            progress: options[:progress])
+                            progress: options[:progress]
+                        )
 
                         STDERR.puts
                     end
@@ -61,7 +59,8 @@ module Autoproj
                     parallel: options[:parallel],
                     snapshot: options[:snapshot],
                     only_local: options[:only_local],
-                    progress: options[:progress])
+                    progress: options[:progress]
+                )
             end
 
             def snapshot_overrides_vcs?(importer, vcs, snapshot)
@@ -96,24 +95,24 @@ module Autoproj
                 else
                     begin status = importer.status(pkg, only_local: only_local)
                     rescue StandardError => e
-                        self.report_exception(package_status, "failed to fetch status information", e)
+                        report_exception(package_status, "failed to fetch status information", e)
                         return package_status
                     end
 
-                    snapshot_useful = [Autobuild::Importer::Status::ADVANCED, Autobuild::Importer::Status::NEEDS_MERGE].
-                        include?(status.status)
+                    snapshot_useful = [Autobuild::Importer::Status::ADVANCED, Autobuild::Importer::Status::NEEDS_MERGE]
+                                      .include?(status.status)
                     if snapshot && snapshot_useful && importer.respond_to?(:snapshot)
                         snapshot_version =
                             begin importer.snapshot(pkg, nil, exact_state: false, only_local: only_local)
                             rescue Autobuild::PackageException
                                 Hash.new
                             rescue StandardError => e
-                                self.report_exception(package_status, "failed to fetch snapshotting information", e)
+                                report_exception(package_status, "failed to fetch snapshotting information", e)
                                 return package_status
                             end
                         if snapshot_overrides_vcs?(importer, package_description.vcs, snapshot_version)
                             non_nil_values = snapshot_version.delete_if { |k, v| !v }
-                            package_status.msg << Autoproj.color("  found configuration that contains all local changes: #{non_nil_values.sort_by(&:first).map { |k, v| "#{k}: #{v}" }.join(", ")}", :bright_green)
+                            package_status.msg << Autoproj.color("  found configuration that contains all local changes: #{non_nil_values.sort_by(&:first).map { |k, v| "#{k}: #{v}" }.join(', ')}", :bright_green)
                             package_status.msg << Autoproj.color("  consider adding this to your overrides, or use autoproj versions to do it for you", :bright_green)
                             if snapshot
                                 importer.relocate(importer.repository, snapshot_version)
@@ -163,17 +162,20 @@ module Autoproj
                 package_status
             end
 
-            def each_package_status(packages, parallel: ws.config.parallel_import_level, snapshot: false, only_local: false, progress: nil)
-                return enum_for(__method__) if !block_given?
+            def each_package_status(
+                packages,
+                parallel: ws.config.parallel_import_level,
+                snapshot: false, only_local: false, progress: nil
+            )
+                return enum_for(__method__) unless block_given?
 
                 result = StatusResult.new
 
                 executor = Concurrent::FixedThreadPool.new(parallel, max_length: 0)
-                interactive, noninteractive = packages.partition do |pkg|
-                    pkg.autobuild.importer && pkg.autobuild.importer.interactive?
-                end
+                interactive, noninteractive =
+                    packages.partition { |pkg| pkg.autobuild.importer&.interactive? }
                 noninteractive = noninteractive.map do |pkg|
-                    future = Concurrent::Future.execute(executor: executor) do
+                    future = Concurrent::Promises.future_on(executor) do
                         Status.status_of_package(
                             pkg, snapshot: snapshot, only_local: only_local
                         )
@@ -185,9 +187,9 @@ module Autoproj
                     if future
                         if progress
                             wait_timeout = 1
-                            while true
-                                future.wait(wait_timeout)
-                                if future.complete?
+                            loop do
+                                future.wait!(wait_timeout)
+                                if future.resolved?
                                     break
                                 else
                                     wait_timeout = 0.2
@@ -196,7 +198,7 @@ module Autoproj
                             end
                         end
 
-                        if !(status = future.value)
+                        unless (status = future.value)
                             raise future.reason
                         end
                     else
@@ -211,7 +213,6 @@ module Autoproj
                     yield(pkg, status)
                 end
                 result
-
             rescue Interrupt
                 Autoproj.warn "Interrupted, waiting for pending jobs to finish"
                 raise
@@ -230,9 +231,9 @@ module Autoproj
 
                 if progress
                     progress = lambda do |pkg|
-                        if !spinner
-                            if !sync_packages.empty?
-                                Autoproj.message("#{sync_packages}: #{Autoproj.color("local and remote are in sync", :green)}")
+                        unless spinner
+                            unless sync_packages.empty?
+                                Autoproj.message("#{sync_packages}: #{Autoproj.color('local and remote are in sync', :green)}")
                                 sync_packages = ""
                             end
 
@@ -264,8 +265,8 @@ module Autoproj
                         next
                     end
 
-                    if !sync_packages.empty?
-                        Autoproj.message("#{sync_packages}: #{Autoproj.color("local and remote are in sync", :green)}")
+                    unless sync_packages.empty?
+                        Autoproj.message("#{sync_packages}: #{Autoproj.color('local and remote are in sync', :green)}")
                         sync_packages = ""
                     end
 
@@ -280,12 +281,11 @@ module Autoproj
                         end
                     end
                 end
-                if !sync_packages.empty?
-                    Autoproj.message("#{sync_packages}: #{Autoproj.color("local and remote are in sync", :green)}")
+                unless sync_packages.empty?
+                    Autoproj.message("#{sync_packages}: #{Autoproj.color('local and remote are in sync', :green)}")
                 end
-                return result
+                result
             end
         end
     end
 end
-

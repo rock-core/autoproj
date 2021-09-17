@@ -31,13 +31,13 @@ module Autoproj
         # @return [PackageManifest]
         # @see load
         def self.parse(package, contents,
-                       path: '<loaded from string>', loader_class: Loader)
+            path: "<loaded from string>", loader_class: Loader)
             manifest = PackageManifest.new(package, path)
             loader = loader_class.new(path, manifest)
             begin
                 REXML::Document.parse_stream(contents, loader)
             rescue REXML::ParseException => e
-                raise Autobuild::PackageException.new(package.name, 'prepare'),
+                raise Autobuild::PackageException.new(package.name, "prepare"),
                       "invalid #{file}: #{e.message}"
             end
             manifest
@@ -185,52 +185,53 @@ module Autoproj
             end
 
             def parse_depend_tag(tag_name, attributes, modes: [], optional: false)
-                package = attributes['package'] || attributes['name']
+                package = attributes["package"] || attributes["name"]
                 unless package
                     raise InvalidPackageManifest,
                           "found '#{tag_name}' tag in #{path} "\
                           "without a 'package' attribute"
                 end
 
-                if (tag_modes = attributes['modes'])
-                    modes += tag_modes.split(',')
+                if (tag_modes = attributes["modes"])
+                    modes += tag_modes.split(",")
                 end
 
                 manifest.add_dependency(
                     package,
-                    optional: optional || (attributes['optional'] == '1'),
-                    modes: modes)
+                    optional: optional || (attributes["optional"] == "1"),
+                    modes: modes
+                )
             end
 
             def parse_contact_field(text)
-                text.strip.split(',').map do |str|
-                    name, email = str.split('/').map(&:strip)
+                text.strip.split(",").map do |str|
+                    name, email = str.split("/").map(&:strip)
                     email = nil if email&.empty?
                     ContactInfo.new(name, email)
                 end
             end
 
-            TEXT_FIELDS = Set['url', 'license', 'version', 'description']
-            AUTHOR_FIELDS = Set['author', 'maintainer', 'rock_maintainer']
+            TEXT_FIELDS = Set["url", "license", "version", "description"]
+            AUTHOR_FIELDS = Set["author", "maintainer", "rock_maintainer"]
 
             def toplevel_tag_start(name, attributes)
-                if name == 'depend'
+                if name == "depend"
                     parse_depend_tag(name, attributes)
-                elsif name == 'depend_optional'
+                elsif name == "depend_optional"
                     parse_depend_tag(name, attributes, optional: true)
-                elsif name == 'rosdep'
+                elsif name == "rosdep"
                     parse_depend_tag(name, attributes)
                 elsif name =~ /^(\w+)_depend$/
                     parse_depend_tag(name, attributes, modes: [$1])
-                elsif name == 'description'
-                    if (brief = attributes['brief'])
+                elsif name == "description"
+                    if (brief = attributes["brief"])
                         manifest.brief_description = brief
                     end
-                    @tag_text = ''
+                    @tag_text = ""
                 elsif TEXT_FIELDS.include?(name) || AUTHOR_FIELDS.include?(name)
-                    @tag_text = ''
-                elsif name == 'tags'
-                    @tag_text = ''
+                    @tag_text = ""
+                elsif name == "tags"
+                    @tag_text = ""
                 else
                     @tag_text = nil
                 end
@@ -242,8 +243,8 @@ module Autoproj
                 elsif TEXT_FIELDS.include?(name)
                     field = @tag_text.strip
                     manifest.send("#{name}=", field) unless field.empty?
-                elsif name == 'tags'
-                    manifest.tags.concat(@tag_text.strip.split(',').map(&:strip))
+                elsif name == "tags"
+                    manifest.tags.concat(@tag_text.strip.split(",").map(&:strip))
                 end
                 @tag_text = nil
             end
@@ -261,12 +262,12 @@ module Autoproj
 
             def toplevel_tag_start(name, attributes)
                 if DEPEND_TAGS.include?(name)
-                    @tag_text = ''
+                    @tag_text = ""
                 elsif TEXT_FIELDS.include?(name)
-                    @tag_text = ''
+                    @tag_text = ""
                 elsif AUTHOR_FIELDS.include?(name)
-                    @author_email = attributes['email']
-                    @tag_text = ''
+                    @author_email = attributes["email"]
+                    @tag_text = ""
                 else
                     @tag_text = nil
                 end

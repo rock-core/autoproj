@@ -1,6 +1,6 @@
-require 'autoproj/cli/inspection_tool'
-require 'autoproj/cli/versions'
-require 'autoproj/ops/snapshot'
+require "autoproj/cli/inspection_tool"
+require "autoproj/cli/versions"
+require "autoproj/ops/snapshot"
 
 module Autoproj
     module CLI
@@ -9,7 +9,7 @@ module Autoproj
                 if tag_name
                     "autoproj created tag #{tag_name}"
                 else
-                    'autoproj created version commit'
+                    "autoproj created version commit"
                 end
             end
 
@@ -43,13 +43,12 @@ module Autoproj
                              keep_going: options[:keep_going],
                              deps: options[:deps])
 
-                importer.run_git(pkg, 'add', versions_file)
+                importer.run_git(pkg, "add", versions_file)
                 message = options[:message] || default_message(tag_name)
 
-                importer.run_git(pkg, 'commit', '-m', message)
-                importer.run_git(pkg, 'tag', tag_name) unless tag_name.nil?
+                importer.run_git(pkg, "commit", "-m", message)
+                importer.run_git(pkg, "tag", tag_name) unless tag_name.nil?
             end
         end
     end
 end
-

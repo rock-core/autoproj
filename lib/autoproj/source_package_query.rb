@@ -29,18 +29,18 @@ module Autoproj
     #
     class SourcePackageQuery < QueryBase
         ALLOWED_FIELDS = [
-            'autobuild.name',
-            'autobuild.srcdir',
-            'autobuild.class.name',
-            'vcs.type',
-            'vcs.url',
-            'package_set.name'
+            "autobuild.name",
+            "autobuild.srcdir",
+            "autobuild.class.name",
+            "vcs.type",
+            "vcs.url",
+            "package_set.name"
         ]
         DEFAULT_FIELDS = {
-            'name' => 'autobuild.name',
-            'class' => 'autobuild.class.name',
-            'vcs' => 'vcs.url',
-            'package_set' => 'package_set.name'
+            "name" => "autobuild.name",
+            "class" => "autobuild.class.name",
+            "vcs" => "vcs.url",
+            "package_set" => "package_set.name"
         }
 
         # Match priorities
@@ -52,18 +52,18 @@ module Autoproj
         def initialize(fields, value, partial)
             super(fields, value, partial)
 
-            directories = value.split('/')
-            if !directories.empty?
+            directories = value.split("/")
+            unless directories.empty?
                 @use_dir_prefix = true
-                rx = directories.
-                    map { |d| "#{Regexp.quote(d)}\\w*" }.
-                    join("/")
+                rx = directories
+                     .map { |d| "#{Regexp.quote(d)}\\w*" }
+                     .join("/")
                 rx = Regexp.new(rx, true)
                 @dir_prefix_weak_rx = rx
 
-                rx_strict = directories[0..-2].
-                    map { |d| "#{Regexp.quote(d)}\\w*" }.
-                    join("/")
+                rx_strict = directories[0..-2]
+                            .map { |d| "#{Regexp.quote(d)}\\w*" }
+                            .join("/")
                 rx_strict = Regexp.new("#{rx_strict}/#{Regexp.quote(directories.last)}$", true)
                 @dir_prefix_strong_rx = rx_strict
             end
@@ -95,24 +95,18 @@ module Autoproj
             pkg_value = fields.inject(pkg) { |v, field_name| v.send(field_name) }
             pkg_value = pkg_value.to_s
 
-            if pkg_value == value
-                return EXACT
-            end
+            return EXACT if pkg_value == value
 
-            if !partial?
-                return
-            end
+            return unless partial?
 
-            if @value_rx === pkg_value
-                return PARTIAL
-            end
+            return PARTIAL if @value_rx === pkg_value
 
             # Special match for directories: match directory prefixes
             if use_dir_prefix?
                 if @dir_prefix_strong_rx === pkg_value
-                    return DIR_PREFIX_STRONG
+                    DIR_PREFIX_STRONG
                 elsif @dir_prefix_weak_rx === pkg_value
-                    return DIR_PREFIX_WEAK
+                    DIR_PREFIX_WEAK
                 end
             end
         end
@@ -122,11 +116,11 @@ module Autoproj
             if str !~ /[=~]/
                 match_name = parse("autobuild.name~#{str}")
                 match_dir  = parse("autobuild.srcdir~#{str}")
-                return Or.new([match_name, match_dir])
+                Or.new([match_name, match_dir])
             else
                 fields, value, partial =
                     super(str, default_fields: DEFAULT_FIELDS, allowed_fields: ALLOWED_FIELDS)
-                return new(fields, value, partial)
+                new(fields, value, partial)
             end
         end
     end
@@ -134,4 +128,3 @@ module Autoproj
     # For backward compatibility
     Query = SourcePackageQuery
 end
-

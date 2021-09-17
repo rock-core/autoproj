@@ -1,4 +1,4 @@
-require 'autoproj/python'
+require "autoproj/python"
 
 module Autoproj
     module PackageManagers
@@ -7,14 +7,14 @@ module Autoproj
             attr_reader :installed_pips
 
             def initialize_environment
-                ws.env.set 'PYTHONUSERBASE', pip_home
-                ws.env.add_path 'PATH', File.join(pip_home, 'bin')
+                ws.env.set "PYTHONUSERBASE", pip_home
+                ws.env.add_path "PATH", File.join(pip_home, "bin")
             end
 
             # Return the directory where python packages are installed to.
             # The actual path is pip_home/lib/pythonx.y/site-packages.
             def pip_home
-                ws.env['AUTOPROJ_PYTHONUSERBASE'] || File.join(ws.prefix_dir, "pip")
+                ws.env["AUTOPROJ_PYTHONUSERBASE"] || File.join(ws.prefix_dir, "pip")
             end
 
             def initialize(ws)
@@ -23,34 +23,33 @@ module Autoproj
             end
 
             def os_dependencies
-                super + ['pip']
+                super + ["pip"]
             end
 
             def guess_pip_program
-                unless ws.config.has_value_for?('USE_PYTHON')
-                  Autoproj::Python.setup_python_configuration_options(ws: ws)
+                unless ws.config.has_value_for?("USE_PYTHON")
+                    Autoproj::Python.setup_python_configuration_options(ws: ws)
                 end
-                unless ws.config.get('USE_PYTHON')
-                  raise ConfigError, "Your current package selection" \
-                    " requires the use of pip, but" \
-                    " the use of python is either unspecified or has been denied, see" \
-                    " setting of USE_PYTHON in your workspace configuration." \
-                    " Either remove all packages depending on pip packages " \
-                    " from the workspace layout (manifest) or " \
-                    " call 'autoproj reconfigure' to change the setting."
+                unless ws.config.get("USE_PYTHON")
+                    raise ConfigError, "Your current package selection" \
+                      " requires the use of pip, but" \
+                      " the use of python is either unspecified or has been denied, see" \
+                      " setting of USE_PYTHON in your workspace configuration." \
+                      " Either remove all packages depending on pip packages " \
+                      " from the workspace layout (manifest) or " \
+                      " call 'autoproj reconfigure' to change the setting."
 
                 end
 
-                Autobuild.programs['pip'] = "pip" unless Autobuild.programs['pip']
-                Autobuild.programs['pip']
+                Autobuild.programs["pip"] = "pip" unless Autobuild.programs["pip"]
+                Autobuild.programs["pip"]
             end
 
-            # rubocop:disable Lint/UnusedMethodArgument
             def install(pips, filter_uptodate_packages: false, install_only: false)
                 guess_pip_program
                 pips = [pips] if pips.is_a?(String)
 
-                base_cmdline = [Autobuild.tool('pip'), 'install', '--user']
+                base_cmdline = [Autobuild.tool("pip"), "install", "--user"]
 
                 cmdlines = [base_cmdline + pips]
 
@@ -59,7 +58,7 @@ module Autoproj
                         " #{pips.sort.join(', ')}"
 
                     cmdlines.each do |c|
-                        Autobuild::Subprocess.run 'autoproj', 'osdeps', *c,
+                        Autobuild::Subprocess.run "autoproj", "osdeps", *c,
                                                   env: ws.env.resolved_env
                     end
 
@@ -68,7 +67,6 @@ module Autoproj
                     end
                 end
             end
-            # rubocop:enable Lint/UnusedMethodArgument
 
             def pips_interaction(cmdlines)
                 if OSPackageInstaller.force_osdeps

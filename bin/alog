@@ -1,10 +1,10 @@
 #! /usr/bin/env ruby
 
-require 'autoproj/cli/main'
-require 'autoproj/cli/locate'
+require "autoproj/cli/main"
+require "autoproj/cli/locate"
 
 argv = Autoproj::CLI.basic_setup
-if argv.include?('--help') || argv.include?('help')
+if argv.include?("--help") || argv.include?("help")
     puts "Usage:"
     puts "  alog [package]"
     puts
@@ -16,9 +16,7 @@ Autoproj.report(silent: true) do
     cli = Autoproj::CLI::Locate.new
 
     arg = argv.first || Dir.pwd
-    if File.directory?(arg)
-        arg = "#{File.expand_path(arg)}/"
-    end
+    arg = "#{File.expand_path(arg)}/" if File.directory?(arg)
     log_files = cli.logs_of(arg, log: nil)
 
     if log_files.size == 1
@@ -31,6 +29,6 @@ Autoproj.report(silent: true) do
         rescue Interrupt
         end
     elsif log_files.empty?
-        raise "no logs found for #{string}"
+        raise "no logs found for #{arg}"
     end
 end

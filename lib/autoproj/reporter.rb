@@ -1,10 +1,12 @@
-require 'autobuild/reporting'
+require "autobuild/reporting"
 module Autoproj
     class << self
         attr_accessor :verbose
+
         def silent?
             Autobuild.silent?
         end
+
         def silent=(value)
             Autobuild.silent = value
         end
@@ -70,18 +72,18 @@ module Autoproj
             secs = Time.now - @timer_start
             return if secs < 1
 
-            [[60, 'sec'], [60, 'min'], [24, 'hour'], [1000, 'day']].map do |count, name|
+            [[60, "sec"], [60, "min"], [24, "hour"], [1000, "day"]].map do |count, name|
                 if secs > 0
                     secs, n = secs.divmod(count)
                     next if (val = n.to_i) == 0
 
-                    "#{val} #{val > 1 ? name + 's' : name}"
+                    "#{val} #{val > 1 ? "#{name}s" : name}"
                 end
-            end.compact.reverse.join(' ')
+            end.compact.reverse.join(" ")
         end
 
         def success
-            elapsed_string = elapsed_time ? " (took #{elapsed_time})" : ''
+            elapsed_string = elapsed_time ? " (took #{elapsed_time})" : ""
             Autoproj.message("Command finished successfully at "\
                              "#{Time.now}#{elapsed_string}", :bold, :green)
             if Autobuild.post_success_message
@@ -91,9 +93,9 @@ module Autoproj
     end
 
     def self.report(root_dir: nil, silent: nil, debug: Autobuild.debug,
-                    on_package_success: :report,
-                    on_package_failures: Autobuild::Reporting
-                                         .default_report_on_package_failures)
+        on_package_success: :report,
+        on_package_failures: Autobuild::Reporting
+            .default_report_on_package_failures)
         reporter = Autoproj::Reporter.new
         Autobuild::Reporting << reporter
         interrupted = nil
@@ -105,24 +107,22 @@ module Autoproj
 
         package_failures =
             Autobuild::Reporting.report(on_package_failures: :report_silent) do
-                begin
-                    reporter.reset_timer
-                    yield
-                rescue Interrupt => e
-                    interrupted = e
-                end
+                reporter.reset_timer
+                yield
+            rescue Interrupt => e
+                interrupted = e
             end
-
 
         if package_failures.empty?
             raise interrupted if interrupted
 
             Autobuild::Reporting.success if on_package_success == :report
-            return []
+            []
         else
-            Autobuild::Reporting.report_finish_on_error(package_failures,
-                on_package_failures: on_package_failures,
-                interrupted_by: interrupted)
+            Autobuild::Reporting.report_finish_on_error(
+                package_failures,
+                on_package_failures: on_package_failures, interrupted_by: interrupted
+            )
         end
     rescue CLI::CLIException, InvalidWorkspace, ConfigError => e
         if silent_errors

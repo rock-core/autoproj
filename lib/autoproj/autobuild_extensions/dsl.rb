@@ -1,7 +1,7 @@
-require 'find'
-require 'fileutils'
-require 'autobuild'
-require 'set'
+require "find"
+require "fileutils"
+require "autobuild"
+require "set"
 
 module Autoproj
     # @deprecated use Workspace.config.ruby_executable instead, or
@@ -71,8 +71,8 @@ module Autoproj
             "instead (and beware that the return value changed from "\
             "Autobuild::Package to Autoproj::PackageDefinition)"
         )
-        workspace.define_package(package_type, spec, block, *current_file).
-            autobuild
+        workspace.define_package(package_type, spec, block, *current_file)
+                 .autobuild
     end
 
     def self.loaded_autobuild_files
@@ -117,25 +117,26 @@ module Autoproj
             ["orogen_package", full_path]
         elsif File.file?(File.join(full_path, "Makefile.am"))
             toplevel_dir = find_topmost_directory_containing(full_path) do |dir|
-                configure_ac = File.join(dir, 'configure.ac')
-                configure_in = File.join(dir, 'configure.in')
+                configure_ac = File.join(dir, "configure.ac")
+                configure_in = File.join(dir, "configure.in")
                 File.file?(configure_ac) || File.file?(configure_in)
             end
-            ['autotools_package', toplevel_dir] if toplevel_dir
+            ["autotools_package", toplevel_dir] if toplevel_dir
         elsif File.file?(File.join(full_path, "configure.ac")) ||
               File.file?(File.join(full_path, "configure.in"))
-            ['autotools_package', full_path]
+            ["autotools_package", full_path]
         elsif File.file?(File.join(full_path, "CMakeLists.txt"))
             toplevel_dir = find_topmost_directory_containing(full_path) do |dir|
-                cmakelists = File.join(dir, 'CMakeLists.txt')
+                cmakelists = File.join(dir, "CMakeLists.txt")
                 File.file?(cmakelists) &&
                     (File.read(cmakelists) =~ /PROJECT/i)
             end
             toplevel_dir ||= find_topmost_directory_containing(
-                full_path, 'CMakeLists.txt')
+                full_path, "CMakeLists.txt"
+            )
 
-            manifest_xml = File.join(toplevel_dir, 'manifest.xml')
-            package_xml = File.join(toplevel_dir, 'package.xml')
+            manifest_xml = File.join(toplevel_dir, "manifest.xml")
+            package_xml = File.join(toplevel_dir, "package.xml")
             if File.file?(package_xml) && !File.file?(manifest_xml)
                 return "catkin_package", toplevel_dir
             end
@@ -145,9 +146,9 @@ module Autoproj
                       find_topmost_directory_containing(full_path, "lib/*.rb")))
 
             ["ruby_package", dir]
-        elsif (dir = (find_topmost_directory_containing(full_path, 'setup.py') ||
+        elsif (dir = (find_topmost_directory_containing(full_path, "setup.py") ||
                       find_topmost_directory_containing(full_path, pyglob)))
-            ['python_package', dir]
+            ["python_package", dir]
         end
     end
 end
@@ -161,7 +162,7 @@ end
 # Adds a new setup block to an existing package
 def setup_package(package_name, workspace: Autoproj.workspace, &block)
     unless block
-        raise Autoproj::ConfigError.new, 'you must give a block to #setup_package'
+        raise Autoproj::ConfigError.new, "you must give a block to #setup_package"
     end
 
     package_definition = workspace.manifest.find_package_definition(package_name)
@@ -197,9 +198,9 @@ end
 
 def python_package(name, workspace: Autoproj.workspace)
     package_common(:python, name, workspace: workspace) do |pkg|
-        pkg.internal_dependency 'python'
+        pkg.internal_dependency "python"
         pkg.post_import do
-            pkg.depends_on 'python-setuptools' if pkg.install_mode?
+            pkg.depends_on "python-setuptools" if pkg.install_mode?
         end
         yield(pkg) if block_given?
     end
@@ -207,9 +208,9 @@ end
 
 def common_make_default_test_task(pkg)
     unless pkg.test_utility.source_dir
-        test_dir = File.join(pkg.srcdir, 'test')
+        test_dir = File.join(pkg.srcdir, "test")
         if File.directory?(test_dir)
-            pkg.test_utility.source_dir = File.join(pkg.builddir, 'test', 'results')
+            pkg.test_utility.source_dir = File.join(pkg.builddir, "test", "results")
         end
     end
 
@@ -219,7 +220,7 @@ end
 def common_make_based_package_setup(pkg)
     unless pkg.has_doc? && pkg.doc_dir
         pkg.with_doc do
-            doc_html = File.join(pkg.builddir, 'doc', 'html')
+            doc_html = File.join(pkg.builddir, "doc", "html")
             pkg.doc_dir = doc_html if File.directory?(doc_html)
         end
     end
@@ -245,7 +246,7 @@ end
 # information.
 def cmake_package(name, workspace: Autoproj.workspace)
     package_common(:cmake, name, workspace: workspace) do |pkg|
-        pkg.depends_on 'cmake'
+        pkg.depends_on "cmake"
         common_make_based_package_setup(pkg)
         yield(pkg) if block_given?
     end
@@ -270,7 +271,7 @@ end
 # information.
 def autotools_package(name, workspace: Autoproj.workspace)
     package_common(:autotools, name, workspace: workspace) do |pkg|
-        pkg.depends_on 'autotools'
+        pkg.depends_on "autotools"
         common_make_based_package_setup(pkg)
         yield(pkg) if block_given?
     end
@@ -290,9 +291,9 @@ end
 
 def ruby_package_default_test_task(pkg)
     unless pkg.test_utility.source_dir
-        test_dir = File.join(pkg.srcdir, 'test')
+        test_dir = File.join(pkg.srcdir, "test")
         if File.directory?(test_dir)
-            pkg.test_utility.source_dir = File.join(pkg.srcdir, '.test-results')
+            pkg.test_utility.source_dir = File.join(pkg.srcdir, ".test-results")
             FileUtils.mkdir_p pkg.test_utility.source_dir
         end
     end
@@ -407,7 +408,8 @@ def not_on(*architectures)
 
     new_packages.each do |pkg_name|
         manifest.exclude_package(
-            pkg_name, "#{pkg_name} is disabled on this operating system")
+            pkg_name, "#{pkg_name} is disabled on this operating system"
+        )
     end
 end
 
@@ -497,8 +499,8 @@ def remove_from_default(*names)
 end
 
 def renamed_package(current_name, old_name, options)
-    explicit_selection = Autoproj.workspace.manifest.
-        explicitely_selected_in_layout?(old_name)
+    explicit_selection = Autoproj.workspace.manifest
+                                 .explicitely_selected_in_layout?(old_name)
     if options[:obsolete] && !explicit_selection
         import_package old_name
         Autoproj.workspace.manifest.exclude_package(

@@ -1,8 +1,8 @@
 # frozen_string_literal: false
 
-require 'open3'
-require 'pathname'
-require 'open-uri'
+require "open3"
+require "pathname"
+require "open-uri"
 
 module Autoproj
     module RepositoryManagers
@@ -13,14 +13,14 @@ module Autoproj
             attr_reader :sources_dir
             attr_reader :autoproj_sources
 
-            SOURCES_DIR = '/etc/apt'.freeze
-            SOURCE_TYPES = ['deb', 'deb-src'].freeze
-            AUTOPROJ_SOURCES = '/etc/apt/sources.list.d/autoproj.list'.freeze
+            SOURCES_DIR = "/etc/apt".freeze
+            SOURCE_TYPES = %w[deb deb-src].freeze
+            AUTOPROJ_SOURCES = "/etc/apt/sources.list.d/autoproj.list".freeze
 
             def initialize(ws, sources_dir: SOURCES_DIR, autoproj_sources: AUTOPROJ_SOURCES)
                 @sources_dir = sources_dir
                 @autoproj_sources = autoproj_sources
-                @source_files = Dir[File.join(sources_dir, '**', '*.list')]
+                @source_files = Dir[File.join(sources_dir, "**", "*.list")]
                 @source_entries = {}
 
                 source_files.each { |file| load_sources_from_file(file) }
@@ -28,7 +28,7 @@ module Autoproj
             end
 
             def os_dependencies
-                super + ['archive-keyring', 'gnupg', 'apt-transport-https']
+                super + %w[archive-keyring gnupg apt-transport-https]
             end
 
             def load_sources_from_file(file)
@@ -45,16 +45,16 @@ module Autoproj
                 entry = {}
                 entry[:valid] = false
                 entry[:enabled] = true
-                entry[:source] = ''
-                entry[:comment] = ''
+                entry[:source] = ""
+                entry[:comment] = ""
 
                 line.strip!
-                if line.start_with?('#')
+                if line.start_with?("#")
                     entry[:enabled] = false
                     line = line[1..-1]
                 end
 
-                i = line.index('#')
+                i = line.index("#")
                 if i&.positive?
                     entry[:comment] = line[(i + 1)..-1].strip
                     line = line[0..(i - 1)]
@@ -63,7 +63,7 @@ module Autoproj
                 entry[:source] = line.strip
                 chunks = entry[:source].split
                 entry[:valid] = true if SOURCE_TYPES.include?(chunks[0])
-                entry[:source] = chunks.join(' ')
+                entry[:source] = chunks.join(" ")
 
                 if raise_if_invalid && (!entry[:valid] || !entry[:enabled])
                     raise ConfigError, "Invalid source line: #{entry[:source]}"
@@ -74,7 +74,7 @@ module Autoproj
 
             def add_source(source, file = nil)
                 file = if file
-                           File.join(sources_dir, 'sources.list.d', file)
+                           File.join(sources_dir, "sources.list.d", file)
                        else
                            autoproj_sources
                        end
@@ -95,8 +95,8 @@ module Autoproj
 
             def append_entry(contents, entry)
                 unless entry[:enabled]
-                    contents << '#'
-                    contents << ' ' unless entry[:source].start_with?('#')
+                    contents << "#"
+                    contents << " " unless entry[:source].start_with?("#")
                 end
 
                 contents << entry[:source]
@@ -105,17 +105,17 @@ module Autoproj
             end
 
             def enable_entry_in_file(file, enable_entry)
-                contents = ''
+                contents = ""
                 source_entries[file].each do |entry|
                     entry[:enabled] = true if enable_entry[:source] == entry[:source]
                     append_entry(contents, entry)
                 end
-                run_tee_command(['sudo', 'tee', file], contents)
+                run_tee_command(["sudo", "tee", file], contents)
                 true
             end
 
             def add_entry_to_file(file, entry)
-                run_tee_command(['sudo', 'tee', '-a', file], entry[:source])
+                run_tee_command(["sudo", "tee", "-a", file], entry[:source])
                 @source_entries[file] ||= []
                 @source_entries[file] << entry
                 true
@@ -123,7 +123,7 @@ module Autoproj
 
             def run_tee_command(command, contents)
                 contents = StringIO.new("#{contents}\n")
-                Autobuild::Subprocess.run('autoproj', 'osrepos', *command, input_streams: [contents])
+                Autobuild::Subprocess.run("autoproj", "osrepos", *command, input_streams: [contents])
             end
 
             def entry_exist?(new_entry)
@@ -140,7 +140,7 @@ module Autoproj
 
             def key_exist?(key)
                 exist = false
-                Open3.popen3({'LANG' => 'C'}, 'apt-key', 'export', key) do |_, _, stderr, wait_thr|
+                Open3.popen3({ "LANG" => "C" }, "apt-key", "export", key) do |_, _, stderr, wait_thr|
                     success = wait_thr.value.success?
                     stderr = stderr.read
                     has_error = stderr.match(/WARNING: nothing exported/)
@@ -151,36 +151,36 @@ module Autoproj
 
             def apt_update
                 Autobuild::Subprocess.run(
-                    'autoproj',
-                    'osrepos',
-                    'sudo',
-                    'apt-get',
-                    'update'
+                    "autoproj",
+                    "osrepos",
+                    "sudo",
+                    "apt-get",
+                    "update"
                 )
             end
 
             def add_apt_key(id, origin, type: :keyserver)
                 if type == :keyserver
                     Autobuild::Subprocess.run(
-                        'autoproj',
-                        'osrepos',
-                        'sudo',
-                        'apt-key',
-                        'adv',
-                        '--keyserver',
+                        "autoproj",
+                        "osrepos",
+                        "sudo",
+                        "apt-key",
+                        "adv",
+                        "--keyserver",
                         origin,
-                        '--recv-key',
+                        "--recv-key",
                         id
                     )
                 else
                     open(origin) do |io|
                         Autobuild::Subprocess.run(
-                            'autoproj',
-                            'osrepos',
-                            'sudo',
-                            'apt-key',
-                            'add',
-                            '-',
+                            "autoproj",
+                            "osrepos",
+                            "sudo",
+                            "apt-key",
+                            "add",
+                            "-",
                             input_streams: [io]
                         )
                     end
@@ -191,24 +191,24 @@ module Autoproj
 
             def filter_installed_definitions(definitions)
                 definitions = definitions.dup.reject do |definition|
-                    if definition['type'] == 'repo'
-                        _, entry = source_exist?(definition['repo'])
+                    if definition["type"] == "repo"
+                        _, entry = source_exist?(definition["repo"])
                         entry && entry[:enabled]
                     else
-                        key_exist?(definition['id'])
+                        key_exist?(definition["id"])
                     end
                 end
                 definitions
             end
 
             def print_installing_definitions(definitions)
-                repos = definitions.select { |definition| definition['type'] == 'repo' }
-                keys = definitions.select { |definition| definition['type'] == 'key' }
+                repos = definitions.select { |definition| definition["type"] == "repo" }
+                keys = definitions.select { |definition| definition["type"] == "key" }
 
                 unless repos.empty?
-                    Autoproj.message '  adding apt repositories:'
+                    Autoproj.message "  adding apt repositories:"
                     repos.each do |repo|
-                        if repo['file']
+                        if repo["file"]
                             Autoproj.message "    #{repo['repo']}, file: #{repo['file']}"
                         else
                             Autoproj.message "    #{repo['repo']}"
@@ -217,9 +217,9 @@ module Autoproj
                 end
                 return if keys.empty?
 
-                Autoproj.message '  adding apt keys:'
+                Autoproj.message "  adding apt keys:"
                 keys.each do |key|
-                    if key['keyserver']
+                    if key["keyserver"]
                         Autoproj.message "    id: #{key['id']}, keyserver: #{key['keyserver']}"
                     else
                         Autoproj.message "    id: #{key['id']}, url: #{key['url']}"
@@ -249,26 +249,60 @@ module Autoproj
             #     url: 'http://packages.osrfoundation.org/gazebo.key'
             #
             def validate_definitions(definitions)
-                invalid_string = 'Invalid apt repository definition'
                 definitions.each do |definition|
-                    raise ConfigError, "#{invalid_string} type: #{definition['type']}" unless %w[repo key].include?(definition['type'])
-
-                    if definition['type'] == 'repo'
-                        raise ConfigError, "#{invalid_string}: 'repo' key missing" if definition['repo'].nil?
-                        raise ConfigError, "#{invalid_string}: 'repo' should be a String" unless definition['repo'].is_a?(String)
-                        raise ConfigError, "#{invalid_string}: 'file' should be a String" if definition['file'] && !definition['file'].is_a?(String)
-                        if definition['file'] && Pathname.new(definition['file']).absolute?
-                            raise ConfigError, "#{invalid_string}: 'file' should be a relative to #{File.join(SOURCES_DIR, 'sources.list.d')}"
-                        end
+                    case definition["type"]
+                    when "repo"
+                        validate_repo_definition(definition)
+                    when "key"
+                        validate_key_definition(definition)
                     else
-                        raise ConfigError, "#{invalid_string}: 'id' key missing" if definition['id'].nil?
-                        raise ConfigError, "#{invalid_string}: 'id' should be a String" unless definition['id'].is_a?(String)
-                        raise ConfigError, "#{invalid_string}: 'url' conflicts with 'keyserver'" if definition['url'] && definition['keyserver']
-                        raise ConfigError, "#{invalid_string}: 'url' should be a String" if definition['url'] && !definition['url'].is_a?(String)
-                        raise ConfigError, "#{invalid_string}: 'keyserver' should be a String" if definition['keyserver'] && !definition['keyserver'].is_a?(String)
+                        raise ConfigError,
+                              "#{INVALID_REPO_MESSAGE} type: #{definition['type']}"
                     end
                 end
             end
+
+            INVALID_REPO_MESSAGE = "Invalid apt repository definition".freeze
+
+            # rubocop:disable Style/GuardClause
+
+            def validate_repo_definition(definition)
+                if definition["repo"].nil?
+                    raise ConfigError, "#{INVALID_REPO_MESSAGE}: 'repo' key missing"
+                elsif !definition["repo"].is_a?(String)
+                    raise ConfigError,
+                          "#{INVALID_REPO_MESSAGE}: 'repo' should be a String"
+                elsif definition["file"] && !definition["file"].is_a?(String)
+                    raise ConfigError,
+                          "#{INVALID_REPO_MESSAGE}: 'file' should be a String"
+                elsif definition["file"] && Pathname.new(definition["file"]).absolute?
+                    raise ConfigError,
+                          "#{INVALID_REPO_MESSAGE}: 'file' should be relative "\
+                          "to #{File.join(SOURCES_DIR, 'sources.list.d')}"
+                end
+
+                nil
+            end
+
+            def validate_key_definition(definition)
+                if definition["id"].nil?
+                    raise ConfigError, "#{INVALID_REPO_MESSAGE}: 'id' key missing"
+                elsif !definition["id"].is_a?(String)
+                    raise ConfigError, "#{INVALID_REPO_MESSAGE}: 'id' should be a String"
+                elsif definition["url"] && definition["keyserver"]
+                    raise ConfigError,
+                          "#{INVALID_REPO_MESSAGE}: 'url' conflicts with 'keyserver'"
+                elsif definition["url"] && !definition["url"].is_a?(String)
+                    raise ConfigError, "#{INVALID_REPO_MESSAGE}: 'url' should be a String"
+                elsif definition["keyserver"] && !definition["keyserver"].is_a?(String)
+                    raise ConfigError,
+                          "#{INVALID_REPO_MESSAGE}: 'keyserver' should be a String"
+                end
+
+                nil
+            end
+
+            # rubocop:enable Style/GuardClause
 
             def install(definitions)
                 super
@@ -277,12 +311,12 @@ module Autoproj
                 print_installing_definitions(definitions)
 
                 definitions.each do |definition|
-                    if definition['type'] == 'repo'
-                        add_source(definition['repo'], definition['file'])
+                    if definition["type"] == "repo"
+                        add_source(definition["repo"], definition["file"])
                     else
-                        type = definition['url'] ? 'url' : 'keyserver'
+                        type = definition["url"] ? "url" : "keyserver"
                         origin = definition[type]
-                        add_apt_key(definition['id'], origin, type: type.to_sym)
+                        add_apt_key(definition["id"], origin, type: type.to_sym)
                     end
                 end
                 apt_update unless definitions.empty?

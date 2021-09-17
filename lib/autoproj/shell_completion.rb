@@ -1,5 +1,5 @@
-require 'autoproj/cli/main'
-require 'erb'
+require "autoproj/cli/main"
+require "erb"
 
 module Autoproj
     # Generates shell completion for code for a given Thor subclass
@@ -11,14 +11,15 @@ module Autoproj
         # A hash describing the CLI
         attr_reader :cli_metadata
 
-        TEMPLATES_DIR = File.join(File.dirname(__FILE__), 'templates')
+        TEMPLATES_DIR = File.join(File.dirname(__FILE__), "templates")
 
-        def initialize(name = 'autoproj', cli: Autoproj::CLI::Main, command: nil)
+        def initialize(name = "autoproj", cli: Autoproj::CLI::Main, command: nil)
             @cli = cli
             @name = name
 
             generate_metadata
             return unless command
+
             @cli_metadata = subcommand_by_name(*command)
             @cli_metadata[:name] = "__#{name}"
         end
@@ -48,8 +49,8 @@ module Autoproj
             # leaving disabled for now
             # TODO: log subcommand needs a custom completer,
             # leaving disabled for now
-            ['bootstrap', 'envsh', 'reconfigure', 'reset', 'log', 'query',
-             'switch-config', %w[global register], %w[global status],
+            ["bootstrap", "envsh", "reconfigure", "reset", "log", "query",
+             "switch-config", %w[global register], %w[global status],
              %w[plugin install], %w[plugin remove], %w[plugin list]].each do |command|
                 disable_completion(subcommand_by_name(*command))
             end
@@ -58,7 +59,7 @@ module Autoproj
         def generate
             template_file = File.join(TEMPLATES_DIR, self.class::MAIN_FUNCTION_TEMPLATE)
             erb = File.read(template_file)
-            ::ERB.new(erb, nil, '-').result(binding)
+            ::ERB.new(erb, nil, "-").result(binding)
         end
 
         def subcommand_by_name(*name, metadata: cli_metadata)
@@ -73,7 +74,7 @@ module Autoproj
         end
 
         def populate_help_subcommands(command_metadata = cli_metadata)
-            help_subcommand = subcommand_by_name('help',
+            help_subcommand = subcommand_by_name("help",
                                                  metadata: command_metadata)
 
             if help_subcommand
@@ -82,9 +83,11 @@ module Autoproj
             end
 
             command_metadata[:subcommands].each do |subcommand|
-                next if subcommand[:name] == 'help'
+                next if subcommand[:name] == "help"
+
                 populate_help_subcommands(subcommand)
                 next unless help_subcommand
+
                 help_subcommand[:subcommands] << { name: subcommand[:name],
                                                    aliases: [],
                                                    description: subcommand[:description],
@@ -98,17 +101,17 @@ module Autoproj
             source = []
 
             prefix = (prefix + [subcommand[:name]])
-            function_name = prefix.join('_')
+            function_name = prefix.join("_")
             depth = prefix.size + 1
 
             template_file = File.join(TEMPLATES_DIR, self.class::SUBCOMMAND_FUNCTION_TEMPLATE)
-            erb = ::ERB.new(File.read(template_file), nil, '-')
+            erb = ::ERB.new(File.read(template_file), nil, "-")
 
             source << erb.result(binding)
             subcommand[:subcommands].each do |subcommand|
                 source << render_subcommand_function(subcommand, prefix: prefix)
             end
-            source.join("\n").strip + "\n"
+            "#{source.join("\n").strip}\n"
         end
 
         def subcommand_metadata(cli)
@@ -158,7 +161,7 @@ module Autoproj
         end
 
         def hyphenate(s)
-            s.to_s.tr('_', '-')
+            s.to_s.tr("_", "-")
         end
     end
 end

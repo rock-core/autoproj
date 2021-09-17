@@ -1,5 +1,5 @@
-require 'autoproj/test'
-require 'set'
+require "autoproj/test"
+require "set"
 
 module Autoproj
     describe InstallationManifest do
@@ -19,7 +19,7 @@ module Autoproj
             pkg = @manifest.add_package(pkg_def)
             assert_equal "test", pkg.name
             assert_equal "Autobuild::CMake", pkg.type
-            assert_equal({ type: "git", url: "https://github.com/some/repo"},
+            assert_equal({ type: "git", url: "https://github.com/some/repo" },
                          pkg.vcs)
             assert_equal pkg.srcdir, pkg_def.autobuild.srcdir
             assert_equal pkg.importdir, pkg_def.autobuild.importdir
@@ -30,14 +30,15 @@ module Autoproj
         end
 
         it "registers a package set" do
+            options = {} # workaround 2.6 brokenness
             ws_set = ws_define_package_set(
-                "bla", VCSDefinition.from_raw({ type: 'git', url: "somewhere" }),
-                **{}
+                "bla", VCSDefinition.from_raw({ type: "git", url: "somewhere" }),
+                **options
             )
 
             pkg_set = @manifest.add_package_set(ws_set)
             assert_equal "bla", pkg_set.name
-            assert_equal({ type: "git", url: "somewhere"}, pkg_set.vcs)
+            assert_equal({ type: "git", url: "somewhere" }, pkg_set.vcs)
             assert_equal ws_set.raw_local_dir, pkg_set.raw_local_dir
             assert_equal ws_set.user_local_dir, pkg_set.user_local_dir
         end
@@ -50,9 +51,10 @@ module Autoproj
             )
             ws_resolve_vcs(pkg_def)
 
+            options = {} # Workaround 2.6 brokenness
             ws_set = ws_define_package_set(
-                "bla", VCSDefinition.from_raw({ type: 'git', url: "somewhere" }),
-                **{}
+                "bla", VCSDefinition.from_raw({ type: "git", url: "somewhere" }),
+                **options
             )
 
             @manifest.add_package_set(ws_set)
@@ -65,14 +67,14 @@ module Autoproj
 
             pkg_set = new_manifest.find_package_set_by_name("bla")
             assert_equal "bla", pkg_set.name
-            assert_equal({ type: "git", url: "somewhere"}, pkg_set.vcs)
+            assert_equal({ type: "git", url: "somewhere" }, pkg_set.vcs)
             assert_equal ws_set.raw_local_dir, pkg_set.raw_local_dir
             assert_equal ws_set.user_local_dir, pkg_set.user_local_dir
 
             pkg = new_manifest.find_package_by_name("test")
             assert_equal "test", pkg.name
             assert_equal "Autobuild::CMake", pkg.type
-            assert_equal({ type: "git", url: "https://github.com/some/repo"},
+            assert_equal({ type: "git", url: "https://github.com/some/repo" },
                          pkg.vcs)
             assert_equal pkg.srcdir, pkg_def.autobuild.srcdir
             assert_equal pkg.importdir, pkg_def.autobuild.importdir

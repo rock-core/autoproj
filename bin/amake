@@ -1,6 +1,6 @@
 #! /usr/bin/env ruby
 
-require 'autoproj/cli/main'
+require "autoproj/cli/main"
 
 argv = Autoproj::CLI.basic_setup
 class Amake < Autoproj::CLI::Main
@@ -10,10 +10,10 @@ class Amake < Autoproj::CLI::Main
 end
 
 begin
-    if argv.include?('--help') || argv.include?('help')
-        Amake.start(['help', 'build'])
+    if argv.include?("--help") || argv.include?("help")
+        Amake.start(%w[help build])
     else
-        Amake.start(['build', '--amake', *argv])
+        Amake.start(["build", "--amake", *argv])
     end
 rescue Interrupt
     # Already notified in the reporting infrastructure

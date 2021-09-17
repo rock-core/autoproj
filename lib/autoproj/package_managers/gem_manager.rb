@@ -27,29 +27,29 @@ module Autoproj
             # of GEM_PATH
             def initialize_environment
                 env = ws.env
-                env.original_env['GEM_PATH'] =
-                    (env['GEM_PATH'] || "").split(File::PATH_SEPARATOR).find_all do |p|
+                env.original_env["GEM_PATH"] =
+                    (env["GEM_PATH"] || "").split(File::PATH_SEPARATOR).find_all do |p|
                         !Autoproj.in_autoproj_installation?(p)
                     end.join(File::PATH_SEPARATOR)
-                env.inherit 'GEM_PATH'
-                env.init_from_env 'GEM_PATH'
+                env.inherit "GEM_PATH"
+                env.init_from_env "GEM_PATH"
 
-                orig_gem_path = env.original_env['GEM_PATH'].split(File::PATH_SEPARATOR)
-                env.system_env['GEM_PATH'] = Gem.default_path
-                env.original_env['GEM_PATH'] = orig_gem_path.join(File::PATH_SEPARATOR)
+                orig_gem_path = env.original_env["GEM_PATH"].split(File::PATH_SEPARATOR)
+                env.system_env["GEM_PATH"] = Gem.default_path
+                env.original_env["GEM_PATH"] = orig_gem_path.join(File::PATH_SEPARATOR)
 
                 ws.config.each_reused_autoproj_installation do |p|
-                    p_gems = File.join(p, '.gems')
+                    p_gems = File.join(p, ".gems")
                     if File.directory?(p_gems)
-                        env.push_path 'GEM_PATH', p_gems
-                        env.push_path 'PATH', File.join(p_gems, 'bin')
+                        env.push_path "GEM_PATH", p_gems
+                        env.push_path "PATH", File.join(p_gems, "bin")
                     end
                 end
 
-                @gem_home = (ENV['AUTOPROJ_GEM_HOME'] || File.join(ws.root_dir, ".gems"))
-                env.push_path 'GEM_PATH', gem_home
-                env.set 'GEM_HOME', gem_home
-                env.push_path 'PATH', "#{gem_home}/bin"
+                @gem_home = (ENV["AUTOPROJ_GEM_HOME"] || File.join(ws.root_dir, ".gems"))
+                env.push_path "GEM_PATH", gem_home
+                env.set "GEM_HOME", gem_home
+                env.push_path "PATH", "#{gem_home}/bin"
 
                 # Now, reset the directories in our own RubyGems instance
                 Gem.paths = env.resolved_env
@@ -59,47 +59,47 @@ module Autoproj
 
             # Override the gem home detected by {initialize_environment}, or set
             # it in cases where calling {initialize_environment} is not possible
-            def self.gem_home=(gem_home)
-                @gem_home = gem_home
+            class << self
+                attr_writer :gem_home
             end
 
             # A global cache directory that should be used to avoid
             # re-downloading gems
             def self.cache_dir
-                if dir = ENV['AUTOBUILD_CACHE_DIR']
-                    dir = File.join(dir, 'gems')
-                    FileUtils.mkdir_p dir
-                    dir
-                end
+                return unless (dir = ENV["AUTOBUILD_CACHE_DIR"])
+
+                dir = File.join(dir, "gems")
+                FileUtils.mkdir_p dir
+                dir
             end
 
             def self.use_cache_dir
                 # If there is a cache directory, make sure .gems/cache points to
                 # it (there are no programmatic ways to override this)
-                if cache = cache_dir
-                    gem_cache_dir = File.join(gem_home, 'cache')
-                    if !File.symlink?(gem_cache_dir) || File.readlink(gem_cache_dir) != cache
-                        FileUtils.mkdir_p gem_home
-                        FileUtils.rm_rf gem_cache_dir
-                        Autoproj.create_symlink(cache, gem_cache_dir)
-                    end
+                return unless (cache = cache_dir)
+
+                gem_cache_dir = File.join(gem_home, "cache")
+                if !File.symlink?(gem_cache_dir) || File.readlink(gem_cache_dir) != cache
+                    FileUtils.mkdir_p gem_home
+                    FileUtils.rm_rf gem_cache_dir
+                    Autoproj.create_symlink(cache, gem_cache_dir)
                 end
             end
 
             # Return the directory in which RubyGems package should be installed
-            def self.gem_home
-                @gem_home
+            class << self
+                attr_reader :gem_home
             end
 
             @gem_home = nil
-            
+
             # Returns the set of default options that are added to gem
             #
             # By default, we add --no-user-install to un-break distributions
             # like Arch that set --user-install by default (thus disabling the
             # role of GEM_HOME)
             def self.default_install_options
-                @default_install_options ||= ['--no-user-install', '--no-format-executable']
+                @default_install_options ||= ["--no-user-install", "--no-format-executable"]
             end
 
             def initialize(ws)
@@ -115,7 +115,7 @@ module Autoproj
             attr_reader :installed_gems
 
             def gem_fetcher
-                if !@gem_fetcher
+                unless @gem_fetcher
                     Autoproj.message "  looking for RubyGems updates"
                     @gem_fetcher = Gem::SpecFetcher.fetcher
                 end
@@ -123,35 +123,29 @@ module Autoproj
             end
 
             def guess_gem_program
-                if Autobuild.programs['gem']
-                    return Autobuild.programs['gem']
-                end
+                return Autobuild.programs["gem"] if Autobuild.programs["gem"]
 
-                ruby_bin = RbConfig::CONFIG['RUBY_INSTALL_NAME']
-                ruby_bindir = RbConfig::CONFIG['bindir']
+                ruby_bin = RbConfig::CONFIG["RUBY_INSTALL_NAME"]
+                ruby_bindir = RbConfig::CONFIG["bindir"]
 
-                candidates = ['gem']
-                if ruby_bin =~ /^ruby(.+)$/
-                    candidates << "gem#{$1}" 
-                end
+                candidates = ["gem"]
+                candidates << "gem#{$1}" if ruby_bin =~ /^ruby(.+)$/
 
                 candidates.each do |gem_name|
                     if File.file?(gem_full_path = File.join(ruby_bindir, gem_name))
-                        Autobuild.programs['gem'] = gem_full_path
+                        Autobuild.programs["gem"] = gem_full_path
                         return
                     end
                 end
 
-                raise ArgumentError, "cannot find a gem program (tried #{candidates.sort.join(", ")} in #{ruby_bindir})"
+                raise ArgumentError, "cannot find a gem program (tried #{candidates.sort.join(', ')} in #{ruby_bindir})"
             end
 
             def build_gem_cmdlines(gems)
                 with_version, without_version = gems.partition { |name, v| v }
 
                 cmdlines = []
-                if !without_version.empty?
-                    cmdlines << without_version.flatten
-                end
+                cmdlines << without_version.flatten unless without_version.empty?
                 with_version.each do |name, v|
                     cmdlines << [name, "-v", v]
                 end
@@ -160,17 +154,17 @@ module Autoproj
 
             def pristine(gems)
                 guess_gem_program
-                base_cmdline = [Autobuild.tool_in_path('ruby', env: ws.env), '-S', Autobuild.tool('gem')]
+                base_cmdline = [Autobuild.tool_in_path("ruby", env: ws.env), "-S", Autobuild.tool("gem")]
                 cmdlines = [
-                    [*base_cmdline, 'clean'],
+                    [*base_cmdline, "clean"]
                 ]
                 cmdlines += build_gem_cmdlines(gems).map do |line|
                     base_cmdline + ["pristine", "--extensions"] + line
                 end
                 if gems_interaction(gems, cmdlines)
-                    Autoproj.message "  restoring RubyGems: #{gems.map { |g| g.join(" ") }.sort.join(", ")}"
+                    Autoproj.message "  restoring RubyGems: #{gems.map { |g| g.join(' ') }.sort.join(', ')}"
                     cmdlines.each do |c|
-                        Autobuild::Subprocess.run 'autoproj', 'osdeps', *c
+                        Autobuild::Subprocess.run "autoproj", "osdeps", *c
                     end
                 end
             end
@@ -178,25 +172,21 @@ module Autoproj
             def install(gems)
                 guess_gem_program
 
-                base_cmdline = [Autobuild.tool_in_path('ruby', env: ws.env), '-S', Autobuild.tool('gem'), 'install', *GemManager.default_install_options]
-                if !GemManager.with_doc
-                    base_cmdline << '--no-rdoc' << '--no-ri'
-                end
+                base_cmdline = [Autobuild.tool_in_path("ruby", env: ws.env), "-S", Autobuild.tool("gem"), "install", *GemManager.default_install_options]
+                base_cmdline << "--no-rdoc" << "--no-ri" unless GemManager.with_doc
 
-                if GemManager.with_prerelease
-                    base_cmdline << "--prerelease"
-                end
+                base_cmdline << "--prerelease" if GemManager.with_prerelease
 
                 cmdlines = build_gem_cmdlines(gems).map do |line|
                     base_cmdline + line
                 end
                 if gems_interaction(gems, cmdlines)
-                    Autoproj.message "  installing/updating RubyGems dependencies: #{gems.map { |g| g.join(" ") }.sort.join(", ")}"
+                    Autoproj.message "  installing/updating RubyGems dependencies: #{gems.map { |g| g.join(' ') }.sort.join(', ')}"
 
                     cmdlines.each do |c|
-                        Autobuild::Subprocess.run 'autoproj', 'osdeps', *c,
-                            env: Hash['GEM_HOME' => Gem.paths.home,
-                                      'GEM_PATH' => Gem.paths.path.join(":")]
+                        Autobuild::Subprocess.run "autoproj", "osdeps", *c,
+                                                  env: Hash["GEM_HOME" => Gem.paths.home,
+                                                            "GEM_PATH" => Gem.paths.path.join(":")]
                     end
                     gems.each do |name, v|
                         installed_gems << name
@@ -209,14 +199,14 @@ module Autoproj
             # installed, or that can be upgraded
             def filter_uptodate_packages(gems, options = Hash.new)
                 options = validate_options options,
-                    install_only: !Autobuild.do_update
+                                           install_only: !Autobuild.do_update
 
                 # Don't install gems that are already there ...
                 gems = gems.dup
                 gems.delete_if do |name, version|
                     next(true) if installed_gems.include?(name)
 
-                    version_requirements = Gem::Requirement.new(version || '>= 0')
+                    version_requirements = Gem::Requirement.new(version || ">= 0")
                     installed =
                         if Gem::Specification.respond_to?(:find_by_name)
                             begin
@@ -238,8 +228,8 @@ module Autoproj
                                     prerelease = gem_fetcher.find_matching(dep, false, true, true).map(&:first)
                                 else prerelease = Array.new
                                 end
-                                (non_prerelease + prerelease).
-                                    map { |n, v, _| [n, v] }
+                                (non_prerelease + prerelease)
+                                    .map { |n, v, _| [n, v] }
 
                             else # Post RubyGems-2.0
                                 type = if GemManager.with_prerelease then :complete
@@ -252,7 +242,7 @@ module Autoproj
                             end
                         installed_version = installed.map(&:version).max
                         available_version = available.map { |_, v| v }.max
-                        if !available_version
+                        unless available_version
                             if version
                                 raise ConfigError.new, "cannot find any gem with the name '#{name}' and version #{version}"
                             else
@@ -288,22 +278,22 @@ module Autoproj
                 # We're not supposed to install rubygem packages but silent is not
                 # set, so display information about them anyway
                 puts <<-EOMSG
-      #{Autoproj.color("The build process and/or the packages require some Ruby Gems to be installed", :bold)}
-      #{Autoproj.color("and you required autoproj to not do it itself", :bold)}
+      #{Autoproj.color('The build process and/or the packages require some Ruby Gems to be installed', :bold)}
+      #{Autoproj.color('and you required autoproj to not do it itself', :bold)}
         You can use the --all or --ruby options to autoproj osdeps to install these
         packages anyway, and/or change to the osdeps handling mode by running an
         autoproj operation with the --reconfigure option as for instance
         autoproj build --reconfigure
-        
+      #{'  '}
         The following command line can be used to install them manually
-        
-          #{cmdlines.map { |c| c.join(" ") }.join("\n      ")}
-        
+      #{'  '}
+          #{cmdlines.map { |c| c.join(' ') }.join("\n      ")}
+      #{'  '}
         Autoproj expects these Gems to be installed in #{GemManager.gem_home} This can
         be overridden by setting the AUTOPROJ_GEM_HOME environment variable manually
 
                 EOMSG
-                print "    #{Autoproj.color("Press ENTER to continue ", :bold)}"
+                print "    #{Autoproj.color('Press ENTER to continue ', :bold)}"
 
                 STDOUT.flush
                 STDIN.readline
@@ -313,4 +303,3 @@ module Autoproj
         end
     end
 end
-

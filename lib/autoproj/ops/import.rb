@@ -94,7 +94,7 @@ module Autoproj
             end
 
             def post_package_import(selection, manifest, pkg, reverse_dependencies,
-                                    auto_exclude: auto_exclude?)
+                auto_exclude: auto_exclude?)
                 Rake::Task["#{pkg.name}-import"]
                     .instance_variable_set(:@already_invoked, true)
                 if pkg.checked_out?
@@ -172,35 +172,35 @@ module Autoproj
             #   allowed. Set to zero for no retry
             # @param [Hash] import_options options passed to {Autobuild::Importer#import}
             def queue_import_work(executor, completion_queue, pkg,
-                                  retry_count: nil, **import_options)
-                import_future = Concurrent::Future
-                                .new(executor: executor, args: [pkg]) do |import_pkg|
-                    ## COMPLETELY BYPASS RAKE HERE
-                    # The reason is that the ordering of import/prepare between
-                    # packages is not important BUT the ordering of import vs.
-                    # prepare in one package IS important: prepare is the method
-                    # that takes into account dependencies.
-                    import_pkg.autobuild.importer.retry_count = retry_count if retry_count
-                    import_pkg.autobuild.import(**import_options)
-                end
-                import_future.add_observer do |time, result, reason|
+                retry_count: nil, **import_options)
+                import_future =
+                    Concurrent::Promises.future_on(executor) do
+                        ## COMPLETELY BYPASS RAKE HERE
+                        # The reason is that the ordering of import/prepare between
+                        # packages is not important BUT the ordering of import vs.
+                        # prepare in one package IS important: prepare is the method
+                        # that takes into account dependencies.
+                        pkg.autobuild.importer.retry_count = retry_count if retry_count
+                        pkg.autobuild.import(**import_options)
+                    end
+
+                import_future.on_resolution! do |time, result, reason|
                     completion_queue << [pkg, time, result, reason]
                 end
-                import_future.execute
             end
 
             # Import all packages from the given selection, and their
             # dependencies
             def import_selected_packages(selection,
-                                         parallel: ws.config.parallel_import_level,
-                                         recursive: true,
-                                         retry_count: nil,
-                                         keep_going: false,
-                                         install_vcs_packages: Hash.new,
-                                         non_imported_packages: :checkout,
-                                         auto_exclude: auto_exclude?,
-                                         filter: ->(package) { true },
-                                         **import_options)
+                parallel: ws.config.parallel_import_level,
+                recursive: true,
+                retry_count: nil,
+                keep_going: false,
+                install_vcs_packages: Hash.new,
+                non_imported_packages: :checkout,
+                auto_exclude: auto_exclude?,
+                filter: ->(package) { true },
+                **import_options)
 
                 unless %i[checkout ignore return].include?(non_imported_packages)
                     raise ArgumentError, "invalid value for 'non_imported_packages'. "\
@@ -234,7 +234,7 @@ module Autoproj
 
                 failures = Array.new
                 missing_vcs = Array.new
-                installed_vcs_packages = Set['none', 'local']
+                installed_vcs_packages = Set["none", "local"]
                 while failures.empty? || keep_going
                     # Allow 'filter' to parallelize as well
                     if filter.respond_to?(:lookahead)
@@ -288,7 +288,8 @@ module Autoproj
                             queue_import_work(
                                 executor, completion_queue, pkg,
                                 retry_count: retry_count,
-                                **import_options.merge(allow_interactive: false))
+                                **import_options.merge(allow_interactive: false)
+                            )
                         rescue Exception
                             pending_packages.delete(pkg)
                             raise
@@ -301,8 +302,8 @@ module Autoproj
                             installed_vcs_packages.merge(
                                 install_vcs_packages_for(
                                     *missing_vcs,
-                                     install_only: import_options[:checkout_only],
-                                     **install_vcs_packages
+                                    install_only: import_options[:checkout_only],
+                                    **install_vcs_packages
                                 )
                             )
                             package_queue.concat(missing_vcs)
@@ -317,17 +318,17 @@ module Autoproj
                             break
                         else
                             main_thread_imports.delete_if do |pkg|
-                                # rubocop:disable Lint/HandleExceptions
                                 begin
                                     if retry_count
                                         pkg.autobuild.importer.retry_count = retry_count
                                     end
                                     result = pkg.autobuild.import(
-                                        **import_options.merge(allow_interactive: true))
+                                        **import_options.merge(allow_interactive: true)
+                                    )
                                 rescue StandardError => e
                                 end
-                                completion_queue << [pkg, Time.now, result, e]
-                                # rubocop:enable Lint/HandleExceptions
+                                completion_queue << [pkg,
+                                                     Time.now, result, e]
                             end
                         end
                     end
@@ -341,7 +342,8 @@ module Autoproj
                         elsif auto_exclude
                             manifest.add_exclusion(
                                 pkg.name, "#{pkg.name} failed to import with "\
-                                          "#{reason} and auto_exclude was true")
+                                          "#{reason} and auto_exclude was true"
+                            )
                             selection.filter_excluded_and_ignored_packages(manifest)
                         else
                             # One importer failed... terminate
@@ -352,7 +354,8 @@ module Autoproj
                     else
                         new_packages = post_package_import(
                             selection, manifest, pkg, reverse_dependencies,
-                            auto_exclude: auto_exclude)
+                            auto_exclude: auto_exclude
+                        )
                         if new_packages
                             # Excluded dependencies might have caused the package to be
                             # excluded as well ... do not add any dependency to the
@@ -382,8 +385,8 @@ module Autoproj
             end
 
             def finalize_package_load(processed_packages,
-                                      ignore_optional_dependencies: false,
-                                      auto_exclude: auto_exclude?)
+                ignore_optional_dependencies: false,
+                auto_exclude: auto_exclude?)
                 manifest = ws.manifest
 
                 all = Set.new
@@ -411,7 +414,8 @@ module Autoproj
                             manifest.exclude_package(
                                 pkg.name, "#{pkg.name} had an error when "\
                                           "being loaded (#{e.message}) and "\
-                                          "auto_exclude is true")
+                                          "auto_exclude is true"
+                            )
                             next
                         end
                     end
@@ -436,15 +440,15 @@ module Autoproj
             end
 
             def import_packages(selection,
-                                non_imported_packages: :checkout,
-                                warn_about_ignored_packages: true,
-                                warn_about_excluded_packages: true,
-                                recursive: true,
-                                keep_going: false,
-                                install_vcs_packages: Hash.new,
-                                auto_exclude: auto_exclude?,
-                                filter: ->(pkg) { true },
-                                **import_options)
+                non_imported_packages: :checkout,
+                warn_about_ignored_packages: true,
+                warn_about_excluded_packages: true,
+                recursive: true,
+                keep_going: false,
+                install_vcs_packages: Hash.new,
+                auto_exclude: auto_exclude?,
+                filter: ->(pkg) { true },
+                **import_options)
 
                 manifest = ws.manifest
 
@@ -456,7 +460,8 @@ module Autoproj
                     install_vcs_packages: install_vcs_packages,
                     auto_exclude: auto_exclude,
                     filter: filter,
-                    **import_options)
+                    **import_options
+                )
 
                 raise failures.first if !keep_going && !failures.empty?
 
@@ -492,9 +497,10 @@ module Autoproj
                 if !failures.empty?
                     raise PackageImportFailed.new(
                         failures, source_packages: all_enabled_sources,
-                                  osdep_packages: all_enabled_osdeps)
+                                  osdep_packages: all_enabled_osdeps
+                    )
                 else
-                    return all_enabled_sources, all_enabled_osdeps
+                    [all_enabled_sources, all_enabled_osdeps]
                 end
             ensure
                 create_report(all_processed_packages || []) if @report_path
@@ -503,7 +509,8 @@ module Autoproj
                              Autoproj::Ops::Snapshot.update_log_available?(manifest)
                 if update_log
                     update_log_for_processed_packages(
-                        all_processed_packages || Array.new, $!)
+                        all_processed_packages || Array.new, $!
+                    )
                 end
             end
 
@@ -529,11 +536,11 @@ module Autoproj
                 end
 
                 report = JSON.pretty_generate({
-                    import_report: {
-                        timestamp: Time.now,
-                        packages: packages
-                    }
-                })
+                                                  import_report: {
+                                                      timestamp: Time.now,
+                                                      packages: packages
+                                                  }
+                                              })
                 IO.write(@report_path, report)
             end
 
@@ -544,13 +551,12 @@ module Autoproj
 
                 unless all_updated_packages.empty?
                     failure_message =
-                        if exception
-                            " (#{exception.message.split("\n").first})"
-                        end
+                        (" (#{exception.message.split("\n").first})" if exception)
                     ops = Ops::Snapshot.new(ws.manifest, keep_going: true)
                     ops.update_package_import_state(
                         "#{$0} #{ARGV.join(' ')}#{failure_message}",
-                        all_updated_packages.map(&:name))
+                        all_updated_packages.map(&:name)
+                    )
                 end
             end
         end

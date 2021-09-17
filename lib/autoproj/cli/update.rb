@@ -1,7 +1,7 @@
-require 'autoproj/cli'
-require 'autoproj/cli/base'
-require 'autoproj/cli/status'
-require 'autoproj/ops/import'
+require "autoproj/cli"
+require "autoproj/cli/base"
+require "autoproj/cli/status"
+require "autoproj/ops/import"
 
 module Autoproj
     module CLI
@@ -9,13 +9,11 @@ module Autoproj
             def validate_options(selection, options)
                 selection, options = super
 
-                if from = options[:from]
+                if (from = options[:from])
                     options[:from] = Autoproj::InstallationManifest.from_workspace_root(from)
                 end
 
-                if options[:no_deps_shortcut]
-                    options[:deps] = false
-                end
+                options[:deps] = false if options[:no_deps_shortcut]
 
                 if options[:aup] && !options[:config] && !options[:all] && selection.empty?
                     if Dir.pwd == ws.root_dir
@@ -25,12 +23,10 @@ module Autoproj
                     end
                 end
 
-                if options.delete(:force_reset)
-                    options[:reset] = :force
-                end
+                options[:reset] = :force if options.delete(:force_reset)
 
-                if mainline = options[:mainline]
-                    if mainline == 'mainline' || mainline == 'true'
+                if (mainline = options[:mainline])
+                    if mainline == "mainline" || mainline == "true"
                         options[:mainline] = true
                     end
                 end
@@ -64,7 +60,7 @@ module Autoproj
                 options[:autoproj] = update_autoproj
                 options[:config]   = update_config
                 options[:packages] = update_packages
-                return selection, options
+                [selection, options]
             end
 
             def run(selected_packages, run_hook: false, report: true, ask: false, **options)
@@ -91,9 +87,7 @@ module Autoproj
                         retry_count: options[:retry_count]
                     )
                 rescue ImportFailed => configuration_import_failure
-                    if !options[:keep_going]
-                        raise
-                    end
+                    raise unless options[:keep_going]
                 ensure
                     ws.config.save
                 end
@@ -104,14 +98,16 @@ module Autoproj
                 else
                     ws.setup_all_package_directories
                     ws.finalize_package_setup
-                    command_line_selection, selected_packages = [], PackageSelection.new
+                    command_line_selection = []
+                    selected_packages = PackageSelection.new
                 end
 
                 osdeps_options = normalize_osdeps_options(
                     checkout_only: options[:checkout_only],
                     osdeps_mode: options[:osdeps_mode],
                     osdeps: options[:osdeps],
-                    osdeps_filter_uptodate: options[:osdeps_filter_uptodate])
+                    osdeps_filter_uptodate: options[:osdeps_filter_uptodate]
+                )
 
                 source_packages, osdep_packages, import_failure =
                     update_packages(
@@ -128,7 +124,8 @@ module Autoproj
                         retry_count: options[:retry_count],
                         auto_exclude: options[:auto_exclude],
                         ask: ask,
-                        report: report)
+                        report: report
+                    )
 
                 ws.finalize_setup
                 ws.export_installation_manifest
@@ -141,12 +138,12 @@ module Autoproj
                 if run_hook
                     if options[:osdeps]
                         CLI::Main.run_post_command_hook(:update, ws,
-                            source_packages: source_packages,
-                            osdep_packages: osdep_packages)
+                                                        source_packages: source_packages,
+                                                        osdep_packages: osdep_packages)
                     else
                         CLI::Main.run_post_command_hook(:update, ws,
-                            source_packages: source_packages,
-                            osdep_packages: [])
+                                                        source_packages: source_packages,
+                                                        osdep_packages: [])
                     end
                 end
 
@@ -162,7 +159,7 @@ module Autoproj
                     end
                 end
 
-                return command_line_selection, source_packages, osdep_packages
+                [command_line_selection, source_packages, osdep_packages]
             end
 
             def finish_loading_configuration(selected_packages)
@@ -173,7 +170,7 @@ module Autoproj
                 # overrides.rb files might have changed it
                 ws.finalize_package_setup
                 # Finally, filter out exclusions
-                resolved_selected_packages, _ =
+                resolved_selected_packages, =
                     resolve_user_selection(selected_packages)
                 validate_user_selection(selected_packages, resolved_selected_packages)
 
@@ -182,12 +179,13 @@ module Autoproj
                 else
                     command_line_selection = Array.new
                 end
-                return command_line_selection, resolved_selected_packages
+                [command_line_selection, resolved_selected_packages]
             end
 
             def normalize_osdeps_options(
                 checkout_only: false, osdeps: true, osdeps_mode: nil,
-                osdeps_filter_uptodate: true)
+                osdeps_filter_uptodate: true
+            )
 
                 osdeps_options = Hash[install_only: checkout_only]
                 if osdeps_mode
@@ -218,7 +216,7 @@ module Autoproj
                     clean = !status.unexpected &&
                             (status.sync || (status.local && !status.remote))
                     if clean
-                        msg = Autobuild.color('already up-to-date', :green)
+                        msg = Autobuild.color("already up-to-date", :green)
                         pkg.autobuild.message "#{msg} %s"
                         return false
                     end
@@ -230,7 +228,7 @@ module Autoproj
                 end
 
                 def lookahead(pkg)
-                    @futures[pkg] = Concurrent::Future.execute(executor: @executor) do
+                    @futures[pkg] = Concurrent::Promises.future_on(@executor) do
                         Status.status_of_package(
                             pkg, snapshot: false, only_local: @only_local
                         )
@@ -257,9 +255,10 @@ module Autoproj
                     end
 
                 ops = Autoproj::Ops::Import.new(
-                    ws, report_path: (ws.import_report_path if report))
+                    ws, report_path: (ws.import_report_path if report)
+                )
                 source_packages, osdep_packages =
-                        ops.import_packages(selected_packages,
+                    ops.import_packages(selected_packages,
                                         checkout_only: checkout_only,
                                         only_local: only_local,
                                         reset: reset,
@@ -284,7 +283,7 @@ module Autoproj
             def setup_update_from(other_root)
                 manifest.each_autobuild_package do |pkg|
                     if pkg.importer.respond_to?(:pick_from_autoproj_root)
-                        if !pkg.importer.pick_from_autoproj_root(pkg, other_root)
+                        unless pkg.importer.pick_from_autoproj_root(pkg, other_root)
                             pkg.update = false
                         end
                     else
@@ -295,4 +294,3 @@ module Autoproj
         end
     end
 end
-
