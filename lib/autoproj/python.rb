@@ -168,18 +168,18 @@ module Autoproj
             end
         end
 
-        def self.remove_python_shims(root_dir)
-            shim_path = File.join(root_dir, "install", "bin", "python")
+        def self.remove_python_shims(prefix_dir)
+            shim_path = File.join(prefix_dir, "bin", "python")
             FileUtils.rm shim_path if File.exist?(shim_path)
         end
 
-        def self.remove_pip_shims(root_dir)
-            shim_path = File.join(root_dir, "install", "bin", "pip")
+        def self.remove_pip_shims(prefix_dir)
+            shim_path = File.join(prefix_dir, "bin", "pip")
             FileUtils.rm shim_path if File.exist?(shim_path)
         end
 
-        def self.rewrite_python_shims(python_executable, root_dir)
-            shim_path = File.join(root_dir, "install", "bin")
+        def self.rewrite_python_shims(python_executable, prefix_dir)
+            shim_path = File.join(prefix_dir, "bin")
             unless File.exist?(shim_path)
                 FileUtils.mkdir_p shim_path
                 Autoproj.warn "Autoproj::Python.rewrite_python_shims: creating "\
@@ -196,8 +196,8 @@ module Autoproj
             python_path
         end
 
-        def self.rewrite_pip_shims(python_executable, root_dir)
-            shim_path = File.join(root_dir, "install", "bin")
+        def self.rewrite_pip_shims(python_executable, prefix_dir)
+            shim_path = File.join(prefix_dir, "bin")
             unless File.exist?(shim_path)
                 FileUtils.mkdir_p shim_path
                 Autoproj.warn "Autoproj::Python.rewrite_pip_shims: creating "\
@@ -224,14 +224,14 @@ module Autoproj
 
             ws.osdep_suffixes << "python#{$1}" if version =~ /^([0-9]+)\./
 
-            rewrite_python_shims(bin, ws.root_dir)
-            rewrite_pip_shims(bin, ws.root_dir)
+            rewrite_python_shims(bin, ws.prefix_dir)
+            rewrite_pip_shims(bin, ws.prefix_dir)
             [bin, version]
         end
 
         def self.deactivate_python(ws: Autoproj.workspace)
-            remove_python_shims(ws.root_dir)
-            remove_pip_shims(ws.root_dir)
+            remove_python_shims(ws.prefix_dir)
+            remove_pip_shims(ws.prefix_dir)
             ws.config.reset("python_executable")
             ws.config.reset("python_version")
         end
@@ -267,8 +267,8 @@ module Autoproj
 
             if ws.config.get("USE_PYTHON")
                 unless ws.config.has_value_for?("python_executable")
-                    remove_python_shims(ws.root_dir)
-                    remove_pip_shims(ws.root_dir)
+                    remove_python_shims(ws.prefix_dir)
+                    remove_pip_shims(ws.prefix_dir)
                     python_bin, = auto_resolve_python(ws: ws)
                 end
 
