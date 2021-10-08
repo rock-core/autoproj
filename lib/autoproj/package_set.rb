@@ -793,6 +793,23 @@ module Autoproj
             vcs
         end
 
+        # Recursively resolve imports for a given package set
+        def self.resolve_imports(pkg_set, parents = Set.new)
+            return Set.new if pkg_set.imports.empty?
+
+            updated_parents = parents | [pkg_set]
+
+            imports = pkg_set.imports.dup
+            pkg_set.imports.each do |p|
+                if parents.include?(p)
+                    raise "Cycling dependency between package sets encountered:" \
+                          "#{p.name} <--> #{pkg_set.name}"
+                end
+                imports.merge(resolve_imports(p, updated_parents))
+            end
+            imports
+        end
+
         # Enumerates the Autobuild::Package instances that are defined in this
         # source
         def each_package

@@ -4,6 +4,54 @@ module Autoproj
         # NOTE: indentation is wrong to let git track the history properly
         #+++
 
+        # Comparator can be used to compare the list of package sets
+        # so that they can be sorted according to the following constraints:
+        # 1. dependencies among the package sets
+        # 2. order in which they are defined in the main configuration (manifest)
+        #
+        # Note that 1. naturally always takes precedence over 2. since 2.
+        # only affects a sorting of package sets that have no dependency
+        class Comparator
+            attr_reader :imports_of, :main_imports
+
+            def initialize(package_sets, root_pkg_set)
+                @imports_of = Hash.new
+                package_sets.each do |p|
+                    @imports_of[p] = PackageSet.resolve_imports(p)
+                end
+                root_pkg_set.imports.each do |p|
+                    @imports_of[p] = PackageSet.resolve_imports(p)
+                end
+
+                @main_imports = root_pkg_set.imports.to_a
+            end
+
+            def validate_import_order(pkg_set)
+                imports = pkg_set.imports.to_a
+                until imports.empty?
+                    pkg_set = imports.shift
+                    imports.each do |p|
+                        if @imports_of[pkg_set].include?(p)
+                            raise "PackageSet '#{pkg_set.name}' depends on '#{p.name}', "\
+                                  "but is listed before it in the manifest"
+                        end
+                    end
+                end
+            end
+
+            def compare(pkgset_a, pkgset_b)
+                return 0 if pkgset_a == pkgset_b
+                return 1 if imports_of[pkgset_a].include?(pkgset_b)
+                return -1 if imports_of[pkgset_b].include?(pkgset_a)
+
+                # Check manifest precedence for pkgset_a != pkgset_b
+                return 0 unless main_imports.include?(pkgset_a)
+                return 0 unless main_imports.include?(pkgset_b)
+
+                main_imports.index(pkgset_a) <=> main_imports.index(pkgset_b)
+            end
+        end
+
         # Implementation of the operations to manage the configuration
         class Configuration
             attr_reader :ws
@@ -160,7 +208,6 @@ module Autoproj
             def load_package_set(vcs, options, imported_from)
                 pkg_set = PackageSet.new(ws, vcs)
                 pkg_set.auto_imports = options[:auto_imports]
-                ws.load_if_present(pkg_set, pkg_set.local_dir, "init.rb")
                 pkg_set.load_description_file
                 if imported_from
                     pkg_set.imported_from << imported_from
@@ -314,58 +361,24 @@ module Autoproj
                 to_s
             end
 
+            # Sort the package sets by dependency order
+            # Package sets that have no dependencies come first,
+            # the local package set (by main configuration) last
             def sort_package_sets_by_import_order(package_sets, root_pkg_set)
-                # The sorting is done in two steps:
-                #  - first, we build a topological order of the package sets
-                #  - then, we insert the auto-imported packages, following this
-                #    topological order, in the user-provided order. Each package is
-                #    considered in turn, and added at the earliest place that fits
-                #    the dependencies
-                topological = Array.new
-                queue = (package_sets.to_a + [root_pkg_set]).uniq
-                until queue.empty?
-                    last_size = queue.size
-                    pending = queue.dup
-                    queue = Array.new
-                    until pending.empty?
-                        pkg_set = pending.shift
-                        if pkg_set.imports.any? { |imported_set| !topological.include?(imported_set) }
-                            queue.push(pkg_set)
-                        else
-                            topological << pkg_set
-                        end
-                    end
-                    if queue.size == last_size
-                        raise ArgumentError, "cannot resolve the dependencies between package sets. There seem to be a cycle amongst #{queue.map(&:name).sort.join(', ')}"
-                    end
+                c = Comparator.new(package_sets, root_pkg_set)
+                unordered_pkg_sets = package_sets + [root_pkg_set]
+                sorted_pkg_sets = unordered_pkg_sets.uniq.sort do |a, b|
+                    c.compare(a, b)
                 end
 
-                result = root_pkg_set.imports.to_a.dup
-                to_insert = topological.dup
-                                       .find_all { |p| !result.include?(p) }
-                until to_insert.empty?
-                    pkg_set = to_insert.shift
-                    dependencies = pkg_set.imports.dup
-                    if dependencies.empty?
-                        result.unshift(pkg_set)
-                    else
-                        i = result.find_index do |p|
-                            dependencies.delete(p)
-                            dependencies.empty?
-                        end
-                        result.insert(i + 1, pkg_set)
-                    end
+                if sorted_pkg_sets.last != root_pkg_set
+                    raise InternalError, "Failed to sort the package sets: the " \
+                                         "root package set should be last, but is not #{sorted_pkg_sets.map(&:name)}"
                 end
 
-                # Sanity check related to the root package set
-                # - it should be last
-                # - it should be present only once
-                if result.last != root_pkg_set
-                    sorted_list = result.collect {|p| p.name }
-                    raise InternalError, "failed to sort the package sets: the root package set should be last, but is not #{sorted_list}"
-                end
+                c.validate_import_order(root_pkg_set)
 
-                result
+                sorted_pkg_sets
             end
 
             def load_package_sets(
@@ -624,6 +637,7 @@ module Autoproj
                 package_sets = sort_package_sets_by_import_order(package_sets, root_pkg_set)
                 ws.manifest.reset_package_sets
                 package_sets.each do |pkg_set|
+                    ws.load_if_present(pkg_set, pkg_set.local_dir, "init.rb")
                     ws.manifest.register_package_set(pkg_set)
                 end
                 failures

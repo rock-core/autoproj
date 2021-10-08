@@ -37,15 +37,34 @@ module Autoproj
                 Autobuild.silent = true
             end
 
+            describe "#cyclic_dependencies_of_package_sets" do
+                it "should raise on detecting cyclic depenencies between package sets" do
+                    pkg_set_c = flexmock("set_c", imports: Set.new([]), name: "set_c", explicit?: true)
+                    pkg_set_b = flexmock("set_b", imports: Set.new([pkg_set_c]), name: "set_b", explicit?: true)
+                    pkg_set_a = flexmock("set_a", imports: Set.new([pkg_set_b]), name: "set_a", explicit?: true)
+
+                    pkg_set_c.imports << pkg_set_a
+                    flexmock("root", imports: Set.new([pkg_set_a, pkg_set_c]), name: "main configuration", explicit?: true)
+                    assert_raises(RuntimeError) do
+                        PackageSet.resolve_imports(pkg_set_c)
+                    end
+                end
+            end
+
             describe "#sort_package_sets_by_import_order" do
                 it "should handle standalone package sets that are both explicit and dependencies of other package sets gracefully (issue#30)" do
-                    pkg_set_c = flexmock("set_c", imports: [], name: "set_c", explicit?: true)
-                    pkg_set_b = flexmock("set_b", imports: [pkg_set_c], name: "set_b", explicit?: true)
-                    pkg_set_a = flexmock("set_a", imports: [pkg_set_b], name: "set_a", explicit?: true)
+                    pkg_set_c = flexmock("set_c", imports: Set.new([]), name: "set_c", explicit?: true)
+                    pkg_set_b = flexmock("set_b", imports: Set.new([pkg_set_c]), name: "set_b", explicit?: true)
+                    pkg_set_a = flexmock("set_a", imports: Set.new([pkg_set_b]), name: "set_a", explicit?: true)
 
-                    root_pkg_set = flexmock("root", imports: [pkg_set_a, pkg_set_c], name: "main configuration", explicit?: true)
+                    root_pkg_set = flexmock("root", imports: Set.new([pkg_set_c, pkg_set_a]), name: "main configuration", explicit?: true)
                     assert_equal [pkg_set_c, pkg_set_b, pkg_set_a, root_pkg_set],
                                  ops.sort_package_sets_by_import_order([root_pkg_set, pkg_set_a, pkg_set_b, pkg_set_c], root_pkg_set)
+
+                    root_pkg_set = flexmock("root", imports: Set.new([pkg_set_a, pkg_set_c]), name: "main configuration", explicit?: true)
+                    assert_raises(RuntimeError) do
+                        ops.sort_package_sets_by_import_order([root_pkg_set, pkg_set_a, pkg_set_b, pkg_set_c], root_pkg_set)
+                    end
                 end
             end
 
