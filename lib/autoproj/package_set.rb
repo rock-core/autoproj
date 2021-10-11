@@ -421,7 +421,8 @@ module Autoproj
                 source_definition.merge!(newdefs) do |k, old, new|
                     if old.respond_to?(:to_ary)
                         old + new
-                    else new
+                    else
+                        new
                     end
                 end
             end
