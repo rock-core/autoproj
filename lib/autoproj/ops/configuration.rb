@@ -361,7 +361,8 @@ module Autoproj
                 # - it should be last
                 # - it should be present only once
                 if result.last != root_pkg_set
-                    raise InternalError, "failed to sort the package sets: the root package set should be last, but is not"
+                    sorted_list = result.collect {|p| p.name }
+                    raise InternalError, "failed to sort the package sets: the root package set should be last, but is not #{sorted_list}"
                 end
 
                 result

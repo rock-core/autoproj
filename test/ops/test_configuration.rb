@@ -39,11 +39,13 @@ module Autoproj
 
             describe "#sort_package_sets_by_import_order" do
                 it "should handle standalone package sets that are both explicit and dependencies of other package sets gracefully (issue#30)" do
-                    pkg_set0 = flexmock("set0", imports: [], explicit?: true)
-                    pkg_set1 = flexmock("set1", imports: [pkg_set0], explicit?: true)
-                    root_pkg_set = flexmock("root", imports: [pkg_set0, pkg_set1], explicit?: true)
-                    assert_equal [pkg_set0, pkg_set1, root_pkg_set],
-                                 ops.sort_package_sets_by_import_order([root_pkg_set, pkg_set1, pkg_set0], root_pkg_set)
+                    pkg_set_c = flexmock("set_c", imports: [], name: "set_c", explicit?: true)
+                    pkg_set_b = flexmock("set_b", imports: [pkg_set_c], name: "set_b", explicit?: true)
+                    pkg_set_a = flexmock("set_a", imports: [pkg_set_b], name: "set_a", explicit?: true)
+
+                    root_pkg_set = flexmock("root", imports: [pkg_set_a, pkg_set_c], name: "main configuration", explicit?: true)
+                    assert_equal [pkg_set_c, pkg_set_b, pkg_set_a, root_pkg_set],
+                                 ops.sort_package_sets_by_import_order([root_pkg_set, pkg_set_a, pkg_set_b, pkg_set_c], root_pkg_set)
                 end
             end
 
