@@ -9,7 +9,7 @@ module Autoproj
                 @ws = ws_create
                 @ws.os_package_resolver.load_default
                 flexmock(@pkg)
-                @pkg.prefix = "/tmp/install/foo/"
+                @pkg.prefix = File.join(@ws.prefix_dir, "foo")
                 @env = flexmock(base: Autobuild::Environment)
 
                 @test_python = File.join(Dir.tmpdir, "test-python")
