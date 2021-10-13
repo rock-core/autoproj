@@ -44,24 +44,6 @@ module Autoproj
             parse_source_definition(source_definition)
         end
 
-        # Load the files in overrides.d in addition to the overrides: field in
-        # the yaml file
-        def load_overrides(source_definition)
-            files = Dir.glob(File.join(ws.overrides_dir, "*.yml")).sort
-            overrides = files.map do |file|
-                source_data = Autoproj.in_file(file, Autoproj::YAML_LOAD_ERROR) do
-                    YAML.load(File.read(file)) || Array.new
-                end
-                source_data =
-                    if source_data.respond_to?(:to_ary)
-                        source_data
-                    else source_data["overrides"] || Hash.new
-                    end
-                [file, source_data]
-            end
-            overrides + super
-        end
-
         def raw_description_file
             description = Hash[
                 "imports" => Array.new,

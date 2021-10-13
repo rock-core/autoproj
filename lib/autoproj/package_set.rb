@@ -421,7 +421,8 @@ module Autoproj
                 source_definition.merge!(newdefs) do |k, old, new|
                     if old.respond_to?(:to_ary)
                         old + new
-                    else new
+                    else
+                        new
                     end
                 end
             end
@@ -510,9 +511,52 @@ module Autoproj
             parse_source_definition(source_definition)
         end
 
+        # Load the files in overrides.d and in source.yml overrides
         def load_overrides(source_definition)
+            overrides = []
             if (data = source_definition["overrides"])
-                [[source_file, data]]
+                overrides << [source_file, data]
+            end
+
+            pkgset_overrides_dir = File.join(raw_local_dir, "overrides.d")
+            return overrides unless File.exist?(pkgset_overrides_dir)
+
+            overrides += load_overrides_from_dir(pkgset_overrides_dir)
+
+            # operating system is, for instance,
+            # [["ubuntu", "debian"], ["18.04", "18.04.4", "lts", "bionic", "beaver", "default"]]
+
+            ws.operating_system[0].each do |release_name|
+                distribution_overrides_dir = File.join(pkgset_overrides_dir, release_name)
+                if File.exist?(distribution_overrides_dir)
+                    overrides += load_overrides_from_dir(distribution_overrides_dir)
+                end
+
+                ws.operating_system[1].each do |release_version|
+                    distribution_version_overrides_dir = File.join(pkgset_overrides_dir, release_name, release_version)
+                    if File.exist?(distribution_version_overrides_dir)
+                        overrides += load_overrides_from_dir(distribution_version_overrides_dir)
+                    end
+                end
+            end
+
+            overrides
+        end
+
+        # Load the override files from a given directory
+        def load_overrides_from_dir(dir)
+            files = Dir.glob(File.join(dir, "*.yml")).sort
+            files.map do |file|
+                source_data = Autoproj.in_file(file, Autoproj::YAML_LOAD_ERROR) do
+                    YAML.load(File.read(file)) || Array.new
+                end
+                source_data =
+                    if source_data.respond_to?(:to_ary)
+                        source_data
+                    else
+                        source_data["overrides"] || Hash.new
+                    end
+                [file, source_data]
             end
         end
 
