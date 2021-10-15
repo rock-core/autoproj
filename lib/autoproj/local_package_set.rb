@@ -55,7 +55,8 @@ module Autoproj
                 source_data =
                     if source_data.respond_to?(:to_ary)
                         source_data
-                    else source_data["overrides"] || Hash.new
+                    else
+                        source_data["overrides"] || Hash.new
                     end
                 [file, source_data]
             end

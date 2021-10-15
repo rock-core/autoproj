@@ -25,9 +25,11 @@ module Autoproj
                 short_doc
             elsif (doc = options[:doc])
                 if doc.respond_to?(:to_ary) then doc.first
-                else doc
+                else
+                    doc
                 end
-            else "#{name} (no documentation for this option)"
+            else
+                "#{name} (no documentation for this option)"
             end
         end
 

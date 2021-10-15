@@ -494,7 +494,8 @@ module Autoproj
             options =
                 if args.last.kind_of?(Hash)
                     args.pop
-                else Hash.new
+                else
+                    Hash.new
                 end
             options_env = options.fetch(:env, Hash.new)
             options[:env] = env.resolved_env.merge(options_env)
@@ -693,7 +694,8 @@ module Autoproj
             layout =
                 if config.randomize_layout?
                     Digest::SHA256.hexdigest(pkg_name)[0, 12]
-                else manifest.whereis(pkg_name)
+                else
+                    manifest.whereis(pkg_name)
                 end
 
             srcdir =

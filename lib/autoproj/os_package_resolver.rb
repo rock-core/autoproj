@@ -15,7 +15,8 @@ module Autoproj
             error_t =
                 if defined? Psych::SyntaxError
                     [ArgumentError, Psych::SyntaxError]
-                else ArgumentError
+                else
+                    ArgumentError
                 end
 
             result = new(**options)
@@ -352,7 +353,8 @@ module Autoproj
                 managers =
                     if manager == "macos-port"
                         [manager, "port"]
-                    else [manager]
+                    else
+                        [manager]
                     end
                 [[*managers, "darwin"], [version.strip]]
             elsif Autobuild.windows?
@@ -693,7 +695,8 @@ module Autoproj
             found =
                 if nonexistent then FOUND_NONEXISTENT
                 elsif found then FOUND_PACKAGES
-                else false
+                else
+                    false
                 end
 
             [found, result]

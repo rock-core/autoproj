@@ -55,14 +55,16 @@ module Autoproj
                     packages_to_rebuild =
                         if options[:deps] || command_line_selection.empty?
                             source_packages
-                        else command_line_selection
+                        else
+                            command_line_selection
                         end
 
                     if command_line_selection.empty?
                         # If we don't have an explicit package selection, we want to
                         # make sure that the user really wants this
                         mode_name = if build_options[:rebuild] then "rebuild"
-                                    else "force-build"
+                                    else
+                                        "force-build"
                                     end
                         if build_options[:confirm] != false
                             opt = BuildOption.new(

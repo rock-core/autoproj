@@ -241,13 +241,15 @@ module Autoproj
                     return [] if log && log != "import"
 
                     name = if pkg_set then pkg_set.name
-                           else "autoproj main configuration"
+                           else
+                               "autoproj main configuration"
                            end
 
                     import_log = File.join(ws.log_dir, "#{name}-import.log")
                     if File.file?(import_log)
                         [import_log]
-                    else []
+                    else
+                        []
                     end
                 else
                     pkg = resolve_package(selection)

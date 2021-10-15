@@ -148,7 +148,8 @@ module Autoproj
 
                         title = if first
                                     "first match: in #{entry_name}"
-                                else "overriden in #{entry_name}"
+                                else
+                                    "overriden in #{entry_name}"
                                 end
                         first = false
                         fragments << [title, vcs_to_array(entry.vcs)]
@@ -253,7 +254,8 @@ module Autoproj
                     next if pkg_type != :package
 
                     path = if pkg_name == from then []
-                           else [pkg_name]
+                           else
+                               [pkg_name]
                            end
 
                     pkg = ws.manifest.find_autobuild_package(pkg_name)

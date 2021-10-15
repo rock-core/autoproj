@@ -111,7 +111,8 @@ module Autoproj
                 user_install_cmd: self.user_install_cmd)
                 if user_install_cmd
                     generate_script(user_install_cmd, os_packages)
-                else generate_auto_os_script(os_packages)
+                else
+                    generate_auto_os_script(os_packages)
                 end
             end
 

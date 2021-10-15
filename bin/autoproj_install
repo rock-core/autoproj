@@ -329,19 +329,22 @@ module Autoproj
                     opt.on "--[no-]color", "do not use colored output (enabled by "\
                         "default if the terminal supports it)" do |color|
                         if color then @autoproj_options << "--color"
-                        else @autoproj_options << "--no-color"
+                        else
+                            @autoproj_options << "--no-color"
                         end
                     end
                     opt.on "--[no-]progress", "do not use progress output (enabled by "\
                         "default if the terminal supports it)" do |progress|
                         if progress then @autoproj_options << "--progress"
-                        else @autoproj_options << "--no-progress"
+                        else
+                            @autoproj_options << "--no-progress"
                         end
                     end
                     opt.on "--[no-]interactive", "if non-interactive, use default "\
                            "answer for questions" do |flag|
                         if flag then @autoproj_options << "--interactive"
-                        else @autoproj_options << "--no-interactive"
+                        else
+                            @autoproj_options << "--no-interactive"
                         end
                     end
                 end

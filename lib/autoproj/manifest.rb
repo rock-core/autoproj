@@ -562,7 +562,8 @@ module Autoproj
             package_set = _package_set || package_set || package.package_set
             mainline = if mainline == true
                            package_set
-                       else mainline
+                       else
+                           mainline
                        end
 
             # package_name is already validated, do not re-validate
@@ -606,7 +607,8 @@ module Autoproj
                 package_mainline =
                     if mainline == true
                         pkg.package_set
-                    else mainline
+                    else
+                        mainline
                     end
                 vcs = importer_definition_for(pkg, mainline: package_mainline)
 

@@ -107,7 +107,8 @@ module Autoproj
                     flags = []
                     %i[color progress debug interactive].each do |option|
                         if options[option] then flags << "--#{option}"
-                        else flags << "--no-#{option}"
+                        else
+                            flags << "--no-#{option}"
                         end
                     end
                     flags

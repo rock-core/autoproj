@@ -359,7 +359,8 @@ def only_on(*architectures)
     architectures = architectures.map do |name|
         if name.respond_to?(:to_str)
             [name]
-        else name
+        else
+            name
         end
     end
 
@@ -384,7 +385,8 @@ def not_on(*architectures)
     architectures = architectures.map do |name|
         if name.respond_to?(:to_str)
             [name]
-        else name
+        else
+            name
         end
     end
 
