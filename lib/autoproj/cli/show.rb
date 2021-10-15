@@ -72,11 +72,11 @@ module Autoproj
                 if (overrides_key = pkg_set.vcs.overrides_key)
                     puts "  overrides key: pkg_set:#{overrides_key}"
                 end
-                if pkg_set.raw_local_dir != pkg_set.user_local_dir
+                if pkg_set.raw_local_dir == pkg_set.user_local_dir
+                    puts "  path: #{pkg_set.raw_local_dir}"
+                else
                     puts "  checkout dir: #{pkg_set.raw_local_dir}"
                     puts "  symlinked to: #{pkg_set.user_local_dir}"
-                else
-                    puts "  path: #{pkg_set.raw_local_dir}"
                 end
 
                 puts "  version control information:"

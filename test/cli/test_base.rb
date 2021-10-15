@@ -127,7 +127,7 @@ module Autoproj
                             selection, = base.resolve_user_selection([package_relative_path])
                         end
                         assert_equal "auto-adding #{package_path}"\
-                            " using the cmake package handler", out.strip
+                                     " using the cmake package handler", out.strip
                         assert_equal "", err
                         assert_equal ["path/to/package"], selection.each_source_package_name.to_a
                         autobuild_package = ws.manifest.find_autobuild_package("path/to/package")

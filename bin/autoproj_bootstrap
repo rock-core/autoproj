@@ -90,9 +90,9 @@ module Autoproj
 
                 if config["ruby_executable"] != Gem.ruby
                     raise "this autoproj installation was already bootstrapped using "\
-                        "#{config['ruby_executable']}, but you are currently running "\
-                        "under #{Gem.ruby}. Changing the ruby interpreter in a given "\
-                        "workspace is not supported, you need to do a clean bootstrap"
+                          "#{config['ruby_executable']}, but you are currently running "\
+                          "under #{Gem.ruby}. Changing the ruby interpreter in a given "\
+                          "workspace is not supported, you need to do a clean bootstrap"
                 end
                 @ruby_executable = config["ruby_executable"]
                 @local = false
@@ -254,7 +254,7 @@ module Autoproj
                     end
                 end
                 raise ArgumentError, "cannot find a gem program "\
-                    "(tried #{candidates.sort.join(', ')} in #{ruby_bindir})"
+                                     "(tried #{candidates.sort.join(', ')} in #{ruby_bindir})"
             end
 
             # The content of the default {#gemfile}
@@ -286,28 +286,28 @@ module Autoproj
                         @autoproj_options << "--debug"
                     end
                     opt.on "--gem-source=URL", String, "use this source for RubyGems "\
-                        "instead of rubygems.org" do |url|
+                                                       "instead of rubygems.org" do |url|
                         @gem_source = url
                     end
                     opt.on "--gems-path=PATH", "install gems under this path instead "\
-                        "of ~/.autoproj/gems" do |path|
+                                               "of ~/.autoproj/gems" do |path|
                         self.gems_install_path = path
                     end
                     opt.on "--public-gems", "install gems in the default gem location" do
                         install_gems_in_gem_user_dir
                     end
                     opt.on "--bundler-version=VERSION_CONSTRAINT", String, "use the provided "\
-                        "string as a version constraint for bundler" do |version|
+                                                                           "string as a version constraint for bundler" do |version|
                         @config["bundler_version"] = version
                     end
                     opt.on "--version=VERSION_CONSTRAINT", String, "use the provided "\
-                        "string as a version constraint for autoproj" do |version|
+                                                                   "string as a version constraint for autoproj" do |version|
                         raise "cannot give both --version and --gemfile" if @gemfile
 
                         @gemfile = default_gemfile_contents(version)
                     end
                     opt.on "--gemfile=PATH", String, "use the given Gemfile to install "\
-                        "autoproj instead of the default" do |path|
+                                                     "autoproj instead of the default" do |path|
                         raise "cannot give both --version and --gemfile" if @gemfile
 
                         @gemfile = File.read(path)
@@ -318,30 +318,30 @@ module Autoproj
                         @config.clear
                     end
                     opt.on "--seed-config=PATH", String, "path to a seed file that "\
-                        "should be used to initialize the configuration" do |path|
+                                                         "should be used to initialize the configuration" do |path|
                         add_seed_config(path)
                     end
                     opt.on "--prefer-os-independent-packages", "prefer OS-independent "\
-                        "packages (such as a RubyGem) over their OS-packaged equivalent "\
-                        "(e.g. the thor gem vs. the ruby-thor debian package)" do
+                                                               "packages (such as a RubyGem) over their OS-packaged equivalent "\
+                                                               "(e.g. the thor gem vs. the ruby-thor debian package)" do
                         @prefer_indep_over_os_packages = true
                     end
                     opt.on "--[no-]color", "do not use colored output (enabled by "\
-                        "default if the terminal supports it)" do |color|
+                                           "default if the terminal supports it)" do |color|
                         if color then @autoproj_options << "--color"
                         else
                             @autoproj_options << "--no-color"
                         end
                     end
                     opt.on "--[no-]progress", "do not use progress output (enabled by "\
-                        "default if the terminal supports it)" do |progress|
+                                              "default if the terminal supports it)" do |progress|
                         if progress then @autoproj_options << "--progress"
                         else
                             @autoproj_options << "--no-progress"
                         end
                     end
                     opt.on "--[no-]interactive", "if non-interactive, use default "\
-                           "answer for questions" do |flag|
+                                                 "answer for questions" do |flag|
                         if flag then @autoproj_options << "--interactive"
                         else
                             @autoproj_options << "--no-interactive"
@@ -428,7 +428,7 @@ module Autoproj
                     bundler_path
                 else
                     STDERR.puts "gem install bundler returned successfully, but still "\
-                        "cannot find bundler in #{gems_gem_home}"
+                                "cannot find bundler in #{gems_gem_home}"
                     nil
                 end
             end
@@ -725,9 +725,9 @@ require 'bundler/setup'
                 if (current = config["ruby_executable"]) # When upgrading or reinstalling
                     if current != ruby_executable
                         raise "this workspace has already been initialized using "\
-                        "#{current}, you cannot run autoproj install with "\
-                        "#{ruby_executable}. If you know what you're doing, "\
-                        "delete the ruby_executable line in config.yml and try again"
+                              "#{current}, you cannot run autoproj install with "\
+                              "#{ruby_executable}. If you know what you're doing, "\
+                              "delete the ruby_executable line in config.yml and try again"
                     end
                 else
                     config["ruby_executable"] = ruby_executable
@@ -787,7 +787,7 @@ require 'bundler/setup'
                 puts "running 'autoproj envsh' to generate a proper env.sh"
                 unless system(Gem.ruby, autoproj_path, "envsh", *@autoproj_options)
                     STDERR.puts "failed to run autoproj envsh on the newly installed "\
-                        "autoproj (#{autoproj_path})"
+                                "autoproj (#{autoproj_path})"
                     exit 1
                 end
                 # This is really needed on an existing install to install the
@@ -795,7 +795,7 @@ require 'bundler/setup'
                 puts "running 'autoproj osdeps' to re-install missing gems"
                 unless system(Gem.ruby, autoproj_path, "osdeps", *@autoproj_options)
                     STDERR.puts "failed to run autoproj osdeps on the newly installed "\
-                        "autoproj (#{autoproj_path})"
+                                "autoproj (#{autoproj_path})"
                     exit 1
                 end
             end

@@ -16,10 +16,12 @@ module Autoproj
                     File.join("..", "..", "bin"), __dir__
                 )
                 gemfile = generate_local_gemfile
-                run_command_and_stop "#{Gem.ruby} "\
+                run_command_and_stop(
+                    "#{Gem.ruby} "\
                     "#{File.join(@autoproj_bin_dir, 'autoproj_install')} "\
                     "--no-interactive --gemfile=#{gemfile}",
-                                     exit_timeout: 120
+                    exit_timeout: 120
+                )
                 @bundle_bin = File.join(expand_path("."),
                                         ".autoproj", "bin", "bundle")
                 @autoproj_bin = File.join(expand_path("."),

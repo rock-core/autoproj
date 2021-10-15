@@ -71,7 +71,7 @@ module Autoproj
                                 "", "boolean",
                                 {
                                     doc: "this is going to trigger a #{mode_name} "\
-                                        "of all packages. Is that really what you want ?"
+                                         "of all packages. Is that really what you want ?"
                                 }, nil
                             )
                             raise Interrupt unless opt.ask(false)

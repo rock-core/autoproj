@@ -133,7 +133,7 @@ module Autoproj
             return if obj.is_a?(type)
 
             raise ArgumentError, "invalid osrepos definition in #{path.join('/')}: "\
-                "expected a #{type}, found a #{obj.class}"
+                                 "expected a #{type}, found a #{obj.class}"
         end
     end
 end

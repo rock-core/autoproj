@@ -221,10 +221,10 @@ module Autoproj
                     next(line) unless (m = line.match(/BUNDLE_BUILD__(.*): "(.*)"$/))
                     next unless (desired_config = build_config.delete(m[1]))
 
-                    if m[2] != desired_config
-                        "BUNDLE_BUILD__#{m[1]}: \"#{desired_config}\""
-                    else
+                    if m[2] == desired_config
                         line
+                    else
+                        "BUNDLE_BUILD__#{m[1]}: \"#{desired_config}\""
                     end
                 end.compact
 
@@ -393,12 +393,12 @@ module Autoproj
                     gems_remotes |= bundler_def.send(:sources).rubygems_remotes.to_set
                     bundler_def.dependencies.each do |d|
                         d.groups.each do |group_name|
-                            if !d.platforms.empty?
+                            if d.platforms.empty?
+                                dependencies[group_name][""][d.name] = d
+                            else
                                 d.platforms.each do |platform_name|
                                     dependencies[group_name][platform_name][d.name] = d
                                 end
-                            else
-                                dependencies[group_name][""][d.name] = d
                             end
                         end
                     end

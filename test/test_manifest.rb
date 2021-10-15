@@ -702,7 +702,7 @@ module Autoproj
                     manifest.load_package_manifest(pkg)
                 end
                 assert_equal "test from pkg_set has use_package_xml set, but the package"\
-                    " has no package.xml file", e.message
+                             " has no package.xml file", e.message
             end
             it "does not raise if use_package_xml is set but package is not checked out" do
                 flexmock(pkg.autobuild).should_receive(:checked_out?).and_return(false)
@@ -729,17 +729,17 @@ module Autoproj
                 manifest.load_package_manifest(pkg)
             end
             it "adds a reference to the manifest file in the error message "\
-                "if it refers to a package that does not exist" do
+               "if it refers to a package that does not exist" do
                 manifest_path = ws_create_package_file pkg, "manifest.xml",
                                                        "<package><depend package=\"dependency\" /></package>"
                 e = assert_raises(PackageNotFound) do
                     manifest.load_package_manifest(pkg)
                 end
                 assert_equal "manifest #{manifest_path} of test from pkg_set lists "\
-                    "'dependency' as dependency, but it is neither a normal package "\
-                    "nor an osdeps package. osdeps reports: cannot resolve "\
-                    "dependency: dependency is not an osdep and it cannot be "\
-                    "resolved as a source package", e.message
+                             "'dependency' as dependency, but it is neither a normal package "\
+                             "nor an osdeps package. osdeps reports: cannot resolve "\
+                             "dependency: dependency is not an osdep and it cannot be "\
+                             "resolved as a source package", e.message
             end
         end
 

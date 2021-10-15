@@ -167,7 +167,13 @@ module Autoproj
                 parallel: ws.config.parallel_import_level,
                 snapshot: false, only_local: false, progress: nil
             )
-                return enum_for(__method__) unless block_given?
+                unless block_given?
+                    return enum_for(
+                        __method__, packages,
+                        parallel: parallel, snapshot: snapshot, only_local: only_local,
+                        progress: progress
+                    )
+                end
 
                 result = StatusResult.new
 

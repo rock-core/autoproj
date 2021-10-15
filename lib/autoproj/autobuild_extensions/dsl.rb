@@ -68,8 +68,8 @@ module Autoproj
     def self.define(package_type, spec, &block)
         Autoproj.warn_deprecated(
             __method__, "use Autoproj.workspace.define_package "\
-            "instead (and beware that the return value changed from "\
-            "Autobuild::Package to Autoproj::PackageDefinition)"
+                        "instead (and beware that the return value changed from "\
+                        "Autobuild::Package to Autoproj::PackageDefinition)"
         )
         workspace.define_package(package_type, spec, block, *current_file)
                  .autobuild
@@ -183,7 +183,7 @@ def package_common(package_type, spec, workspace: Autoproj.workspace, &block)
         current_file = workspace.current_file[1]
         old_file     = existing_package.file
         Autoproj.warn "#{package_name} from #{current_file} is overridden "\
-            "by the definition in #{old_file}"
+                      "by the definition in #{old_file}"
         return existing_package.autobuild
     end
 

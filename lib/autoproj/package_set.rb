@@ -538,8 +538,8 @@ module Autoproj
                 @imports_vcs = Array(new_imports).map do |set_def|
                     if !set_def.kind_of?(Hash) && !set_def.respond_to?(:to_str)
                         raise ConfigError.new(source_file), "in #{source_file}: "\
-                            "wrong format for 'imports' section. Expected an array of "\
-                            "maps or strings (e.g. - github: my/url)."
+                                                            "wrong format for 'imports' section. Expected an array of "\
+                                                            "maps or strings (e.g. - github: my/url)."
                     end
 
                     Autoproj.in_file(source_file) do
@@ -631,7 +631,18 @@ module Autoproj
                 end
 
                 spec = spec.dup
-                if spec.values.size != 1
+                if spec.values.size == 1
+                    name, spec = spec.to_a.first
+                    if spec.respond_to?(:to_str)
+                        if spec == "none"
+                            spec = Hash["type" => "none"]
+                        else
+                            raise ConfigError.new, "invalid VCS specification in the #{section_name} section of #{file}: '#{name}: #{spec}'. One can only use this shorthand to declare the absence of a VCS with the 'none' keyword"
+                        end
+                    elsif !spec.kind_of?(Hash)
+                        raise InvalidYAMLFormatting, "expected '#{name}:' followed by version control options, but got nothing, in the #{spec_nth} entry of the #{section_name} section of #{file}"
+                    end
+                else
                     # Maybe the user wrote the spec like
                     #   - package_name:
                     #     type: git
@@ -644,17 +655,6 @@ module Autoproj
                         spec.delete(name)
                     else
                         raise InvalidYAMLFormatting, "cannot make sense of the #{spec_nth} entry in the #{section_name} section of #{file}: #{spec}"
-                    end
-                else
-                    name, spec = spec.to_a.first
-                    if spec.respond_to?(:to_str)
-                        if spec == "none"
-                            spec = Hash["type" => "none"]
-                        else
-                            raise ConfigError.new, "invalid VCS specification in the #{section_name} section of #{file}: '#{name}: #{spec}'. One can only use this shorthand to declare the absence of a VCS with the 'none' keyword"
-                        end
-                    elsif !spec.kind_of?(Hash)
-                        raise InvalidYAMLFormatting, "expected '#{name}:' followed by version control options, but got nothing, in the #{spec_nth} entry of the #{section_name} section of #{file}"
                     end
                 end
 

@@ -12,10 +12,10 @@ module Autoproj
                 `LANG=C rpm -q --whatprovides '#{packages.join("' '")}'`
                 has_all_pkgs = $?.success?
 
-                if !has_all_pkgs
-                    packages # let zypper filter, we need root now anyways
-                else
+                if has_all_pkgs
                     []
+                else
+                    packages # let zypper filter, we need root now anyways
                 end
             end
 

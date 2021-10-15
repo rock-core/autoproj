@@ -103,8 +103,10 @@ module Autoproj
                     rescue StandardError => e
                         raise unless auto_exclude
 
-                        manifest.add_exclusion(pkg.name, "#{pkg.name} failed to import "\
-                            "with #{e} and auto_exclude was true")
+                        manifest.add_exclusion(
+                            pkg.name, "#{pkg.name} failed to import "\
+                                      "with #{e} and auto_exclude was true"
+                        )
                     end
                 end
 
@@ -494,13 +496,13 @@ module Autoproj
                     end
                 end
 
-                if !failures.empty?
+                if failures.empty?
+                    [all_enabled_sources, all_enabled_osdeps]
+                else
                     raise PackageImportFailed.new(
                         failures, source_packages: all_enabled_sources,
                                   osdep_packages: all_enabled_osdeps
                     )
-                else
-                    [all_enabled_sources, all_enabled_osdeps]
                 end
             ensure
                 create_report(all_processed_packages || []) if @report_path
@@ -535,13 +537,15 @@ module Autoproj
                     }
                 end
 
-                report = JSON.pretty_generate({
-                                                  import_report: {
-                                                      timestamp: Time.now,
-                                                      packages: packages
-                                                  }
-                                              })
-                IO.write(@report_path, report)
+                report = JSON.pretty_generate(
+                    {
+                        import_report: {
+                            timestamp: Time.now,
+                            packages: packages
+                        }
+                    }
+                )
+                File.write(@report_path, report)
             end
 
             def update_log_for_processed_packages(all_processed_packages, exception)

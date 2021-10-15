@@ -16,8 +16,8 @@ module Autoproj
                     File.join("..", "..", "bin"), __dir__
                 )
                 run_command_and_stop "#{Gem.ruby} "\
-                    "#{File.join(@autoproj_bin_dir, 'autoproj_install')} "\
-                    "--no-interactive --gemfile '#{gemfile_aruba}'",
+                                     "#{File.join(@autoproj_bin_dir, 'autoproj_install')} "\
+                                     "--no-interactive --gemfile '#{gemfile_aruba}'",
                                      exit_timeout: 120
                 @autoproj_bin = File.join(expand_path("."),
                                           ".autoproj", "bin", "autoproj")

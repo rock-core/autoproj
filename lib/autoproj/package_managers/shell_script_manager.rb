@@ -8,8 +8,8 @@ module Autoproj
                     File.open("/tmp/autoproj_osdeps_lock", "w") do |lock_io|
                         until lock_io.flock(File::LOCK_EX | File::LOCK_NB)
                             Autoproj.message "  waiting for other autoproj "\
-                                                "instances to finish their osdeps "\
-                                                "installation"
+                                             "instances to finish their osdeps "\
+                                             "installation"
                             sleep 5
                         end
                         return execute(command_line, false, with_root, env: env)

@@ -88,7 +88,7 @@ module Autoproj
                 validate_user_selection(user_selection, resolved_selection)
                 if package_names.empty?
                     raise CLIInvalidArguments, "autoproj: the provided package "\
-                        "is not selected for build"
+                                               "is not selected for build"
                 end
                 return if package_names.empty?
 

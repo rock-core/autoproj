@@ -591,16 +591,16 @@ The format is a string in which special values can be expanded using a $VARNAME 
             desc "exec", "runs a command, applying the workspace's environment first"
             option :chdir, type: :string, default: nil,
                            desc: "change to this directory first. This is interpreted relatively "\
-                      "to the folder specified by --package (if given)"
+                                 "to the folder specified by --package (if given)"
             option :package, type: :string, default: nil,
                              desc: "interpret --chdir with respect to a package directory (or, "\
-                      "if --chdir is not given, chdir to the package directory). Use "\
-                      "PACKAGE or srcdir:PACKAGE for the source dir, builddir:PACKAGE "\
-                      "for the build dir and prefix:PACKAGE for the prefix. If --chdir "\
-                      "is not given, autoproj will chdir to this folder"
+                                   "if --chdir is not given, chdir to the package directory). Use "\
+                                   "PACKAGE or srcdir:PACKAGE for the source dir, builddir:PACKAGE "\
+                                   "for the build dir and prefix:PACKAGE for the prefix. If --chdir "\
+                                   "is not given, autoproj will chdir to this folder"
             option :use_cache, type: :boolean, default: nil,
                                desc: "use the cached environment instead of "\
-                      "loading the whole configuration"
+                                     "loading the whole configuration"
             def exec(*args)
                 require "autoproj/cli/exec"
                 Autoproj.report(
@@ -619,10 +619,10 @@ The format is a string in which special values can be expanded using a $VARNAME 
             end
 
             desc "which", "resolves the full path to a command "\
-                " within the Autoproj workspace"
+                          " within the Autoproj workspace"
             option :use_cache, type: :boolean, default: nil,
                                desc: "use the cached environment instead of "\
-                      "loading the whole configuration"
+                                     "loading the whole configuration"
             def which(cmd)
                 require "autoproj/cli/which"
                 Autoproj.report(on_package_failures: default_report_on_package_failures, debug: options[:debug], silent: true) do

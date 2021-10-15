@@ -29,7 +29,7 @@ module Autoproj
                     verify_definitions(data)
                 rescue *error_t => e
                     raise ConfigError.new, "error in #{file_candidate}: "\
-                        "#{e.message}", e.backtrace
+                                           "#{e.message}", e.backtrace
                 end
 
                 result.merge(new(data, file_candidate, **options))
@@ -53,7 +53,7 @@ module Autoproj
             file = ENV["AUTOPROJ_DEFAULT_OSDEPS"] || AUTOPROJ_OSDEPS
             unless File.file?(file)
                 Autoproj.warn "#{file} (from AUTOPROJ_DEFAULT_OSDEPS) is not a file, "\
-                    "falling back to #{AUTOPROJ_OSDEPS}"
+                              "falling back to #{AUTOPROJ_OSDEPS}"
                 file = AUTOPROJ_OSDEPS
             end
             load(file)
@@ -112,8 +112,8 @@ module Autoproj
         def os_package_manager=(manager_name)
             if manager_name && !package_managers.include?(manager_name)
                 raise ArgumentError, "#{manager_name} is not a known "\
-                    "package manager, known managers are "\
-                    "#{package_managers.to_a.sort.join(', ')}"
+                                     "package manager, known managers are "\
+                                     "#{package_managers.to_a.sort.join(', ')}"
             end
             @os_package_manager = manager_name
         end
@@ -252,17 +252,17 @@ module Autoproj
 
             if old_resolved != new_resolved
                 Autoproj.warn "osdeps definition for #{key}, "\
-                    "previously defined in #{old} overridden by #{new}:"
+                              "previously defined in #{old} overridden by #{new}:"
                 first = true
                 old_resolved.each do |handler, (_, packages)|
                     Autoproj.warn "  #{first ? 'resp. ' : '      '}#{handler}: "\
-                        "#{packages.map(&:to_s).join(', ')}"
+                                  "#{packages.map(&:to_s).join(', ')}"
                     first = false
                 end
                 first = true
                 new_resolved.each do |handler, (_, packages)|
                     Autoproj.warn "  #{first ? 'and   ' : '      '}#{handler}: "\
-                        "#{packages.map(&:to_s).join(', ')}"
+                                  "#{packages.map(&:to_s).join(', ')}"
                     first = false
                 end
             end
@@ -272,9 +272,9 @@ module Autoproj
         def self.verify_definitions(hash, path = [])
             hash.each do |key, value|
                 if value && !key.kind_of?(String)
-                    raise ArgumentError, "invalid osdeps definition: "\
-                        "found an #{key.class} as a key in #{path.join('/')}. "\
-                        "Don't forget to put quotes around numbers"
+                    raise ArgumentError,
+                          "invalid osdeps definition: found an #{key.class} as a key in "\
+                          "#{path.join('/')}. Don't forget to put quotes around numbers"
                 elsif !value && key.kind_of?(Hash)
                     verify_definitions(key)
                 elsif !value && key.kind_of?(Array)
@@ -297,9 +297,10 @@ module Autoproj
                 if value.kind_of?(Array) || value.kind_of?(Hash)
                     verify_definitions(value, (path + [key]))
                 elsif !value.kind_of?(String)
-                    raise ArgumentError, "invalid osdeps definition: "\
-                        "found an #{value.class} as a value in #{path.join('/')}. "\
-                        "Don't forget to put quotes around numbers"
+                    raise ArgumentError,
+                          "invalid osdeps definition: found an #{value.class} as a "\
+                          "value in #{path.join('/')}. Don't forget to put "\
+                          "quotes around numbers"
                 end
             end
         end
@@ -346,8 +347,8 @@ module Autoproj
                 unless OS_PACKAGE_MANAGERS.key?(manager)
                     known_managers = OS_PACKAGE_MANAGERS.keys.grep(/^macos/)
                     raise ArgumentError, "#{manager} is not a known MacOSX "\
-                        "package manager. Known package managers are "\
-                        "#{known_managers.join(', ')}"
+                                         "package manager. Known package managers are "\
+                                         "#{known_managers.join(', ')}"
                 end
 
                 managers =
@@ -462,7 +463,7 @@ module Autoproj
                     fields[$1] = $2
                 elsif !line.empty?
                     Autoproj.warn "could not parse line '#{line.inspect}' "\
-                        "in /etc/os-release"
+                                  "in /etc/os-release"
                 end
             end
 
@@ -576,9 +577,9 @@ module Autoproj
                     pkg.each do |pkg_name|
                         resolved = resolve_package(pkg_name)
                         unless resolved
-                            raise InvalidRecursiveStatement, "the '#{name}' osdep "\
-                                "refers to another osdep, '#{pkg_name}', which "\
-                                "does not seem to exist"
+                            raise InvalidRecursiveStatement,
+                                  "the '#{name}' osdep refers to another osdep, "\
+                                  "'#{pkg_name}', which does not seem to exist"
                         end
                         result.concat(resolved)
                     end
@@ -662,17 +663,17 @@ module Autoproj
             result = []
             found_keys = Hash.new
             Array(dep_def).each do |names, values|
-                if !values
-                    entry_found, entry_nonexistent, entry_names =
-                        partition_osdep_raw_array_entry(
-                            names, osdep_name,
-                            handler_names, excluded, keys, additional_keys
-                        )
-                else
+                if values
                     entry_found, entry_nonexistent, entry_names =
                         partition_osdep_map_entry(
                             names, values, osdep_name,
                             handler_names, excluded, keys, found_keys, additional_keys
+                        )
+                else
+                    entry_found, entry_nonexistent, entry_names =
+                        partition_osdep_raw_array_entry(
+                            names, osdep_name,
+                            handler_names, excluded, keys, additional_keys
                         )
                 end
 
@@ -784,12 +785,12 @@ module Autoproj
             # regardless of whether it has some packages for us or
             # not
             idx = keys.index(matching_name)
-            if !rec_found
-                found_keys[idx] = nil unless found_keys.key?(idx)
-            else
+            if rec_found
                 found_keys[idx] ||= [0, []]
                 found_keys[idx][0] += rec_found
                 found_keys[idx][1].concat(rec_result)
+            else
+                found_keys[idx] = nil unless found_keys.key?(idx)
             end
             result
         end
@@ -810,29 +811,31 @@ module Autoproj
                 result = resolve_package(name)
                 unless result
                     path = resolve_name(name)
-                    raise MissingOSDep.new, "there is no osdeps definition "\
-                        "for #{path.last} (search tree: #{path.join('->')})"
+                    raise MissingOSDep.new,
+                          "there is no osdeps definition for #{path.last} "\
+                          "(search tree: #{path.join('->')})"
                 end
 
                 if result.empty?
                     os_names, os_versions = operating_system
                     if os_names.empty?
-                        raise MissingOSDep.new, "there is an osdeps "\
-                            "definition for #{name}, but autoproj cannot "\
-                            "detect the local operation system"
+                        raise MissingOSDep.new,
+                              "there is an osdeps definition for #{name}, but autoproj "\
+                              "cannot detect the local operation system"
                     else
-                        raise MissingOSDep.new, "there is an osdeps "\
-                            "definition for #{name}, but not for this "\
-                            "operating system and version resp. "\
-                            "#{os_names.join(', ')} and #{os_versions.join(', ')})"
+                        raise MissingOSDep.new,
+                              "there is an osdeps definition for #{name}, but not for "\
+                              "this operating system and version resp. "\
+                              "#{os_names.join(', ')} and #{os_versions.join(', ')})"
                     end
                 end
 
                 result.each do |handler, status, packages|
                     if status == FOUND_NONEXISTENT
-                        raise MissingOSDep.new, "there is an osdep "\
-                            "definition for #{name}, and it explicitely "\
-                            "states that this package does not exist on your OS"
+                        raise MissingOSDep.new,
+                              "there is an osdep definition for #{name}, and it "\
+                              "explicitely states that this package does not exist "\
+                              "on your OS"
                     end
                     if (entry = all_packages.find { |h, _| h == handler })
                         entry[1].concat(packages)

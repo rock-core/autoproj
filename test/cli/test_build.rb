@@ -29,7 +29,7 @@ module Autoproj
                 end
 
                 it "fails with the actual error if the manifest cannot be "\
-                    "resolved due to a configuration error" do
+                   "resolved due to a configuration error" do
                     # This is a regression test. `autoproj build` would fail
                     # during env.sh generation if the load failed, in case
                     # the layout could not be resolved
@@ -45,7 +45,7 @@ module Autoproj
                         @cli.run([], silent: true)
                     end
                     assert_equal "package set local:#{dir} present in #{dir} should "\
-                        "have a source.yml file, but does not", e.message
+                                 "have a source.yml file, but does not", e.message
                 end
             end
 
