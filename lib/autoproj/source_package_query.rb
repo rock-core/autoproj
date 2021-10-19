@@ -113,14 +113,14 @@ module Autoproj
 
         # Parse a single field in a query (i.e. a FIELD[=~]VALUE string)
         def self.parse(str)
-            if str !~ /[=~]/
-                match_name = parse("autobuild.name~#{str}")
-                match_dir  = parse("autobuild.srcdir~#{str}")
-                Or.new([match_name, match_dir])
-            else
+            if str =~ /[=~]/
                 fields, value, partial =
                     super(str, default_fields: DEFAULT_FIELDS, allowed_fields: ALLOWED_FIELDS)
                 new(fields, value, partial)
+            else
+                match_name = parse("autobuild.name~#{str}")
+                match_dir  = parse("autobuild.srcdir~#{str}")
+                Or.new([match_name, match_dir])
             end
         end
     end

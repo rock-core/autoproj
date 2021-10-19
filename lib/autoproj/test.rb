@@ -242,8 +242,9 @@ module Autoproj
             require "socket"
             require "rubygems/server"
             if @gem_server_pid
-                raise ArgumentError, "#start_gem_server already called, "\
-                    "call stop_gem_server before calling start_gem_server again"
+                raise ArgumentError,
+                      "#start_gem_server already called, "\
+                      "call stop_gem_server before calling start_gem_server again"
             end
             @gem_server_pid = spawn(
                 Hash["RUBYOPT" => nil],

@@ -77,8 +77,7 @@ module Autoproj
 
                 def process_events
                     sleep 0.1
-                    cli.notifier.process if IO.select([cli.notifier.to_io],
-                                                      [], [], 1)
+                    cli.notifier.process if cli.notifier.to_io.wait_readable(1)
                 end
                 describe "main configuration watcher" do
                     it "triggers the callback when the file is modified" do

@@ -167,7 +167,8 @@ module Autoproj
                         pkg_osdeps << dep_name
                     elsif type == :package
                         pkg_autobuild << dep_name
-                    else raise Autoproj::InternalError, "expected package type to be either :osdeps or :package, got #{type.inspect}"
+                    else
+                        raise Autoproj::InternalError, "expected package type to be either :osdeps or :package, got #{type.inspect}"
                     end
                 end
                 [pkg_autobuild, pkg_osdeps]

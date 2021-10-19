@@ -72,11 +72,11 @@ module Autoproj
                 if (overrides_key = pkg_set.vcs.overrides_key)
                     puts "  overrides key: pkg_set:#{overrides_key}"
                 end
-                if pkg_set.raw_local_dir != pkg_set.user_local_dir
+                if pkg_set.raw_local_dir == pkg_set.user_local_dir
+                    puts "  path: #{pkg_set.raw_local_dir}"
+                else
                     puts "  checkout dir: #{pkg_set.raw_local_dir}"
                     puts "  symlinked to: #{pkg_set.user_local_dir}"
-                else
-                    puts "  path: #{pkg_set.raw_local_dir}"
                 end
 
                 puts "  version control information:"
@@ -148,7 +148,8 @@ module Autoproj
 
                         title = if first
                                     "first match: in #{entry_name}"
-                                else "overriden in #{entry_name}"
+                                else
+                                    "overriden in #{entry_name}"
                                 end
                         first = false
                         fragments << [title, vcs_to_array(entry.vcs)]
@@ -253,7 +254,8 @@ module Autoproj
                     next if pkg_type != :package
 
                     path = if pkg_name == from then []
-                           else [pkg_name]
+                           else
+                               [pkg_name]
                            end
 
                     pkg = ws.manifest.find_autobuild_package(pkg_name)

@@ -177,7 +177,7 @@ module Autoproj
                 end
                 unless install_successful
                     flunk("failed to install the autoproj gem in the mock repository:\n"\
-                        "#{err}")
+                          "#{err}")
                 end
 
                 autobuild_full_path = find_gem_dir("autobuild").full_gem_path

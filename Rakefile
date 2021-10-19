@@ -47,12 +47,12 @@ task "helpers" do
             completion = shell[1].new(cli[0], command: cli[1])
             completion_file = File.join(completion_dir, "#{cli[0]}_#{shell[0]}")
 
-            IO.write(completion_file, completion.generate)
+            File.write(completion_file, completion.generate)
         end
         erb = File.read(File.join(templates_dir, "helpers.#{shell[0]}.erb"))
         helper_file = File.join(shell_dir, "autoproj_#{shell[0]}")
 
-        IO.write(helper_file, ::ERB.new(erb, nil, "-").result(binding))
+        File.write(helper_file, ::ERB.new(erb, nil, "-").result(binding))
     end
 end
 

@@ -560,10 +560,7 @@ module Autoproj
             end
             package_name = validate_package_name_argument(package, require_existing: require_existing)
             package_set = _package_set || package_set || package.package_set
-            mainline = if mainline == true
-                           package_set
-                       else mainline
-                       end
+            mainline = package_set if mainline == true
 
             # package_name is already validated, do not re-validate
             vcs = package_set.importer_definition_for(package_name, require_existing: false)
@@ -606,7 +603,8 @@ module Autoproj
                 package_mainline =
                     if mainline == true
                         pkg.package_set
-                    else mainline
+                    else
+                        mainline
                     end
                 vcs = importer_definition_for(pkg, mainline: package_mainline)
 
@@ -1013,8 +1011,8 @@ module Autoproj
             if package.use_package_xml? && package.checked_out?
                 manifest_path = File.join(package.srcdir, "package.xml")
                 raise NoPackageXML.new(package.srcdir), "#{package.name} from "\
-                    "#{package_set.name} has use_package_xml set, but the package has "\
-                    "no package.xml file" unless File.file?(manifest_path)
+                                                        "#{package_set.name} has use_package_xml set, but the package has "\
+                                                        "no package.xml file" unless File.file?(manifest_path)
 
                 manifest = PackageManifest.load(package, manifest_path,
                                                 ros_manifest: true)

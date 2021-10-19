@@ -238,7 +238,8 @@ module Autoproj
         def each_reused_autoproj_installation(&block)
             if has_value_for?("reused_autoproj_installations")
                 get("reused_autoproj_installations").each(&block)
-            else [].each(&block)
+            else
+                [].each(&block)
             end
         end
 
@@ -504,7 +505,8 @@ module Autoproj
             utility_config = get(utility_key(utility), Hash.new)
             if utility_config.has_key?(package)
                 utility_config[package]
-            else get("#{utility_key(utility)}_default", DEFAULT_UTILITY_SETUP[utility])
+            else
+                get("#{utility_key(utility)}_default", DEFAULT_UTILITY_SETUP[utility])
             end
         end
 

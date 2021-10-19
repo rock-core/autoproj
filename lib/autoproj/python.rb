@@ -8,12 +8,12 @@ module Autoproj
         def self.get_python_version(python_bin)
             unless File.exist?(python_bin)
                 raise ArgumentError, "Autoproj::Python.get_python_version executable "\
-                            "'#{python_bin}' does not exist"
+                                     "'#{python_bin}' does not exist"
             end
 
             cmd = "#{python_bin} -c \"import sys;"\
-                "version=sys.version_info[:3]; "\
-                "print('{0}.{1}'.format(*version))\"".strip
+                  "version=sys.version_info[:3]; "\
+                  "print('{0}.{1}'.format(*version))\"".strip
 
             msg, status = Open3.capture2e(cmd)
             if status.success?
@@ -21,14 +21,14 @@ module Autoproj
 
             else
                 raise "Autoproj::Python.get_python_version identification"\
-                    " of python version for '#{python_bin}' failed: #{msg}"
+                      " of python version for '#{python_bin}' failed: #{msg}"
             end
         end
 
         def self.get_pip_version(pip_bin)
             unless File.exist?(pip_bin)
                 raise ArgumentError, "Autoproj::Python.get_pip_version executable "\
-                            "'#{pip_bin}' does not exist"
+                                     "'#{pip_bin}' does not exist"
             end
 
             cmd = "#{pip_bin} --version"
@@ -39,16 +39,16 @@ module Autoproj
 
             else
                 raise "Autoproj::Python.get_pip_version identification"\
-                    " of pip version for '#{pip_bin}' failed: #{msg}"
+                      " of pip version for '#{pip_bin}' failed: #{msg}"
             end
         end
 
         def self.validate_version(version, version_constraint)
-            if !version_constraint
-                true
-            else
+            if version_constraint
                 dependency = Gem::Dependency.new("python", version_constraint)
                 dependency.match?("python", version)
+            else
+                true
             end
         end
 
@@ -81,7 +81,7 @@ module Autoproj
                 end
             end
             raise "Autoproj::Python.find_python_bin: failed to find python" \
-                " for version '#{version}'"
+                  " for version '#{version}'"
         end
 
         # Get information about the python executable from autoproj config,
@@ -102,8 +102,8 @@ module Autoproj
                 [config_bin, config_version]
             else
                 raise "python_executable in autoproj config with " \
-                  "version '#{config_version}' does not match "\
-                  "version constraints '#{version}'"
+                      "version '#{config_version}' does not match "\
+                      "version constraints '#{version}'"
             end
         end
 
@@ -114,8 +114,8 @@ module Autoproj
                 [bin, version]
             else
                 raise "Autoproj::Python.resolve_python: requested python"\
-                    "executable '#{bin}' does not satisfy version"\
-                    "constraints '#{version}'"
+                      "executable '#{bin}' does not satisfy version"\
+                      "constraints '#{version}'"
             end
         end
 
@@ -132,12 +132,12 @@ module Autoproj
                 bin, version = resolver.call
                 if bin && File.exist?(bin) && version
                     Autoproj.debug "Autoproj::Python.resolve_python: " \
-                      "found python '#{bin}' version '#{version}'"
+                                   "found python '#{bin}' version '#{version}'"
                     break
                 end
             rescue RuntimeError => e
                 Autoproj.debug "Autoproj::Python.resolve_python: " \
-                  "resolver failed: #{e}"
+                               "resolver failed: #{e}"
             end
 
             unless bin
@@ -183,8 +183,8 @@ module Autoproj
             unless File.exist?(shim_path)
                 FileUtils.mkdir_p shim_path
                 Autoproj.warn "Autoproj::Python.rewrite_python_shims: creating "\
-                    "#{shim_path} - "\
-                    "are you operating on a valid autoproj workspace?"
+                              "#{shim_path} - "\
+                              "are you operating on a valid autoproj workspace?"
             end
 
             python_path = File.join(shim_path, "python")
@@ -201,8 +201,8 @@ module Autoproj
             unless File.exist?(shim_path)
                 FileUtils.mkdir_p shim_path
                 Autoproj.warn "Autoproj::Python.rewrite_pip_shims: creating "\
-                    "#{shim_path} - "\
-                    "are you operating on a valid autoproj workspace?"
+                              "#{shim_path} - "\
+                              "are you operating on a valid autoproj workspace?"
             end
             pip_path = File.join(shim_path, "pip")
             File.open(pip_path, "w") do |io|

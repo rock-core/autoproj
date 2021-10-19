@@ -109,7 +109,7 @@ module Autoproj
                 Workspace.new(path, **workspace_options)
             elsif Autoproj.find_v1_workspace_dir(dir)
                 raise OutdatedWorkspace, "#{dir} looks like a v1 workspace, "\
-                    "run autoproj upgrade before continuing"
+                                         "run autoproj upgrade before continuing"
             else
                 raise NotWorkspace, "not in a Autoproj installation"
             end
@@ -120,13 +120,13 @@ module Autoproj
                 from_dir(path, **workspace_options)
             elsif Autoproj.find_v1_workspace_dir(dir = Autoproj.default_find_base_dir)
                 raise OutdatedWorkspace, "#{dir} looks like a v1 workspace, "\
-                    "run autoproj upgrade before continuing"
+                                         "run autoproj upgrade before continuing"
             elsif (envvar = ENV["AUTOPROJ_CURRENT_ROOT"])
                 raise NotWorkspace, "AUTOPROJ_CURRENT_ROOT is currently set "\
-                    "to #{envvar}, but that is not an Autoproj workspace"
+                                    "to #{envvar}, but that is not an Autoproj workspace"
             else
                 raise NotWorkspace, "not in an Autoproj installation, "\
-                    "and no env.sh has been loaded so far"
+                                    "and no env.sh has been loaded so far"
             end
         end
 
@@ -148,9 +148,10 @@ module Autoproj
             ws = from_environment(**workspace_options)
             from_pwd = Autoproj.find_workspace_dir(Dir.pwd)
             if from_pwd && (from_pwd != ws.root_dir)
-                raise MismatchingWorkspace, "the current environment points to "\
-                    "#{ws.root_dir}, but you are in #{from_pwd}, make sure you "\
-                    "are loading the right #{ENV_FILENAME} script !"
+                raise MismatchingWorkspace,
+                      "the current environment points to "\
+                      "#{ws.root_dir}, but you are in #{from_pwd}, make sure you "\
+                      "are loading the right #{ENV_FILENAME} script !"
             end
             ws
         end
@@ -494,7 +495,8 @@ module Autoproj
             options =
                 if args.last.kind_of?(Hash)
                     args.pop
-                else Hash.new
+                else
+                    Hash.new
                 end
             options_env = options.fetch(:env, Hash.new)
             options[:env] = env.resolved_env.merge(options_env)
@@ -502,12 +504,12 @@ module Autoproj
         end
 
         def migrate_bundler_and_autoproj_gem_layout
-            if !File.directory?(File.join(dot_autoproj_dir, "autoproj"))
-                return
-            else
+            if File.directory?(File.join(dot_autoproj_dir, "autoproj"))
                 config_path = File.join(dot_autoproj_dir, "config.yml")
                 config = YAML.safe_load(File.read(config_path))
                 return if config["gems_install_path"]
+            else
+                return
             end
 
             Autoproj.silent = false
@@ -693,7 +695,8 @@ module Autoproj
             layout =
                 if config.randomize_layout?
                     Digest::SHA256.hexdigest(pkg_name)[0, 12]
-                else manifest.whereis(pkg_name)
+                else
+                    manifest.whereis(pkg_name)
                 end
 
             srcdir =

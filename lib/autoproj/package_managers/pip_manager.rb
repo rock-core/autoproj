@@ -31,13 +31,13 @@ module Autoproj
                     Autoproj::Python.setup_python_configuration_options(ws: ws)
                 end
                 unless ws.config.get("USE_PYTHON")
-                    raise ConfigError, "Your current package selection" \
-                      " requires the use of pip, but" \
-                      " the use of python is either unspecified or has been denied, see" \
-                      " setting of USE_PYTHON in your workspace configuration." \
-                      " Either remove all packages depending on pip packages " \
-                      " from the workspace layout (manifest) or " \
-                      " call 'autoproj reconfigure' to change the setting."
+                    raise ConfigError,
+                          "Your current package selection requires the use of pip, but" \
+                          " the use of python is either unspecified or has been denied,"\
+                          " see setting of USE_PYTHON in your workspace configuration." \
+                          " Either remove all packages depending on pip packages " \
+                          " from the workspace layout (manifest) or " \
+                          " call 'autoproj reconfigure' to change the setting."
 
                 end
 
@@ -55,7 +55,7 @@ module Autoproj
 
                 if pips_interaction(cmdlines)
                     Autoproj.message "  installing/updating Python dependencies:" \
-                        " #{pips.sort.join(', ')}"
+                                     " #{pips.sort.join(', ')}"
 
                     cmdlines.each do |c|
                         Autobuild::Subprocess.run "autoproj", "osdeps", *c,

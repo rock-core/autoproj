@@ -94,11 +94,11 @@ module Autoproj
             # @api private
             def snapshot_local(package, options = Hash.new)
                 info = Hash.new
-                if local_branch != remote_branch
+                if local_branch == remote_branch
+                    info["branch"] = branch
+                else
                     info["local_branch"] = local_branch
                     info["remote_branch"] = remote_branch
-                else
-                    info["branch"] = branch
                 end
 
                 if options[:exact_state]

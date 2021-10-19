@@ -174,10 +174,10 @@ module Autoproj
                     resolve_user_selection(selected_packages)
                 validate_user_selection(selected_packages, resolved_selected_packages)
 
-                if !selected_packages.empty?
-                    command_line_selection = resolved_selected_packages.dup
-                else
+                if selected_packages.empty?
                     command_line_selection = Array.new
+                else
+                    command_line_selection = resolved_selected_packages.dup
                 end
                 [command_line_selection, resolved_selected_packages]
             end

@@ -226,14 +226,16 @@ module Autoproj
                                 non_prerelease = gem_fetcher.find_matching(dep, true, true).map(&:first)
                                 if GemManager.with_prerelease
                                     prerelease = gem_fetcher.find_matching(dep, false, true, true).map(&:first)
-                                else prerelease = Array.new
+                                else
+                                    prerelease = Array.new
                                 end
                                 (non_prerelease + prerelease)
                                     .map { |n, v, _| [n, v] }
 
                             else # Post RubyGems-2.0
                                 type = if GemManager.with_prerelease then :complete
-                                       else :released
+                                       else
+                                           :released
                                        end
 
                                 gem_fetcher.detect(type) do |tuple|

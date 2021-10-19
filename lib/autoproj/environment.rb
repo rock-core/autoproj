@@ -1,7 +1,8 @@
 module Autoproj
     ENV_FILENAME =
         if Autobuild.windows? then "env.bat"
-        else "env.sh"
+        else
+            "env.sh"
         end
 
     class Environment < Autobuild::Environment

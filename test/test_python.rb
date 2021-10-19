@@ -89,7 +89,7 @@ module Autoproj
                 python_bin_name = File.basename(bin)
                 python_bin = `which #{python_bin_name}`.strip
                 assert($CHILD_STATUS == 0, "This test requires python to be available on your"\
-                       " system, so please install before running this test")
+                                           " system, so please install before running this test")
 
                 assert(python_bin == bin, "Python bin #{python_bin} not equal to #{bin}")
                 assert(version == Autoproj::Python.get_python_version(python_bin))

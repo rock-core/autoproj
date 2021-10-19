@@ -320,10 +320,10 @@ module Autoproj
     # definition as a hash
     def self.call_source_handler(vcs, url, options)
         handler = @custom_source_handlers[vcs.to_s]
-        if !handler
-            raise ArgumentError, "there is no source handler for #{vcs}"
-        else
+        if handler
             handler.call(url, **options)
+        else
+            raise ArgumentError, "there is no source handler for #{vcs}"
         end
     end
 
@@ -349,7 +349,7 @@ module Autoproj
     # @yieldparam [Hash] the rest of the VCS hash
     # @return [Hash] a VCS hash with the information expanded
     def self.add_source_handler(name, &handler)
-        @custom_source_handlers[name.to_s] = lambda(&handler)
+        @custom_source_handlers[name.to_s] = handler
     end
 
     # Deregister a source handler defined with {.add_source_handler}
