@@ -52,6 +52,24 @@ module Autoproj
             end
 
             describe "#sort_package_sets_by_import_order" do
+                it "sorts unrelated dependent packages properly" do
+                    pkg_set_a = flexmock("set_a", imports: Set.new([]), name: "set_a", explicit?: false)
+                    pkg_set_b = flexmock("set_b", imports: Set.new([]), name: "set_b", explicit?: false)
+                    pkg_set_c = flexmock("set_c", imports: Set.new([pkg_set_a]), name: "set_c", explicit?: false)
+                    pkg_set_d = flexmock("set_d", imports: Set.new([pkg_set_b]), name: "set_d", explicit?: false)
+
+                    root_pkg_set = flexmock("root", imports: Set.new([pkg_set_c, pkg_set_d]), name: "main configuration", explicit?: true)
+
+                    order = ops.sort_package_sets_by_import_order(
+                        [root_pkg_set, pkg_set_d, pkg_set_c, pkg_set_b, pkg_set_a],
+                        root_pkg_set
+                    )
+
+                    assert_equal(-1, order.index(pkg_set_a) <=> order.index(pkg_set_c))
+                    assert_equal(-1, order.index(pkg_set_b) <=> order.index(pkg_set_d))
+                    assert_equal(-1, order.index(pkg_set_c) <=> order.index(pkg_set_d))
+                end
+
                 it "should handle standalone package sets that are both explicit and dependencies of other package sets gracefully (issue#30)" do
                     pkg_set_c = flexmock("set_c", imports: Set.new([]), name: "set_c", explicit?: true)
                     pkg_set_b = flexmock("set_b", imports: Set.new([pkg_set_c]), name: "set_b", explicit?: true)
