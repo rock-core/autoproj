@@ -12,18 +12,24 @@ module Autoproj
         # Note that 1. naturally always takes precedence over 2. since 2.
         # only affects a sorting of package sets that have no dependency
         class Comparator
-            attr_reader :imports_of, :main_imports
+            attr_reader :imports_of, :natural_import_order
 
             def initialize(package_sets, root_pkg_set)
                 @imports_of = Hash.new
                 package_sets.each do |p|
                     @imports_of[p] = PackageSet.resolve_imports(p)
                 end
+
+                @natural_import_order = Array.new
                 root_pkg_set.imports.each do |p|
                     @imports_of[p] = PackageSet.resolve_imports(p)
+                    @imports_of[p].each do |import|
+                        unless @natural_import_order.include?(import)
+                            @natural_import_order << import
+                        end
+                    end
+                    @natural_import_order << p unless @natural_import_order.include?(p)
                 end
-
-                @main_imports = root_pkg_set.imports.to_a
             end
 
             def validate_import_order(pkg_set)
@@ -45,10 +51,7 @@ module Autoproj
                 return -1 if imports_of[pkgset_b].include?(pkgset_a)
 
                 # Check manifest precedence for pkgset_a != pkgset_b
-                return 0 unless main_imports.include?(pkgset_a)
-                return 0 unless main_imports.include?(pkgset_b)
-
-                main_imports.index(pkgset_a) <=> main_imports.index(pkgset_b)
+                @natural_import_order.index(pkgset_a) <=> @natural_import_order.index(pkgset_b)
             end
         end
 
