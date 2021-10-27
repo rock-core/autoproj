@@ -9,7 +9,7 @@ module Autoproj
                 @ws = ws_create
                 @ws.os_package_resolver.load_default
                 flexmock(@pkg)
-                @pkg.prefix = "/tmp/install/foo/"
+                @pkg.prefix = File.join(@ws.prefix_dir, "foo")
                 @env = flexmock(base: Autobuild::Environment)
 
                 @test_python = File.join(Dir.tmpdir, "test-python")
@@ -125,7 +125,7 @@ module Autoproj
                 @ws.config.set("USE_PYTHON", false)
 
                 pkg = flexmock("testpkg")
-                prefix = File.join(@ws.root_dir, "install", "testpkg")
+                prefix = File.join(@ws.prefix_dir, "testpkg")
                 pkg.should_receive(:prefix).and_return(prefix)
                 assert(!@ws.config.has_value_for?("python_executable"))
                 assert(!@ws.config.has_value_for?("python_version"))
@@ -139,12 +139,12 @@ module Autoproj
                 assert(@ws.config.has_value_for?("python_executable"))
                 assert(@ws.config.has_value_for?("python_version"))
 
-                python_bin = File.join(@ws.root_dir, "install", "bin", "python")
+                python_bin = File.join(@ws.prefix_dir, "bin", "python")
                 assert(File.exist?(python_bin))
                 python_version = Autoproj::Python.get_python_version(python_bin)
                 assert(python_version == @ws.config.get("python_version"))
 
-                pip_bin = File.join(@ws.root_dir, "install", "bin", "pip")
+                pip_bin = File.join(@ws.prefix_dir, "bin", "pip")
                 assert(File.exist?(pip_bin))
                 pip_version = Autoproj::Python.get_pip_version(pip_bin)
                 expected_pip_version = `#{python_bin} -c "import pip; print(pip.__version__)"`.strip
