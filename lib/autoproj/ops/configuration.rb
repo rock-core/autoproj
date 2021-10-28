@@ -1,57 +1,51 @@
+require "rgl/adjacency"
+require "rgl/dot"
+require "rgl/topsort"
+
 module Autoproj
     module Ops
         #--
         # NOTE: indentation is wrong to let git track the history properly
         #+++
 
-        # Comparator can be used to compare the list of package sets
-        # so that they can be sorted according to the following constraints:
-        # 1. dependencies among the package sets
-        # 2. order in which they are defined in the main configuration (manifest)
-        #
-        # Note that 1. naturally always takes precedence over 2. since 2.
-        # only affects a sorting of package sets that have no dependency
-        class Comparator
-            attr_reader :imports_of, :natural_import_order
+        # PackageSetHierachy be used to build the hierarchy of package set
+        # imports, as directed acyclic graph (DAG)
+        # so that they can be (topologically) sorted according to their
+        # dependencies
+        class PackageSetHierarchy
+            attr_reader :dag
 
             def initialize(package_sets, root_pkg_set)
-                @imports_of = Hash.new
+                @dag = RGL::DirectedAdjacencyGraph.new
+
                 package_sets.each do |p|
-                    @imports_of[p] = PackageSet.resolve_imports(p)
+                    p.imports.each do |dep|
+                        @dag.add_edge dep, p
+                    end
                 end
 
-                @natural_import_order = Array.new
-                root_pkg_set.imports.each do |p|
-                    @imports_of[p] = PackageSet.resolve_imports(p)
-                    @imports_of[p].each do |import|
-                        unless @natural_import_order.include?(import)
-                            @natural_import_order << import
-                        end
+                @dag.add_vertex root_pkg_set
+                import_order = root_pkg_set.imports.to_a
+                import_order.each_with_index do |p, index|
+                    if index + 1 < import_order.size
+                        @dag.add_edge p, import_order[index + 1]
+                        @dag.add_edge p, root_pkg_set
                     end
-                    @natural_import_order << p unless @natural_import_order.include?(p)
+                end
+
+                unless @dag.acyclic?
+                    raise "The package set hierarchy contains cycles: #{@dag.cycles}"
                 end
             end
 
-            def validate_import_order(pkg_set)
-                imports = pkg_set.imports.to_a
-                until imports.empty?
-                    pkg_set = imports.shift
-                    imports.each do |p|
-                        if @imports_of[pkg_set].include?(p)
-                            raise "PackageSet '#{pkg_set.name}' depends on '#{p.name}', "\
-                                  "but is listed before it in the manifest"
-                        end
-                    end
-                end
+            # Flatten the hierarchy, a establish a sorting
+            def flatten
+                @dag.topsort_iterator.to_a
             end
 
-            def compare(pkgset_a, pkgset_b)
-                return 0 if pkgset_a == pkgset_b
-                return 1 if imports_of[pkgset_a].include?(pkgset_b)
-                return -1 if imports_of[pkgset_b].include?(pkgset_a)
-
-                # Check manifest precedence for pkgset_a != pkgset_b
-                @natural_import_order.index(pkgset_a) <=> @natural_import_order.index(pkgset_b)
+            # Write the hierarchy to an image (png) file
+            def to_png(path)
+                @dag.write_to_graphic_file("png", path.gsub(".png", ""))
             end
         end
 
@@ -368,18 +362,13 @@ module Autoproj
             # Package sets that have no dependencies come first,
             # the local package set (by main configuration) last
             def sort_package_sets_by_import_order(package_sets, root_pkg_set)
-                c = Comparator.new(package_sets, root_pkg_set)
-                unordered_pkg_sets = package_sets + [root_pkg_set]
-                sorted_pkg_sets = unordered_pkg_sets.uniq.sort do |a, b|
-                    c.compare(a, b)
-                end
+                c = PackageSetHierarchy.new(package_sets, root_pkg_set)
+                sorted_pkg_sets = c.flatten
 
                 if sorted_pkg_sets.last != root_pkg_set
                     raise InternalError, "Failed to sort the package sets: the " \
                                          "root package set should be last, but is not #{sorted_pkg_sets.map(&:name)}"
                 end
-
-                c.validate_import_order(root_pkg_set)
 
                 sorted_pkg_sets
             end
