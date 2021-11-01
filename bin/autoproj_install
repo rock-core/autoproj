@@ -439,32 +439,42 @@ module Autoproj
                 lockfile = File.join(dot_autoproj, "Gemfile.lock")
                 FileUtils.rm lockfile if File.exist?(lockfile)
 
-                clean_env = env_for_child.dup
+                run_bundler(bundler, "config", "set", "--local", "path", gems_install_path,
+                            bundler_version: bundler_version)
+                run_bundler(bundler, "config", "set", "--local", "shebang", Gem.ruby,
+                            bundler_version: bundler_version)
 
-                opts = Array.new
-                opts << "--local" if local?
-                opts << "--path=#{gems_install_path}"
+                install_args = ["--gemfile=#{autoproj_gemfile_path}"]
+                install_args << "--local" if local?
+                run_bundler(bundler, "install", *install_args,
+                            bundler_version: bundler_version)
+
                 shims_path = File.join(dot_autoproj, "bin")
+                run_bundler(bundler, "binstubs", "--all", "--force", "--path", shims_path,
+                            bundler_version: bundler_version)
+                self.class.rewrite_shims(
+                    shims_path, ruby_executable, root_dir,
+                    autoproj_gemfile_path, gems_gem_home
+                )
+            end
+
+            class BundlerFailed < RuntimeError; end
+
+            def run_bundler(bundler, *args, bundler_version: self.bundler_version)
+                clean_env = env_for_child.dup
 
                 version_arg = []
                 version_arg << "_#{bundler_version}_" if bundler_version
 
                 result = system(
-                    clean_env,
-                    Gem.ruby, bundler, *version_arg, "install",
-                    "--gemfile=#{autoproj_gemfile_path}",
-                    "--shebang=#{Gem.ruby}",
-                    "--binstubs=#{shims_path}",
-                    *opts, chdir: dot_autoproj
+                    clean_env, Gem.ruby, bundler, *version_arg,
+                    *args, chdir: dot_autoproj
                 )
 
                 unless result
-                    STDERR.puts "FATAL: failed to install autoproj in #{dot_autoproj}"
-                    exit 1
+                    raise BundlerFailed,
+                          "FAILED: bundler #{args.join(', ')} in #{dot_autoproj}"
                 end
-            ensure
-                self.class.rewrite_shims(shims_path, ruby_executable,
-                                         root_dir, autoproj_gemfile_path, gems_gem_home)
             end
 
             EXCLUDED_FROM_SHIMS = %w[rake thor].freeze
