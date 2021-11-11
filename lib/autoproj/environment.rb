@@ -34,6 +34,17 @@ module Autoproj
             end
         end
 
+        def generate_direnv(*subdir)
+            return if Autobuild.windows?
+
+            envrc = File.join(root_dir, *subdir, ".envrc")
+            return if File.file?(envrc)
+
+            shell = Autoproj.workspace.config.user_shells.first || "sh"
+            filename = env_filename(shell, *subdir)
+            File.write(envrc, ". '#{filename}'\n")
+        end
+
         def export_env_sh(subdir = nil, options = Hash.new)
             if subdir.kind_of?(Hash)
                 options = subdir
@@ -45,6 +56,8 @@ module Autoproj
             shell_dir = File.expand_path(File.join("..", "..", "shell"), File.dirname(__FILE__))
             completion_dir = File.join(shell_dir, "completion")
             env_updated = false
+
+            generate_direnv(*subdir)
 
             each_env_filename(*[subdir].compact) do |shell, filename|
                 helper = File.join(shell_dir, "autoproj_#{shell}")
