@@ -213,6 +213,15 @@ module Autoproj
             pip_path
         end
 
+        def self.upgrade_pip(ws: Autoproj.workspace)
+            python_executable = ws.config.get("python_executable", nil)
+            unless python_executable.nil?
+                Open3.popen3(
+                    { "PYTHONUSERBASE" => ws.env["PYTHONUSERBASE"] },
+                    "#{python_executable} -m pip install --upgrade pip setuptools wheel")
+            end
+        end
+
         # Activate configuration for python in the autoproj configuration
         # @return [String,String] python path and python version
         def self.activate_python(ws: Autoproj.workspace,
@@ -226,6 +235,7 @@ module Autoproj
 
             rewrite_python_shims(bin, ws.prefix_dir)
             rewrite_pip_shims(bin, ws.prefix_dir)
+            upgrade_pip(ws: ws)
             [bin, version]
         end
 

@@ -9,6 +9,7 @@ module Autoproj
             def initialize_environment
                 ws.env.set "PYTHONUSERBASE", pip_home
                 ws.env.add_path "PATH", File.join(pip_home, "bin")
+                Autoproj::Python.setup_python_configuration_options(ws: ws)
             end
 
             # Return the directory where python packages are installed to.
