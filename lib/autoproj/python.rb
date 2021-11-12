@@ -218,7 +218,7 @@ module Autoproj
             unless python_executable.nil?
                 Open3.popen3(
                     { "PYTHONUSERBASE" => ws.env["PYTHONUSERBASE"] },
-                    "#{python_executable} -m pip install --upgrade pip setuptools wheel")
+                    "#{python_executable} -m pip install --upgrade pip")
             end
         end
 
