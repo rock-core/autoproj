@@ -1,2 +1,4 @@
 osdeps_mode: 'all'
 apt_dpkg_update: true
+USE_PYTHON: true
+python_executable: '/usr/bin/python3'
