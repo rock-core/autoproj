@@ -215,11 +215,12 @@ module Autoproj
 
         def self.upgrade_pip(ws: Autoproj.workspace)
             python_executable = ws.config.get("python_executable", nil)
-            unless python_executable.nil?
-                Open3.popen3(
-                    { "PYTHONUSERBASE" => ws.env["PYTHONUSERBASE"] },
-                    "#{python_executable} -m pip install --upgrade pip")
-            end
+            return if python_executable.nil?
+
+            Open3.popen3(
+                { "PYTHONUSERBASE" => ws.env["PYTHONUSERBASE"] },
+                "#{python_executable} -m pip install --upgrade pip"
+            )
         end
 
         # Activate configuration for python in the autoproj configuration
