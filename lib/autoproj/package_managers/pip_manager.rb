@@ -30,17 +30,7 @@ module Autoproj
                 unless ws.config.has_value_for?("USE_PYTHON")
                     Autoproj::Python.setup_python_configuration_options(ws: ws)
                 end
-                unless ws.config.get("USE_PYTHON")
-                    raise ConfigError,
-                          "Your current package selection requires the use of pip, but" \
-                          " the use of python is either unspecified or has been denied,"\
-                          " see setting of USE_PYTHON in your workspace configuration." \
-                          " Either remove all packages depending on pip packages " \
-                          " from the workspace layout (manifest) or " \
-                          " call 'autoproj reconfigure' to change the setting."
-
-                end
-
+                Autoproj::Python.assert_python_activated(ws: ws)
                 Autobuild.programs["pip"] = "pip" unless Autobuild.programs["pip"]
                 Autobuild.programs["pip"]
             end

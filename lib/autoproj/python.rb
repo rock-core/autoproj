@@ -260,6 +260,18 @@ module Autoproj
             [bin, version, path]
         end
 
+        def self.assert_python_activated(ws: Autoproj.workspace)
+            return true if ws.config.get("USE_PYTHON")
+
+            raise ConfigError,
+                  "Your current package selection requires the use of python," \
+                  " but this is either unspecified or has been denied,"\
+                  " see setting of USE_PYTHON in your workspace configuration." \
+                  " Either remove all packages depending on pip packages " \
+                  " from the workspace layout (manifest) or " \
+                  " call 'autoproj reconfigure' to change the setting."
+        end
+
         def self.setup_python_configuration_options(ws: Autoproj.workspace)
             ws.config.declare "USE_PYTHON", "boolean",
                               default: "no",
