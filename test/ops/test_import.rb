@@ -139,8 +139,9 @@ module Autoproj
                     flexmock(ops).should_receive(:import_selected_packages)
                                  .and_return([[@pkg1], []])
 
-                    flexmock(ops).should_receive(:install_internal_dependencies_for).with(@pkg1).once
-                    ops.import_packages(@selection)
+                    flexmock(ops).should_receive(:install_internal_dependencies_for)
+                                 .with(@pkg1, install_only: true).once
+                    ops.import_packages(@selection, checkout_only: true)
                 end
             end
 
