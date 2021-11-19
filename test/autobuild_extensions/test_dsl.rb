@@ -111,6 +111,30 @@ module Autoproj
             end
         end
 
+        describe "custom package handlers" do
+            before do
+                FileUtils.touch File.join(@dir, "a", "setup.py")
+            end
+
+            after do
+                Autoproj.custom_package_handlers = []
+            end
+
+            it "allows overriding an existing package handler" do
+                Autoproj.custom_package_handler do |full_path|
+                    ["foo_package", full_path]
+                end
+                assert_equal ["foo_package", File.join(@dir, "a")],
+                             Autoproj.package_handler_for(File.join(@dir, "a"))
+            end
+
+            it "falls back if custom package handler returns nil" do
+                Autoproj.custom_package_handler { nil }
+                assert_equal ["python_package", File.join(@dir, "a")],
+                             Autoproj.package_handler_for(File.join(@dir, "a"))
+            end
+        end
+
         it "returns nil if nothing is detected" do
             assert_nil Autoproj.package_handler_for(@dir)
         end
