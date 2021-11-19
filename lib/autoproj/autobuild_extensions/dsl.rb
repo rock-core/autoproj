@@ -20,6 +20,28 @@ module Autoproj
         end
     end
 
+    class << self
+        attr_writer :custom_package_handlers
+
+        def custom_package_handlers
+            @custom_package_handlers ||= []
+        end
+    end
+
+    def self.each_custom_package_handler(&block)
+        return enum_for(__method__) unless block_given?
+
+        custom_package_handlers.each do |handler|
+            block.call(handler)
+        end
+    end
+
+    # Registers a block that will be called to determine a package
+    # handler for the package in full_path.
+    def self.custom_package_handler(&block)
+        custom_package_handlers << block
+    end
+
     # @api private
     #
     # Helper method that extracts the package name from a Rake-style package
@@ -112,6 +134,10 @@ module Autoproj
 
     # Tries to find a handler automatically for 'full_path'
     def self.package_handler_for(full_path)
+        each_custom_package_handler do |handler|
+            pair = handler.call(full_path)
+            return pair if pair
+        end
         pyglob = File.join(File.basename(full_path), "*.py")
         if !Dir.enum_for(:glob, File.join(full_path, "*.orogen")).to_a.empty?
             ["orogen_package", full_path]
