@@ -18,6 +18,7 @@ module Autoproj
                     end
                 end
 
+                process_env = env
                 if with_root
                     process_env = Autobuild::Environment.new
                     process_env.isolate
@@ -28,7 +29,8 @@ module Autoproj
                     command_line = [sudo, *command_line]
                 end
 
-                Autobuild::Subprocess.run "autoproj", "osdeps", *command_line
+                Autobuild::Subprocess.run "autoproj", "osdeps", *command_line,
+                                          env: process_env.resolved_env
             end
 
             # Overrides the {#needs_locking?} flag
