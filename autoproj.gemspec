@@ -30,6 +30,7 @@ Gem::Specification.new do |s|
     s.add_runtime_dependency "bundler"
     s.add_runtime_dependency "concurrent-ruby", "~> 1.1"
     s.add_runtime_dependency "rb-inotify" if RbConfig::CONFIG["target_os"] =~ /linux/
+    s.add_runtime_dependency "rgl", "~> 0.5.7"
     s.add_runtime_dependency "thor", "~> 1.0"
     s.add_runtime_dependency "tty-color", "~> 0.5.0"
     s.add_runtime_dependency "tty-prompt", "~> 0.21.0"
