@@ -19,7 +19,12 @@ module Autoproj
                 end
 
                 if with_root
-                    sudo = Autobuild.tool_in_path("sudo", env: env)
+                    process_env = Autobuild::Environment.new
+                    process_env.isolate
+                    process_env.add_path("PATH", "/usr/local/sbin",
+                                         "/usr/sbin", "/sbin")
+
+                    sudo = Autobuild.tool_in_path("sudo", env: process_env)
                     command_line = [sudo, *command_line]
                 end
 
