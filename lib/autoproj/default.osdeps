@@ -204,6 +204,15 @@ python-setuptools:
   gentoo: dev-python/setuptools
   default: ignore # will be installed manually by the user
 
+pytest:
+  ubuntu:
+    '16.04,18.04': python-pytest
+    default: python3-pytest
+  debian:
+     '8,jessie,9,stretch': python-pytest
+     default: python3-pytest
+  default: ignore
+
 sudo:
   macos-brew: ignore
   default: sudo

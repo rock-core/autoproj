@@ -228,21 +228,24 @@ def python_package(name, workspace: Autoproj.workspace)
         pkg.post_import do
             Autoproj::Python.setup_python_configuration_options(ws: workspace)
             Autoproj::Python.assert_python_activated(ws: workspace)
+            common_make_default_test_task(pkg, dependency: "pytest")
             pkg.depends_on "python-setuptools" if pkg.install_mode?
         end
         yield(pkg) if block_given?
     end
 end
 
-def common_make_default_test_task(pkg)
+def common_make_default_test_task(pkg, dependency: nil)
     unless pkg.test_utility.source_dir
         test_dir = File.join(pkg.srcdir, "test")
         if File.directory?(test_dir)
             pkg.test_utility.source_dir = File.join(pkg.builddir, "test", "results")
         end
     end
-
-    pkg.with_tests if pkg.test_utility.source_dir
+    if pkg.test_utility.source_dir
+        pkg.with_tests
+        pkg.depends_on(dependency) if dependency
+    end
 end
 
 def common_make_based_package_setup(pkg)
