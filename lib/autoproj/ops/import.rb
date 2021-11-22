@@ -110,10 +110,6 @@ module Autoproj
                     end
                 end
 
-                if !manifest.excluded?(pkg.name) && !manifest.ignored?(pkg.name)
-                    process_post_import_blocks(pkg) if pkg.checked_out?
-                end
-
                 # The package setup mechanisms might have added an exclusion
                 # on this package. Handle this.
                 if manifest.excluded?(pkg.name)
@@ -468,6 +464,10 @@ module Autoproj
                 raise failures.first if !keep_going && !failures.empty?
 
                 install_internal_dependencies_for(*all_processed_packages)
+                all_processed_packages.each do |pkg|
+                    process_post_import_blocks(pkg) if pkg.checked_out?
+                end
+
                 finalize_package_load(all_processed_packages, auto_exclude: auto_exclude)
 
                 all_enabled_osdeps = selection.each_osdep_package_name.to_set
