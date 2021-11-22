@@ -4,7 +4,7 @@ module Autoproj
         # shell script to install packages (e.g. yum, apt, ...)
         class ShellScriptManager < Manager
             def self.execute(command_line, with_locking, with_root,
-                env: Autobuild.env, inherit: Set.new)
+                env: Autoproj.workspace.env, inherit: Set.new)
                 if with_locking
                     File.open("/tmp/autoproj_osdeps_lock", "w") do |lock_io|
                         until lock_io.flock(File::LOCK_EX | File::LOCK_NB)
