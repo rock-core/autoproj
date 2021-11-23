@@ -467,7 +467,9 @@ module Autoproj
 
                 raise failures.first if !keep_going && !failures.empty?
 
-                install_internal_dependencies_for(*all_processed_packages)
+                install_internal_dependencies_for(
+                    *all_processed_packages, install_only: import_options[:checkout_only]
+                )
                 finalize_package_load(all_processed_packages, auto_exclude: auto_exclude)
 
                 all_enabled_osdeps = selection.each_osdep_package_name.to_set
