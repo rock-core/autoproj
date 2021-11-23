@@ -9,6 +9,12 @@ module Autoproj
         class AptDpkgManager < ShellScriptManager
             attr_accessor :status_file
 
+            class << self
+                def inherit
+                    @inherit ||= Set.new
+                end
+            end
+
             def initialize(ws, status_file = "/var/lib/dpkg/status")
                 @status_file = status_file
                 @installed_packages = nil
@@ -129,6 +135,7 @@ module Autoproj
                 end
             end
 
+            # rubocop:disable Metrics/AbcSize
             def install(packages, filter_uptodate_packages: false, install_only: false)
                 if filter_uptodate_packages || install_only
                     already_installed, missing = packages.partition do |package_name|
@@ -144,12 +151,13 @@ module Autoproj
                     packages = missing + (need_update || [])
                 end
 
-                if super(packages)
+                if super(packages, inherit: self.class.inherit)
                     # Invalidate caching of installed packages, as we just
                     # installed new packages !
                     @installed_packages = nil
                 end
             end
+            # rubocop:enable Metrics/AbcSize
         end
     end
 end

@@ -3,7 +3,8 @@ module Autoproj
         # Base class for all package managers that simply require the call of a
         # shell script to install packages (e.g. yum, apt, ...)
         class ShellScriptManager < Manager
-            def self.execute(command_line, with_locking, with_root, env: Autobuild.env)
+            def self.execute(command_line, with_locking, with_root,
+                env: Autoproj.workspace.env, inherit: Set.new)
                 if with_locking
                     File.open("/tmp/autoproj_osdeps_lock", "w") do |lock_io|
                         until lock_io.flock(File::LOCK_EX | File::LOCK_NB)
@@ -18,12 +19,20 @@ module Autoproj
                     end
                 end
 
+                process_env = env
                 if with_root
-                    sudo = Autobuild.tool_in_path("sudo", env: env)
-                    command_line = [sudo, *command_line]
+                    process_env = Autobuild::Environment.new
+                    process_env.isolate
+                    process_env.add_path("PATH", "/usr/local/sbin",
+                                         "/usr/sbin", "/sbin")
+
+                    inherit.each { |var| process_env.set(var, env[var]) }
+                    sudo = Autobuild.tool_in_path("sudo", env: process_env)
+                    command_line = [sudo, "--preserve-env", *command_line]
                 end
 
-                Autobuild::Subprocess.run "autoproj", "osdeps", *command_line
+                Autobuild::Subprocess.run "autoproj", "osdeps", *command_line,
+                                          env: process_env.resolved_env
             end
 
             # Overrides the {#needs_locking?} flag
@@ -194,7 +203,8 @@ module Autoproj
             # @return [Boolean] true if packages got installed, false otherwise
             def install(packages, filter_uptodate_packages: false, install_only: false,
                 auto_install_cmd: self.auto_install_cmd,
-                user_install_cmd: self.user_install_cmd)
+                user_install_cmd: self.user_install_cmd,
+                inherit: Set.new)
                 return if packages.empty?
 
                 handled_os = ws.supported_operating_system?
