@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "autoproj/python"
 require "autoproj/test"
 

@@ -1,4 +1,5 @@
 require "autoproj/autobuild_extensions/package"
+require "autoproj/autobuild_extensions/python"
 require "autoproj/autobuild_extensions/archive_importer"
 require "autoproj/autobuild_extensions/git"
 require "autoproj/autobuild_extensions/svn"
@@ -15,4 +16,7 @@ Autobuild::Git.class_eval do
 end
 Autobuild::SVN.class_eval do
     prepend Autoproj::AutobuildExtensions::SVN
+end
+Autobuild::Python.class_eval do
+    prepend Autoproj::AutobuildExtensions::Python
 end

@@ -26,6 +26,7 @@ module Autoproj
                 packages = %w[pkg0 pkg1 pkg2]
                 subprocess.should_receive(:run).explicitly
                           .with(any, any, "mypip", "install", "--user", "pkg0", "pkg1", "pkg2", any).once
+                ws.config.interactive = false
                 pip_manager.install(packages)
             end
 
@@ -36,11 +37,14 @@ module Autoproj
                 pip_manager.silent = false
                 subprocess.should_receive(:run).explicitly.never
                 flexmock($stdin).should_receive(:readline).once.and_return
+                ws.config.interactive = false
+                ws.config.set("USE_PYTHON", true, true)
                 pip_manager.install([["pkg0"]])
             end
 
             def test_no_use_python
-                ws.config.set("USE_PYTHON", false)
+                ws.config.set("USE_PYTHON", false, true)
+                ws.config.interactive = false
                 assert_raises(ConfigError) { pip_manager.guess_pip_program }
                 ws.config.set("USE_PYTHON", true)
             end
@@ -53,6 +57,12 @@ module Autoproj
                 assert_raises(ConfigError) { pip_manager.guess_pip_program }
                 ws.config.set("USE_PYTHON", true)
                 ws.config.interactive = interactive
+            end
+
+            def test_python_activation_with_config_already_set
+                ws.config.set("USE_PYTHON", true, true)
+                flexmock(pip_manager).should_receive(:activate_python).once
+                pip_manager.guess_pip_program
             end
         end
     end
