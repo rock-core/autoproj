@@ -27,12 +27,14 @@ module Autoproj
             end
 
             def guess_pip_program
-                unless ws.config.has_value_for?("USE_PYTHON")
-                    Autoproj::Python.setup_python_configuration_options(ws: ws)
-                end
-                Autoproj::Python.assert_python_activated(ws: ws)
+                activate_python
                 Autobuild.programs["pip"] = "pip" unless Autobuild.programs["pip"]
                 Autobuild.programs["pip"]
+            end
+
+            def activate_python
+                Autoproj::Python.setup_python_configuration_options(ws: ws)
+                Autoproj::Python.assert_python_activated(ws: ws)
             end
 
             def install(pips, filter_uptodate_packages: false, install_only: false)
