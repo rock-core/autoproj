@@ -141,12 +141,12 @@ module Autoproj
                 assert(@ws.config.has_value_for?("python_executable"))
                 assert(@ws.config.has_value_for?("python_version"))
 
-                python_bin = File.join(@ws.prefix_dir, "bin", "python")
+                python_bin = File.join(@ws.dot_autoproj_dir, "bin", "python")
                 assert(File.exist?(python_bin))
                 python_version = Autoproj::Python.get_python_version(python_bin)
                 assert(python_version == @ws.config.get("python_version"))
 
-                pip_bin = File.join(@ws.prefix_dir, "bin", "pip")
+                pip_bin = File.join(@ws.dot_autoproj_dir, "bin", "pip")
                 assert(File.exist?(pip_bin))
                 pip_version = Autoproj::Python.get_pip_version(pip_bin)
                 expected_pip_version = `#{python_bin} -c "import pip; print(pip.__version__)"`.strip
