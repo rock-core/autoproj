@@ -13,7 +13,8 @@ module Autoproj
                                              "installation"
                             sleep 5
                         end
-                        return execute(command_line, false, with_root, env: env)
+                        return execute(command_line, false, with_root,
+                                       env: env, inherit: inherit)
                     ensure
                         lock_io.flock(File::LOCK_UN)
                     end
@@ -32,7 +33,8 @@ module Autoproj
                 end
 
                 Autobuild::Subprocess.run "autoproj", "osdeps", *command_line,
-                                          env: process_env.resolved_env
+                                          env: process_env.resolved_env,
+                                          env_inherit: false
             end
 
             # Overrides the {#needs_locking?} flag
@@ -228,7 +230,7 @@ module Autoproj
 
                     ShellScriptManager.execute(
                         [*auto_install_cmd, *packages], needs_locking?,
-                        needs_root?, env: ws.env
+                        needs_root?, env: ws.env, inherit: inherit
                     )
                     return true
                 end

@@ -63,6 +63,39 @@ module Autoproj
                 end
             end
 
+            describe "env inheritance" do
+                before do
+                    file = File.expand_path("apt-dpkg-status",
+                                            File.dirname(__FILE__))
+                    @ws = ws_create
+                    @mng = AptDpkgManager.new(@ws, file)
+                end
+
+                it "passes the right env arguments to run subprocess" do
+                    @ws.env.set "FOO", "BAR"
+                    AptDpkgManager.inherit << "FOO"
+                    expected_env = {
+                        "PATH" => "/usr/local/sbin:/usr/sbin:/sbin:"\
+                                  "/usr/local/bin:/usr/bin:/bin",
+                        "FOO" => "BAR"
+                    }
+                    expected_args = [
+                        "autoproj", "osdeps",
+                        "/sbin/sudo", "--preserve-env",
+                        "DEBIAN_FRONTEND=noninteractive",
+                        "apt-get", "install", "-y", "noninstalled-package"
+                    ]
+                    flexmock(Autobuild).should_receive(:tool_in_path)
+                                       .with("sudo", any)
+                                       .and_return("/sbin/sudo")
+                    flexmock(Autobuild::Subprocess).should_receive(:run)
+                                                   .with(*expected_args,
+                                                         env: expected_env,
+                                                         env_inherit: false)
+                    @mng.install(%w[noninstalled-package])
+                end
+            end
+
             describe "#install" do
                 before do
                     file = File.expand_path("apt-dpkg-status",
