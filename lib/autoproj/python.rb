@@ -224,14 +224,14 @@ module Autoproj
 
             ws.osdep_suffixes << "python#{$1}" if version =~ /^([0-9]+)\./
 
-            rewrite_python_shims(bin, ws.prefix_dir)
-            rewrite_pip_shims(bin, ws.prefix_dir)
+            rewrite_python_shims(bin, ws.dot_autoproj_dir)
+            rewrite_pip_shims(bin, ws.dot_autoproj_dir)
             [bin, version]
         end
 
         def self.deactivate_python(ws: Autoproj.workspace)
-            remove_python_shims(ws.prefix_dir)
-            remove_pip_shims(ws.prefix_dir)
+            remove_python_shims(ws.dot_autoproj_dir)
+            remove_pip_shims(ws.dot_autoproj_dir)
             ws.config.reset("python_executable")
             ws.config.reset("python_version")
         end
@@ -279,8 +279,8 @@ module Autoproj
 
             if ws.config.get("USE_PYTHON")
                 unless ws.config.has_value_for?("python_executable")
-                    remove_python_shims(ws.prefix_dir)
-                    remove_pip_shims(ws.prefix_dir)
+                    remove_python_shims(ws.dot_autoproj_dir)
+                    remove_pip_shims(ws.dot_autoproj_dir)
                     python_bin, = auto_resolve_python(ws: ws)
                 end
 
