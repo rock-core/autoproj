@@ -535,6 +535,7 @@ module Autoproj
                 # Save the osdeps entries in a temporary gemfile and finally
                 # merge the whole lot of it
                 gemfile_contents = Tempfile.open "autoproj-gemfile" do |io|
+                    io.puts "source \"https://rubygems.org\""
                     gems.map { |entry| GemEntry.parse(entry) }
                         .sort_by(&:name)
                         .each { |entry| io.puts entry.to_gemfile_line }
