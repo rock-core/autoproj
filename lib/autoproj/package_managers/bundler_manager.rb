@@ -370,7 +370,7 @@ module Autoproj
             end
 
             # Parse the contents of a gemfile into a set of
-            def merge_gemfiles(*path, unlock: [])
+            def merge_gemfiles(*path, ruby_version: nil, unlock: [])
                 gems_remotes = Set.new
                 dependencies = Hash.new do |h, k|
                     h[k] = Hash.new do |i, j|
@@ -409,6 +409,9 @@ module Autoproj
                     g = g.to_s
                     g = g[0..-2] if g.end_with?("/")
                     contents << "source '#{g}'"
+                end
+                if ruby_version
+                    contents << "ruby \"#{ruby_version}\" if respond_to?(:ruby)"
                 end
                 valid_keys = %w[group groups git path glob name branch ref tag
                                 require submodules platform platforms type
@@ -538,9 +541,12 @@ module Autoproj
 
                     io.flush
                     gemfiles.unshift io.path
+
+                    ruby_version = RUBY_VERSION.gsub(/\.\d+$/, ".0")
+
                     # The autoproj gemfile needs to be last, we really don't
                     # want to mess it up
-                    merge_gemfiles(*gemfiles)
+                    merge_gemfiles(*gemfiles, ruby_version: "~> #{ruby_version}")
                 end
 
                 FileUtils.mkdir_p root_dir
@@ -548,7 +554,6 @@ module Autoproj
                            File.read(gemfile_path) != gemfile_contents)
                 if updated
                     Ops.atomic_write(gemfile_path) do |io|
-                        io.puts "ruby \"#{RUBY_VERSION}\" if respond_to?(:ruby)"
                         io.puts gemfile_contents
                     end
                 end
