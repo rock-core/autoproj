@@ -491,6 +491,7 @@ module Autoproj
                     bin_shim = File.join(shim_path, bin_name)
                     bin_script_lines = File.readlines(bin_script)
                     next if has_autoproj_preamble?(bin_script_lines)
+                    next unless ruby_script?(bin_script_lines)
 
                     File.open(bin_shim, "w") do |io|
                         if bin_name == "bundler" || bin_name == "bundle"
@@ -503,6 +504,10 @@ module Autoproj
                     end
                     FileUtils.chmod 0755, bin_shim
                 end
+            end
+
+            def self.ruby_script?(script_lines)
+                script_lines.first =~ /\#\s*!(.*ruby.*)/
             end
 
             def self.new_style_bundler_binstub?(script_lines)

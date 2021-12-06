@@ -57,6 +57,31 @@ module Autoproj
                 end
             end
 
+            describe "npython shims" do
+                attr_reader :install_dir, :shared_dir, :python_shim, :pip_shim
+
+                before do
+                    @install_dir = make_tmpdir
+                    @shared_dir = make_tmpdir
+
+                    FileUtils.mkdir_p File.join(install_dir, ".autoproj", "bin")
+                    @python_shim = File.join(install_dir, ".autoproj", "bin", "python")
+                    @pip_shim = File.join(install_dir, ".autoproj", "bin", "pip")
+
+                    File.open(python_shim, "w") { |f| f.write("foobar") }
+                    File.open(pip_shim, "w") { |f| f.write("foobar") }
+
+                    @install_dir, = invoke_test_script(
+                        "install.sh", dir: install_dir, env: { "HOME" => shared_dir }
+                    )
+                end
+
+                it "does not overwrite python shims" do
+                    assert_equal "foobar", File.open(python_shim).read
+                    assert_equal "foobar", File.open(pip_shim).read
+                end
+            end
+
             describe "default shared gems location" do
                 attr_reader :shared_gem_home, :shared_dir, :install_dir
 
