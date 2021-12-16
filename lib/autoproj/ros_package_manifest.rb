@@ -31,6 +31,10 @@ module Autoproj
             def tag_end(name)
                 super
                 exportlevel_tag_end(name) if @export_level
+                if @tag_level == 0 && name == "package" &&
+                   (!manifest.name || manifest.name.empty?)
+                    raise InvalidPackageManifest, "Package name missiing in #{path}"
+                end
             end
 
             def exportlevel_tag_start(name, _attributes)
