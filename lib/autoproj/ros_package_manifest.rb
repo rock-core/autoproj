@@ -24,6 +24,8 @@ module Autoproj
                 elsif AUTHOR_FIELDS.include?(name)
                     @author_email = attributes["email"]
                     @tag_text = ""
+                elsif name == "name"
+                    @tag_text = ""
                 else
                     @tag_text = nil
                 end
@@ -51,6 +53,8 @@ module Autoproj
                 elsif TEXT_FIELDS.include?(name)
                     field = @tag_text.strip
                     manifest.send("#{name}=", field) unless field.empty?
+                elsif name == "name"
+                    manifest.name = @tag_text.strip
                 end
                 @tag_text = nil
             end

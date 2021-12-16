@@ -95,6 +95,13 @@ module Autoproj
             end
         end
 
+        describe "name" do
+            it "parses ros package name" do
+                manifest = subject_parse('<package><name>ros_pkg</name></package>')
+                assert_equal "ros_pkg", manifest.name
+            end
+        end
+
         describe "authors" do
             it "parses the author tag" do
                 manifest = subject_parse('<package><author email="name@domain">Firstname Lastname</author><author email="author2@domain">Author2</author></package>')
