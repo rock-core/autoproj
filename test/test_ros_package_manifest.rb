@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "autoproj/test"
 
 module Autoproj
@@ -9,16 +11,30 @@ module Autoproj
         end
 
         def subject_parse(text)
-            Autoproj::PackageManifest.parse(pkg, text, loader_class: Autoproj::RosPackageManifest::Loader)
+            Autoproj::PackageManifest.parse(
+                pkg, text, loader_class: RosPackageManifest::Loader
+            )
         end
 
         describe "description" do
             it "loads the content of the description block" do
-                manifest = subject_parse("<package><description>long\ndocumentation\nblock</description></package>")
+                subject = <<~EOFSUBJECT
+                    <package>
+                        <description>long\ndocumentation\nblock</description>
+                    </package>
+                EOFSUBJECT
+
+                manifest = subject_parse(subject)
                 assert_equal "long\ndocumentation\nblock", manifest.documentation
             end
             it "allows html tags in a long description block" do
-                manifest = subject_parse("<package><description>long <tt>test</tt> documentation block</description></package>")
+                subject = <<~EOFSUBJECT
+                    <package>
+                        <description>long <tt>test</tt> documentation block</description>
+                    </package>"
+                EOFSUBJECT
+
+                manifest = subject_parse(subject)
                 assert_equal "long test documentation block", manifest.documentation
             end
             it "reports if there is no documentation" do
@@ -30,21 +46,41 @@ module Autoproj
                 refute manifest.has_documentation?
             end
             it "interprets an empty documentation text as no documentation" do
-                manifest = subject_parse("<package><description>  \n  </description></package>")
+                subject = <<~EOFSUBJECT
+                    <package>
+                        <description>  \n  </description>
+                    </package>"
+                EOFSUBJECT
+
+                manifest = subject_parse(subject)
                 refute manifest.has_documentation?
             end
             it "returns a default string if there is no documentation at all" do
                 manifest = subject_parse("<package></package>")
-                assert_equal "no documentation available for package 'test' in its manifest.xml file",
-                                manifest.documentation
+                assert_equal "no documentation available for package 'test'"\
+                             " in its manifest.xml file",
+                             manifest.documentation
             end
             it "returns a default string if there is no brief documentation" do
-                manifest = subject_parse("<package><documentation>long</documentation></package>")
-                assert_equal "no documentation available for package 'test' in its manifest.xml file",
-                                manifest.short_documentation
+                subject = <<~EOFSUBJECT
+                    <package>
+                        <documentation>long</documentation>
+                    </package>
+                EOFSUBJECT
+
+                manifest = subject_parse(subject)
+                assert_equal "no documentation available for package 'test'"\
+                             " in its manifest.xml file",
+                             manifest.short_documentation
             end
             it "reports if there is no brief documentation" do
-                manifest = subject_parse("<package><documentation>long</documentation></package>")
+                subject = <<~EOFSUBJECT
+                    <package>
+                        <documentation>long</documentation>
+                    </package>
+                EOFSUBJECT
+
+                manifest = subject_parse(subject)
                 refute manifest.has_short_documentation?
             end
         end
@@ -61,15 +97,24 @@ module Autoproj
                 describe "<#{tag}>" do
                     it "raises if the tag has neither a name nor a package attribute" do
                         assert_raises(InvalidPackageManifest) do
-                            PackageManifest.parse(pkg, "<package><#{tag}>\n</#{tag}></package>", loader_class: Autoproj::RosPackageManifest::Loader)
+                            PackageManifest.parse(
+                                pkg, "<package><#{tag}>\n</#{tag}></package>",
+                                loader_class: RosPackageManifest::Loader
+                            )
                         end
                     end
                     it "parses the dependency name" do
-                        dependency = parse_dependency("<package><#{tag}>test</#{tag}></package>")
+                        dependency = parse_dependency(
+                            "<package><#{tag}>test</#{tag}></package>"
+                        )
+
                         assert_equal "test", dependency.name
                     end
                     it "is not optional" do
-                        dependency = parse_dependency("<package><#{tag}>test</#{tag}></package>")
+                        dependency = parse_dependency(
+                            "<package><#{tag}>test</#{tag}></package>"
+                        )
+
                         refute dependency.optional
                     end
                 end
@@ -79,16 +124,25 @@ module Autoproj
                 describe "<#{tag}>" do
                     it "raises if the tag has neither a name nor a package attribute" do
                         assert_raises(InvalidPackageManifest) do
-                            PackageManifest.parse(pkg, "<package><#{tag}>\n</#{tag}></package>", loader_class: Autoproj::RosPackageManifest::Loader)
+                            PackageManifest.parse(
+                                pkg, "<package><#{tag}>\n</#{tag}></package>",
+                                loader_class: Autoproj::RosPackageManifest::Loader
+                            )
                         end
                     end
                     it "parses the dependency name and mode" do
-                        dependency = parse_dependency("<package><#{tag}>test</#{tag}></package>")
+                        dependency = parse_dependency(
+                            "<package><#{tag}>test</#{tag}></package>"
+                        )
+
                         assert_equal "test", dependency.name
                         assert_equal [mode], dependency.modes
                     end
                     it "is not optional" do
-                        dependency = parse_dependency("<package><#{tag}>test</#{tag}></package>")
+                        dependency = parse_dependency(
+                            "<package><#{tag}>test</#{tag}></package>"
+                        )
+
                         refute dependency.optional
                     end
                 end
@@ -97,24 +151,106 @@ module Autoproj
 
         describe "name" do
             it "parses ros package name" do
-                manifest = subject_parse('<package><name>ros_pkg</name></package>')
+                manifest = subject_parse("<package><name>ros_pkg</name></package>")
                 assert_equal "ros_pkg", manifest.name
+            end
+        end
+
+        describe "export level tags" do
+            it "parses tags after an export level tag" do
+                subject = <<~EOFSUBJECT
+                    <package>
+                        <export></export>
+                        <name>ros_pkg</name>
+                    </package>
+                EOFSUBJECT
+
+                manifest = subject_parse(subject)
+                assert_equal "ros_pkg", manifest.name
+            end
+
+            it "differentiates export level tags from top level tags" do
+                subject = <<~EOFSUBJECT
+                    <package>
+                        <export>
+                            <name>ros_pkg</name>
+                        </export>
+                    </package>
+                EOFSUBJECT
+
+                manifest = subject_parse(subject)
+                assert_nil manifest.name
+            end
+
+            it "differentiates non export level tags from top level tags" do
+                subject = <<~EOFSUBJECT
+                    <package>
+                        <not_export>
+                            <build_type>ament_cmake</build_type>
+                        </not_export>
+                    </package>
+                EOFSUBJECT
+
+                manifest = subject_parse(subject)
+                assert_equal "catkin", manifest.build_type
+            end
+
+            it "defaults build_type to catkin" do
+                manifest = subject_parse("<package><export></export></package>")
+                assert_equal "catkin", manifest.build_type
+            end
+
+            it "parses build_type tag" do
+                subject = <<~EOFSUBJECT
+                    <package>
+                        <export>
+                            <build_type>ament_cmake</build_type>
+                        </export>
+                    </package>
+                EOFSUBJECT
+
+                manifest = subject_parse(subject)
+                assert_equal "ament_cmake", manifest.build_type
             end
         end
 
         describe "authors" do
             it "parses the author tag" do
-                manifest = subject_parse('<package><author email="name@domain">Firstname Lastname</author><author email="author2@domain">Author2</author></package>')
-                assert_equal [PackageManifest::ContactInfo.new("Firstname Lastname", "name@domain"),
-                              PackageManifest::ContactInfo.new("Author2", "author2@domain")], manifest.authors
+                subject = <<~EOFSUBJECT
+                    <package>
+                        <author email="name@domain">Firstname Lastname</author>
+                        <author email="author2@domain">Author2</author>
+                    </package>
+                EOFSUBJECT
+
+                manifest = subject_parse(subject)
+                contact1 = PackageManifest::ContactInfo.new(
+                    "Firstname Lastname", "name@domain"
+                )
+                contact2 = PackageManifest::ContactInfo.new(
+                    "Author2", "author2@domain"
+                )
+                assert_equal [contact1, contact2], manifest.authors
             end
         end
 
         describe "maintainers" do
             it "parses the maintainer tag" do
-                manifest = subject_parse('<package><maintainer email="name@domain">Firstname Lastname</maintainer><maintainer email="author2@domain">Author2</maintainer></package>')
-                assert_equal [PackageManifest::ContactInfo.new("Firstname Lastname", "name@domain"),
-                              PackageManifest::ContactInfo.new("Author2", "author2@domain")], manifest.maintainers
+                subject = <<~EOFSUBJECT
+                    <package>
+                        <maintainer email="name@domain">Firstname Lastname</maintainer>
+                        <maintainer email="author2@domain">Author2</maintainer>
+                    </package>
+                EOFSUBJECT
+
+                manifest = subject_parse(subject)
+                contact1 = PackageManifest::ContactInfo.new(
+                    "Firstname Lastname", "name@domain"
+                )
+                contact2 = PackageManifest::ContactInfo.new(
+                    "Author2", "author2@domain"
+                )
+                assert_equal [contact1, contact2], manifest.maintainers
             end
         end
     end

@@ -167,6 +167,7 @@ module Autoproj
             end
 
             def text(text)
+                @tag_text = @tag_text.dup
                 @tag_text << text if @tag_text
             end
         end
