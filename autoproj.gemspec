@@ -29,6 +29,7 @@ Gem::Specification.new do |s|
     s.add_runtime_dependency "backports", "~> 3.0"
     s.add_runtime_dependency "bundler"
     s.add_runtime_dependency "concurrent-ruby", "~> 1.1"
+    s.add_runtime_dependency "parslet"
     s.add_runtime_dependency "rb-inotify" if RbConfig::CONFIG["target_os"] =~ /linux/
     s.add_runtime_dependency "rgl", "~> 0.5.7"
     s.add_runtime_dependency "thor", "~> 1.0"

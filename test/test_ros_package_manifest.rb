@@ -7,7 +7,8 @@ module Autoproj
         attr_reader :pkg
 
         before do
-            @pkg = flexmock(name: "test")
+            ws_create.set_as_main_workspace
+            @pkg = Autobuild.import("test")
         end
 
         def loader_class
@@ -163,6 +164,39 @@ module Autoproj
                         refute dependency.optional
                     end
                 end
+            end
+        end
+
+        describe "condition attribute" do
+            it "handles condition attribute in dependency tags" do
+                subject = <<~EOFSUBJECT
+                    <package>
+                        <name>ros_pkg</name>
+                        <depend condition="$FOO == foo">one</depend>
+                        <depend condition="$FOO == bar">two</depend>
+                    </package>
+                EOFSUBJECT
+
+                ws.env.set("FOO", "foo")
+                manifest = subject_parse(subject)
+                assert_equal 1, manifest.dependencies.size
+                assert_equal "one", manifest.dependencies.first.name
+            end
+
+            it "handles condition attribute in build_type tag" do
+                subject = <<~EOFSUBJECT
+                    <package>
+                        <name>ros_pkg</name>
+                        <export>
+                            <build_type condition="$ROS_VERSION == 2">ament_cmake</build_type>
+                            <build_type condition="$ROS_VERSION == 1">catkin</build_type>
+                        </export>
+                    </package>
+                EOFSUBJECT
+
+                ws.env.set("ROS_VERSION", "2")
+                manifest = subject_parse(subject)
+                assert_equal "ament_cmake", manifest.build_type
             end
         end
 

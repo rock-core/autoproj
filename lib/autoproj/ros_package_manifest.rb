@@ -23,6 +23,12 @@ module Autoproj
                              buildtool_depend buildtool_export_depend
                              exec_depend test_depend run_depend doc_depend].to_set.freeze
 
+            def initialize(path, manifest)
+                super
+                @env = manifest.package.ws.env
+                @condition_parser = ConditionParser.new(@env)
+            end
+
             def tag_start(name, attributes)
                 super
                 exportlevel_tag_start(name, attributes) if @export_level
@@ -37,16 +43,23 @@ module Autoproj
                 end
             end
 
-            def exportlevel_tag_start(name, _attributes)
-                @tag_text = "" if name == "build_type"
+            def exportlevel_tag_start(name, attributes)
+                return unless name == "build_type"
+
+                @build_type_condition = attributes["condition"]
+                @tag_text = ""
             end
 
             def exportlevel_tag_end(name)
-                manifest.build_type = @tag_text.strip if name == "build_type"
+                return unless name == "build_type"
+                return unless handle_condition(@build_type_condition)
+
+                manifest.build_type = @tag_text.strip
             end
 
             def toplevel_tag_start(name, attributes)
                 if DEPEND_TAGS.include?(name)
+                    @depend_condition = attributes["condition"]
                     @tag_text = ""
                 elsif TEXT_FIELDS.include?(name)
                     @tag_text = ""
@@ -62,7 +75,15 @@ module Autoproj
                 end
             end
 
+            def handle_condition(expr)
+                return true unless expr && !expr.empty?
+
+                @condition_parser.evaluate(expr)
+            end
+
             def depend_tag_end(name)
+                return unless handle_condition(@depend_condition)
+
                 if @tag_text.strip.empty?
                     raise InvalidPackageManifest, "found '#{name}' tag in #{path} "\
                                                   "without content"
