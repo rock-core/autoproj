@@ -26,7 +26,7 @@ module Autoproj
             def initialize(path, manifest)
                 super
                 @env = manifest.package.ws.env
-                @condition_parser = ConditionParser.new(@env)
+                @condition_parser = RosConditionParser.new(@env)
             end
 
             def tag_start(name, attributes)

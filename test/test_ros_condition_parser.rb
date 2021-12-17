@@ -1,15 +1,14 @@
 # frozen_string_literal: true
 
-require "autoproj/condition_parser"
 require "autoproj/test"
 
 module Autoproj
-    describe ConditionParser do
+    describe RosConditionParser do
         before do
             @context = {}
         end
         def condition(input)
-            ConditionParser.new(@context).evaluate(input)
+            RosConditionParser.new(@context).evaluate(input)
         end
         it "expands variables" do
             @context["FOO"] = "bar"

@@ -7,7 +7,7 @@ require "autoproj/variable_expansion"
 module Autoproj
     # Parses a conditional expression
     # Syntax and rules as defined in https://www.ros.org/reps/rep-0149.html#id20
-    class ConditionParser < Parslet::Parser
+    class RosConditionParser < Parslet::Parser
         def initialize(context)
             @context = context
             super()
