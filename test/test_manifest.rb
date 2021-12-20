@@ -679,7 +679,7 @@ module Autoproj
             end
             it "loads a package's package.xml if it is explicitely enabled" do
                 pkg.autobuild.use_package_xml = true
-                manifest_path = ws_create_package_file pkg, "package.xml", "<package />"
+                manifest_path = ws_create_package_file pkg, "package.xml", "<package><name>pkg</name></package>"
                 flexmock(PackageManifest).should_receive(:load)
                                          .with(pkg.autobuild, manifest_path, ros_manifest: true)
                                          .once.pass_thru
@@ -690,7 +690,7 @@ module Autoproj
                 ws_create_package_file pkg, "manifest.xml", "<package />"
                 ws_create_package_set_file pkg_set, "manifests/test.xml", "<package />"
                 manifest_path = ws_create_package_file pkg,
-                                                       "package.xml", "<package />"
+                                                       "package.xml", "<package><name>pkg</name></package>"
                 flexmock(PackageManifest).should_receive(:load)
                                          .with(pkg.autobuild, manifest_path, ros_manifest: true)
                                          .once.pass_thru
