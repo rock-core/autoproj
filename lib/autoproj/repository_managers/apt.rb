@@ -173,7 +173,7 @@ module Autoproj
                         id
                     )
                 else
-                    open(origin) do |io|
+                    URI(origin).open do |io|
                         Autobuild::Subprocess.run(
                             "autoproj",
                             "osrepos",
