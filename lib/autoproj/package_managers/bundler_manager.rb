@@ -370,7 +370,7 @@ module Autoproj
             end
 
             # Parse the contents of a gemfile into a set of
-            def merge_gemfiles(*path, unlock: [])
+            def merge_gemfiles(*path, ruby_version: nil, unlock: [])
                 gems_remotes = Set.new
                 dependencies = Hash.new do |h, k|
                     h[k] = Hash.new do |i, j|
@@ -409,6 +409,9 @@ module Autoproj
                     g = g.to_s
                     g = g[0..-2] if g.end_with?("/")
                     contents << "source '#{g}'"
+                end
+                if ruby_version
+                    contents << "ruby \"#{ruby_version}\" if respond_to?(:ruby)"
                 end
                 valid_keys = %w[group groups git path glob name branch ref tag
                                 require submodules platform platforms type
@@ -526,34 +529,32 @@ module Autoproj
                     end
                 end
 
-                gemfiles = workspace_configuration_gemfiles
+                gemfiles = []
+
+                unless gems.empty?
+                    osdeps_gemfile_io = prepare_osdeps_gemfile(gems)
+                    gemfiles << osdeps_gemfile_io.path
+                end
+
+                gemfiles += workspace_configuration_gemfiles
+                # The autoproj gemfile needs to be last, we really don't
+                # want to mess it up
                 gemfiles << File.join(ws.dot_autoproj_dir, "Gemfile")
 
-                # Save the osdeps entries in a temporary gemfile and finally
-                # merge the whole lot of it
-                gemfile_contents = Tempfile.open "autoproj-gemfile" do |io|
-                    gems.map { |entry| GemEntry.parse(entry) }
-                        .sort_by(&:name)
-                        .each { |entry| io.puts entry.to_gemfile_line }
-
-                    io.flush
-                    gemfiles.unshift io.path
-                    # The autoproj gemfile needs to be last, we really don't
-                    # want to mess it up
-                    merge_gemfiles(*gemfiles)
-                end
+                ruby_version = RUBY_VERSION.gsub(/\.\d+$/, ".0")
+                gemfile_contents =
+                    merge_gemfiles(*gemfiles, ruby_version: "~> #{ruby_version}")
 
                 FileUtils.mkdir_p root_dir
                 updated = (!File.exist?(gemfile_path) ||
                            File.read(gemfile_path) != gemfile_contents)
                 if updated
                     Ops.atomic_write(gemfile_path) do |io|
-                        io.puts "ruby \"#{RUBY_VERSION}\" if respond_to?(:ruby)"
                         io.puts gemfile_contents
                     end
                 end
 
-                options = Array.new
+                options = []
                 binstubs_path = File.join(root_dir, "bin")
                 if updated || !install_only || !File.file?("#{gemfile_path}.lock")
                     self.class.run_bundler_install(ws, gemfile_path, *options,
@@ -578,6 +579,25 @@ module Autoproj
                     FileUtils.rm_f File.join(binstubs_path, "bundler")
                 end
                 backup_clean(backups)
+            end
+
+            # Prepare a Gemfile that contains osdeps gem declarations
+            #
+            # @param [Array<String,Hash>] gems osdeps declarations as understood
+            #   by {GemEntry.parse}
+            # @return [File]
+            def prepare_osdeps_gemfile(gems)
+                io = Tempfile.open "autoproj-gemfile"
+                io.puts "source \"https://rubygems.org\""
+                gems.map { |entry| GemEntry.parse(entry) }
+                    .sort_by(&:name)
+                    .each { |entry| io.puts entry.to_gemfile_line }
+
+                io.flush
+                io
+            rescue Exception
+                io&.close
+                raise
             end
 
             def discover_rubylib
