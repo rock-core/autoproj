@@ -173,7 +173,11 @@ module Autoproj
 
             # The user-wide place where RubyGems installs gems
             def dot_gem_dir
-                File.join(Gem.user_home, ".gem")
+                if Gem.respond_to?(:data_home) # Debian 11+
+                    File.join(Gem.data_home, "gem")
+                else
+                    File.join(Gem.user_home, ".gem")
+                end
             end
 
             # The version and platform-specific suffix under {#dot_gem_dir}
