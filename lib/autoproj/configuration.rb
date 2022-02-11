@@ -270,13 +270,12 @@ module Autoproj
 
         # The user-wide place where RubyGems installs gems
         def self.dot_gem_dir
-            File.join(Gem.user_home, ".gem")
+            Ops::Install.dot_gem_dir
         end
 
         # The Ruby platform and version-specific subdirectory used by bundler and rubygem
         def self.gems_path_suffix
-            @gems_path_suffix ||= Pathname.new(Gem.user_dir)
-                                          .relative_path_from(Pathname.new(dot_gem_dir)).to_s
+            Ops::Install.gems_path_suffix
         end
 
         # The gem install root into which the workspace gems are installed
