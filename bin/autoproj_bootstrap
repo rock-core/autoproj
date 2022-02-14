@@ -172,7 +172,7 @@ module Autoproj
             attr_writer :local
 
             # The user-wide place where RubyGems installs gems
-            def dot_gem_dir
+            def self.dot_gem_dir
                 if Gem.respond_to?(:data_home) # Debian 11+
                     File.join(Gem.data_home, "gem")
                 else
@@ -183,9 +183,12 @@ module Autoproj
             # The version and platform-specific suffix under {#dot_gem_dir}
             #
             # This is also the suffix used by bundler to install gems
-            def gem_path_suffix
-                @gem_path_suffix ||= Pathname.new(Gem.user_dir)
-                                             .relative_path_from(Pathname.new(dot_gem_dir)).to_s
+            def self.gems_path_suffix
+                @gems_path_suffix ||=
+                    Pathname
+                    .new(Gem.user_dir)
+                    .relative_path_from(Pathname.new(dot_gem_dir))
+                    .to_s
             end
 
             # The path into which the workspace's gems should be installed
@@ -200,13 +203,13 @@ module Autoproj
             #
             # @return [String]
             def gems_gem_home
-                File.join(gems_install_path, gem_path_suffix)
+                File.join(gems_install_path, self.class.gems_path_suffix)
             end
             # Sets where the workspace's gems should be installed
             #
             # @param [String] path the absolute path that should be given to
             #   bundler. The gems themselves will be installed in the
-            #   {#gem_path_suffix} subdirectory under this
+            #   {.gems_path_suffix} subdirectory under this
 
             private def xdg_var(varname, default)
                 if (env = ENV[varname]) && !env.empty?
