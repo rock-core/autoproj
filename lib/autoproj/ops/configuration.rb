@@ -626,12 +626,18 @@ module Autoproj
                 root_pkg_set.imports.each do |pkg_set|
                     pkg_set.explicit = true
                 end
+
+                # sort packages, main package is the last
                 package_sets = sort_package_sets_by_import_order(package_sets, root_pkg_set)
                 ws.manifest.reset_package_sets
                 package_sets.each do |pkg_set|
-                    ws.load_if_present(pkg_set, pkg_set.local_dir, "init.rb")
                     ws.manifest.register_package_set(pkg_set)
                 end
+
+                ws.manifest.each_package_set do |pkg_set|
+                    ws.load_if_present(pkg_set, pkg_set.local_dir, "init.rb")
+                end
+
                 failures
             end
         end
