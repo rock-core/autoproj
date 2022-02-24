@@ -32,10 +32,24 @@ module Autoproj
                         @dag.add_edge p, root_pkg_set
                     end
                 end
+            end
 
-                unless @dag.acyclic?
-                    raise "The package set hierarchy contains cycles: #{@dag.cycles}"
+            def verify_acyclic
+                return if @dag.acyclic?
+
+                Autoproj.fatal "The package sets form (a) cycle(s)"
+                @dag.cycles.each_with_index do |cycle, index|
+                    Autoproj.fatal "== Cycle #{index}"
+                    (cycle + cycle[0, 1]).each_cons(2) do |a, b|
+                        if b.imports.include?(a)
+                            Autoproj.fatal "  #{b.name} depends on #{a.name} in its source.yml"
+                        else
+                            Autoproj.fatal "  #{b.name} is after #{a.name} in the package_sets section of the manifest"
+                        end
+                    end
                 end
+
+                raise ConfigError.new "cycles in package set dependencies"
             end
 
             # Flatten the hierarchy, a establish a sorting
@@ -363,6 +377,7 @@ module Autoproj
             # the local package set (by main configuration) last
             def sort_package_sets_by_import_order(package_sets, root_pkg_set)
                 c = PackageSetHierarchy.new(package_sets, root_pkg_set)
+                c.verify_acyclic
                 sorted_pkg_sets = c.flatten
 
                 if sorted_pkg_sets.last != root_pkg_set

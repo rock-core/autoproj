@@ -63,7 +63,7 @@ require "utilrb/logger"
 
 module Autoproj
     class << self
-        attr_reader :logger
+        attr_accessor :logger
     end
     @logger = Logger.new(STDOUT)
     logger.level = Logger::WARN
