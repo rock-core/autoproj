@@ -1,5 +1,6 @@
 require "autoproj/test"
 require "autoproj/ops/configuration"
+require "English"
 
 module Autoproj
     module Ops
@@ -35,20 +36,35 @@ module Autoproj
                 @ops = Autoproj::Ops::Configuration.new(ws)
                 flexmock(@ops)
                 Autobuild.silent = true
+
+                @expected_log_messages = []
             end
 
-            describe "#cyclic_dependencies_of_package_sets" do
-                it "should raise on detecting cyclic depenencies between package sets" do
-                    pkg_set_c = flexmock("set_c", imports: Set.new([]), name: "set_c", explicit?: true)
-                    pkg_set_b = flexmock("set_b", imports: Set.new([pkg_set_c]), name: "set_b", explicit?: true)
-                    pkg_set_a = flexmock("set_a", imports: Set.new([pkg_set_b]), name: "set_a", explicit?: true)
-
-                    pkg_set_c.imports << pkg_set_a
-                    flexmock("root", imports: Set.new([pkg_set_a, pkg_set_c]), name: "main configuration", explicit?: true)
-                    assert_raises(RuntimeError) do
-                        PackageSet.resolve_imports(pkg_set_c)
-                    end
+            def intercept_logger
+                @logger = Autoproj.logger
+                Autoproj.logger = Logger.new(StringIO.new)
+                Autoproj.logger.formatter = proc do |severity, _datetime, _progname, msg|
+                    expected_severity, expected_message = @expected_log_messages.shift
+                    assert_equal expected_severity, severity,
+                                 "received log message #{severity}: #{msg}"
+                    assert_match expected_message, msg,
+                                 "received log message #{severity}: #{msg}"
                 end
+
+                yield
+            ensure
+                if !$ERROR_INFO && !@expected_log_messages.empty?
+                    formatted =
+                        @expected_log_messages
+                        .map { |severity, matcher| "#{severity}: #{matcher}" }
+                        .join("\n  ")
+                    flunk("expected to receive #{@expected_log_messages.size} log messages, but did not:\n  #{formatted}")
+                end
+                Autoproj.logger = @logger
+            end
+
+            def expect_fatal_message(message)
+                @expected_log_messages << ["FATAL", message]
             end
 
             describe "#sort_package_sets_by_import_order" do
@@ -78,10 +94,55 @@ module Autoproj
                     root_pkg_set = flexmock("root", imports: Set.new([pkg_set_c, pkg_set_a]), name: "main configuration", explicit?: true)
                     assert_equal [pkg_set_c, pkg_set_b, pkg_set_a, root_pkg_set],
                                  ops.sort_package_sets_by_import_order([root_pkg_set, pkg_set_a, pkg_set_b, pkg_set_c], root_pkg_set)
+                end
+
+                it "detects and reports a conflict between a package dependency and the order in the manifest" do
+                    pkg_set_c = flexmock("set_c", imports: Set.new([]), name: "set_c", explicit?: true)
+                    pkg_set_b = flexmock("set_b", imports: Set.new([pkg_set_c]), name: "set_b", explicit?: true)
+                    pkg_set_a = flexmock("set_a", imports: Set.new([pkg_set_b]), name: "set_a", explicit?: true)
 
                     root_pkg_set = flexmock("root", imports: Set.new([pkg_set_a, pkg_set_c]), name: "main configuration", explicit?: true)
-                    assert_raises(RuntimeError) do
-                        ops.sort_package_sets_by_import_order([root_pkg_set, pkg_set_a, pkg_set_b, pkg_set_c], root_pkg_set)
+                    intercept_logger do
+                        expect_fatal_message "The package sets form (a) cycle(s)"
+                        expect_fatal_message "== Cycle 0"
+                        expect_fatal_message "  set_b depends on set_c in its source.yml"
+                        expect_fatal_message "  set_a depends on set_b in its source.yml"
+                        expect_fatal_message "  set_c is after set_a in the package_sets section of the manifest"
+                        assert_raises(ConfigError) do
+                            ops.sort_package_sets_by_import_order(
+                                [root_pkg_set, pkg_set_a, pkg_set_b, pkg_set_c],
+                                root_pkg_set
+                            )
+                        end
+                    end
+                end
+
+                it "detects and reports cycles in the package set dependencies" do
+                    pkg_set_a = flexmock("set_a", imports: Set.new([]), name: "set_a", explicit?: false)
+                    pkg_set_b = flexmock("set_b", imports: Set.new([]), name: "set_b", explicit?: false)
+                    pkg_set_c = flexmock("set_c", imports: Set.new([pkg_set_a]), name: "set_c", explicit?: false)
+                    pkg_set_d = flexmock("set_d", imports: Set.new([pkg_set_b]), name: "set_d", explicit?: false)
+                    pkg_set_a.imports << pkg_set_b
+                    pkg_set_b.imports << pkg_set_c
+
+                    root_pkg_set = flexmock(
+                        "root",
+                        imports: Set.new([pkg_set_c]),
+                        name: "main configuration", explicit?: true
+                    )
+
+                    intercept_logger do
+                        expect_fatal_message "The package sets form (a) cycle(s)"
+                        expect_fatal_message "== Cycle 0"
+                        expect_fatal_message "  set_a depends on set_b in its source.yml"
+                        expect_fatal_message "  set_c depends on set_a in its source.yml"
+                        expect_fatal_message "  set_b depends on set_c in its source.yml"
+                        assert_raises(ConfigError) do
+                            ops.sort_package_sets_by_import_order(
+                                [root_pkg_set, pkg_set_d, pkg_set_c, pkg_set_b, pkg_set_a],
+                                root_pkg_set
+                            )
+                        end
                     end
                 end
             end
