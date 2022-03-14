@@ -626,7 +626,7 @@ module Autoproj
         # Similar to load_config_once but asks the user if the default config should be applied
         def load_config_once_with_permission(filename, default: "yes")
             # only run this code if config has not beed applied already (don't run when reconfiguring)
-            return if has_value_for?("default_config_applied_#{filename}")
+            return if has_value_for?("use_default_config_#{filename}")
 
             declare "use_default_config_#{filename}",
                     "boolean",
