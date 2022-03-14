@@ -618,19 +618,19 @@ module Autoproj
             return if get("default_config_applied_#{filename}", false)
             seed_config = File.expand_path(filename, Autoproj.workspace.config_dir)
             Autoproj.message "loading seed config #{seed_config}"
-            Autoproj.config.load path: seed_config
-            Autoproj.config.set "default_config_applied_#{filename}", true, true
+            load path: seed_config
+            set "default_config_applied_#{filename}", true, true
         end
 
         # Similar to load_config_once but asks the user if the default config should be applied
-        def load_config_once_with_permission(filename)
-            Autoproj.configuration_option "use_default_config_#{filename}",
+        def load_config_once_with_permission(filename, default: "yes")
+            declare "use_default_config_#{filename}",
                                           "boolean",
-                                          default: "yes",
+                                          default: default,
                                           doc: ["Should the default workspace config be used?",
                                                 "This buildconf denines a default configuration in the buildconf (#{filename})",
                                                 "Should it be applied?"]
-            if Autoproj.user_config "use_default_config_#{filename}"
+            if get("use_default_config_#{filename}")
                 load_config_once(filename)
             end
         end
