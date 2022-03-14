@@ -615,12 +615,11 @@ module Autoproj
         # config option, e.g. the git server configuration settings
         # The filename parameter is the name of the config seed yml file in the repository
         def load_config_once(filename)
-            unless Autoproj.config.has_value_for?("default_config_applied_#{filename}")
-                seed_config = File.join(Autoproj.workspace.root_dir, "autoproj", filename)
-                Autoproj.message "loading seed config #{seed_config}"
-                Autoproj.config.load path: seed_config
-                Autoproj.config.set "default_config_applied_#{filename}", true, true
-            end
+            return if get("default_config_applied_#{filename}", false)
+            seed_config = File.expand_path(filename, Autoproj.workspace.config_dir)
+            Autoproj.message "loading seed config #{seed_config}"
+            Autoproj.config.load path: seed_config
+            Autoproj.config.set "default_config_applied_#{filename}", true, true
         end
 
         # Similar to load_config_once but asks the user if the default config should be applied
