@@ -632,11 +632,9 @@ module Autoproj
                     "boolean",
                     default: default,
                     doc: ["Should the default workspace config be used?",
-                        "This buildconf denines a default configuration in the buildconf (#{filename})",
-                        "Should it be applied?"]
-            if get("use_default_config_#{filename}")
-                load_config_once(filename)
-            end
+                          "This buildconf denines a default configuration in the buildconf (#{filename})",
+                          "Should it be applied?"]
+            load_config_once(filename) if get("use_default_config_#{filename}")
         end
     end
 end

@@ -437,7 +437,7 @@ module Autoproj
         describe "#load_config_once" do
             it "load config once loads config only once" do
                 # construct global path for test seed, (autoproj.config_dir not available here)
-                seed_file = File.dirname(__FILE__) + "/data/test_manifest/autoproj/test_config_seed.yml"
+                seed_file = "#{File.dirname(__FILE__)}/data/test_manifest/autoproj/test_config_seed.yml"
 
                 config_name = "load_config_once_testvalue"
                 @config.declare(config_name, "boolean", default: "no")
