@@ -451,23 +451,23 @@ module Autoproj
                 assert @config.get(config_name)
 
                 # reset value to one not in config
-                @config.set(config_name, "value not in the seed config")            
+                @config.set(config_name, "value not in the seed config")
                 # load config again (conten true)
                 @config.load_config_once(seed_file)
-                #should still have the naually set value (false)
+                # should still have the naually set value (false)
                 assert @config.get(config_name) == "value not in the seed config"
             end
 
             it "load config once with permission: do load" do
                 # construct global path for test seed, (autoproj.config_dir not available here)
-                seed_file = File.dirname(__FILE__) + "/data/test_manifest/autoproj/test_config_seed.yml"
+                seed_file = "#{File.dirname(__FILE__)}/data/test_manifest/autoproj/test_config_seed.yml"
 
                 config_name = "load_config_once_testvalue"
                 @config.declare(config_name, "boolean", default: "no")
                 @config.interactive = false
                 @config.configure(config_name)
 
-                @config.load_config_once_with_permission(seed_file);
+                @config.load_config_once_with_permission(seed_file)
 
                 assert @config.modified?
                 assert @config.has_value_for?(config_name)
@@ -476,7 +476,7 @@ module Autoproj
 
             it "load config once with permission: don't load" do
                 # construct global path for test seed, (autoproj.config_dir not available here)
-                seed_file = File.dirname(__FILE__) + "/data/test_manifest/autoproj/test_config_seed.yml"
+                seed_file = "#{File.dirname(__FILE__)}/data/test_manifest/autoproj/test_config_seed.yml"
 
                 config_name = "load_config_once_testvalue"
                 @config.declare(config_name, "boolean", default: "no")
@@ -484,7 +484,7 @@ module Autoproj
                 @config.configure(config_name)
 
                 # now the use_default_config is set to false, no loading should happen
-                @config.load_config_once_with_permission(seed_file, default: "no");
+                @config.load_config_once_with_permission(seed_file, default: "no")
                 # value should still be the same (no loading)
                 assert @config.get(config_name) == false
             end

@@ -616,6 +616,7 @@ module Autoproj
         # The filename parameter is the name of the config seed yml file in the repository
         def load_config_once(filename)
             return if get("default_config_applied_#{filename}", false)
+
             seed_config = File.expand_path(filename, Autoproj.workspace.config_dir)
             Autoproj.message "loading seed config #{seed_config}"
             load path: seed_config
@@ -625,11 +626,11 @@ module Autoproj
         # Similar to load_config_once but asks the user if the default config should be applied
         def load_config_once_with_permission(filename, default: "yes")
             declare "use_default_config_#{filename}",
-                                          "boolean",
-                                          default: default,
-                                          doc: ["Should the default workspace config be used?",
-                                                "This buildconf denines a default configuration in the buildconf (#{filename})",
-                                                "Should it be applied?"]
+                    "boolean",
+                    default: default,
+                    doc: ["Should the default workspace config be used?",
+                        "This buildconf denines a default configuration in the buildconf (#{filename})",
+                        "Should it be applied?"]
             if get("use_default_config_#{filename}")
                 load_config_once(filename)
             end
