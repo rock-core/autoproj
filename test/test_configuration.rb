@@ -435,7 +435,6 @@ module Autoproj
         end
 
         describe "#load_config_once" do
-
             it "load config once loads config only once" do
                 # construct global path for test seed, (autoproj.config_dir not available here)
                 seed_file = "test_config_seed.yml"
