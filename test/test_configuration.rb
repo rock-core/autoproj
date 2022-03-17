@@ -489,15 +489,13 @@ module Autoproj
             end
 
             it "load config once with permission: do load" do
-                # construct global path for test seed, (autoproj.config_dir not available here)
                 seed_file = "test_config_seed.yml"
                 config_dir = "#{File.dirname(__FILE__)}/data/test_manifest/autoproj/"
 
                 config_name = "load_config_once_testvalue"
-                @config.declare(config_name, "boolean", default: "no")
-                @config.interactive = false
-                @config.configure(config_name)
+                @config.set(config_name, false)
 
+                @config.interactive = false
                 @config.load_config_once_with_permission(seed_file, config_dir: config_dir)
 
                 assert @config.modified?
@@ -506,17 +504,16 @@ module Autoproj
             end
 
             it "load config once with permission: don't load" do
-                # construct global path for test seed, (autoproj.config_dir not available here)
-                seed_file = "#{File.dirname(__FILE__)}/data/test_manifest/autoproj/test_config_seed.yml"
+                seed_file = "test_config_seed.yml"
+                config_dir = "#{File.dirname(__FILE__)}/data/test_manifest/autoproj/"
 
                 config_name = "load_config_once_testvalue"
-                @config.declare(config_name, "boolean", default: "no")
-                @config.interactive = false
-                @config.configure(config_name)
+                @config.set(config_name, false)
 
+                @config.interactive = false
                 # now the use_default_config is set to false, no loading should happen
-                @config.load_config_once_with_permission(seed_file, default: "no")
-                # value should still be the same (no loading) fiel whoulf load "true"
+                @config.load_config_once_with_permission(seed_file, default: "no", config_dir: config_dir)
+                # value should still be the same (no loading) fiel would load "true"
                 assert @config.get(config_name) == false
             end
         end
