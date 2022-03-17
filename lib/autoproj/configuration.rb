@@ -614,17 +614,17 @@ module Autoproj
         # The call to this function has to be in the init.rb of the buildconf BEFORE any other
         # config option, e.g. the git server configuration settings
         # The filename parameter is the name of the config seed yml file in the repository
-        def load_config_once(filename)
+        def load_config_once(filename, config_dir: Autoproj.workspace.config_dir)
             return if get("default_config_applied_#{filename}", false)
 
-            seed_config = File.expand_path(filename, Autoproj.workspace.config_dir)
+            seed_config = File.expand_path(filename, config_dir)
             Autoproj.message "loading seed config #{seed_config}"
             load path: seed_config
             set "default_config_applied_#{filename}", true, true
         end
 
         # Similar to load_config_once but asks the user if the default config should be applied
-        def load_config_once_with_permission(filename, default: "yes")
+        def load_config_once_with_permission(filename, default: "yes", config_dir: Autoproj.workspace.config_dir)
             # only run this code if config has not beed applied already (don't run when reconfiguring)
             return if has_value_for?("use_default_config_#{filename}")
 
@@ -634,7 +634,7 @@ module Autoproj
                     doc: ["Should the default workspace config be used?",
                           "This buildconf denines a default configuration in the buildconf (#{filename})",
                           "Should it be applied?"]
-            load_config_once(filename) if get("use_default_config_#{filename}")
+            load_config_once(filename, config_dir: config_dir) if get("use_default_config_#{filename}")
         end
     end
 end

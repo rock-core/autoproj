@@ -437,14 +437,15 @@ module Autoproj
         describe "#load_config_once" do
             it "load config once loads config only once" do
                 # construct global path for test seed, (autoproj.config_dir not available here)
-                seed_file = "#{File.dirname(__FILE__)}/data/test_manifest/autoproj/test_config_seed.yml"
+                seed_file = "test_config_seed.yml"
+                config_dir = "#{File.dirname(__FILE__)}/data/test_manifest/autoproj/"
 
                 config_name = "load_config_once_testvalue"
                 @config.declare(config_name, "boolean", default: "no")
                 @config.interactive = false
                 @config.configure(config_name)
 
-                @config.load_config_once(seed_file)
+                @config.load_config_once(seed_file, config_dir: config_dir)
 
                 assert @config.modified?
                 assert @config.has_value_for?(config_name)
@@ -453,21 +454,22 @@ module Autoproj
                 # reset value to one not in config
                 @config.set(config_name, "value not in the seed config")
                 # load config again (conten true)
-                @config.load_config_once(seed_file)
+                @config.load_config_once(seed_file, config_dir: config_dir)
                 # should still have the naually set value (false)
                 assert @config.get(config_name) == "value not in the seed config"
             end
 
             it "load config once with permission: do load" do
                 # construct global path for test seed, (autoproj.config_dir not available here)
-                seed_file = "#{File.dirname(__FILE__)}/data/test_manifest/autoproj/test_config_seed.yml"
+                seed_file = "test_config_seed.yml"
+                config_dir = "#{File.dirname(__FILE__)}/data/test_manifest/autoproj/"
 
                 config_name = "load_config_once_testvalue"
                 @config.declare(config_name, "boolean", default: "no")
                 @config.interactive = false
                 @config.configure(config_name)
 
-                @config.load_config_once_with_permission(seed_file)
+                @config.load_config_once_with_permission(seed_file, config_dir: config_dir)
 
                 assert @config.modified?
                 assert @config.has_value_for?(config_name)
