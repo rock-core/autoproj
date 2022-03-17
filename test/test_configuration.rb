@@ -479,11 +479,11 @@ module Autoproj
 
             it "load config raises exception (with proper error message on console) if config file is not exsisting" do
                 # Errno::EISDIR: Is a directory @ io_fread - /opt/workspace/autoproj
-                assert_raises Errno::EISDIR do
+                assert_raises do
                     @config.load_config_once("./")
                 end
                 # Errno::ENOENT: No such file or directory @ rb_sysopen - /opt/workspace/autoproj/nonexistent_file.yml
-                assert_raises Errno::ENOENT do
+                assert_raises do
                     @config.load_config_once("./nonexistent_file.yml")
                 end
             end
