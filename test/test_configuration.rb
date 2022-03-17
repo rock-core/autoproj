@@ -435,6 +435,7 @@ module Autoproj
         end
 
         describe "#load_config_once" do
+
             it "load config once loads config only once" do
                 # construct global path for test seed, (autoproj.config_dir not available here)
                 seed_file = "test_config_seed.yml"
@@ -457,6 +458,35 @@ module Autoproj
                 @config.load_config_once(seed_file, config_dir: config_dir)
                 # should still have the naually set value (false)
                 assert @config.get(config_name) == "value not in the seed config"
+            end
+
+            it "load config can resolve local dirs" do
+                # construct global path for test seed, (autoproj.config_dir not available here)
+                # this test only works if called from the root directory
+                seed_file = "test_config_seed.yml"
+                config_dir = "./test/data/test_manifest/autoproj/"
+
+                config_name = "load_config_once_testvalue"
+                @config.declare(config_name, "boolean", default: "no")
+                @config.interactive = false
+                @config.configure(config_name)
+
+                @config.load_config_once(seed_file, config_dir: config_dir)
+
+                assert @config.modified?
+                assert @config.has_value_for?(config_name)
+                assert @config.get(config_name)
+            end
+
+            it "load config raises exception (with proper error message on console) if config file is not exsisting" do
+                # Errno::EISDIR: Is a directory @ io_fread - /opt/workspace/autoproj
+                assert_raises Errno::EISDIR do
+                    @config.load_config_once("./")
+                end
+                # Errno::ENOENT: No such file or directory @ rb_sysopen - /opt/workspace/autoproj/nonexistent_file.yml
+                assert_raises Errno::ENOENT do
+                    @config.load_config_once("./nonexistent_file.yml")
+                end
             end
 
             it "load config once with permission: do load" do
@@ -487,7 +517,7 @@ module Autoproj
 
                 # now the use_default_config is set to false, no loading should happen
                 @config.load_config_once_with_permission(seed_file, default: "no")
-                # value should still be the same (no loading)
+                # value should still be the same (no loading) fiel whoulf load "true"
                 assert @config.get(config_name) == false
             end
         end
