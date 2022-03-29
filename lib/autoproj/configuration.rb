@@ -606,5 +606,39 @@ module Autoproj
             end
             result
         end
+
+        # Allows to load a seed-config.yml file (also from a buildconf repository)
+        # rather than providing it before checkout using the --seed-config paramater
+        # of the autoproj_bootstrap script
+        # this allows to bootstrap with --no-interactive and still apply a custom config e.g. in CI/CD
+        # The call to this function has to be in the init.rb of the buildconf BEFORE any other
+        # config option, e.g. the git server configuration settings
+        # The filename parameter is the name of the config seed yml file in the repository
+        def load_config_once(filename, config_dir: Autoproj.workspace.config_dir)
+            seed_config = File.expand_path(filename, config_dir)
+
+            return if get("default_config_applied_#{seed_config}", false)
+
+            Autoproj.message "loading seed config #{seed_config}"
+            load path: seed_config
+            set "default_config_applied_#{seed_config}", true, true
+        end
+
+        # Similar to load_config_once but asks the user if the default config should be applied
+        def load_config_once_with_permission(filename, default: "yes", config_dir: Autoproj.workspace.config_dir)
+            seed_config = File.expand_path(filename, config_dir)
+            # only run this code if config has not beed applied already (don't run when reconfiguring)
+            return if has_value_for?("use_default_config_#{seed_config}")
+
+            declare "use_default_config_#{seed_config}",
+                    "boolean",
+                    default: default,
+                    doc: ["Should the default workspace config be used?",
+                          "This buildconf denines a default configuration in the buildconf (#{seed_config})",
+                          "Should it be applied?"]
+            if get("use_default_config_#{seed_config}")
+                load_config_once(filename, config_dir: config_dir)
+            end
+        end
     end
 end
