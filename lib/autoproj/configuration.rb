@@ -633,8 +633,7 @@ module Autoproj
             declare "use_default_config_#{seed_config}",
                     "boolean",
                     default: default,
-                    doc: ["Should the default workspace config be used?",
-                          "This buildconf denines a default configuration in the buildconf (#{seed_config})",
+                    doc: ["This buildconf defines a default workspace configuration (#{seed_config})",
                           "Should it be applied?"]
             if get("use_default_config_#{seed_config}")
                 load_config_once(filename, config_dir: config_dir)
