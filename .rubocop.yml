@@ -20,8 +20,6 @@ Metrics/ParameterLists:
 Naming/MethodParameterName:
     AllowedNames: [io, id, to, by, on, in, at, ip, db, ws]
 
-Gemspec/DateAssignment: # new in 1.10
-  Enabled: true
 Layout/LineEndStringConcatenationIndentation: # new in 1.18
   Enabled: true
 Layout/SpaceBeforeBrackets: # new in 1.7
