@@ -377,6 +377,7 @@ module Autoproj
                 it "has only one main package set in the resulting manifest" do
                     package_set_dir = File.join(ws.root_dir, "package_set")
                     root_package_set = ws.manifest.main_package_set
+                    root_package_set.manifest.load File.join(root_package_set.local_dir, "manifest")
                     root_package_set.add_raw_imported_set VCSDefinition.from_raw(
                         { "type" => "local", "url" => package_set_dir }
                     )
@@ -481,7 +482,36 @@ module Autoproj
                         ops.update_configuration(keep_going: false)
                     end
                 end
+                it "loads source files added in init scripts" do
+                    config_dir = ws.manifest.main_package_set.local_dir
+                    manifest_path = File.join(config_dir, "manifest")
+                    package_set_dir = File.join(config_dir, "foo_set")
+                    FileUtils.mkdir_p package_set_dir
+                    manifest_contents = <<~EOFMANIFEST
+                        package_sets:
+                            - foo_set
+                    EOFMANIFEST
+                    source_contents = "name: foo_set"
+                    test_source_contents = <<~EOFVCS
+                        version_control:
+                            - foo_pkg:
+                              github: foo/foo_pkg
+                    EOFVCS
+                    initrb_contents = "Autoproj::PackageSet.add_source_file "\
+                                      '"source.yml-test"'
 
+                    File.write(manifest_path, manifest_contents)
+                    File.write(File.join(package_set_dir, "source.yml"), source_contents)
+                    File.write(File.join(package_set_dir, "source.yml-test"), test_source_contents)
+                    File.write(File.join(package_set_dir, "init.rb"), initrb_contents)
+
+                    ops.update_configuration
+                    package_sets = ws.manifest.each_package_set.to_a
+                    raw_vcs = { "foo_pkg" => { "github" => "foo/foo_pkg" } }
+
+                    assert_equal 2, package_sets.size
+                    assert_equal raw_vcs, package_sets.first.version_control.to_h
+                end
                 describe "keep_going: true" do
                     before do
                         flexmock(ws.manifest.vcs).should_receive(:needs_import?)

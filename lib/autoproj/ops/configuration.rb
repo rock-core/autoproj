@@ -651,6 +651,12 @@ module Autoproj
 
                 ws.manifest.each_package_set do |pkg_set|
                     ws.load_if_present(pkg_set, pkg_set.local_dir, "init.rb")
+
+                    # Reload the package set description to account for
+                    # source files that might have been added through
+                    # Autoproj::PackageSet$add_source_file during loading
+                    # of the init.rb scripts
+                    pkg_set.load_description_file
                 end
 
                 failures
