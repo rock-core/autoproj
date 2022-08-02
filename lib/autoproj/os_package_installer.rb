@@ -185,7 +185,8 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
                 when "gem"  then modes << "gem"
                 when "pip"  then modes << "pip"
                 when "os"   then modes << "os"
-                when "none" then # rubocop:disable Lint/EmptyWhen
+                when "none" then
+                    # noop
                 else
                     if package_managers.key?(str)
                         modes << str
