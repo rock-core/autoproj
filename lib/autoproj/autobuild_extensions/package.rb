@@ -107,6 +107,8 @@ module Autoproj
 
                 pkg_autobuild, pkg_os = partition_package(name)
                 pkg_autobuild.each do |pkg|
+                    next if ws.manifest.ignored?(pkg)
+
                     super(pkg)
                 end
                 @os_packages.merge(pkg_os.to_set)
