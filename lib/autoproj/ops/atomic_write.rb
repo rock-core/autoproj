@@ -1,9 +1,11 @@
+require "tempfile"
+require "fileutils"
+
 module Autoproj
     module Ops
         # Shamelessly stolen from ActiveSupport
         def self.atomic_write(file_name, temp_dir = Dir.tmpdir)
-            require "tempfile" unless defined?(Tempfile)
-            require "fileutils" unless defined?(FileUtils)
+            puts "DEBUG: atomic_write START #{File.exist?(temp_dir)} #{File.exist?(File.dirname(file_name))} #{File.exist?(file_name)}"
 
             temp_file = Tempfile.new(File.basename(file_name), temp_dir)
             yield temp_file
@@ -27,6 +29,7 @@ module Autoproj
             end
 
             # Overwrite original file with temp file
+            puts "DEBUG: atomic_write MV #{File.exist?(temp_dir)} #{File.exist?(File.dirname(file_name))} #{File.exist?(file_name)}"
             FileUtils.mv(temp_file.path, file_name)
 
             # Set correct permissions on new file
