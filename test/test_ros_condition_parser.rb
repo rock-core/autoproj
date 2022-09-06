@@ -8,7 +8,11 @@ module Autoproj
             @context = {}
         end
         def condition(input)
-            RosConditionParser.new(@context).evaluate(input)
+            RosConditionParser.new do |var|
+                Autoproj.expand(var, @context)
+            rescue StandardError
+                ""
+            end .evaluate(input)
         end
         it "expands variables" do
             @context["FOO"] = "bar"
