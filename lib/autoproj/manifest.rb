@@ -1029,7 +1029,8 @@ module Autoproj
                 end
                 if manifest_path
                     manifest = PackageManifest.load(package, manifest_path,
-                                                    ros_manifest: false)
+                                                    ros_manifest: false,
+                                                    condition_context: @ws.config)
                 end
             end
 

@@ -184,10 +184,48 @@ module Autoproj
 
             MANIFEST_CLASS = PackageManifest
 
-            def initialize(path, manifest, condition_context: nil)
+            def self.expand_configuration_variable(var, config)
+                prefix = var[0, 1]
+                var = var[1..-1] if prefix == "$"
+
+                if var.start_with?("operating_system_name_")
+                    os = config.get("operating_system", nil)
+                    return "" if os.nil?
+                    os_names, = os
+                    return "" unless os_names.any? do |name|
+                        var == "operating_system_name_#{name}"
+                    end
+                    return "true"
+                end
+
+                if var.start_with?("operating_system_version_")
+                    os = config.get("operating_system", nil)
+                    return "" if os.nil?
+                    _, os_versions = os
+                    return "" unless os_versions.any? do |ver|
+                        var == "operating_system_version_#{ver.gsub(/[.,+-]/, '_')}"
+                    end
+                    return "true"
+                end
+
+                config.get(var)
+            rescue Autoproj::ConfigError
+                ""
+            end
+
+            def initialize(path, manifest, condition_context: Configuration.new)
                 super()
                 @path = path
                 @manifest = manifest
+                @condition_parser = RosConditionParser.new do |var|
+                    Loader.expand_configuration_variable(var, condition_context)
+                end
+            end
+
+            def handle_condition(expr)
+                return true unless expr && !expr.empty?
+
+                @condition_parser.evaluate(expr)
             end
 
             def parse_depend_tag(tag_name, attributes, modes: [], optional: false)
@@ -197,6 +235,8 @@ module Autoproj
                           "found '#{tag_name}' tag in #{path} "\
                           "without a 'package' attribute"
                 end
+
+                return unless handle_condition(attributes["condition"])
 
                 if (tag_modes = attributes["modes"])
                     modes += tag_modes.split(",")

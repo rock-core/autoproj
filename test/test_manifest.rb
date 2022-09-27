@@ -650,7 +650,7 @@ module Autoproj
             it "loads the package's manifest.xml file if present" do
                 manifest_path = ws_create_package_file pkg, "manifest.xml", "<package />"
                 flexmock(PackageManifest).should_receive(:load)
-                                         .with(pkg.autobuild, manifest_path, ros_manifest: false)
+                                         .with(pkg.autobuild, manifest_path, ros_manifest: false, condition_context: ws.config)
                                          .once.pass_thru
                 manifest.load_package_manifest(pkg)
             end
@@ -658,7 +658,7 @@ module Autoproj
                 manifest_path = ws_create_package_set_file pkg_set,
                                                            "manifests/test.xml", "<package />"
                 flexmock(PackageManifest).should_receive(:load)
-                                         .with(pkg.autobuild, manifest_path, ros_manifest: false)
+                                         .with(pkg.autobuild, manifest_path, ros_manifest: false, condition_context: ws.config)
                                          .once.pass_thru
                 manifest.load_package_manifest(pkg)
             end
@@ -666,7 +666,7 @@ module Autoproj
                 manifest_path = ws_create_package_file pkg, "manifest.xml", "<package />"
                 ws_create_package_set_file pkg_set, "manifests/test.xml", "<package />"
                 flexmock(PackageManifest).should_receive(:load)
-                                         .with(pkg.autobuild, manifest_path, ros_manifest: false)
+                                         .with(pkg.autobuild, manifest_path, ros_manifest: false, condition_context: ws.config)
                                          .once.pass_thru
                 manifest.load_package_manifest(pkg)
             end
