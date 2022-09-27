@@ -681,7 +681,7 @@ module Autoproj
                 pkg.autobuild.use_package_xml = true
                 manifest_path = ws_create_package_file pkg, "package.xml", "<package><name>pkg</name></package>"
                 flexmock(PackageManifest).should_receive(:load)
-                                         .with(pkg.autobuild, manifest_path, ros_manifest: true)
+                                         .with(pkg.autobuild, manifest_path, ros_manifest: true, condition_context: ws.env)
                                          .once.pass_thru
                 manifest.load_package_manifest(pkg)
             end
@@ -692,7 +692,7 @@ module Autoproj
                 manifest_path = ws_create_package_file pkg,
                                                        "package.xml", "<package><name>pkg</name></package>"
                 flexmock(PackageManifest).should_receive(:load)
-                                         .with(pkg.autobuild, manifest_path, ros_manifest: true)
+                                         .with(pkg.autobuild, manifest_path, ros_manifest: true, condition_context: ws.env)
                                          .once.pass_thru
                 manifest.load_package_manifest(pkg)
             end

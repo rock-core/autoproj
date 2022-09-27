@@ -1015,7 +1015,8 @@ module Autoproj
                                                         "no package.xml file" unless File.file?(manifest_path)
 
                 manifest = PackageManifest.load(package, manifest_path,
-                                                ros_manifest: true)
+                                                ros_manifest: true,
+                                                condition_context: @ws.env)
             else
                 manifest_paths = [File.join(package.srcdir, "manifest.xml")]
                 if package_set.local_dir

@@ -16,9 +16,10 @@ module Autoproj
         # @param [Boolean] ros_manifest whether the file follows the ROS format
         # @return [PackageManifest]
         # @see parse
-        def self.load(package, file, ros_manifest: false)
+        def self.load(package, file, ros_manifest: false, condition_context: nil)
             loader_class = ros_manifest ? RosPackageManifest::Loader : Loader
-            parse(package, File.read(file), path: file, loader_class: loader_class)
+            parse(package, File.read(file), path: file, loader_class: loader_class,
+                                            condition_context: condition_context)
         end
 
         # Create a PackageManifest object from the XML content provided as a
@@ -31,9 +32,11 @@ module Autoproj
         # @return [PackageManifest]
         # @see load
         def self.parse(package, contents,
-            path: "<loaded from string>", loader_class: Loader)
+                       path: "<loaded from string>", loader_class: Loader,
+                       condition_context: nil)
             manifest = loader_class::MANIFEST_CLASS.new(package, path)
-            loader = loader_class.new(path, manifest)
+            loader = loader_class.new(path, manifest,
+                                      condition_context: condition_context)
             begin
                 REXML::Document.parse_stream(contents, loader)
             rescue REXML::ParseException => e
@@ -181,7 +184,7 @@ module Autoproj
 
             MANIFEST_CLASS = PackageManifest
 
-            def initialize(path, manifest)
+            def initialize(path, manifest, condition_context: nil)
                 super()
                 @path = path
                 @manifest = manifest

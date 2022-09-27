@@ -7,7 +7,6 @@ module Autoproj
         attr_reader :pkg
 
         before do
-            ws_create.set_as_main_workspace
             @pkg = Autobuild.import("test")
         end
 
@@ -15,8 +14,8 @@ module Autoproj
             Autoproj::RosPackageManifest::Loader
         end
 
-        def subject_parse(text)
-            Autoproj::PackageManifest.parse(pkg, text, loader_class: loader_class)
+        def subject_parse(text, condition_context: {})
+            Autoproj::PackageManifest.parse(pkg, text, loader_class: loader_class, condition_context: condition_context)
         end
 
         describe "description" do
@@ -102,7 +101,7 @@ module Autoproj
 
         describe "dependencies" do
             def parse_dependency(xml)
-                manifest = PackageManifest.parse(pkg, xml, loader_class: loader_class)
+                manifest = PackageManifest.parse(pkg, xml, loader_class: loader_class, condition_context: {})
                 assert_equal 1, manifest.dependencies.size
                 manifest.dependencies.first
             end
@@ -115,7 +114,7 @@ module Autoproj
 
                         assert_raises(InvalidPackageManifest) do
                             PackageManifest.parse(
-                                pkg, subject, loader_class: loader_class
+                                pkg, subject, loader_class: loader_class, condition_context: {}
                             )
                         end
                     end
@@ -144,7 +143,7 @@ module Autoproj
 
                         assert_raises(InvalidPackageManifest) do
                             PackageManifest.parse(
-                                pkg, subject, loader_class: loader_class
+                                pkg, subject, loader_class: loader_class, condition_context: {}
                             )
                         end
                     end
@@ -177,8 +176,8 @@ module Autoproj
                     </package>
                 EOFSUBJECT
 
-                ws.env.set("FOO", "foo")
-                manifest = subject_parse(subject)
+                context = { "FOO" => "foo" }
+                manifest = subject_parse(subject, condition_context: context)
                 assert_equal 1, manifest.dependencies.size
                 assert_equal "one", manifest.dependencies.first.name
             end
@@ -194,8 +193,8 @@ module Autoproj
                     </package>
                 EOFSUBJECT
 
-                ws.env.set("ROS_VERSION", "2")
-                manifest = subject_parse(subject)
+                context = { "ROS_VERSION" => "2" }
+                manifest = subject_parse(subject, condition_context: context)
                 assert_equal "ament_cmake", manifest.build_type
             end
         end
