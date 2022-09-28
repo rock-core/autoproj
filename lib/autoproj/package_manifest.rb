@@ -31,9 +31,11 @@ module Autoproj
         # @param [Boolean] ros_manifest whether the file follows the ROS format
         # @return [PackageManifest]
         # @see load
-        def self.parse(package, contents,
-                       path: "<loaded from string>", loader_class: Loader,
-                       condition_context: nil)
+        def self.parse(
+            package, contents,
+            path: "<loaded from string>", loader_class: Loader,
+            condition_context: nil
+        )
             manifest = loader_class::MANIFEST_CLASS.new(package, path)
             loader = loader_class.new(path, manifest,
                                       condition_context: condition_context)
@@ -191,20 +193,24 @@ module Autoproj
                 if var.start_with?("operating_system_name_")
                     os = config.get("operating_system", nil)
                     return "" if os.nil?
+
                     os_names, = os
                     return "" unless os_names.any? do |name|
                         var == "operating_system_name_#{name}"
                     end
+
                     return "true"
                 end
 
                 if var.start_with?("operating_system_version_")
                     os = config.get("operating_system", nil)
                     return "" if os.nil?
+
                     _, os_versions = os
                     return "" unless os_versions.any? do |ver|
                         var == "operating_system_version_#{ver.gsub(/[.,+-]/, '_')}"
                     end
+
                     return "true"
                 end
 

@@ -15,7 +15,9 @@ module Autoproj
         end
 
         def subject_parse(text, condition_context: {})
-            Autoproj::PackageManifest.parse(pkg, text, loader_class: loader_class, condition_context: condition_context)
+            Autoproj::PackageManifest.parse(pkg, text,
+                                            loader_class: loader_class,
+                                            condition_context: condition_context)
         end
 
         describe "description" do
@@ -101,7 +103,9 @@ module Autoproj
 
         describe "dependencies" do
             def parse_dependency(xml)
-                manifest = PackageManifest.parse(pkg, xml, loader_class: loader_class, condition_context: {})
+                manifest = PackageManifest.parse(pkg, xml,
+                                                 loader_class: loader_class,
+                                                 condition_context: {})
                 assert_equal 1, manifest.dependencies.size
                 manifest.dependencies.first
             end
@@ -114,7 +118,9 @@ module Autoproj
 
                         assert_raises(InvalidPackageManifest) do
                             PackageManifest.parse(
-                                pkg, subject, loader_class: loader_class, condition_context: {}
+                                pkg, subject,
+                                loader_class: loader_class,
+                                condition_context: {}
                             )
                         end
                     end
@@ -143,7 +149,9 @@ module Autoproj
 
                         assert_raises(InvalidPackageManifest) do
                             PackageManifest.parse(
-                                pkg, subject, loader_class: loader_class, condition_context: {}
+                                pkg, subject,
+                                loader_class: loader_class,
+                                condition_context: {}
                             )
                         end
                     end

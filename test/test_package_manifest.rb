@@ -354,6 +354,7 @@ module Autoproj
 
         describe "Loader::expand_configuration_variable" do
             attr_reader :config
+
             before do
                 @config = Configuration.new
                 @config.set("FOO", "foo")

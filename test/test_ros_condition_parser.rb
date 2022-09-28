@@ -12,7 +12,7 @@ module Autoproj
                 Autoproj.expand(var, @context)
             rescue StandardError
                 ""
-            end .evaluate(input)
+            end.evaluate(input)
         end
         it "expands variables" do
             @context["FOO"] = "bar"
