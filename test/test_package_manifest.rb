@@ -359,10 +359,12 @@ module Autoproj
                 @config = Configuration.new
                 @config.set("FOO", "foo")
             end
-            it "resolves unknown configuration to an empty string" do
-                assert_equal PackageManifest::Loader.expand_configuration_variable(
-                    "$BAR", @config
-                ), ""
+            it "raises an Autoproj::ConfigError if an unknown configuration is found" do
+                assert_raises(Autoproj::ConfigError) do
+                    PackageManifest::Loader.expand_configuration_variable(
+                        "$BAR", @config
+                    )
+                end
             end
             it "resolves known configuration to the correct string" do
                 assert_equal PackageManifest::Loader.expand_configuration_variable(

@@ -43,7 +43,10 @@ module Autoproj
                 REXML::Document.parse_stream(contents, loader)
             rescue REXML::ParseException => e
                 raise Autobuild::PackageException.new(package.name, "prepare"),
-                      "invalid #{file}: #{e.message}"
+                      "invalid #{path}: #{e.message}"
+            rescue Autoproj::ConfigError => e
+                raise Autobuild::PackageException.new(package.name, "prepare"),
+                      "invalid #{path}: #{e.message}"
             end
             manifest
         end
@@ -215,8 +218,6 @@ module Autoproj
                 end
 
                 config.get(var)
-            rescue Autoproj::ConfigError
-                ""
             end
 
             def initialize(path, manifest, condition_context: Configuration.new)
