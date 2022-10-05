@@ -205,6 +205,19 @@ module Autoproj
                 manifest = subject_parse(subject, condition_context: context)
                 assert_equal "ament_cmake", manifest.build_type
             end
+
+            it "evaluates unset variables in condition attributes to empty strings" do
+                subject = <<~EOFSUBJECT
+                    <package>
+                        <name>ros_pkg</name>
+                        <depend condition="$FOO == ''">one</depend>
+                    </package>
+                EOFSUBJECT
+
+                context = {}
+                manifest = subject_parse(subject, condition_context: context)
+                assert_equal 1, manifest.dependencies.size
+            end
         end
 
         describe "name" do

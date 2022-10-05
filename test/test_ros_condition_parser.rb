@@ -18,9 +18,6 @@ module Autoproj
             @context["FOO"] = "bar"
             assert condition("$FOO == bar")
         end
-        it "evaluates unset variables to empty string" do
-            assert condition("$FOO == ''")
-        end
         it "implements all comparison operators" do
             assert condition("a == a")
             assert condition("a != b")
