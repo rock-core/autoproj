@@ -140,7 +140,7 @@ module Autoproj
                     end
                 end
             end
-            Autoproj::RosPackageManifest::Loader::SUPPORTED_MODES.each do |mode|
+            Autoproj::RosPackageManifest::Loader::SUPPORTED_MODES.each do |mode| # rubocop:disable Metrics/BlockLength, Metrics/LineLength
                 tag = "#{mode}_depend"
                 describe "<#{tag}>" do
                     it "raises if the tag has neither a name nor a package attribute" do
