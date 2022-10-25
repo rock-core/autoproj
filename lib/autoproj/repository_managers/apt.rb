@@ -285,19 +285,21 @@ module Autoproj
             end
 
             def validate_key_definition(definition)
-                if definition["id"].nil?
-                    raise ConfigError, "#{INVALID_REPO_MESSAGE}: 'id' key missing"
-                elsif !definition["id"].is_a?(String)
-                    raise ConfigError, "#{INVALID_REPO_MESSAGE}: 'id' should be a String"
-                elsif definition["url"] && definition["keyserver"]
-                    raise ConfigError,
-                          "#{INVALID_REPO_MESSAGE}: 'url' conflicts with 'keyserver'"
+                if definition.has_key?("keyserver") # only keyserver uses 'id'
+                    if definition["id"].nil?
+                        raise ConfigError, "#{INVALID_REPO_MESSAGE}: 'id' key missing"
+                    elsif !definition["id"].is_a?(String)
+                        raise ConfigError, "#{INVALID_REPO_MESSAGE}: 'id' should be a String"
+                    elsif definition["url"]
+                        raise ConfigError,
+                              "#{INVALID_REPO_MESSAGE}: 'url' conflicts with 'keyserver'"
+                    elsif !definition["keyserver"].is_a?(String)
+                        raise ConfigError,
+                                "#{INVALID_REPO_MESSAGE}: 'keyserver' should be a String"
+                    end
+                end
                 elsif definition["url"] && !definition["url"].is_a?(String)
                     raise ConfigError, "#{INVALID_REPO_MESSAGE}: 'url' should be a String"
-                elsif definition["keyserver"] && !definition["keyserver"].is_a?(String)
-                    raise ConfigError,
-                          "#{INVALID_REPO_MESSAGE}: 'keyserver' should be a String"
-                end
 
                 nil
             end
