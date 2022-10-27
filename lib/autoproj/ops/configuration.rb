@@ -585,7 +585,7 @@ module Autoproj
                     when OSPackageResolver::UNKNOWN_OS
                         manifest.exclude_package(osdep_name, "the current operating system is unknown to autoproj")
                     when OSPackageResolver::WRONG_OS
-                        manifest.exclude_package(osdep_name, "#{osdep_name} is defined, but not for this operating system")
+                        manifest.exclude_package(osdep_name, "#{osdep_name} is defined in #{os_package_resolver.source_of(osdep_name)}, but not for this operating system")
                     when OSPackageResolver::NONEXISTENT
                         manifest.exclude_package(osdep_name, "#{osdep_name} is marked as unavailable for this operating system")
                     end
