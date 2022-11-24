@@ -93,10 +93,13 @@ ruby25:
   default: ignore # we assume that if the user has a ruby 2.5 runtime, it is usable
 
 ruby26:
-  default: ignore # we assume that if the user has a ruby 2.5 runtime, it is usable
+  default: ignore # we assume that if the user has a ruby 2.6 runtime, it is usable
 
 ruby27:
-  default: ignore # we assume that if the user has a ruby 2.5 runtime, it is usable
+  default: ignore # we assume that if the user has a ruby 2.7 runtime, it is usable
+
+ruby30:
+  default: ignore # we assume that if the user has a ruby 3.0 runtime, it is usable
 
 build-essential:
   debian,ubuntu: build-essential
