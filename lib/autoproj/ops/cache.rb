@@ -166,6 +166,7 @@ module Autoproj
                 failed = []
                 compile.each do |gem_name, artifacts: []|
                     Dir.glob(File.join(cache_dir, "#{gem_name}*.gem")) do |gem|
+                        next unless /^#{gem_name}-\d/.match?(gem_name)
                         next if gem.end_with?(platform_suffix)
 
                         gem_basename = File.basename(gem, ".gem")
