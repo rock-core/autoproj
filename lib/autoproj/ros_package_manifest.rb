@@ -23,10 +23,13 @@ module Autoproj
                              buildtool_depend buildtool_export_depend
                              exec_depend test_depend run_depend doc_depend].to_set.freeze
 
-            def initialize(path, manifest)
+            def initialize(path, manifest, condition_context: {})
                 super
-                @env = manifest.package.ws.env
-                @condition_parser = RosConditionParser.new(@env)
+                @condition_parser = RosConditionParser.new do |var|
+                    Autoproj.expand(var, condition_context)
+                rescue StandardError
+                    ""
+                end
             end
 
             def tag_start(name, attributes)

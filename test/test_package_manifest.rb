@@ -155,6 +155,18 @@ module Autoproj
                     dependency = parse_dependency("<package><depend package='test' optional='1'/></package>")
                     assert dependency.optional
                 end
+                it "is not included if the condition is false" do
+                    context = Configuration.new
+                    context.set("FOO", "foo")
+                    manifest = PackageManifest.parse(pkg, "<package><depend package='test' condition='$FOO==bar'/></package>", condition_context: context)
+                    assert_equal 0, manifest.dependencies.size
+                end
+                it "is included if the condition is true" do
+                    context = Configuration.new
+                    context.set("FOO", "foo")
+                    manifest = PackageManifest.parse(pkg, "<package><depend package='test' condition='$FOO==foo'/></package>", condition_context: context)
+                    assert_equal 1, manifest.dependencies.size
+                end
             end
 
             describe "<depend_optional>" do
@@ -337,6 +349,74 @@ module Autoproj
                 manifest.add_dependency "doc_and_test", modes: %w[doc test]
                 assert_equal Set[["test", false], ["doc_and_test", false]],
                              manifest.each_dependency(["test"]).to_set
+            end
+        end
+
+        describe "Loader::expand_configuration_variable" do
+            attr_reader :config
+
+            before do
+                @config = Configuration.new
+                @config.set("FOO", "foo")
+            end
+            it "raises an Autoproj::ConfigError if an unknown configuration is found" do
+                assert_raises(Autoproj::ConfigError) do
+                    PackageManifest::Loader.expand_configuration_variable(
+                        "$BAR", @config
+                    )
+                end
+            end
+            it "resolves known configuration to the correct string" do
+                assert_equal PackageManifest::Loader.expand_configuration_variable(
+                    "$FOO", @config
+                ), "foo"
+            end
+            it "handles absence of $ prefix" do
+                assert_equal PackageManifest::Loader.expand_configuration_variable(
+                    "FOO", @config
+                ), "foo"
+            end
+            it "treats absence of operating_system configuration as no names defined" do
+                assert_equal PackageManifest::Loader.expand_configuration_variable(
+                    "$operating_system_name_ubuntu", @config
+                ), ""
+            end
+            it "treats absence of operating_system configuration as no versions defined" do
+                assert_equal PackageManifest::Loader.expand_configuration_variable(
+                    "$operating_system_version_20_04", @config
+                ), ""
+            end
+            it "resolves correct operating system name pseudo variables to \"true\"" do
+                @config.set("operating_system",
+                            [%w[ubuntu debian],
+                             ["20.04", "20.04.5", "lts", "focal", "fossa", "default"]])
+                assert_equal PackageManifest::Loader.expand_configuration_variable(
+                    "$operating_system_name_ubuntu", @config
+                ), "true"
+            end
+            it "resolves incorrect operating system name pseudo variables to empty string" do
+                @config.set("operating_system",
+                            [%w[ubuntu debian],
+                             ["20.04", "20.04.5", "lts", "focal", "fossa", "default"]])
+                assert_equal PackageManifest::Loader.expand_configuration_variable(
+                    "$operating_system_name_gentoo", @config
+                ), ""
+            end
+            it "resolves correct operating system version pseudo variables to \"true\"" do
+                @config.set("operating_system",
+                            [%w[ubuntu debian],
+                             ["20.04", "20.04.5", "lts", "focal", "fossa", "default"]])
+                assert_equal PackageManifest::Loader.expand_configuration_variable(
+                    "$operating_system_version_20_04", @config
+                ), "true"
+            end
+            it "resolves incorrect operating system version pseudo variables to empty string" do
+                @config.set("operating_system",
+                            [%w[ubuntu debian],
+                             ["20.04", "20.04.5", "lts", "focal", "fossa", "default"]])
+                assert_equal PackageManifest::Loader.expand_configuration_variable(
+                    "$operating_system_version_18_04", @config
+                ), ""
             end
         end
 
