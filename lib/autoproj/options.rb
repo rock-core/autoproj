@@ -32,7 +32,7 @@ module Autoproj
     # @deprecated use config.declare(name, type, options, &validator) instead
     def self.configuration_option(name, type, options, &validator)
         Autoproj.warn_deprecated __method__, "use the API on Autoproj.config (from Autoproj::Configuration) instead"
-        config.declare(name, type, options, &validator)
+        config.declare(name, type, **options, &validator)
     end
 
     # @deprecated use config.declared?(name, type, options, &validator) instead
