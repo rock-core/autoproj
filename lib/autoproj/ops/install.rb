@@ -746,6 +746,10 @@ require 'bundler/setup'
                 end
 
                 @config = config
+                if RUBY_VERSION =~ /^2\.5\./
+                    @config["bundler_version"] ||= "2.3.6"
+                end
+
                 %w[gems_install_path prefer_indep_over_os_packages].each do |flag|
                     instance_variable_set "@#{flag}", config.fetch(flag, false)
                 end
