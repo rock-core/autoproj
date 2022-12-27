@@ -260,7 +260,7 @@ module Autoproj
 
                     config_yml = File.join(dir, ".autoproj", "config.yml")
                     config = YAML.safe_load(File.read(config_yml))
-                    config.delete("bundler_version")
+                    config["bundler_version"] = Autoproj::Ops::Install.default_bundler_version
                     File.open(config_yml, "w") do |io|
                         YAML.dump(config, io)
                     end
