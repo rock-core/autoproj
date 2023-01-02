@@ -313,6 +313,7 @@ module Autoproj
                            "when reinstalling an existing autoproj workspace, do not "\
                            "use the config in .autoproj/ as seed" do
                         @config.clear
+                        @config["bundler_version"] = Install.default_bundler_version
                     end
                     opt.on "--seed-config=PATH", String, "path to a seed file that "\
                                                          "should be used to initialize the configuration" do |path|
@@ -746,9 +747,15 @@ require 'bundler/setup'
                 end
 
                 @config = config
+                @config["bundler_version"] ||= self.class.default_bundler_version
+
                 %w[gems_install_path prefer_indep_over_os_packages].each do |flag|
                     instance_variable_set "@#{flag}", config.fetch(flag, false)
                 end
+            end
+
+            def self.default_bundler_version
+                "2.3.6" if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("2.6.0")
             end
 
             def save_config
