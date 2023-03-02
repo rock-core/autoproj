@@ -36,7 +36,7 @@ module Autoproj
             it "calls #each_dependency from #each_package_dependency" do
                 block = proc {}
                 flexmock(manifest).should_receive(:each_dependency).once
-                                  .with(modes = flexmock, block)
+                                  .with(modes = flexmock).with_block
                 _, err = capture_deprecation_message do
                     manifest.each_package_dependency(modes, &block)
                 end
@@ -45,7 +45,7 @@ module Autoproj
             it "calls #each_dependency from #each_os_dependency" do
                 block = proc {}
                 flexmock(manifest).should_receive(:each_dependency).once
-                                  .with(modes = flexmock, block)
+                                  .with(modes = flexmock).with_block
                 _, err = capture_deprecation_message do
                     manifest.each_os_dependency(modes, &block)
                 end

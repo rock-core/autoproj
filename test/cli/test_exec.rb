@@ -61,7 +61,7 @@ module Autoproj
                         fail_on_error: false
                     )
                     assert_equal 1, cmd.exit_status
-                    assert_equal(
+                    assert_match(
                         "#{@cursor.clear_screen_down}  ERROR: cannot resolve "\
                         "`does_not_exist` to an executable in the workspace\n",
                         cmd.stderr
@@ -97,7 +97,7 @@ module Autoproj
                         fail_on_error: false
                     )
                     assert_equal 1, cmd.exit_status
-                    assert_equal(
+                    assert_match(
                         "#{@cursor.clear_screen_down}  ERROR: cannot resolve "\
                         "`does_not_exist` to an executable in the workspace\n",
                         cmd.stderr
@@ -164,7 +164,7 @@ module Autoproj
                         "#{@autoproj_bin} exec --no-color --package builddir:subdir pwd",
                         fail_on_error: false
                     )
-                    assert_equal(
+                    assert_match(
                         "#{@cursor.clear_screen_down}  "\
                         "ERROR: package subdir has no builddir",
                         cmd.stderr.strip

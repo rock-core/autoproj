@@ -37,7 +37,7 @@ module Autoproj
                     <package>
                         <name>ros_pkg</name>
                         <description>long <tt>test</tt> documentation block</description>
-                    </package>"
+                    </package>
                 EOFSUBJECT
 
                 manifest = subject_parse(subject)
@@ -63,7 +63,7 @@ module Autoproj
                     <package>
                         <name>ros_pkg</name>
                         <description>  \n  </description>
-                    </package>"
+                    </package>
                 EOFSUBJECT
 
                 manifest = subject_parse(subject)

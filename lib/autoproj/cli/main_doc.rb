@@ -28,10 +28,11 @@ module Autoproj
                           desc: "controls whether the dependencies of the packages given on the command line should be enabled as well (the default is not)"
             def enable(*packages)
                 require "autoproj/cli/doc"
+                options = self.options.merge(parent_options)
                 report(silent: true) do
                     cli = Doc.new
-                    args = cli.validate_options(packages, options)
-                    cli.enable(*args)
+                    *args, options = cli.validate_options(packages, options)
+                    cli.enable(*args, **options)
                 end
             end
 
@@ -40,10 +41,11 @@ module Autoproj
                           desc: "controls whether the dependencies of the packages given on the command line should be disabled as well (the default is not)"
             def disable(*packages)
                 require "autoproj/cli/doc"
+                options = self.options.merge(parent_options)
                 report(silent: true) do
                     cli = Doc.new
-                    args = cli.validate_options(packages, options)
-                    cli.disable(*args)
+                    *args, options = cli.validate_options(packages, options)
+                    cli.disable(*args, **options)
                 end
             end
 
@@ -52,10 +54,11 @@ module Autoproj
                           desc: "controls whether the dependencies of the packages given on the command line should be disabled as well (the default is not)"
             def list(*packages)
                 require "autoproj/cli/doc"
+                options = self.options.merge(parent_options)
                 report(silent: true) do
                     cli = Doc.new
-                    args = cli.validate_options(packages, options)
-                    cli.list(*args)
+                    *args, options = cli.validate_options(packages, options)
+                    cli.list(*args, **options)
                 end
             end
 
@@ -78,8 +81,8 @@ module Autoproj
                 report do |extra_options|
                     cli = Doc.new
                     options.delete(:tool)
-                    args = cli.validate_options(packages, options.merge(extra_options))
-                    cli.run(*args)
+                    *args, options = cli.validate_options(packages, options.merge(extra_options))
+                    cli.run(*args, **options)
                 end
             end
         end

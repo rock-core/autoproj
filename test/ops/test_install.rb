@@ -249,8 +249,8 @@ module Autoproj
                 end
 
                 it "can pin a bundler version on an existing bootstrap" do
-                    dir, = invoke_test_script("install.sh")
-                    refute_match(/2.3.5/, `#{dir}/.autoproj/bin/bundle --version`.strip)
+                    dir, = invoke_test_script("install.sh", "--bundler-version", "2.3.5")
+                    assert_match(/2.3.5/, `#{dir}/.autoproj/bin/bundle --version`.strip)
                     dir, = invoke_test_script("install.sh", "--bundler-version", "2.3.26")
                     assert_match(/2.3.26/, `#{dir}/.autoproj/bin/bundle --version`.strip)
                 end

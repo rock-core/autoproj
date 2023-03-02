@@ -299,13 +299,14 @@ module Autoproj
                 it "installs a missing VCS package" do
                     flexmock(base_cmake.autobuild).should_receive(:import).once
                     flexmock(ws.os_package_installer).should_receive(:install)
-                                                     .with([:git], Hash).once
+                                                     .with([:git]).with_any_kw_args.once
                     ops.import_selected_packages(mock_selection(base_cmake))
                 end
                 it "sets install_only if checkout_only is true" do
                     flexmock(base_cmake.autobuild).should_receive(:import).once
                     flexmock(ws.os_package_installer).should_receive(:install)
-                                                     .with([:git], hsh(install_only: true)).once
+                                                     .with([:git])
+                                                     .with_kw_args(hsh(install_only: true)).once
                     ops.import_selected_packages(mock_selection(base_cmake), checkout_only: true)
                 end
                 it "queues the package's dependencies after it loaded the manifest" do
@@ -376,9 +377,11 @@ module Autoproj
                     mock_vcs(base_cmake, type: "git", url: "https://github.com")
                     base_cmake.autobuild.srcdir = File.join(ws.root_dir, "package")
                     flexmock(base_cmake.autobuild.importer).should_receive(:import)
-                                                           .with(base_cmake.autobuild, Hash).once
+                                                           .with(base_cmake.autobuild)
+                                                           .with_any_kw_args.once
                     flexmock(ops).should_receive(:post_package_import)
-                                 .with(any, any, base_cmake, any, Hash)
+                                 .with(any, any, base_cmake, any)
+                                 .with_any_kw_args
                                  .once
                     ops.import_selected_packages(mock_selection(base_cmake))
                 end
@@ -387,7 +390,8 @@ module Autoproj
                     FileUtils.mkdir_p(base_cmake.autobuild.srcdir = File.join(ws.root_dir, "package"))
                     base_cmake.autobuild.importer = nil
                     flexmock(ops).should_receive(:post_package_import)
-                                 .with(any, any, base_cmake, any, Hash)
+                                 .with(any, any, base_cmake, any)
+                                 .with_any_kw_args
                                  .once
                     ops.import_selected_packages(mock_selection(base_cmake))
                 end
@@ -397,24 +401,26 @@ module Autoproj
                     mock_vcs(non_interactive, interactive: false)
                     main_thread = Thread.current
                     flexmock(non_interactive.autobuild).should_receive(:import).once.globally.ordered
-                                                       .with(hsh(allow_interactive: false))
+                                                       .with_kw_args(hsh(allow_interactive: false))
                                                        .and_return do
                         if Thread.current == main_thread
                             flunk("expected the non-interactive package to be imported outside the main thread")
                         end
                     end
                     flexmock(ops).should_receive(:post_package_import)
-                                 .with(any, any, non_interactive, any, Hash)
+                                 .with(any, any, non_interactive, any)
+                                 .with_any_kw_args
                                  .once.globally.ordered
                     flexmock(base_cmake.autobuild).should_receive(:import).once.globally.ordered
-                                                  .with(hsh(allow_interactive: true))
+                                                  .with_kw_args(hsh(allow_interactive: true))
                                                   .and_return do
                         if Thread.current != main_thread
                             flunk("expected the interactive package to be imported inside the main thread")
                         end
                     end
                     flexmock(ops).should_receive(:post_package_import)
-                                 .with(any, any, base_cmake, any, Hash)
+                                 .with(any, any, base_cmake, any)
+                                 .with_any_kw_args
                                  .once.globally.ordered
 
                     ops.import_selected_packages(mock_selection(non_interactive, base_cmake))
@@ -424,16 +430,17 @@ module Autoproj
                     mock_vcs(base_cmake, interactive: false)
                     main_thread = Thread.current
                     flexmock(base_cmake.autobuild).should_receive(:import).once.globally.ordered
-                                                  .with(hsh(allow_interactive: false))
+                                                  .with_kw_args(hsh(allow_interactive: false))
                                                   .and_raise(Autobuild::InteractionRequired)
                     flexmock(base_cmake.autobuild).should_receive(:import).once.globally.ordered
-                                                  .with(hsh(allow_interactive: true))
+                                                  .with_kw_args(hsh(allow_interactive: true))
                                                   .and_return do
                         assert_equal main_thread, Thread.current, "expected interactive imports to be called in the main thread"
                     end
 
                     flexmock(ops).should_receive(:post_package_import)
-                                 .with(any, any, base_cmake, any, Hash)
+                                 .with(any, any, base_cmake, any)
+                                 .with_any_kw_args
                                  .once.globally.ordered
                     ops.import_selected_packages(mock_selection(base_cmake))
                 end
@@ -471,7 +478,8 @@ module Autoproj
                 # to determine its internal dependencies
                 it "process post import blocks right after importing a package" do
                     mock_vcs(base_cmake, type: "git", url: "https://github.com")
-                    flexmock(base_cmake.autobuild.importer).should_receive(:import).with(base_cmake.autobuild, Hash).once
+                    flexmock(base_cmake.autobuild.importer).should_receive(:import).with(base_cmake.autobuild)
+                                                           .with_any_kw_args.once
                     flexmock(ops).should_receive(:process_post_import_blocks).once.with(base_cmake)
                     ops.import_selected_packages(mock_selection(base_cmake))
                 end
@@ -642,7 +650,7 @@ module Autoproj
                 it "calls post-import blocks for all packages in the layout that have not been processed" do
                     not_processed = ws_add_package_to_layout :cmake, "not_processed"
                     flexmock(Autoproj).should_receive(:each_post_import_block)
-                                      .with(not_processed.autobuild, Proc).once
+                                      .with(not_processed.autobuild).with_block.once
                     ops.finalize_package_load([])
                 end
                 it "ignores not processed packages from the layout whose srcdir is not present" do

@@ -95,7 +95,8 @@ module Autoproj
 
             it "loads the osdep files" do
                 flexmock(workspace.manifest.each_package_set.first)
-                    .should_receive(:load_osdeps).with(File.join(test_autoproj_dir, "test.osdeps"), Hash)
+                    .should_receive(:load_osdeps).with(File.join(test_autoproj_dir, "test.osdeps"))
+                    .with_any_kw_args
                     .at_least.once.and_return(osdep = flexmock)
                 flexmock(workspace.os_package_resolver)
                     .should_receive(:merge).with(osdep).at_least.once

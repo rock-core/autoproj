@@ -69,7 +69,7 @@ module Autoproj
                             "sudo",
                             "tee",
                             File.join(sources_dir, "sources.list"),
-                            on { |opt| opt[:input_streams].first.read == updated_file }
+                            input_streams: on { |f| f.first.read == updated_file }
                         )
 
                     assert subject.add_source(line)
@@ -85,7 +85,7 @@ module Autoproj
                             "tee",
                             "-a",
                             autoproj_sources,
-                            on { |opt| opt[:input_streams].first.read == "#{line}\n" }
+                            input_streams: on { |f| f.first.read == "#{line}\n" }
                         )
 
                     assert subject.add_source(line)
