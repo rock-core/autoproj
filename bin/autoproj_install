@@ -97,7 +97,9 @@ module Autoproj
                 @ruby_executable = config["ruby_executable"]
                 @local = false
 
-                install_gems_in_gem_user_dir unless @gems_install_path
+                @gems_install_path ||= default_gems_install_path
+                @gems_install_path = File.expand_path(@gems_install_path)
+
                 env["GEM_HOME"] = [gems_gem_home]
                 env["GEM_PATH"] = [gems_gem_home]
             end
@@ -171,24 +173,17 @@ module Autoproj
             # (see #local?)
             attr_writer :local
 
-            # The user-wide place where RubyGems installs gems
-            def self.dot_gem_dir
-                if Gem.respond_to?(:data_home) # Debian 11+
-                    File.join(Gem.data_home, "gem")
-                else
-                    File.join(Gem.user_home, ".gem")
-                end
-            end
-
-            # The version and platform-specific suffix under {#dot_gem_dir}
+            # The version and platform-specific suffix
             #
             # This is also the suffix used by bundler to install gems
             def self.gems_path_suffix
-                @gems_path_suffix ||=
-                    Pathname
-                    .new(Gem.user_dir)
-                    .relative_path_from(Pathname.new(dot_gem_dir))
-                    .to_s
+                return @gems_path_suffix if @gem_path_suffix
+
+                parts = [Gem.ruby_engine]
+                unless RbConfig::CONFIG["ruby_version"].empty?
+                    parts << RbConfig::CONFIG["ruby_version"]
+                end
+                @gems_path_suffix = File.join parts
             end
 
             # The path into which the workspace's gems should be installed
@@ -219,21 +214,21 @@ module Autoproj
                 end
             end
 
-            # Install autoproj in Gem's default user dir
-            def install_gems_in_gem_user_dir
+            # Get autoproj's default path for installing gems
+            def default_gems_install_path
                 xdg_default_gem_path = xdg_var("XDG_DATA_HOME",
                                                File.join(Dir.home, ".local", "share", "autoproj", "gems"))
                 default_gem_path = File.join(
                     Dir.home, ".autoproj", "gems"
                 )
-                @gems_install_path =
-                    if File.directory?(xdg_default_gem_path)
-                        xdg_default_gem_path
-                    elsif File.directory?(default_gem_path)
-                        default_gem_path
-                    else
-                        xdg_default_gem_path
-                    end
+
+                if File.directory?(xdg_default_gem_path)
+                    xdg_default_gem_path
+                elsif File.directory?(default_gem_path)
+                    default_gem_path
+                else
+                    xdg_default_gem_path
+                end
             end
 
             # Whether autoproj should prefer OS-independent packages over their
@@ -296,11 +291,12 @@ module Autoproj
                         @gem_source = url
                     end
                     opt.on "--gems-path=PATH", "install gems under this path instead "\
-                                               "of ~/.autoproj/gems" do |path|
-                        self.gems_install_path = path
+                                               "of #{default_gems_install_path} (do not use with --public-gems)" do |path|
+                        @gems_install_path = path
                     end
-                    opt.on "--public-gems", "install gems in the default gem location" do
-                        install_gems_in_gem_user_dir
+                    opt.on "--public-gems", "install gems in the default gem location: #{default_gems_install_path}"\
+                                            " (do not use with --gems-path)" do
+                        @gems_install_path = default_gems_install_path
                     end
                     opt.on "--bundler-version=VERSION_CONSTRAINT", String, "use the provided "\
                                                                            "string as a version constraint for bundler" do |version|

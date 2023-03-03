@@ -268,11 +268,6 @@ module Autoproj
             set("parallel_import_level", level)
         end
 
-        # The user-wide place where RubyGems installs gems
-        def self.dot_gem_dir
-            Ops::Install.dot_gem_dir
-        end
-
         # The Ruby platform and version-specific subdirectory used by bundler and rubygem
         def self.gems_path_suffix
             Ops::Install.gems_path_suffix
