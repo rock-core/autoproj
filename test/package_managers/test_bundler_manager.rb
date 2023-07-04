@@ -8,7 +8,8 @@ module Autoproj
                     Autobuild.programs["bundle"] = nil
                     ws = flexmock(dot_autoproj_dir: "/some/path")
                     ws.should_receive(:run)
-                      .with(any, any, "/some/path/bin/bundle", "some", "program", Hash, Proc)
+                      .with(any, any, "/some/path/bin/bundle", "some", "program", Proc)
+                      .with_any_kw_args
                       .once
                     BundlerManager.run_bundler(ws, "some", "program",
                                                bundler_version: nil,

@@ -105,11 +105,14 @@ module Autoproj
 
                 packages = [["pkg0"], ["pkg1", ">= 0.5"], ["pkg2"], ["pkg3", ">= 0.9"]]
                 subprocess.should_receive(:run)
-                          .with(any, any, any, any, "mygem", "install", *default_install_options, "--no-rdoc", "--no-ri", "pkg0", "pkg2", Hash).once
+                          .with(any, any, any, any, "mygem", "install", *default_install_options, "--no-rdoc", "--no-ri", "pkg0", "pkg2")
+                          .with_any_kw_args.once
                 subprocess.should_receive(:run)
-                          .with(any, any, any, any, "mygem", "install", *default_install_options, "--no-rdoc", "--no-ri", "pkg1", "-v", ">= 0.5", Hash).once
+                          .with(any, any, any, any, "mygem", "install", *default_install_options, "--no-rdoc", "--no-ri", "pkg1", "-v", ">= 0.5")
+                          .with_any_kw_args.once
                 subprocess.should_receive(:run)
-                          .with(any, any, any, any, "mygem", "install", *default_install_options, "--no-rdoc", "--no-ri", "pkg3", "-v", ">= 0.9", Hash).once
+                          .with(any, any, any, any, "mygem", "install", *default_install_options, "--no-rdoc", "--no-ri", "pkg3", "-v", ">= 0.9")
+                          .with_any_kw_args.once
                 gem_manager.install(packages)
             end
 
@@ -119,7 +122,8 @@ module Autoproj
                 subprocess = flexmock(Autobuild::Subprocess)
 
                 subprocess.should_receive(:run)
-                          .with(any, any, any, any, "mygem", "install", *default_install_options, "pkg0", Hash).once
+                          .with(any, any, any, any, "mygem", "install", *default_install_options, "pkg0")
+                          .with_any_kw_args.once
                 gem_manager.install([["pkg0"]])
             end
 
@@ -129,7 +133,8 @@ module Autoproj
                 subprocess = flexmock(Autobuild::Subprocess)
 
                 subprocess.should_receive(:run)
-                          .with(any, any, any, any, "mygem", "install", *default_install_options, "--prerelease", "pkg0", Hash).once
+                          .with(any, any, any, any, "mygem", "install", *default_install_options, "--prerelease", "pkg0")
+                          .with_any_kw_args.once
                 gem_manager.install([["pkg0"]])
             end
 
