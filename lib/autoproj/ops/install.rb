@@ -750,7 +750,11 @@ require 'bundler/setup'
             end
 
             def self.default_bundler_version
-                "2.3.6" if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("2.6.0")
+                if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("2.6.0")
+                    "2.3.6"
+                elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.0.0")
+                    "2.4.22"
+                end
             end
 
             def save_config
