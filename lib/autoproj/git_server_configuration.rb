@@ -101,8 +101,8 @@ module Autoproj
         end
 
         Autoproj.add_source_handler name.downcase do |url, private: false, **vcs_options|
-            if add_suffix
-                url += ".git" if url !~ /\.git$/
+            if add_suffix && url !~ /\.git$/
+                url += ".git"
             end
             url = "/#{url}" if url !~ /^\//
 
