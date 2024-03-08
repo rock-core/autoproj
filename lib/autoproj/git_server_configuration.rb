@@ -73,7 +73,8 @@ module Autoproj
         disabled_methods: [],
         config: Autoproj.config,
         fallback_to_http: nil,
-        lazy: false)
+        lazy: false,
+        add_suffix: true)
 
         disabled_methods = Array(disabled_methods)
 
@@ -100,7 +101,7 @@ module Autoproj
         end
 
         Autoproj.add_source_handler name.downcase do |url, private: false, **vcs_options|
-            url += ".git" if url !~ /\.git$/
+            url += ".git" if add_suffix && url !~ /\.git$/
             url = "/#{url}" if url !~ /^\//
 
             unless GIT_SERVER_CONFIG_VARS.all? { |v| config.has_value_for?("#{name}#{v}") }
