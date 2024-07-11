@@ -17,7 +17,7 @@ module Autoproj
                 ws.config.save
             end
 
-            def enable(user_selection, options = {})
+            def enable(user_selection, **options)
                 if user_selection.empty?
                     ws.load_config
                     ws.config.utility_enable_all(utility_name)
@@ -33,7 +33,7 @@ module Autoproj
                 ws.config.save
             end
 
-            def disable(user_selection, options = {})
+            def disable(user_selection, **options)
                 if user_selection.empty?
                     ws.load_config
                     ws.config.utility_disable_all(utility_name)
@@ -49,7 +49,7 @@ module Autoproj
                 ws.config.save
             end
 
-            def list(user_selection, options = {})
+            def list(user_selection, **options)
                 initialize_and_load
                 resolved_selection, = finalize_setup(
                     user_selection,
@@ -75,7 +75,7 @@ module Autoproj
                 end
             end
 
-            def run(user_selection, options = {})
+            def run(user_selection, **options)
                 options[:parallel] ||= ws.config.parallel_build_level
                 initialize_and_load
 
