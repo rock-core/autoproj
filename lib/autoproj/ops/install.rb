@@ -260,8 +260,16 @@ module Autoproj
                  "gem \"autoproj\", \"#{autoproj_version}\""].join("\n")
             end
 
+            def load_yaml(contents)
+                if Gem::Version.new(Psych::VERSION) >= Gem::Version.new("3.1.0")
+                    YAML.safe_load(contents, permitted_classes: [Symbol])
+                else
+                    YAML.safe_load(contents, [Symbol])
+                end
+            end
+
             def add_seed_config(path)
-                @config.merge!(YAML.safe_load(File.read(path), [Symbol]))
+                @config.merge!(load_yaml(File.read(path)))
             end
 
             # Parse the provided command line options and returns the non-options
