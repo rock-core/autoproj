@@ -185,7 +185,7 @@ module Autoproj
         # build nothing) and no layout at all
         attr_predicate :has_layout?
 
-        def initialize(ws, os_package_resolver: OSPackageResolver.new)
+        def initialize(ws, os_package_resolver: OSPackageResolver.new(ws))
             @ws = ws
             @vcs = VCSDefinition.none
             @file = nil

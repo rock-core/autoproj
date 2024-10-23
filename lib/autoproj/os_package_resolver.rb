@@ -4,7 +4,7 @@ require "json"
 module Autoproj
     # Manager for packages provided by external package managers
     class OSPackageResolver
-        def self.load(file, suffixes: [], **options)
+        def self.load(ws, file, suffixes: [], **options)
             unless File.file?(file)
                 raise ArgumentError, "no such file or directory #{file}"
             end
@@ -19,7 +19,7 @@ module Autoproj
                     ArgumentError
                 end
 
-            result = new(**options)
+            result = new(ws, **options)
             candidates.each do |file_candidate|
                 next unless File.file?(file_candidate)
 
@@ -32,7 +32,9 @@ module Autoproj
                                            "#{e.message}", e.backtrace
                 end
 
-                result.merge(new(data, file_candidate, **options))
+                result.merge(
+                    new(ws, data, file_candidate, **options)
+                )
             end
             result
         end
@@ -49,18 +51,18 @@ module Autoproj
         end
 
         AUTOPROJ_OSDEPS = File.join(__dir__, "default.osdeps")
-        def self.load_default
+        def self.load_default(ws)
             file = ENV["AUTOPROJ_DEFAULT_OSDEPS"] || AUTOPROJ_OSDEPS
             unless File.file?(file)
                 Autoproj.warn "#{file} (from AUTOPROJ_DEFAULT_OSDEPS) is not a file, "\
                               "falling back to #{AUTOPROJ_OSDEPS}"
                 file = AUTOPROJ_OSDEPS
             end
-            load(file)
+            load(ws, file)
         end
 
         def load_default
-            merge(self.class.load_default)
+            merge(self.class.load_default(@ws))
         end
 
         PACKAGE_MANAGERS = OSPackageInstaller::PACKAGE_MANAGERS.keys
@@ -140,10 +142,13 @@ module Autoproj
 
         # The Gem::SpecFetcher object that should be used to query RubyGems, and
         # install RubyGems packages
-        def initialize(defs = Hash.new, file = nil,
+        def initialize(
+            ws, defs = {}, file = nil,
             operating_system: nil,
             package_managers: PACKAGE_MANAGERS.dup,
-            os_package_manager: nil)
+            os_package_manager: nil
+        )
+            @ws = ws
             @definitions = defs.to_hash
             @resolve_package_cache = Hash.new
             @all_definitions = Hash.new { |h, k| h[k] = Array.new }
