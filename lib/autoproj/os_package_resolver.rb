@@ -210,7 +210,9 @@ module Autoproj
         # takes precedence
         def merge(info, suffixes: [])
             @definitions = definitions.merge(info.definitions) do |h, v1, v2|
-                warn_about_merge_collisions(info, suffixes, h, v1, v2) if v1 != v2
+                if v1 != v2 && ws.config.osdeps_warn_overrides?
+                    warn_about_merge_collisions(info, suffixes, h, v1, v2)
+                end
                 v2
             end
             invalidate_resolve_package_cache
