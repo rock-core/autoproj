@@ -101,6 +101,10 @@ ruby27:
 ruby30:
   default: ignore # we assume that if the user has a ruby 3.0 runtime, it is usable
 
+ruby32:
+  default: ignore # we assume that if the user has a ruby 3.0 runtime, it is usable
+
+
 build-essential:
   debian,ubuntu: build-essential
   gentoo: ignore
