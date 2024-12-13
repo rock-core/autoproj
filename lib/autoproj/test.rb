@@ -312,6 +312,7 @@ module Autoproj
 
         def ws_create_os_package_resolver
             @ws_os_package_resolver = OSPackageResolver.new(
+                @ws,
                 operating_system: [["test_os_family"], ["test_os_version"]],
                 package_managers: ws_package_managers.keys,
                 os_package_manager: "os"
