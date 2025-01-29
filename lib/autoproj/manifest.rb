@@ -1088,7 +1088,7 @@ module Autoproj
 
         # Remove any OSDeps override that has previously been added with
         # #add_osdeps_overrides
-        def remove_osdeps_overrides(osdep_name)
+        def remove_osdeps_overrides(osdeps_name)
             @osdeps_overrides.delete(osdeps_name.to_s)
         end
 
