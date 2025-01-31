@@ -86,12 +86,14 @@ module Autoproj
                         "apt-get", "install", "-y", "noninstalled-package"
                     ]
                     flexmock(Autobuild).should_receive(:tool_in_path)
-                                       .with("sudo", any)
+                                       .with("sudo").with_any_kw_args
                                        .and_return("/sbin/sudo")
                     flexmock(Autobuild::Subprocess).should_receive(:run)
-                                                   .with(*expected_args,
-                                                         env: expected_env,
-                                                         env_inherit: false)
+                                                   .with(*expected_args)
+                                                   .with_kw_args(
+                                                       env: expected_env,
+                                                       env_inherit: false
+                                                   )
                     @mng.install(%w[noninstalled-package])
                 end
             end
@@ -124,7 +126,7 @@ module Autoproj
                                             .never
                     ShellScriptManager.should_receive(:execute)
                                       .with(->(cmd) { cmd.include?("installed-package") },
-                                            any, any, any).once
+                                            any, any).with_any_kw_args.once
                     AptDpkgManager
                         .should_receive(:parse_packages_versions)
                         .with(["installed-package"])
@@ -151,7 +153,7 @@ module Autoproj
                     ShellScriptManager
                         .should_receive(:execute)
                         .with(->(cmd) { cmd.include?("noninstalled-package") },
-                              any, any, any).once
+                              any, any).with_any_kw_args.once
                     @mng.install(["noninstalled-package"],
                                  filter_uptodate_packages: true, install_only: true)
                 end

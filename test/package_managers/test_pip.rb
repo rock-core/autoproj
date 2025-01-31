@@ -25,7 +25,8 @@ module Autoproj
 
                 packages = %w[pkg0 pkg1 pkg2]
                 subprocess.should_receive(:run).explicitly
-                          .with(any, any, "mypip", "install", "--user", "pkg0", "pkg1", "pkg2", any).once
+                          .with(any, any, "mypip", "install", "--user", "pkg0", "pkg1", "pkg2")
+                          .with_any_kw_args.once
                 ws.config.interactive = false
                 pip_manager.install(packages)
             end

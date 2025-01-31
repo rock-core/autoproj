@@ -10,7 +10,15 @@ module Autoproj
             def mock_package_set(name, create: false, **vcs)
                 vcs = VCSDefinition.from_raw(vcs)
                 raw_local_dir = File.join(make_tmpdir, "package_set")
-                flexmock(PackageSet).should_receive(:name_of).with(any, vcs, any)
+
+                flexmock(PackageSet)
+                    .should_receive(:name_of)
+                    .with(any)
+                    .with_kw_args(**vcs)
+                    .and_return(name)
+                    .by_default
+
+                flexmock(PackageSet).should_receive(:name_of).with(any, vcs, **{}).with_any_kw_args
                                     .and_return(name).by_default
                 flexmock(PackageSet).should_receive(:raw_local_dir_of).with(any, vcs)
                                     .and_return(raw_local_dir).by_default
@@ -169,7 +177,8 @@ module Autoproj
                     test_vcs, = mock_package_set "test", type: "git", url: "/test",
                                                          create: true
                     ops.should_receive(:update_remote_package_set)
-                       .with(test_vcs, Hash).once.and_raise(e_klass = Class.new(RuntimeError))
+                       .with(test_vcs, **{}).with_any_kw_args.once
+                       .and_raise(e_klass = Class.new(RuntimeError))
                     root_package_set = make_root_package_set(test_vcs)
 
                     assert_raises(e_klass) do
@@ -180,7 +189,8 @@ module Autoproj
                 it "passes a failure to checkout" do
                     test_vcs, = mock_package_set "test", type: "git", url: "/test"
                     ops.should_receive(:update_remote_package_set)
-                       .with(test_vcs, Hash).once.and_raise(e_klass = Class.new(RuntimeError))
+                       .with(test_vcs, **{}).with_any_kw_args.once
+                       .and_raise(e_klass = Class.new(RuntimeError))
                     root_package_set = make_root_package_set(test_vcs)
 
                     assert_raises(e_klass) do
@@ -198,10 +208,10 @@ module Autoproj
                             "test1", type: "git", url: "/test1", create: true
                         )
                         ops.should_receive(:update_remote_package_set)
-                           .with(test0_vcs, Hash).once
+                           .with(test0_vcs, **{}).with_any_kw_args.once
                            .and_raise(Interrupt)
                         ops.should_receive(:update_remote_package_set)
-                           .with(test1_vcs, Hash).never
+                           .with(test1_vcs, **{}).with_any_kw_args.never
                         root_package_set = make_root_package_set(test0_vcs, test1_vcs)
 
                         assert_raises(Interrupt) do
@@ -213,7 +223,8 @@ module Autoproj
                     it "still raises if a checkout failed" do
                         test_vcs, = mock_package_set "test", type: "git", url: "/test"
                         ops.should_receive(:update_remote_package_set)
-                           .with(test_vcs, Hash).once.and_raise(e_klass = Class.new(RuntimeError))
+                           .with(test_vcs, **{}).with_any_kw_args.once
+                           .and_raise(e_klass = Class.new(RuntimeError))
                         root_package_set = make_root_package_set(test_vcs)
 
                         assert_raises(e_klass) do
@@ -225,11 +236,12 @@ module Autoproj
                                                                create: true
                         test1_vcs, = mock_package_set "test1", type: "git", url: "/test1",
                                                                create: true
+
                         ops.should_receive(:update_remote_package_set)
-                           .with(test0_vcs, Hash).once
+                           .with(test0_vcs, **{}).with_any_kw_args.once
                            .and_raise(error0 = Class.new(RuntimeError))
                         ops.should_receive(:update_remote_package_set)
-                           .with(test1_vcs, Hash).once
+                           .with(test1_vcs, **{}).with_any_kw_args.once
                            .and_raise(error1 = Class.new(RuntimeError))
                         root_package_set = make_root_package_set(test0_vcs, test1_vcs)
 
@@ -342,7 +354,7 @@ module Autoproj
                 it "does call the import if checkout_only is set but the package set is not present" do
                     vcs, raw_local_dir = mock_package_set("test", type: "git", url: "/whatever")
                     ops.should_receive(:update_configuration_repository).once
-                       .with(vcs, "test", raw_local_dir, Hash)
+                       .with(vcs, "test", raw_local_dir).with_any_kw_args
                     ops.update_remote_package_set(vcs, checkout_only: false)
                 end
 
@@ -489,7 +501,7 @@ module Autoproj
                     end
                     it "attempts to update and load the package sets after a main configuration import failure" do
                         ops.should_receive(:update_main_configuration).once
-                           .with(hsh(keep_going: true)).and_return([flexmock])
+                           .with_kw_args(hsh(keep_going: true)).and_return([flexmock])
                         ops.should_receive(:update_package_sets).once
                            .pass_thru
                         ops.should_receive(:load_package_set_information).once
@@ -508,7 +520,7 @@ module Autoproj
                     it "reports package set update errors" do
                         ops.should_receive(:update_main_configuration).once.and_return([])
                         ops.should_receive(:update_package_sets).once
-                           .with(hsh(keep_going: true)).and_return([failure = flexmock])
+                           .with_kw_args(hsh(keep_going: true)).and_return([failure = flexmock])
                         e = assert_raises(ImportFailed) do
                             ops.update_configuration(keep_going: true)
                         end
@@ -600,7 +612,8 @@ module Autoproj
                 it "loads the osdep files" do
                     flexmock(ws.manifest.each_package_set.first)
                         .should_receive(:load_osdeps)
-                        .with(File.join(ws.config_dir, "test.osdeps"), Hash)
+                        .with(File.join(ws.config_dir, "test.osdeps"))
+                        .with_any_kw_args
                         .at_least.once.and_return(osdep = flexmock)
                     flexmock(ws.os_package_resolver)
                         .should_receive(:merge).with(osdep).at_least.once
