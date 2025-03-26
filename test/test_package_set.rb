@@ -145,8 +145,8 @@ module Autoproj
                       "branch" => "test_branch" }
                 )
                 importer = vcs.create_autobuild_importer
-                flexmock(importer).should_receive(:respond_to?).with(:repository_id).and_return(false)
                 flexmock(vcs).should_receive(:create_autobuild_importer).and_return(importer)
+                flexmock(importer).should_receive(:respond_to?).with(:repository_id).and_return(false)
                 package_set = PackageSet.new(ws, vcs, raw_local_dir: "/path/to/set")
                 assert_equal vcs.to_s, package_set.repository_id
             end
