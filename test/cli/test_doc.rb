@@ -24,12 +24,33 @@ module Autoproj
                 end
             end
 
+            %w[enable disable list exec].each do |subcommand|
+                describe "--deps" do
+                    it "turns dependencies on" do
+                        meth = subcommand
+                        meth = "run" if subcommand == "exec"
+
+                        flexmock(Doc).new_instances
+                                     .should_receive(meth.to_sym)
+                                     .with(%w[pkg1 pkg2])
+                                     .with_kw_args(hsh(deps: true))
+                                     .once
+                        in_ws do
+                            Main.start(["doc", subcommand, "--deps", "pkg1", "pkg2"])
+                        end
+                    end
+                end
+            end
+
             describe "-n" do
                 it "turns dependencies off" do
                     flexmock(Doc).new_instances
-                                 .should_receive(:run).with([], hsh(deps: false)).once
+                                 .should_receive(:run)
+                                 .with(%w[pkg1 pkg2])
+                                 .with_kw_args(hsh(deps: false))
+                                 .once
                     in_ws do
-                        Main.start(["doc", "-n"])
+                        Main.start(["doc", "-n", "pkg1", "pkg2"])
                     end
                 end
             end
