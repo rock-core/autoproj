@@ -151,6 +151,22 @@ module Autoproj
                 ws.should_receive(:load_main_initrb).once.globally.ordered
                 ws.setup
             end
+
+            it "creates ruby shims in the main prefixdir" do
+                ws.setup
+                %w[gem irb ruby].each do |shim|
+                    assert_equal File.join(ws.prefix_dir, "bin", shim), ws.which(shim)
+                end
+            end
+
+            it "creates ruby shims in a dedicated prefixdir" do
+                ws.config.isolate_ruby_shims = true
+                ws.config.save
+                ws.setup
+                %w[gem irb ruby].each do |shim|
+                    assert_equal File.join(ws.prefix_dir, "autoproj", "bin", shim), ws.which(shim)
+                end
+            end
         end
 
         describe "update_autoproj" do
