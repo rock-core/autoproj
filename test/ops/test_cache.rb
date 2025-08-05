@@ -222,11 +222,11 @@ module Autoproj
                 it "compiles requested gems if they are not present" do
                     FileUtils.mkdir_p @cache_dir
                     FileUtils.touch(
-                        File.join(@cache_dir, "gemname.gem")
+                        File.join(@cache_dir, "gemname-1.0.gem")
                     )
                     @ops.should_receive(:system).explicitly.once
                         .with("myruby", "-S", "mygem", "compile",
-                              "--output", @target_dir, "#{@cache_dir}/gemname.gem")
+                              "--output", @target_dir, "#{@cache_dir}/gemname-1.0.gem")
                         .and_return(true)
                     @ops.create_or_update_gems(compile: ["gemname"])
                 end
@@ -234,14 +234,14 @@ module Autoproj
                 it "passes the artifacts argument" do
                     FileUtils.mkdir_p @cache_dir
                     FileUtils.touch(
-                        File.join(@cache_dir, "gemname.gem")
+                        File.join(@cache_dir, "gemname-1.0.gem")
                     )
                     @ops.should_receive(:system).explicitly.once
                         .with("myruby", "-S", "mygem", "compile",
                               "--output", @target_dir,
                               "--include", "some/lib",
                               "--exclude", "some/dir",
-                              "#{@cache_dir}/gemname.gem")
+                              "#{@cache_dir}/gemname-1.0.gem")
                         .and_return(true)
                     @ops.create_or_update_gems(
                         compile: [
@@ -258,7 +258,7 @@ module Autoproj
                     FileUtils.mkdir_p @target_dir
                     FileUtils.touch(File.join(@cache_dir, "gemname.gem"))
                     FileUtils.touch(
-                        File.join(@target_dir, "gemname-#{Gem::Platform.local}.gem")
+                        File.join(@target_dir, "gemname-1.0-#{Gem::Platform.local}.gem")
                     )
                     @ops.should_receive(:system).explicitly.never
                     @ops.create_or_update_gems(compile: ["gemname"])
@@ -267,33 +267,33 @@ module Autoproj
                 it "recompiles existing gems if compile_force is set" do
                     FileUtils.mkdir_p @cache_dir
                     FileUtils.mkdir_p @target_dir
-                    FileUtils.touch(File.join(@cache_dir, "gemname.gem"))
+                    FileUtils.touch(File.join(@cache_dir, "gemname-1.0.gem"))
                     FileUtils.touch(
-                        File.join(@target_dir, "gemname-#{Gem::Platform.local}.gem")
+                        File.join(@target_dir, "gemname-1.0-#{Gem::Platform.local}.gem")
                     )
                     @ops.should_receive(:system).explicitly.once
                         .with("myruby", "-S", "mygem", "compile",
-                              "--output", @target_dir, "#{@cache_dir}/gemname.gem")
+                              "--output", @target_dir, "#{@cache_dir}/gemname-1.0.gem")
                         .and_return(true)
                     @ops.create_or_update_gems(compile: ["gemname"], compile_force: true)
                 end
 
                 it "stops at first error if keep_going is false" do
                     FileUtils.mkdir_p @cache_dir
-                    FileUtils.touch(File.join(@cache_dir, "gem0.gem"))
-                    FileUtils.touch(File.join(@cache_dir, "gem1.gem"))
+                    FileUtils.touch(File.join(@cache_dir, "gem0-1.0.gem"))
+                    FileUtils.touch(File.join(@cache_dir, "gem1-1.0.gem"))
                     @ops.should_receive(:system).explicitly.once
                         .and_return(false)
                     e = assert_raises(Cache::CompilationFailed) do
                         @ops.create_or_update_gems(keep_going: false, compile: %w[gem0 gem1])
                     end
-                    assert_equal "#{@cache_dir}/gem0.gem failed to compile", e.message
+                    assert_equal "#{@cache_dir}/gem0-1.0.gem failed to compile", e.message
                 end
 
                 it "continues installation after error if keep_going is true, but reports the errors at the end" do
                     FileUtils.mkdir_p @cache_dir
-                    FileUtils.touch(File.join(@cache_dir, "gem0.gem"))
-                    FileUtils.touch(File.join(@cache_dir, "gem1.gem"))
+                    FileUtils.touch(File.join(@cache_dir, "gem0-1.0.gem"))
+                    FileUtils.touch(File.join(@cache_dir, "gem1-1.0.gem"))
                     @ops.should_receive(:system).explicitly.once
                         .and_return(false).globally.ordered
                     @ops.should_receive(:system).explicitly.once
@@ -301,13 +301,13 @@ module Autoproj
                     e = assert_raises(Cache::CompilationFailed) do
                         @ops.create_or_update_gems(compile: %w[gem0 gem1])
                     end
-                    assert_equal "#{@cache_dir}/gem0.gem failed to compile", e.message
+                    assert_equal "#{@cache_dir}/gem0-1.0.gem failed to compile", e.message
                 end
 
                 it "does not attempt to compile platform gems present in the source dir" do
                     FileUtils.mkdir_p @cache_dir
                     FileUtils.touch(
-                        File.join(@cache_dir, "gemname-#{Gem::Platform.local}.gem")
+                        File.join(@cache_dir, "gemname-1.0-#{Gem::Platform.local}.gem")
                     )
                     @ops.should_receive(:system).explicitly.never
                     @ops.create_or_update_gems(compile: ["gemname"])
