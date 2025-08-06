@@ -75,7 +75,9 @@ module Autoproj
                 env["RUBYLIB"] = []
                 env["PATH"] = self.class.sanitize_env(ENV["PATH"] || "")
                 env["BUNDLE_GEMFILE"] = []
-
+                env["BUNDLER_VERSION"] = []
+                env["BUNDLER_SETUP"] = []
+                env["BUNDLE_BIN_PATH"] = []
                 load_config
 
                 if config["ruby_executable"] != Gem.ruby
@@ -434,6 +436,20 @@ module Autoproj
                 end
             end
 
+            def write_bundle_shim(bundle_shim_path)
+                contents = <<~BUNDLERSHIM
+                    #!#{Gem.ruby}
+                    ENV['BUNDLE_GEMFILE'] ||= '#{autoproj_gemfile_path}'
+                    ENV['GEM_HOME'] = '#{gems_gem_home}'
+                    ENV.delete('GEM_PATH')
+                    Gem.paths = Hash['GEM_HOME' => '#{gems_gem_home}', 'GEM_PATH' => '']
+                    exec "#{File.join(gems_gem_home, 'bin', 'bundle')}", *ARGV
+                BUNDLERSHIM
+
+                File.write(bundle_shim_path, contents)
+                FileUtils.chmod 0755, bundle_shim_path
+            end
+
             def install_autoproj(bundler, bundler_version: self.bundler_version)
                 # Force bundler to update. If the user does not want this, let
                 # him specify a Gemfile with tighter version constraints
@@ -453,6 +469,10 @@ module Autoproj
                 shims_path = File.join(dot_autoproj, "bin")
                 run_bundler(bundler, "binstubs", "--all", "--force", "--path", shims_path,
                             bundler_version: bundler_version)
+
+                bundle_shim_path = File.join(shims_path, "bundle")
+                write_bundle_shim(bundle_shim_path) unless File.exist?(bundle_shim_path)
+
                 self.class.rewrite_shims(
                     shims_path, ruby_executable, root_dir,
                     autoproj_gemfile_path, gems_gem_home

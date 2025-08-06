@@ -12,6 +12,29 @@ module Autoproj
                 invoke_test_script "install.sh"
             end
 
+            describe "#find_bundler" do
+                let(:install) do
+                    version_args = ["--bundler-version", @version] if @version
+                    version_args ||= []
+                    dir, = invoke_test_script "install.sh", *version_args
+                    Install.new(dir)
+                end
+
+                let(:gem_home) { install.gems_gem_home }
+                let(:gem_program) { Install.guess_gem_program }
+
+                it "finds versioned bundler" do
+                    @version = "2.3.6"
+                    assert install.find_bundler(
+                        gem_program, version: @version
+                    )&.start_with?(gem_home)
+                end
+
+                it "finds an unversioned bundler" do
+                    assert install.find_bundler(gem_program)&.start_with?(gem_home)
+                end
+            end
+
             it "may install non-interactively" do
                 invoke_test_script "install.sh",
                                    interactive: false,
