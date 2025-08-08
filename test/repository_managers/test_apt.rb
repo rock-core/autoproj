@@ -68,8 +68,10 @@ module Autoproj
                             "osrepos",
                             "sudo",
                             "tee",
-                            File.join(sources_dir, "sources.list"),
-                            input_streams: on { |f| f.first.read == updated_file }
+                            File.join(sources_dir, "sources.list")
+                        )
+                        .with_kw_args(
+                            on { |args| args[:input_streams].first.read == updated_file }
                         )
 
                     assert subject.add_source(line)
@@ -84,8 +86,9 @@ module Autoproj
                             "sudo",
                             "tee",
                             "-a",
-                            autoproj_sources,
-                            input_streams: on { |f| f.first.read == "#{line}\n" }
+                            autoproj_sources
+                        ).with_kw_args(
+                            on { |args| args[:input_streams].first.read == "#{line}\n" }
                         )
 
                     assert subject.add_source(line)
