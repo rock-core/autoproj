@@ -176,7 +176,9 @@ module Autoproj
 
             def guess_python_bin
                 env = Autobuild::Environment.new
-                env.isolate
+                env.inherit "PATH"
+                # Workaround bug in autobuild < 1.26.0
+                env.add_path "PATH"
                 env.find_in_path("python3") || env.find_in_path("python")
             end
         end
