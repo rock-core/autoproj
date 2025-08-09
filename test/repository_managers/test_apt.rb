@@ -71,7 +71,7 @@ module Autoproj
                             File.join(sources_dir, "sources.list")
                         )
                         .with_kw_args(
-                            on { |args| args[:input_streams].first.read == updated_file }
+                            input_streams: on { |ios| ios.first.read == updated_file }
                         )
 
                     assert subject.add_source(line)
@@ -88,7 +88,7 @@ module Autoproj
                             "-a",
                             autoproj_sources
                         ).with_kw_args(
-                            on { |args| args[:input_streams].first.read == "#{line}\n" }
+                            input_streams: on { |ios| ios.first.read == "#{line}\n" }
                         )
 
                     assert subject.add_source(line)
