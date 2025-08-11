@@ -7,7 +7,10 @@ module Autoproj
     module Python
         describe "activate_python" do
             before do
-                @pkg = Autobuild::Package.new
+                @python_bin = guess_python_bin
+                flunk("cannot find a python executable") unless @python_bin
+
+                @pkg = Autobuild::Package.new("#{self.class.name}-#{Process.pid}-#{rand}")
                 @ws = ws_create
                 @ws.os_package_resolver.load_default
                 flexmock(@pkg)
@@ -15,49 +18,45 @@ module Autoproj
                 @env = flexmock(base: Autobuild::Environment)
 
                 @test_python = File.join(Dir.tmpdir, "test-python")
-                unless File.exist?(@test_python)
-                    File.symlink("/usr/bin/python",
-                                 @test_python)
-                end
+                File.symlink(@python_bin, @test_python) unless File.exist?(@test_python)
             end
             after do
-                File.rm(@test_python) unless File.exist?(@test_python)
+                FileUtils.rm(@test_python) unless File.exist?(@test_python)
             end
 
             it "does get the python version" do
                 assert_raises { Autoproj::Python.get_python_version("no-existing-file") }
                 assert_raises { Autoproj::Python.get_python_version(__FILE__) }
 
-                assert(Autoproj::Python.get_python_version("/usr/bin/python") != "")
+                refute_equal "", Autoproj::Python.get_python_version(@python_bin)
             end
 
             it "does validate the python version" do
-                version, valid = Autoproj::Python.validate_python_version("/usr/bin/python", nil)
-                assert(version =~ /[0-9]+\.[0-9]+/)
+                version, valid = Autoproj::Python.validate_python_version(@python_bin, nil)
+                assert_match(/[0-9]+\.[0-9]+/, version)
                 assert(valid)
 
-                version_a, valid = Autoproj::Python.validate_python_version("/usr/bin/python", ">2.0")
-                assert(version_a == version)
+                version_a, valid = Autoproj::Python.validate_python_version(@python_bin, ">2.0")
+                assert_equal(version, version_a)
                 assert(valid)
 
-                version_a, valid = Autoproj::Python.validate_python_version("/usr/bin/python", "<100.0")
-                assert(version_a == version)
+                version_a, valid = Autoproj::Python.validate_python_version(@python_bin, "<100.0")
+                assert_equal(version, version_a)
                 assert(valid)
 
-                version_a, valid = Autoproj::Python.validate_python_version("/usr/bin/python", ">100.0")
-                assert(version_a == version)
-                assert(!valid)
+                version_a, valid = Autoproj::Python.validate_python_version(@python_bin, ">100.0")
+                assert_equal(version, version_a)
+                refute valid
             end
 
             it "does find python" do
                 assert_raises { Autoproj::Python.find_python(ws: @ws, version: ">100.0") }
                 python_bin, version = Autoproj::Python.find_python(ws: @ws, version: "<100.0")
-                assert(File.exist?(python_bin))
+                assert_equal(@python_bin, python_bin)
                 assert(version =~ /[0-9]+\.[0-9]+/)
 
                 # Python3 has higher priority, so should be picked
-                python_path = `which python3`.strip
-                assert(version =~ /3.[0-9]+/) if File.exist?(python_path)
+                assert(version =~ /3.[0-9]+/)
             end
 
             it "custom resolve python" do
@@ -173,6 +172,14 @@ module Autoproj
                 end
                 assert(!@ws.config.has_value_for?("python_executable"))
                 assert(!@ws.config.has_value_for?("python_version"))
+            end
+
+            def guess_python_bin
+                env = Autobuild::Environment.new
+                env.inherit "PATH"
+                # Workaround bug in autobuild < 1.26.0
+                env.add_path "PATH"
+                env.find_in_path("python3") || env.find_in_path("python")
             end
         end
     end

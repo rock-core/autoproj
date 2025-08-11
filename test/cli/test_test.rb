@@ -1,4 +1,5 @@
 require "autoproj/test"
+require "autoproj/cli/main"
 require "autoproj/cli/test"
 require "timecop"
 
@@ -38,6 +39,24 @@ module Autoproj
                     ws.manifest.ignore_package("three")
                     assert_raises(Autoproj::CLI::CLIInvalidArguments) do
                         cli.run(%w[three])
+                    end
+                end
+            end
+
+            %w[enable disable list exec].each do |subcommand|
+                describe "--deps" do
+                    it "turns dependencies on" do
+                        meth = subcommand
+                        meth = "run" if subcommand == "exec"
+
+                        flexmock(Test).new_instances
+                                      .should_receive(meth.to_sym)
+                                      .with(%w[pkg1 pkg2])
+                                      .with_kw_args(hsh(deps: true))
+                                      .once
+                        in_ws do
+                            Main.start(["test", subcommand, "--deps", "pkg1", "pkg2"])
+                        end
                     end
                 end
             end

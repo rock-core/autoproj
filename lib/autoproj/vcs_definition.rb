@@ -201,7 +201,8 @@ module Autoproj
         # @return [VCSDefinition]
         # @raise ArgumentError if the raw specification does not match an
         #   expected format
-        def self.from_raw(spec, from: nil, raw: [], history: [])
+        def self.from_raw(spec_str = nil, from: nil, raw: [], history: [], **spec_hash)
+            spec = spec_str || spec_hash
             normalized_spec = normalize_vcs_hash(spec)
             unless (type = normalized_spec.delete(:type))
                 raise ArgumentError,

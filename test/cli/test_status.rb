@@ -15,7 +15,8 @@ module Autoproj
             describe "-n" do
                 it "turns dependencies off" do
                     flexmock(Status).new_instances
-                                    .should_receive(:run).with([], hsh(deps: false)).once
+                                    .should_receive(:run).with([])
+                                    .with_kw_args(hsh(deps: false)).once
                     in_ws do
                         Main.start(["status", "-n"])
                     end

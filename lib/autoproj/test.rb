@@ -342,6 +342,8 @@ module Autoproj
 
             # Make a valid (albeit empty) Gemfile
             File.open(File.join(ws.dot_autoproj_dir, "Gemfile"), "w").close
+            # Create the shims folder
+            FileUtils.mkdir File.join(ws.dot_autoproj_dir, "bin")
             ws
         end
 

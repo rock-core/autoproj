@@ -16,7 +16,8 @@ module Autoproj
                 describe "-n" do
                     it "turns dependencies off" do
                         flexmock(Update).new_instances
-                                        .should_receive(:run).with([], hsh(deps: false)).once
+                                        .should_receive(:run).with([])
+                                        .with_kw_args(hsh(deps: false)).once
                         in_ws do
                             Main.start(["update", "-n", "--silent"])
                         end
@@ -189,12 +190,12 @@ module Autoproj
 
                 it "updates the configuration in checkout_only mode with config: false" do
                     flexmock(ws).should_receive(:load_package_sets)
-                                .with(hsh(checkout_only: true)).once
+                                .with_kw_args(hsh(checkout_only: true)).once
                     cli.run([], config: false)
                 end
                 it "updates the configuration in checkout_only mode if checkout_only is set" do
                     flexmock(ws).should_receive(:load_package_sets)
-                                .with(hsh(checkout_only: true)).once
+                                .with_kw_args(hsh(checkout_only: true)).once
                     cli.run([], checkout_only: true)
                 end
                 it "properly sets up packages while updating configuration only" do
@@ -207,7 +208,8 @@ module Autoproj
                 it "passes options to the osdep installer for package import" do
                     flexmock(Ops::Import).new_instances
                                          .should_receive(:import_packages)
-                                         .with(PackageSelection, hsh(checkout_only: true, install_vcs_packages: Hash[install_only: true]))
+                                         .with(PackageSelection)
+                                         .with_kw_args(hsh(checkout_only: true, install_vcs_packages: Hash[install_only: true]))
                                          .once
                                          .and_return([[], []])
                     cli.run([], packages: true, checkout_only: true, osdeps: true)
@@ -316,7 +318,7 @@ module Autoproj
                         flexmock(Ops::Import).new_instances.should_receive(:import_packages)
                                              .and_return([[], ["test"]])
                         flexmock(ws).should_receive(:install_os_packages).once
-                                    .with(["test"], Hash)
+                                    .with(["test"]).with_any_kw_args
                         assert_raises(pkg_set_failure) do
                             cli.run([], keep_going: true, packages: true, osdeps: true)
                         end
@@ -325,7 +327,7 @@ module Autoproj
                     it "performs osdep import based on the value encoded in the import failure exception if the package import failed" do
                         mock_package_failure(osdep_packages: ["test"])
                         flexmock(ws).should_receive(:install_os_packages).once
-                                    .with(["test"], Hash)
+                                    .with(["test"]).with_any_kw_args
                         assert_raises(pkg_failure) do
                             cli.run([], keep_going: true, packages: true, osdeps: true)
                         end

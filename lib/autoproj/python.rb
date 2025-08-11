@@ -69,13 +69,12 @@ module Autoproj
             version: ws.config.get("python_version", nil))
             finders = [
                 -> { Autobuild.programs["python"] },
-                -> { `which python3`.strip },
-                -> { `which python`.strip }
+                -> { Autobuild.find_in_path("python3") },
+                -> { Autobuild.find_in_path("python") }
             ]
 
             finders.each do |finder|
-                python_bin = finder.call
-                if python_bin && !python_bin.empty?
+                if (python_bin = finder.call)
                     python_version, valid = validate_python_version(python_bin, version)
                     return python_bin, python_version if valid
                 end

@@ -164,7 +164,8 @@ module Autoproj
 
                 platform_suffix = "-#{Gem::Platform.local}.gem"
                 failed = []
-                compile.each do |gem_name, artifacts: []|
+                compile.each do |gem_name, options = {}|
+                    artifacts = options[:artifacts] || []
                     Dir.glob(File.join(cache_dir, "#{gem_name}*.gem")) do |gem|
                         next unless /^#{gem_name}-\d/.match?(File.basename(gem))
                         next if gem.end_with?(platform_suffix)

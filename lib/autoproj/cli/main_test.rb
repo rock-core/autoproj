@@ -45,8 +45,9 @@ module Autoproj
                 require "autoproj/cli/test"
                 report(silent: true) do
                     cli = Test.new
-                    args = cli.validate_options(packages, options)
-                    cli.enable(*args)
+                    options = self.options.merge(parent_options)
+                    *args, options = cli.validate_options(packages, options)
+                    cli.enable(*args, **options)
                 end
             end
 
@@ -57,8 +58,9 @@ module Autoproj
                 require "autoproj/cli/test"
                 report(silent: true) do
                     cli = Test.new
-                    args = cli.validate_options(packages, options)
-                    cli.disable(*args)
+                    options = self.options.merge(parent_options)
+                    *args, options = cli.validate_options(packages, options)
+                    cli.disable(*args, **options)
                 end
             end
 
@@ -69,8 +71,9 @@ module Autoproj
                 require "autoproj/cli/test"
                 report(silent: true) do
                     cli = Test.new
-                    args = cli.validate_options(packages, options)
-                    cli.list(*args)
+                    options = self.options.merge(parent_options)
+                    *args, options = cli.validate_options(packages, options)
+                    cli.list(*args, **options)
                 end
             end
 
@@ -101,8 +104,8 @@ module Autoproj
                     Autobuild.ignore_errors = options.delete(:keep_going)
                     Autobuild::TestUtility.coverage_enabled = options.delete(:coverage)
                     options.delete(:tool)
-                    args = cli.validate_options(packages, options.merge(extra_options))
-                    cli.run(*args)
+                    *args, options = cli.validate_options(packages, options.merge(extra_options))
+                    cli.run(*args, **options)
                 end
             end
         end
