@@ -393,15 +393,21 @@ module Autoproj
                 ws.export_installation_manifest
                 manifest = InstallationManifest.from_workspace_root(ws.root_dir)
 
+                empty_package_manifest = InstallationManifest::Manifest.new(
+                    dependencies: [], tags: [], maintainers: [],
+                    rock_maintainers: [], authors: []
+                )
                 test_dep = InstallationManifest::Package.new(
                     "test_dep", "Autobuild::CMake",
                     Hash[type: "none", url: nil], "#{srcdir}/test_dep", "#{srcdir}/test_dep",
-                    "/prefix/test_dep", "/builddir/test_dep", test_dep.autobuild.logdir, []
+                    "/prefix/test_dep", "/builddir/test_dep", test_dep.autobuild.logdir, [],
+                    empty_package_manifest
                 )
                 pkg = InstallationManifest::Package.new(
                     "pkg", "Autobuild::CMake",
                     Hash[type: "none", url: nil], "#{srcdir}/pkg", "#{srcdir}/pkg",
-                    "/prefix/pkg", "/builddir/pkg", pkg.autobuild.logdir, ["test_dep"]
+                    "/prefix/pkg", "/builddir/pkg", pkg.autobuild.logdir, ["test_dep"],
+                    empty_package_manifest
                 )
                 packages = manifest.each_package.to_a
                 assert_equal 2, packages.size
