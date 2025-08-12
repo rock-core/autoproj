@@ -186,9 +186,11 @@ module Autoproj
                     "install.sh",
                     "--gems-path=#{gems_path}",
                     gemfile_source: <<-AUTOPROJ_GEMFILE
+                        source 'http://localhost:8808' do
+                            gem 'autoproj', '>= 2.99.90'
+                        end
+
                         source 'https://rubygems.org'
-                        source 'http://localhost:8808'
-                        gem 'autoproj', '>= 2.99.90'
                         gem 'autobuild', path: '#{autobuild_full_path}'
                     AUTOPROJ_GEMFILE
                 )
