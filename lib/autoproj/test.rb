@@ -247,7 +247,12 @@ module Autoproj
                       "call stop_gem_server before calling start_gem_server again"
             end
             @gem_server_pid = spawn(
-                Hash["RUBYOPT" => nil],
+                Hash[
+                    "RUBYOPT" => nil,
+                    "GEM_HOME" => path,
+                    "BUNDLE_GEMFILE" => nil,
+                    "BUNDLER_SETUP" => nil
+                ],
                 Gem.ruby, Ops::Install.guess_gem_program, "server",
                 "--quiet", "--dir", path, out: :close, err: :close
             )
