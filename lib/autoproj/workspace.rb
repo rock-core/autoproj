@@ -405,7 +405,14 @@ module Autoproj
                 install_suffix = match[1]
             end
 
-            bindir = File.join(prefix_dir, "bin")
+            prefixdir =
+                if config.isolate_ruby_shims?
+                    File.join(prefix_dir, "autoproj")
+                else
+                    prefix_dir
+                end
+
+            bindir = File.join(prefixdir, "bin")
             FileUtils.mkdir_p bindir
             env.add "PATH", bindir
 

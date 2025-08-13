@@ -436,6 +436,22 @@ module Autoproj
             set("separate_prefixes", flag, true)
         end
 
+        # Returns true if Ruby shims should be installed in a separate prefix
+        #
+        # The default is false (disabled)
+        #
+        # @return [Boolean]
+        def isolate_ruby_shims?
+            get("isolate_ruby_shims", false)
+        end
+
+        # Controls whether Ruby shims should be in a separate prefix
+        #
+        # @see isolate_shims?
+        def isolate_ruby_shims=(flag)
+            set("isolate_ruby_shims", flag, true)
+        end
+
         # Returns true if packages and prefixes should be auto-generated, based
         # on the SHA of the package names. This is meant to be used for build
         # services that want to check that dependencies are properly set
