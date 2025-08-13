@@ -1,0 +1,6 @@
+{
+    "rubyLsp.rubyVersionManager": {
+        "identifier": "custom"
+    },
+    "rubyLsp.customRubyCommand": "eval $(ruby -rbundler -e 'Bundler.setup; ENV.each { |k, v| puts %{export #{k}=#{v.dump}} }' 2> /dev/null)"
+}

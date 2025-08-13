@@ -1,0 +1,20 @@
+{
+    "name": "autoproj",
+    "image": "ubuntu:24.04",
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {},
+        "ghcr.io/devcontainers-extra/features/apt-get-packages:1": {
+            "packages": "bash-completion,sudo,libyaml-dev,ruby-dev,build-essential,git,python3-pip"
+        }
+    },
+    "remoteUser": "ubuntu",
+    "waitFor": "postCreateCommand",
+    "postCreateCommand": "./.devcontainer/post-create.sh",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "Shopify.ruby-extensions-pack"
+            ]
+        }
+    }
+}
