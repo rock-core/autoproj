@@ -217,7 +217,7 @@ module Autoproj
                     return "true"
                 end
 
-                config.get(var)
+                config.get(var).to_s
             end
 
             def initialize(path, manifest, condition_context: Configuration.new)
