@@ -167,6 +167,24 @@ module Autoproj
                     manifest = PackageManifest.parse(pkg, "<package><depend package='test' condition='$FOO==foo'/></package>", condition_context: context)
                     assert_equal 1, manifest.dependencies.size
                 end
+                it "is included if the condition is true for booleans" do
+                    context = Configuration.new
+                    context.set("FOO", true)
+                    manifest = PackageManifest.parse(pkg, "<package><depend package='test' condition='$FOO==true'/></package>", condition_context: context)
+                    assert_equal 1, manifest.dependencies.size
+                    context.set("BAR", false)
+                    manifest = PackageManifest.parse(pkg, "<package><depend package='test' condition='$BAR==false'/></package>", condition_context: context)
+                    assert_equal 1, manifest.dependencies.size
+                end
+                it "is not included if the condition is false for booleans" do
+                    context = Configuration.new
+                    context.set("FOO", true)
+                    manifest = PackageManifest.parse(pkg, "<package><depend package='test' condition='$FOO==false'/></package>", condition_context: context)
+                    assert_equal 0, manifest.dependencies.size
+                    context.set("BAR", false)
+                    manifest = PackageManifest.parse(pkg, "<package><depend package='test' condition='$BAR==true'/></package>", condition_context: context)
+                    assert_equal 0, manifest.dependencies.size
+                end
             end
 
             describe "<depend_optional>" do
