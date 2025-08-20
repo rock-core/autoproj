@@ -15,6 +15,33 @@ module Autoproj
                 @gem_home = make_tmpdir
             end
 
+            def system(*args)
+                flunk("failed to run #{args}") unless super
+            end
+
+            it "bootstraps straight to a non-default branch" do
+                buildconf_git = make_tmpdir
+                system("git", "init", chdir: buildconf_git)
+                system("git", "commit", "-a", "--allow-empty",
+                       "-m", "ROOT", chdir: buildconf_git)
+                system("git", "switch", "-c", "nondefault", chdir: buildconf_git)
+                File.write(File.join(buildconf_git, "foobar"), "")
+                system("git", "add", "foobar", chdir: buildconf_git)
+                system("git", "commit", "-m", "BRANCH", chdir: buildconf_git)
+
+                bootstrap_dir = make_tmpdir
+                Bundler.with_unbundled_env do
+                    system(
+                        Gem.ruby, File.join(@autoproj_bin_dir, "autoproj_bootstrap"),
+                        "--gemfile", gemfile_aruba, "--gems-path", @gem_home,
+                        "--no-interactive",
+                        "git", buildconf_git, "branch=nondefault", chdir: bootstrap_dir
+                    )
+                end
+
+                assert File.exist?(File.join(bootstrap_dir, "autoproj", "foobar"))
+            end
+
             %w[bootstrap install].each do |mode|
                 describe "interactivity in #{mode} mode" do
                     it "is interactive by default" do

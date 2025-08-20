@@ -156,8 +156,8 @@ module Autoproj
             # @api private
             def do_switch_config(delete_current, type, url, *options)
                 vcs_def = Hash.new
-                vcs_def[:type] = type
-                vcs_def[:url]  = VCSDefinition.to_absolute_url(url, ws.root_dir)
+                vcs_def["type"] = type
+                vcs_def["url"]  = VCSDefinition.to_absolute_url(url, ws.root_dir)
                 options.each do |opt|
                     name, value = opt.split("=")
                     value = Integer(value) if value =~ /^\d+$/
