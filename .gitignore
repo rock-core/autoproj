@@ -9,3 +9,5 @@ pkg/
 /.yardoc/
 test/gem_home
 tmp/
+
+Gemfile.lock
