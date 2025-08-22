@@ -423,7 +423,7 @@ So, what do you want ? (all, none or a comma-separated list of: os gem pip)
         # Requests the installation of the given set of packages
         def install(
             osdep_packages, all: nil, install_only: false,
-            run_package_managers_without_packages: false, **options
+            run_package_managers_without_packages: true, **options
         )
             setup_package_managers(**options)
             partitioned_packages =
