@@ -34,7 +34,7 @@ module Autoproj
 
             # (see Manager#call_while_empty?)
             def call_while_empty?
-                !workspace_configuration_gemfiles.empty?
+                true
             end
 
             # (see Manager#strict?)
@@ -550,13 +550,13 @@ module Autoproj
                            File.read(gemfile_path) != gemfile_contents)
                 if updated
                     Ops.atomic_write(gemfile_path) do |io|
-                        io.puts gemfile_contents
+                        io.write gemfile_contents
                     end
                 end
 
                 options = []
                 binstubs_path = File.join(root_dir, "bin")
-                if updated || !install_only || !File.file?("#{gemfile_path}.lock")
+                if updated || !File.file?("#{gemfile_path}.lock")
                     self.class.run_bundler_install(ws, gemfile_path, *options,
                                                    binstubs: binstubs_path)
                 end
