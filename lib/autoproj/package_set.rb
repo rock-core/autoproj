@@ -167,6 +167,7 @@ module Autoproj
             @name = name
             @os_repository_resolver = OSRepositoryResolver.new
             @os_package_resolver = OSPackageResolver.new(
+                ws,
                 operating_system: ws.os_package_resolver.operating_system,
                 package_managers: ws.os_package_resolver.package_managers,
                 os_package_manager: ws.os_package_resolver.os_package_manager
@@ -191,7 +192,7 @@ module Autoproj
         # Load a new osdeps file for this package set
         def load_osdeps(file, **options)
             new_osdeps = OSPackageResolver.load(
-                file,
+                @ws, file,
                 suffixes: ws.osdep_suffixes,
                 **options
             )
