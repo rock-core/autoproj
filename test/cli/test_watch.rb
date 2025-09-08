@@ -72,7 +72,7 @@ module Autoproj
                     cli.start_watchers
                 end
                 after do
-                    cli.cleanup_notifier
+                    cli.cleanup_notifier if cli.notifier
                 end
 
                 def process_events
