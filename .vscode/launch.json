@@ -6,20 +6,15 @@
     "configurations": [
         {
             "name": "Minitest - all",
-            "type": "Ruby",
+            "type": "ruby_lsp",
             "request": "launch",
-            "useBundler": true,
-            "cwd": "${workspaceRoot}",
-            "program": "/usr/bin/rake",
-            "args": ["test"]
+            "program": "rake test",
         },
         {
             "name": "Minitest - active tasks only",
-            "type": "Ruby",
+            "type": "ruby_lsp",
             "request": "launch",
-            "useBundler": true,
-            "cwd": "${workspaceRoot}",
-            "program": "${file}"
+            "program": "ruby -Itest ${file}"
         }
     ]
 }

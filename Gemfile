@@ -9,11 +9,10 @@ group :dev do
 end
 
 group :vscode do
-    gem "debase", ">= 0.2.2.beta10"
+    gem "debug"
     gem "pry"
     gem "pry-byebug"
-    gem "ruby-debug-ide", ">= 0.6.0"
-    gem "solargraph"
+    gem "ruby-lsp"
 end
 
 gemspec
