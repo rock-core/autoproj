@@ -307,8 +307,10 @@ module Autoproj
                             bundler_version: bundler_version)
                 run_bundler(ws, "config", "set", "--local", "shebang", Gem.ruby,
                             bundler_version: bundler_version)
-
-                options << "--binstubs" << binstubs if binstubs
+                if binstubs
+                    run_bundler(ws, "config", "set", "--local", "bin", binstubs,
+                                bundler_version: bundler_version)
+                end
 
                 apply_build_config(ws)
 
@@ -326,6 +328,12 @@ module Autoproj
                             connections << host
                         end
                     end
+                end
+
+                if binstubs
+                    run_bundler(ws, "binstubs", "--all",
+                                bundler_version: bundler_version,
+                                gem_home: gem_home, gemfile: gemfile)
                 end
             end
 
