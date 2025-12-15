@@ -454,11 +454,14 @@ module Autoproj
                 # Force bundler to update. If the user does not want this, let
                 # him specify a Gemfile with tighter version constraints
                 lockfile = File.join(dot_autoproj, "Gemfile.lock")
+                shims_path = File.join(dot_autoproj, "bin")
                 FileUtils.rm lockfile if File.exist?(lockfile)
 
                 run_bundler(bundler, "config", "set", "--local", "path", gems_install_path,
                             bundler_version: bundler_version)
                 run_bundler(bundler, "config", "set", "--local", "shebang", Gem.ruby,
+                            bundler_version: bundler_version)
+                run_bundler(bundler, "config", "set", "--local", "bin", shims_path,
                             bundler_version: bundler_version)
 
                 install_args = ["--gemfile=#{autoproj_gemfile_path}"]
@@ -466,8 +469,7 @@ module Autoproj
                 run_bundler(bundler, "install", *install_args,
                             bundler_version: bundler_version)
 
-                shims_path = File.join(dot_autoproj, "bin")
-                run_bundler(bundler, "binstubs", "--all", "--force", "--path", shims_path,
+                run_bundler(bundler, "binstubs", "--all", "--force",
                             bundler_version: bundler_version)
 
                 bundle_shim_path = File.join(shims_path, "bundle")

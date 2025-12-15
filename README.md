@@ -245,11 +245,8 @@ work with it on an existing workspace.
 Run
 
 ~~~
-bundle install --path=vendor
+bundle install
 ~~~
-
-Note that Autoproj's own test suite assumes that Bundler is setup with
-`--path=vendor`. Keep it that way
 
 To run the test suite,
 

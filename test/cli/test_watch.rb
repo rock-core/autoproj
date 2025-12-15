@@ -60,19 +60,19 @@ module Autoproj
                     @pkg_set_manifest_file = File.join(pkg_set_manifest_dir,
                                                        "tools", "package.xml")
 
-                    FileUtils.touch(manifest_file)
-                    FileUtils.touch(ros_manifest_file)
+                    File.write(manifest_file, "<package />")
+                    File.write(ros_manifest_file, "<package />")
                     FileUtils.touch(autobuild_file)
                     FileUtils.touch(ruby_file)
                     FileUtils.mkdir_p(File.join(pkg_set_manifest_dir, "tools"))
-                    FileUtils.touch(pkg_set_manifest_file)
+                    File.write(pkg_set_manifest_file, "<package />")
                     sleep 0.1
                     cli.update_workspace
                     cli.setup_notifier
                     cli.start_watchers
                 end
                 after do
-                    cli.cleanup_notifier
+                    cli.cleanup_notifier if cli.notifier
                 end
 
                 def process_events

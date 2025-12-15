@@ -303,9 +303,14 @@ module Autoproj
             )
                 FileUtils.rm "#{gemfile}.lock" if update && File.file?("#{gemfile}.lock")
 
-                options << "--path" << gem_path
-                options << "--shebang" << Gem.ruby
-                options << "--binstubs" << binstubs if binstubs
+                run_bundler(ws, "config", "set", "--local", "path", gem_path,
+                            bundler_version: bundler_version)
+                run_bundler(ws, "config", "set", "--local", "shebang", Gem.ruby,
+                            bundler_version: bundler_version)
+                if binstubs
+                    run_bundler(ws, "config", "set", "--local", "bin", binstubs,
+                                bundler_version: bundler_version)
+                end
 
                 apply_build_config(ws)
 
@@ -323,6 +328,12 @@ module Autoproj
                             connections << host
                         end
                     end
+                end
+
+                if binstubs
+                    run_bundler(ws, "binstubs", "--all",
+                                bundler_version: bundler_version,
+                                gem_home: gem_home, gemfile: gemfile)
                 end
             end
 
