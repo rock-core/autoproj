@@ -228,4 +228,7 @@ apt-transport-https:
   ubuntu,debian: apt-transport-https
   default: ignore
 
+subpackage:
+  default: ignore
+
 # vim: expandtab
