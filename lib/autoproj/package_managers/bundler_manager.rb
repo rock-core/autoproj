@@ -62,6 +62,11 @@ module Autoproj
                 gemfile_path = File.join(ws.prefix_dir, "gems", "Gemfile")
                 env.set("BUNDLE_GEMFILE", gemfile_path) if File.file?(gemfile_path)
 
+                gemfile_lock_path = "#{gemfile_path}.lock"
+                if File.file?(gemfile_lock_path)
+                    env.set("BUNDLE_LOCKFILE", gemfile_lock_path)
+                end
+
                 if cache_dir && File.exist?(cache_dir)
                     vendor_dir = File.join(File.dirname(gemfile_path), "vendor")
                     FileUtils.mkdir_p vendor_dir
