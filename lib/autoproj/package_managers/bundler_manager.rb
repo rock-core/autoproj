@@ -62,6 +62,11 @@ module Autoproj
                 gemfile_path = File.join(ws.prefix_dir, "gems", "Gemfile")
                 env.set("BUNDLE_GEMFILE", gemfile_path) if File.file?(gemfile_path)
 
+                gemfile_lock_path = "#{gemfile_path}.lock"
+                if File.file?(gemfile_lock_path)
+                    env.set("BUNDLE_LOCKFILE", gemfile_lock_path)
+                end
+
                 if cache_dir && File.exist?(cache_dir)
                     vendor_dir = File.join(File.dirname(gemfile_path), "vendor")
                     FileUtils.mkdir_p vendor_dir
@@ -401,7 +406,7 @@ module Autoproj
                                               .gsub(/#  from.*/, "")
                             raise ConfigError, cleaned_message
                         end
-                    gems_remotes |= bundler_def.send(:sources).rubygems_remotes.to_set
+                    gems_remotes |= bundler_def.send(:sources).rubygems_sources.flat_map(&:remotes).to_set
                     bundler_def.dependencies.each do |d|
                         d.groups.each do |group_name|
                             if d.platforms.empty?
