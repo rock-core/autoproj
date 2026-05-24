@@ -122,6 +122,7 @@ module Autoproj
             version: nil)
             version_constraint = version
             resolvers = [
+                -> { get_python_from_venv(ws: ws, version: version_constraint) },
                 -> { get_python_from_config(ws: ws, version: version_constraint) },
                 -> { find_python(ws: ws, version: version_constraint) }
             ]
@@ -167,6 +168,61 @@ module Autoproj
             end
         end
 
+        ###############   Added feature venv
+        def self.disable_venv(prefix_dir)
+            venv_path = File.join(prefix_dir, "install", "venv")
+            if File.exist?(venv_path)
+                FileUtils.rm_r venv_path
+            end
+        end
+
+        def self.enable_venv(python_executable, prefix_dir)
+            #python_path = File.join(shim_path, 'python')
+            # TODO make venv-path configurable
+
+            python_executable = get_python_from_config.first
+            Autobuild::Subprocess.run "config", "foo", python_executable, "-m", "venv", File.join(prefix_dir, "install", "venv"), "--system-site-packages"
+        end
+        
+        # Activate configuration for python in the autoproj configuration
+        # @return [String,String] python path and python version
+        def self.activate_python_venv(ws: Autoproj.workspace,
+                                 bin: nil,
+                                 version: nil)
+            bin, version = resolve_python(ws: ws, bin: bin, version: version)
+            ws.config.set('python_executable', bin, true)
+            ws.config.set('python_version', version, true)
+    
+            ws.osdep_suffixes << "python#{$1}" if version =~ /^([0-9]+)\./
+            
+            rewrite_python_shims(bin, ws.root_dir)
+            Autoproj.env_add "VIRTUAL_ENV_DISABLE_PROMPT", "1"
+            Autoproj.env.source_after File.join(ws.root_dir, "install", "venv", "bin", "activate")
+            [File.join(ws.root_dir, "install", "venv", "bin", "python"), version]
+        end
+
+
+        ### TODO REWRITE
+        def self.get_python_from_venv(ws: Autoproj.workspace, version: nil)
+            config_bin = ws.config.get("python_executable", nil)
+            return unless config_bin
+
+            config_version = ws.config.get("python_version", nil)
+            config_version ||= get_python_version(config_bin)
+
+            # If a version constraint is given, ensure fulfillment
+            if validate_version(config_version, version)
+                [config_bin, config_version]
+            else
+                raise "python_executable in autoproj config with " \
+                      "version '#{config_version}' does not match "\
+                      "version constraints '#{version}'"
+            end
+        end
+
+        #### end of venv additions
+        
+        
         def self.remove_python_shims(prefix_dir)
             shim_path = File.join(prefix_dir, "bin", "python")
             FileUtils.rm shim_path if File.exist?(shim_path)
@@ -286,8 +342,20 @@ module Autoproj
                 ws.config.declare "python_executable", "string",
                                   default: python_bin.to_s,
                                   doc: ["Select the path to the python executable"]
+                ws.config.declare "USE_PYTHON_VENV", "boolean",
+                                  default: "no",
+                                  doc: ["Use Python venv (required from Ubuntu 24)"]
 
-                activate_python(ws: ws)
+                if ws.config.get("USE_PYTHON_VENV")
+                    remove_python_shims(ws.dot_autoproj_dir)
+                    remove_pip_shims(ws.dot_autoproj_dir)
+                    activate_python_venv(ws: ws)
+                    ws.env.add "PATH", File.join(ws.root_dir, "install", "venv", "bin")
+                    ws.env.set "PYTHONUSERBASE", File.join(ws.root_dir, "install", "venv")
+                    ws.env.set "AUTOPROJ_PYTHONUSERBASE", File.join(ws.root_dir, "install", "venv")
+                else
+                    activate_python(ws: ws)
+                end
             else
                 deactivate_python(ws: ws)
             end
