@@ -52,7 +52,7 @@ module Autoproj
         attr_reader :osdep_suffixes
 
         def initialize(root_dir,
-            os_package_resolver: OSPackageResolver.new,
+            os_package_resolver: OSPackageResolver.new(self),
             package_managers: OSPackageInstaller::PACKAGE_MANAGERS,
             os_repository_resolver: OSRepositoryResolver.new(
                 operating_system: os_package_resolver.operating_system

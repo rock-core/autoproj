@@ -370,6 +370,28 @@ module Autoproj
             set("prefix", path, true)
         end
 
+        # Whether Autoproj should warn if a package set overrides the osdep of
+        # another
+        #
+        # It is true for historical reasons. Set this to false in your
+        # workspace's init.rb for the new behavior
+        #
+        # @see osdeps_warn_overrides=
+        def osdeps_warn_overrides?
+            get "osdeps_warn_overrides", true
+        end
+
+        # Sets whether Autoproj should warn if a package set overrides the osdep
+        # of another
+        #
+        # It is true for historical reasons. Set this to false in your
+        # workspace's init.rb for the new behavior
+        #
+        # @see osdeps_warn_overrides?
+        def osdeps_warn_overrides=(flag)
+            set "osdeps_warn_overrides", flag
+        end
+
         # The directory in which packages will be installed.
         #
         # If it is a relative path, it is relative to the root dir of the
