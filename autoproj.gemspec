@@ -38,10 +38,4 @@ Gem::Specification.new do |s|
     s.add_runtime_dependency "tty-spinner", "~> 0.9.0"
     s.add_runtime_dependency "utilrb", "~> 3.0.0", ">= 3.0.0"
     s.add_runtime_dependency "xdg", "= 2.2.5"
-    s.add_development_dependency "aruba", "~> 2.1.0"
-    s.add_development_dependency "flexmock"
-    s.add_development_dependency "minitest", "~> 5.0", ">= 5.0"
-    s.add_development_dependency "simplecov"
-    s.add_development_dependency "timecop"
-    s.add_development_dependency "tty-cursor"
 end
