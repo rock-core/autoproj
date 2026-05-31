@@ -60,11 +60,9 @@ module Autoproj
                 end
 
                 gemfile_path = File.join(ws.prefix_dir, "gems", "Gemfile")
-                env.set("BUNDLE_GEMFILE", gemfile_path) if File.file?(gemfile_path)
-
-                gemfile_lock_path = "#{gemfile_path}.lock"
-                if File.file?(gemfile_lock_path)
-                    env.set("BUNDLE_LOCKFILE", gemfile_lock_path)
+                if File.file?(gemfile_path)
+                    env.set("BUNDLE_GEMFILE", gemfile_path)
+                    env.set("BUNDLE_LOCKFILE", "#{gemfile_path}.lock")
                 end
 
                 if cache_dir && File.exist?(cache_dir)
@@ -374,7 +372,7 @@ module Autoproj
                     target_env = Hash[
                         "GEM_HOME" => gem_home,
                         "GEM_PATH" => nil,
-                        "BUNDLE_GEMFILE" => gemfile,
+                        "BUNDLE_GEMFILE" => gemfile, "BUNDLE_LOCKFILE" => "#{gemfile}.lock",
                         "RUBYOPT" => nil,
                         "RUBYLIB" => rubylib_for_bundler,
                     ].merge(bundler_version_env)
@@ -646,8 +644,8 @@ module Autoproj
                 Tempfile.open "autoproj-rubylib" do |io|
                     result = Autoproj.bundler_unbundled_system(
                         Hash["GEM_HOME" => env["GEM_HOME"], "GEM_PATH" => env["GEM_PATH"],
-                             "BUNDLE_GEMFILE" => gemfile, "RUBYOPT" => nil,
-                             "RUBYLIB" => self.class.rubylib_for_bundler],
+                             "BUNDLE_GEMFILE" => gemfile, "BUNDLE_LOCKFILE" => "#{gemfile}.lock",
+                             "RUBYOPT" => nil, "RUBYLIB" => self.class.rubylib_for_bundler],
                         Autobuild.tool("ruby"), "-rbundler/setup",
                         "-e", "puts $LOAD_PATH",
                         out: io, **silent_redirect
