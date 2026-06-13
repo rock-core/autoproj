@@ -99,41 +99,48 @@ module Autoproj
         end
 
         def load(path = @path)
-            @packages = Hash.new
             raw = YAML.load(File.open(path))
             if raw.respond_to?(:to_str) # old CSV-based format
-                CSV.read(path).map do |row|
-                    name, srcdir, prefix, builddir = *row
-                    builddir = nil if builddir && builddir.empty?
-                    packages[name] = Package.new(name, srcdir, prefix, builddir, [])
-                end
+                @packages = load_from_csv(path)
                 save(path)
-            else
-                raw.each do |entry|
+                return
+            end
+
+            @packages, @package_sets =
+                raw.each_with_object([{}, {}]) do |entry, (pkgs, pkg_sets)|
                     if entry["package_set"]
                         pkg_set = PackageSet.new(
                             entry["package_set"], entry["vcs"], entry["raw_local_dir"], entry["user_local_dir"]
                         )
-                        package_sets[pkg_set.name] = pkg_set
+                        pkg_sets[pkg_set.name] = pkg_set
                     else
-                        manifest = load_manifest(entry["manifest"])
+                        manifest = load_manifest(entry["manifest"] || {})
                         pkg = Package.new(
                             entry["name"], entry["type"], entry["vcs"], entry["srcdir"], entry["importdir"],
                             entry["prefix"], entry["builddir"], entry["logdir"], entry["dependencies"],
                             manifest
                         )
-                        packages[pkg.name] = pkg
+                        pkgs[pkg.name] = pkg
                     end
                 end
+        end
+
+        def load_from_csv(path)
+            packages = {}
+            CSV.read(path).map do |row|
+                name, srcdir, prefix, builddir = *row
+                builddir = nil if builddir && builddir.empty?
+                packages[name] = Package.new(name, srcdir, prefix, builddir, [])
             end
+            packages
         end
 
         def load_manifest(entry)
             entry = entry.dup
             %w[authors maintainers rock_maintainers].each do |field|
-                entry[field] = load_contact_list(entry[field])
+                entry[field] = load_contact_list(entry[field] || [])
             end
-            entry["dependencies"] = load_manifest_dependencies(entry["dependencies"])
+            entry["dependencies"] = load_manifest_dependencies(entry["dependencies"] || [])
 
             Manifest.new(**entry.transform_keys(&:to_sym))
         end
