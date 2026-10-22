@@ -33,6 +33,7 @@ module Autoproj
                     it "checks missing packages out by default" do
                         flexmock(Ops::Import).new_instances
                                              .should_receive(:import_packages)
+                                             .with(PackageSelection)
                                              .with_kw_args(hsh(non_imported_packages: :checkout))
                                              .once.and_return([[], []])
                         in_ws do
@@ -43,6 +44,7 @@ module Autoproj
                     it "ignores missing packages if given --no-checkout-missing" do
                         flexmock(Ops::Import).new_instances
                                              .should_receive(:import_packages)
+                                             .with(PackageSelection)
                                              .with_kw_args(hsh(non_imported_packages: :ignore))
                                              .once.and_return([[], []])
                         in_ws do
