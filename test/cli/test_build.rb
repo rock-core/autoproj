@@ -29,6 +29,30 @@ module Autoproj
                     end
                 end
 
+                describe "--checkout-missing" do
+                    it "checks missing packages out by default" do
+                        flexmock(Ops::Import).new_instances
+                                             .should_receive(:import_packages)
+                                             .with(PackageSelection)
+                                             .with_kw_args(hsh(non_imported_packages: :checkout))
+                                             .once.and_return([[], []])
+                        in_ws do
+                            Main.start(["build", "--silent"])
+                        end
+                    end
+
+                    it "ignores missing packages if given --no-checkout-missing" do
+                        flexmock(Ops::Import).new_instances
+                                             .should_receive(:import_packages)
+                                             .with(PackageSelection)
+                                             .with_kw_args(hsh(non_imported_packages: :ignore))
+                                             .once.and_return([[], []])
+                        in_ws do
+                            Main.start(["build", "--no-checkout-missing", "--silent"])
+                        end
+                    end
+                end
+
                 it "fails with the actual error if the manifest cannot be "\
                    "resolved due to a configuration error" do
                     # This is a regression test. `autoproj build` would fail

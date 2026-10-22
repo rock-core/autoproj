@@ -123,6 +123,7 @@ module Autoproj
                         parallel: options[:parallel] || ws.config.parallel_import_level,
                         retry_count: options[:retry_count],
                         auto_exclude: options[:auto_exclude],
+                        non_imported_packages: options[:non_imported_packages] || :checkout,
                         ask: ask,
                         report: report
                     )
@@ -240,7 +241,7 @@ module Autoproj
                 from: nil, checkout_only: false, only_local: false, reset: false,
                 deps: true, keep_going: false, parallel: 1,
                 retry_count: 0, osdeps: true, auto_exclude: false, osdeps_options: Hash.new,
-                report: true, ask: false)
+                non_imported_packages: :checkout, report: true, ask: false)
 
                 setup_update_from(from) if from
 
@@ -268,6 +269,7 @@ module Autoproj
                                         retry_count: retry_count,
                                         install_vcs_packages: (osdeps_options if osdeps),
                                         auto_exclude: auto_exclude,
+                                        non_imported_packages: non_imported_packages,
                                         filter: filter)
                 [source_packages, osdep_packages, nil]
             rescue ExcludedSelection => e
