@@ -51,7 +51,7 @@ module Autoproj
 
         # Create a null VCS object
         def self.none
-            from_raw({ type: "none" })
+            from_raw(type: "none")
         end
 
         # Whether there is actually a version control definition
@@ -87,7 +87,7 @@ module Autoproj
                 new_raw = self.raw + raw
                 new_history = history
             end
-            self.class.from_raw(new, from: from, history: new_history, raw: new_raw)
+            self.class.from_raw(**new, from: from, history: new_history, raw: new_raw)
         end
 
         # Updates the VCS specification +old+ by the information contained in
@@ -101,7 +101,7 @@ module Autoproj
             if new.has_key?(:type) && (old[:type] != new[:type])
                 # The type changed. We replace the old definition by the new one
                 # completely, and we make sure that the new definition is valid
-                from_raw(new)
+                from_raw(**new)
                 new
             else
                 old.merge(new)

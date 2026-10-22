@@ -179,7 +179,7 @@ module Autoproj
             @version_control = Array.new
             @overrides = Array.new
             @raw_local_dir = raw_local_dir
-            @default_importer = VCSDefinition.from_raw({ type: "none" })
+            @default_importer = VCSDefinition.from_raw(type: "none")
 
             @imports = Set.new
             @imports_vcs = Array.new
@@ -318,7 +318,7 @@ module Autoproj
             options, vcs_spec = Kernel.filter_options spec, auto_imports: true
 
             vcs_spec = Autoproj.expand(vcs_spec, vars)
-            [VCSDefinition.from_raw(vcs_spec, from: from, raw: raw), options]
+            [VCSDefinition.from_raw(**vcs_spec, from: from, raw: raw), options]
         end
 
         # Returns a string that uniquely represents the version control
@@ -561,7 +561,7 @@ module Autoproj
                         file: source_file, section: "version_control"
                     )
                     if default_vcs_spec
-                        @default_importer = VCSDefinition.from_raw(default_vcs_spec,
+                        @default_importer = VCSDefinition.from_raw(**default_vcs_spec,
                                                                    raw: raw, from: self)
                     end
                 end
@@ -712,7 +712,7 @@ module Autoproj
             # configuration
             if validate
                 begin
-                    VCSDefinition.from_raw(vcs_spec)
+                    VCSDefinition.from_raw(**vcs_spec)
                 rescue ArgumentError => e
                     raise ConfigError.new,
                           "invalid resulting VCS definition for package "\
@@ -746,7 +746,7 @@ module Autoproj
                     file: source_file, section: "version_control"
                 )
                 if vcs_spec
-                    VCSDefinition.from_raw(vcs_spec, raw: raw, from: self)
+                    VCSDefinition.from_raw(**vcs_spec, raw: raw, from: self)
                 else
                     default
                 end

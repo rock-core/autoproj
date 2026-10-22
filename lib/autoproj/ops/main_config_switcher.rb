@@ -134,7 +134,7 @@ module Autoproj
                         vcs[opt_name.to_sym] = opt_value
                     end
                     # Validate the VCS definition, but save the hash as-is
-                    ws.manifest.vcs = VCSDefinition.from_raw(vcs)
+                    ws.manifest.vcs = VCSDefinition.from_raw(**vcs)
                     ws.config.set "manifest_source", vcs.dup, true
                     ws.config.save
                     true
@@ -165,7 +165,7 @@ module Autoproj
                     vcs_def[name] = value
                 end
 
-                vcs = VCSDefinition.from_raw(vcs_def)
+                vcs = VCSDefinition.from_raw(**vcs_def)
 
                 # Install the OS dependencies required for this VCS
                 ws.install_os_packages([vcs.type], all: nil)
@@ -209,7 +209,7 @@ module Autoproj
                     vcs_def[opt_name] = opt_val
                 end
                 # Validate the option hash, just in case
-                VCSDefinition.from_raw(vcs_def)
+                VCSDefinition.from_raw(**vcs_def)
                 # Save the new options
                 ws.config.set "manifest_source", vcs_def.dup, true
                 ws.config.save

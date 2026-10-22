@@ -8,7 +8,7 @@ module Autoproj
             attr_reader :ops
 
             def mock_package_set(name, create: false, **vcs)
-                vcs = VCSDefinition.from_raw(vcs)
+                vcs = VCSDefinition.from_raw(**vcs)
                 raw_local_dir = File.join(make_tmpdir, "package_set")
 
                 flexmock(PackageSet)
@@ -160,7 +160,7 @@ module Autoproj
                     package_set_dir = File.join(ws.root_dir, "package_set")
                     root_package_set = ws.manifest.main_package_set
                     root_package_set.add_raw_imported_set(
-                        VCSDefinition.from_raw({ "type" => "local", "url" => "/test" })
+                        VCSDefinition.from_raw("type" => "local", "url" => "/test")
                     )
                     root_package_set.add_overrides_entry(
                         "pkg_set:local:/test",
@@ -263,12 +263,12 @@ module Autoproj
                         @pkg_set_1 = ws_create_git_package_set "test.pkg.set"
                         @root_package_set = ws.manifest.main_package_set
                         root_package_set.add_raw_imported_set \
-                            VCSDefinition.from_raw({ "type" => "git", "url" => pkg_set_0 })
+                            VCSDefinition.from_raw("type" => "git", "url" => pkg_set_0)
                     end
 
                     it "uses only the first" do
                         root_package_set.add_raw_imported_set \
-                            VCSDefinition.from_raw({ "type" => "git", "url" => pkg_set_1 })
+                            VCSDefinition.from_raw("type" => "git", "url" => pkg_set_1)
                         package_sets, = ops.load_and_update_package_sets(root_package_set)
                         assert_equal 2, package_sets.size
                         assert_same root_package_set, package_sets.first
@@ -277,7 +277,7 @@ module Autoproj
 
                     it "ensures that the user link in remotes/ points to the first match" do
                         root_package_set.add_raw_imported_set \
-                            VCSDefinition.from_raw({ "type" => "git", "url" => pkg_set_1 })
+                            VCSDefinition.from_raw("type" => "git", "url" => pkg_set_1)
                         package_sets, = ops.load_and_update_package_sets(root_package_set)
                         assert_equal pkg_set_0, package_sets[1].vcs.url
                         assert_equal package_sets[1].raw_local_dir, File.readlink(
@@ -289,7 +289,7 @@ module Autoproj
                         importing_pkg_set = ws_create_git_package_set "importing.pkg.set",
                                                                       "imports" => Array["type" => "git", "url" => pkg_set_1]
                         root_package_set.add_raw_imported_set \
-                            VCSDefinition.from_raw({ "type" => "git", "url" => importing_pkg_set })
+                            VCSDefinition.from_raw("type" => "git", "url" => importing_pkg_set)
                         package_sets, = ops.load_and_update_package_sets(root_package_set)
 
                         assert_equal 3, package_sets.size
@@ -314,12 +314,12 @@ module Autoproj
                         )
                         root_package_set.add_raw_imported_set(
                             VCSDefinition.from_raw(
-                                { "type" => "git", "url" => importing_pkg_set }
+                                "type" => "git", "url" => importing_pkg_set
                             )
                         )
                         root_package_set.add_raw_imported_set(
                             VCSDefinition.from_raw(
-                                { "type" => "git", "url" => other_importing_pkg_set }
+                                "type" => "git", "url" => other_importing_pkg_set
                             )
                         )
                         package_sets, = ops.load_and_update_package_sets(root_package_set)
@@ -390,7 +390,7 @@ module Autoproj
                     package_set_dir = File.join(ws.root_dir, "package_set")
                     root_package_set = ws.manifest.main_package_set
                     root_package_set.add_raw_imported_set VCSDefinition.from_raw(
-                        { "type" => "local", "url" => package_set_dir }
+                        "type" => "local", "url" => package_set_dir
                     )
                     FileUtils.mkdir_p package_set_dir
                     File.open(File.join(package_set_dir, "source.yml"), "w") do |io|
@@ -402,7 +402,7 @@ module Autoproj
                     assert_same root_package_set, package_sets[1]
 
                     expected = VCSDefinition.from_raw(
-                        { "type" => "local", "url" => package_set_dir }
+                        "type" => "local", "url" => package_set_dir
                     )
                     assert_equal expected, package_sets[0].vcs
                 end

@@ -36,7 +36,7 @@ module Autoproj
         it "registers a package set" do
             options = {} # workaround 2.6 brokenness
             ws_set = ws_define_package_set(
-                "bla", VCSDefinition.from_raw({ type: "git", url: "somewhere" }),
+                "bla", VCSDefinition.from_raw(type: "git", url: "somewhere"),
                 **options
             )
 
@@ -58,7 +58,7 @@ module Autoproj
 
             options = {} # Workaround 2.6 brokenness
             ws_set = ws_define_package_set(
-                "bla", VCSDefinition.from_raw({ type: "git", url: "somewhere" }),
+                "bla", VCSDefinition.from_raw(type: "git", url: "somewhere"),
                 **options
             )
 
