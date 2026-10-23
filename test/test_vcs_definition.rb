@@ -119,7 +119,7 @@ module Autoproj
                 ws_create
                 base_package_set = ws_define_package_set "base"
                 base_vcs = Autoproj::VCSDefinition.from_raw(
-                    **{ type: "git", url: "https://github.com" }, from: base_package_set
+                    type: "git", url: "https://github.com", from: base_package_set
                 )
                 override_package_set = ws_define_package_set "override"
                 override_vcs = base_vcs.update(
