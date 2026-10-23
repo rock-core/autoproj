@@ -6,7 +6,7 @@ module Autoproj
 
         before do
             ws_create
-            @vcs = VCSDefinition.from_raw({ type: "local", url: "/path/to/set" })
+            @vcs = VCSDefinition.from_raw(type: "local", url: "/path/to/set")
             @raw_local_dir = File.join(ws.root_dir, "package_set")
             @package_set = PackageSet.new(
                 ws, vcs, raw_local_dir: raw_local_dir
@@ -43,15 +43,15 @@ module Autoproj
         describe ".raw_local_dir_of" do
             it "returns the local path if the VCS is local" do
                 vcs = VCSDefinition.from_raw(
-                    { "type" => "local", "url" => "/path/to/package_set" }
+                    "type" => "local", "url" => "/path/to/package_set"
                 )
                 assert_equal "/path/to/package_set", PackageSet.raw_local_dir_of(ws, vcs)
             end
             it "returns a normalized subdirectory of the workspace's remotes dir the VCS is remote" do
                 vcs = VCSDefinition.from_raw(
-                    { "type" => "git",
-                      "url" => "https://github.com/test/url",
-                      "branch" => "test_branch" }
+                    "type" => "git",
+                    "url" => "https://github.com/test/url",
+                    "branch" => "test_branch"
                 )
                 repository_id = Autobuild.git(
                     "https://github.com/test/url",
@@ -119,15 +119,15 @@ module Autoproj
             it "returns the package set path if the set is local" do
                 package_set = PackageSet.new(
                     ws,
-                    VCSDefinition.from_raw({ "type" => "local", "url" => "/path/to/set" })
+                    VCSDefinition.from_raw("type" => "local", "url" => "/path/to/set")
                 )
                 assert_equal "/path/to/set", package_set.repository_id
             end
             it "returns the importer's repository_id if there is one" do
                 vcs = VCSDefinition.from_raw(
-                    { "type" => "git",
-                      "url" => "https://github.com/test/url",
-                      "branch" => "test_branch" }
+                    "type" => "git",
+                    "url" => "https://github.com/test/url",
+                    "branch" => "test_branch"
                 )
                 repository_id = Autobuild.git(
                     "https://github.com/test/url",
@@ -140,9 +140,9 @@ module Autoproj
 
             it "returns the vcs as string if the importer has no repository_id" do
                 vcs = VCSDefinition.from_raw(
-                    { "type" => "git",
-                      "url" => "https://github.com/test/url",
-                      "branch" => "test_branch" }
+                    "type" => "git",
+                    "url" => "https://github.com/test/url",
+                    "branch" => "test_branch"
                 )
                 importer = vcs.create_autobuild_importer
                 flexmock(vcs).should_receive(:create_autobuild_importer).and_return(importer)
@@ -318,7 +318,7 @@ module Autoproj
             before do
                 @package_set = PackageSet.new(
                     ws,
-                    VCSDefinition.from_raw({ "type" => "git", "url" => "https://url" }),
+                    VCSDefinition.from_raw("type" => "git", "url" => "https://url"),
                     raw_local_dir: "/path/to/package_set",
                     name: "name_of_package_set"
                 )
@@ -350,17 +350,17 @@ module Autoproj
             end
 
             it "loads the imports" do
-                original_vcs = VCSDefinition.from_raw({ type: "git", url: "https://github.com" })
+                original_vcs = VCSDefinition.from_raw(type: "git", url: "https://github.com")
                 package_set.add_raw_imported_set(original_vcs, auto_imports: false)
                 assert_loads_value "imports_vcs",
-                                   [[VCSDefinition.from_raw({ "type" => "local", "url" => "path/to/package" }), Hash[auto_imports: false]]],
+                                   [[VCSDefinition.from_raw("type" => "local", "url" => "path/to/package"), Hash[auto_imports: false]]],
                                    [[original_vcs, Hash[auto_imports: false]]],
                                    source_definition: Hash["imports" => Array[Hash["type" => "local", "url" => "path/to/package", "auto_imports" => false]]]
             end
 
             it "expands constants in the imports" do
                 package_set.add_raw_imported_set(
-                    VCSDefinition.from_raw({ type: "git", url: "https://github.com" }),
+                    VCSDefinition.from_raw(type: "git", url: "https://github.com"),
                     auto_imports: false
                 )
 
@@ -375,7 +375,7 @@ module Autoproj
 
             it "expands configuration variables in the imports" do
                 package_set.add_raw_imported_set(
-                    VCSDefinition.from_raw({ type: "git", url: "https://github.com" }),
+                    VCSDefinition.from_raw(type: "git", url: "https://github.com"),
                     auto_imports: false
                 )
                 ws.config.set "test", "path/to/package"
@@ -439,7 +439,7 @@ module Autoproj
             end
 
             it "leaves the default VCS if the new version control field has no 'default' entry" do
-                vcs = VCSDefinition.from_raw({ "type" => "local", "url" => "test" })
+                vcs = VCSDefinition.from_raw("type" => "local", "url" => "test")
                 package_set.default_importer = vcs
                 source_definitions = Hash["version_control" => Array[]]
                 package_set.parse_source_definition(source_definitions)

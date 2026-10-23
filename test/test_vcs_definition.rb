@@ -79,7 +79,7 @@ module Autoproj
         describe ".from_raw" do
             it "raises if the VCS has no type" do
                 e = assert_raises(ArgumentError) do
-                    VCSDefinition.from_raw({ url: "test" })
+                    VCSDefinition.from_raw(url: "test")
                 end
                 assert_equal "the source specification { url: test } normalizes "\
                              "into { url: test }, which does not have a VCS type",
@@ -87,28 +87,28 @@ module Autoproj
             end
             it "raises if the VCS has no URL and type is not 'none'" do
                 assert_raises(ArgumentError) do
-                    VCSDefinition.from_raw({ type: "local" })
+                    VCSDefinition.from_raw(type: "local")
                 end
             end
             it "passes if the VCS type is none and there is no URL" do
                 assert_raises(ArgumentError) do
-                    VCSDefinition.from_raw({ type: "local" })
+                    VCSDefinition.from_raw(type: "local")
                 end
             end
         end
 
         describe "#create_autobuild_importer" do
             it "does not create an importer if type is none" do
-                vcs = Autoproj::VCSDefinition.from_raw({ type: "none", url: nil })
+                vcs = Autoproj::VCSDefinition.from_raw(type: "none", url: nil)
                 assert !vcs.create_autobuild_importer
             end
             it "does not create an importer if type is local" do
-                vcs = Autoproj::VCSDefinition.from_raw({ type: "local", url: "/test" })
+                vcs = Autoproj::VCSDefinition.from_raw(type: "local", url: "/test")
                 assert !vcs.create_autobuild_importer
             end
             it "creates an importer of the required type and options" do
                 vcs = Autoproj::VCSDefinition.from_raw(
-                    { type: "git", url: "https://github.com" }
+                    type: "git", url: "https://github.com"
                 )
                 importer = vcs.create_autobuild_importer
                 assert_kind_of Autobuild::Git, importer
@@ -119,7 +119,7 @@ module Autoproj
                 ws_create
                 base_package_set = ws_define_package_set "base"
                 base_vcs = Autoproj::VCSDefinition.from_raw(
-                    { type: "git", url: "https://github.com" }, from: base_package_set
+                    type: "git", url: "https://github.com", from: base_package_set
                 )
                 override_package_set = ws_define_package_set "override"
                 override_vcs = base_vcs.update(
@@ -191,8 +191,8 @@ module Autoproj
 
                 it "returns false for non-null definitions" do
                     right = VCSDefinition.from_raw(
-                        { type: "local", url: "/path/to/somewhere/else",
-                          garbage_option: false }
+                        type: "local", url: "/path/to/somewhere/else",
+                        garbage_option: false
                     )
                     refute_equal left, right
                 end
@@ -203,24 +203,24 @@ module Autoproj
 
                 before do
                     @left = VCSDefinition.from_raw(
-                        { type: "local", url: "/path/to", garbage_option: true }
+                        type: "local", url: "/path/to", garbage_option: true
                     )
                 end
 
                 it "only compares against the URL for local VCS" do
                     right = VCSDefinition.from_raw(
-                        { type: "local", url: "/path/to", garbage_option: false }
+                        type: "local", url: "/path/to", garbage_option: false
                     )
                     assert_equal left, right
                     right = VCSDefinition.from_raw(
-                        { type: "local", url: "/path/to/somewhere/else",
-                          garbage_option: false }
+                        type: "local", url: "/path/to/somewhere/else",
+                        garbage_option: false
                     )
                     refute_equal left, right
                 end
                 it "returns false for non-local VCSes even if they have the same URL" do
                     right = VCSDefinition.from_raw(
-                        { type: "git", url: "/path/to", garbage_option: false }
+                        type: "git", url: "/path/to", garbage_option: false
                     )
                     refute_equal left, right
                 end
@@ -231,7 +231,7 @@ module Autoproj
 
                 before do
                     @left = VCSDefinition.from_raw(
-                        { type: "git", url: "/path/to", branch: "master" }
+                        type: "git", url: "/path/to", branch: "master"
                     )
                 end
 
@@ -240,7 +240,7 @@ module Autoproj
                 end
                 it "returns false for a local VCS" do
                     refute_equal left, VCSDefinition.from_raw(
-                        { type: "local", url: "/path/to" }
+                        type: "local", url: "/path/to"
                     )
                 end
                 it "delegates to the autobuild importer's #source_id implementation" do
@@ -249,14 +249,14 @@ module Autoproj
                         .and_return(flexmock(source_id: (source_id = flexmock)))
 
                     right = VCSDefinition.from_raw(
-                        { type: "git", url: "/path/to", branch: "arbitrary" }
+                        type: "git", url: "/path/to", branch: "arbitrary"
                     )
                     flexmock(right).should_receive(:create_autobuild_importer)
                                    .and_return(flexmock(source_id: source_id))
                     assert_equal left, right
 
                     right = VCSDefinition.from_raw(
-                        { type: "git", url: "/path/to", branch: "arbitrary" }
+                        type: "git", url: "/path/to", branch: "arbitrary"
                     )
                     flexmock(right).should_receive(:create_autobuild_importer)
                                    .and_return(flexmock(source_id: flexmock))
