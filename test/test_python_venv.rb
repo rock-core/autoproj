@@ -234,5 +234,35 @@ module Autoproj
                              File.realpath(out.strip)
             end
         end
+
+        # Installs packages from PyPI, enable with AUTOPROJ_TEST_NETWORK=1
+        describe "end-to-end installation" do
+            before do
+                skip "requires network access" unless ENV["AUTOPROJ_TEST_NETWORK"] == "1"
+                skip "long test" if skip_long_tests?
+            end
+
+            def assert_installed
+                out, status = Open3.capture2e(
+                    shim("python"), "-c", "import pip_install_test"
+                )
+                assert status.success?, out
+            end
+
+            [false, true].each do |uv|
+                it "creates the venv and installs into it (uv: #{uv})" do
+                    configure_python(use_uv: uv)
+                    pip_manager = PackageManagers::PipManager.new(ws)
+                    pip_manager.install(["pip-install-test"])
+                    assert_installed
+                    assert_equal uv, File.executable?(Python.venv_uv(ws: ws))
+
+                    # The venv must be safe to delete
+                    FileUtils.rm_rf Python.venv_path(ws: ws)
+                    pip_manager.install(["pip-install-test"])
+                    assert_installed
+                end
+            end
+        end
     end
 end

@@ -271,6 +271,10 @@ bundle exec ruby PATH_TO_FILE -n=/build/
 Note that the TESTOPTS method splits arguments on spaces. Use dots (`.`)
 instead of spaces.
 
+Tests that install Python packages from PyPI are skipped unless
+`AUTOPROJ_TEST_NETWORK=1` is set. The Python venv tests need the `venv`
+module (on Debian/Ubuntu, the `python3-venv` package).
+
 ## Using Autoproj git in workspaces
 
 The best way to use autoproj 2.x from git is to checkout autoproj and
