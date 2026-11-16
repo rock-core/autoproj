@@ -177,39 +177,214 @@ module Autoproj
             FileUtils.rm shim_path if File.exist?(shim_path)
         end
 
-        def self.rewrite_python_shims(python_executable, prefix_dir)
+        # Write a shim script prefix_dir/bin/name that runs python_executable
+        #
+        # @param [Array<String>] args arguments inserted before the shim's arguments
+        # @param [String,nil] missing_hint if set, the shim fails with this message
+        #   when python_executable does not exist, instead of failing in exec
+        # @return [String] the path to the shim
+        def self.write_shim(name, python_executable, prefix_dir,
+            args: [], missing_hint: nil)
             shim_path = File.join(prefix_dir, "bin")
             unless File.exist?(shim_path)
                 FileUtils.mkdir_p shim_path
-                Autoproj.warn "Autoproj::Python.rewrite_python_shims: creating "\
+                Autoproj.warn "Autoproj::Python.write_shim: creating "\
                               "#{shim_path} - "\
                               "are you operating on a valid autoproj workspace?"
             end
 
-            python_path = File.join(shim_path, "python")
-            File.open(python_path, "w") do |io|
+            path = File.join(shim_path, name)
+            File.open(path, "w") do |io|
                 io.puts "#! /bin/sh"
-                io.puts "exec #{python_executable} \"$@\""
+                if missing_hint
+                    io.puts "if [ ! -x \"#{python_executable}\" ]; then"
+                    io.puts "    echo \"#{missing_hint}\" >&2"
+                    io.puts "    exit 127"
+                    io.puts "fi"
+                end
+                io.puts "exec #{([python_executable] + args).join(' ')} \"$@\""
             end
-            FileUtils.chmod 0o755, python_path
-            python_path
+            FileUtils.chmod 0o755, path
+            path
+        end
+
+        def self.rewrite_python_shims(python_executable, prefix_dir)
+            write_shim("python", python_executable, prefix_dir)
         end
 
         def self.rewrite_pip_shims(python_executable, prefix_dir)
-            shim_path = File.join(prefix_dir, "bin")
-            unless File.exist?(shim_path)
-                FileUtils.mkdir_p shim_path
-                Autoproj.warn "Autoproj::Python.rewrite_pip_shims: creating "\
-                              "#{shim_path} - "\
-                              "are you operating on a valid autoproj workspace?"
+            write_shim("pip", python_executable, prefix_dir, args: %w[-m pip])
+        end
+
+        # Point the python and pip shims to the workspace's venv
+        #
+        # The shims are written even if the venv does not exist (yet), so that
+        # the system python is never used by accident
+        def self.rewrite_venv_shims(ws: Autoproj.workspace)
+            python = venv_python(ws: ws)
+            hint = "autoproj: #{python} does not exist, " \
+                   "running 'autoproj osdeps' will likely fix this"
+            write_shim("python", python, ws.dot_autoproj_dir, missing_hint: hint)
+            write_shim("pip", python, ws.dot_autoproj_dir,
+                       args: %w[-m pip], missing_hint: hint)
+        end
+
+        # The value stored for a configuration option, without asking the user
+        # and without requiring the option to be declared
+        def self.stored_config_value(ws, name)
+            return ws.config.overrides[name] if ws.config.overrides.key?(name)
+
+            ws.config.config.dig(name, 0)
+        end
+
+        # Path to the workspace's python venv
+        #
+        # It only contains packages installed by the pip package manager and can
+        # be deleted at any time; 'autoproj osdeps' recreates it
+        def self.venv_path(ws: Autoproj.workspace)
+            File.join(ws.prefix_dir, "venv")
+        end
+
+        def self.venv_python(ws: Autoproj.workspace)
+            File.join(venv_path(ws: ws), "bin", "python")
+        end
+
+        def self.venv_uv(ws: Autoproj.workspace)
+            File.join(venv_path(ws: ws), "bin", "uv")
+        end
+
+        # Whether python packages are installed into the workspace's venv
+        #
+        # Only looks at the stored configuration, i.e. never asks the user. Also
+        # serves package sets as the test whether autoproj supports venvs.
+        def self.venv_enabled?(ws: Autoproj.workspace)
+            stored_config_value(ws, "USE_PYTHON") == true &&
+                stored_config_value(ws, "USE_PYTHON_VENV") == true
+        end
+
+        # Whether pip packages are installed with uv (only used with a venv)
+        def self.uv_enabled?(ws: Autoproj.workspace)
+            venv_enabled?(ws: ws) && stored_config_value(ws, "USE_PYTHON_UV") == true
+        end
+
+        # Directory used as PYTHONUSERBASE if the venv is disabled
+        def self.pip_home(ws: Autoproj.workspace)
+            ws.env["AUTOPROJ_PYTHONUSERBASE"] || File.join(ws.prefix_dir, "pip")
+        end
+
+        # Whether the given python is marked as externally managed (PEP 668),
+        # i.e. refuses to install packages with pip outside of a venv
+        def self.externally_managed?(python_bin)
+            @externally_managed ||= {}
+            return @externally_managed[python_bin] if @externally_managed.key?(python_bin)
+
+            script = "import os, sysconfig; print(os.path.isfile(os.path.join(" \
+                     "sysconfig.get_path('stdlib'), 'EXTERNALLY-MANAGED')))"
+            msg, status = Open3.capture2e(python_bin, "-c", script)
+            @externally_managed[python_bin] = status.success? && msg.strip == "True"
+        rescue SystemCallError
+            @externally_managed[python_bin] = false
+        end
+
+        # Version of the python a venv has been created with, read from its
+        # pyvenv.cfg
+        #
+        # @return [String,nil]
+        def self.venv_python_version(path)
+            cfg = File.join(path, "pyvenv.cfg")
+            return unless File.file?(cfg)
+
+            File.readlines(cfg).each do |line|
+                key, value = line.split("=", 2).map(&:strip)
+                return value if %w[version version_info].include?(key)
             end
-            pip_path = File.join(shim_path, "pip")
-            File.open(pip_path, "w") do |io|
-                io.puts "#! /bin/sh"
-                io.puts "exec #{python_executable} -m pip \"$@\""
+            nil
+        end
+
+        # Whether the venv exists and matches the configured python version
+        def self.venv_valid?(ws: Autoproj.workspace)
+            path = venv_path(ws: ws)
+            return false unless File.executable?(venv_python(ws: ws))
+
+            venv_version = venv_python_version(path)
+            version = ws.config.get("python_version", nil)
+            return false unless venv_version && version
+
+            venv_version == version || venv_version.start_with?("#{version}.")
+        end
+
+        # Commands needed to create or complete the venv, empty if it is
+        # complete
+        #
+        # Running them requires deleting an invalid venv first, see
+        # {prepare_venv}
+        #
+        # @return [Array<Array<String>>]
+        def self.venv_setup_cmdlines(ws: Autoproj.workspace)
+            python = venv_python(ws: ws)
+            cmdlines = []
+            unless venv_valid?(ws: ws)
+                cmdlines << [ws.config.get("python_executable"), "-m", "venv",
+                             "--system-site-packages", venv_path(ws: ws)]
+                cmdlines << [python, "-m", "pip", "install", "--upgrade", "pip"]
             end
-            FileUtils.chmod 0o755, pip_path
-            pip_path
+            needs_uv = !cmdlines.empty? || !File.executable?(venv_uv(ws: ws))
+            if uv_enabled?(ws: ws) && needs_uv
+                cmdlines << [python, "-m", "pip", "install", "uv"]
+            end
+            cmdlines
+        end
+
+        # Delete the venv if it is invalid, so that it can be recreated
+        #
+        # @return [Boolean] true if the venv needs to be created
+        def self.prepare_venv(ws: Autoproj.workspace)
+            return false if venv_valid?(ws: ws)
+
+            path = venv_path(ws: ws)
+            if File.exist?(path)
+                Autoproj.message "  recreating the python venv in #{path}"
+                FileUtils.rm_rf path
+            else
+                Autoproj.message "  creating a python venv in #{path}"
+            end
+            true
+        end
+
+        # Set up the environment for the python installation
+        #
+        # @param [Boolean] venv whether the venv is enabled
+        def self.setup_environment(ws: Autoproj.workspace, venv: venv_enabled?(ws: ws))
+            venv_bin = File.join(venv_path(ws: ws), "bin")
+            pip_bin = File.join(pip_home(ws: ws), "bin")
+            if venv
+                remove_from_path(ws.env, pip_bin)
+                setup_venv_environment(ws)
+            else
+                remove_from_path(ws.env, venv_bin)
+                setup_user_site_environment(ws)
+            end
+        end
+
+        def self.remove_from_path(env, dir)
+            env.remove_path "PATH", dir if env.environment["PATH"]
+        end
+
+        def self.setup_venv_environment(ws)
+            env = ws.env
+            env.unset "PYTHONUSERBASE"
+            # With --system-site-packages, the user site would be visible too
+            env.set "PYTHONNOUSERSITE", "1"
+            env.set "VIRTUAL_ENV", venv_path(ws: ws)
+            env.add_path "PATH", File.join(venv_path(ws: ws), "bin")
+        end
+
+        def self.setup_user_site_environment(ws)
+            env = ws.env
+            env.reset "PYTHONNOUSERSITE"
+            env.reset "VIRTUAL_ENV"
+            env.set "PYTHONUSERBASE", pip_home(ws: ws)
+            env.add_path "PATH", File.join(pip_home(ws: ws), "bin")
         end
 
         # Activate configuration for python in the autoproj configuration
@@ -223,8 +398,14 @@ module Autoproj
 
             ws.osdep_suffixes << "python#{$1}" if version =~ /^([0-9]+)\./
 
-            rewrite_python_shims(bin, ws.dot_autoproj_dir)
-            rewrite_pip_shims(bin, ws.dot_autoproj_dir)
+            venv = venv_enabled?(ws: ws)
+            if venv
+                rewrite_venv_shims(ws: ws)
+            else
+                rewrite_python_shims(bin, ws.dot_autoproj_dir)
+                rewrite_pip_shims(bin, ws.dot_autoproj_dir)
+            end
+            setup_environment(ws: ws, venv: venv)
             [bin, version]
         end
 
@@ -277,19 +458,93 @@ module Autoproj
                               doc: ["Do you want to activate python?"]
 
             if ws.config.get("USE_PYTHON")
-                unless ws.config.has_value_for?("python_executable")
-                    remove_python_shims(ws.dot_autoproj_dir)
-                    remove_pip_shims(ws.dot_autoproj_dir)
-                    python_bin, = auto_resolve_python(ws: ws)
-                end
-
-                ws.config.declare "python_executable", "string",
-                                  default: python_bin.to_s,
-                                  doc: ["Select the path to the python executable"]
-
+                migrate_package_set_venv_configuration(ws)
+                declare_python_executable(ws)
+                setup_venv_configuration_options(ws)
                 activate_python(ws: ws)
             else
                 deactivate_python(ws: ws)
+            end
+        end
+
+        def self.declare_python_executable(ws)
+            unless ws.config.has_value_for?("python_executable")
+                remove_python_shims(ws.dot_autoproj_dir)
+                remove_pip_shims(ws.dot_autoproj_dir)
+                python_bin, = auto_resolve_python(ws: ws)
+            end
+
+            ws.config.declare "python_executable", "string",
+                              default: python_bin.to_s,
+                              doc: ["Select the path to the python executable"]
+        end
+
+        # Get a boolean option, storing it even if it is the default (non-interactive
+        # mode), as venv_enabled? and uv_enabled? only read stored values
+        def self.get_and_store(ws, name)
+            value = ws.config.get(name)
+            ws.config.set(name, value, true)
+            value
+        end
+
+        def self.setup_venv_configuration_options(ws)
+            was_enabled = stored_config_value(ws, "USE_PYTHON_VENV")
+            declare_venv_option(ws) unless ws.config.declared?("USE_PYTHON_VENV")
+            enabled = get_and_store(ws, "USE_PYTHON_VENV")
+            if was_enabled != enabled && !was_enabled.nil?
+                venv_toggled_message(ws, enabled)
+            end
+            return unless enabled
+
+            ws.config.declare "USE_PYTHON_UV", "boolean",
+                              default: "yes",
+                              doc: ["Install python packages into the venv using uv?",
+                                    "uv hardlinks packages from a cache shared between "\
+                                    "workspaces, which saves space and time"]
+            get_and_store(ws, "USE_PYTHON_UV")
+        end
+
+        def self.declare_venv_option(ws)
+            python_bin = ws.config.get("python_executable")
+            default = externally_managed?(python_bin) ? "yes" : "no"
+            ws.config.declare "USE_PYTHON_VENV", "boolean",
+                              default: default,
+                              doc: ["Install python packages into a venv in the "\
+                                    "install folder?",
+                                    "This is required if the python interpreter is "\
+                                    "externally managed (PEP 668),",
+                                    "e.g. on Ubuntu 24.04"]
+        end
+
+        def self.venv_toggled_message(ws, enabled)
+            state = enabled ? "enabled" : "disabled"
+            Autoproj.message "  the python venv has been #{state}"
+            Autoproj.message "  packages built before may still refer to the previous " \
+                             "python installation and need to be rebuilt"
+            if enabled
+                Autoproj.message "  run 'autoproj osdeps' to create the venv"
+            elsif File.directory?(path = venv_path(ws: ws))
+                Autoproj.message "  #{path} is not used anymore and can be deleted"
+            end
+        end
+
+        # Convert the configuration of the venv implementation in Rock's package set
+        #
+        # It stored the venv's python as python_executable, which breaks once the
+        # venv gets deleted
+        def self.migrate_package_set_venv_configuration(ws)
+            if (venv = stored_config_value(ws, "PYTHON_VENV_FOLDER"))
+                current = stored_config_value(ws, "python_executable")
+                if current&.start_with?(File.join(venv, ""))
+                    if (bin = stored_config_value(ws, "PYTHON_VENV_INIT_EXECUTABLE"))
+                        ws.config.set("python_executable", bin, true)
+                    else
+                        ws.config.reset("python_executable")
+                    end
+                end
+            end
+            %w[PYTHON_VENV_FOLDER PYTHON_VENV_INIT_EXECUTABLE].each do |name|
+                ws.config.reset(name) if ws.config.has_value_for?(name)
             end
         end
     end
