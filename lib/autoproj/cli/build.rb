@@ -32,6 +32,8 @@ module Autoproj
                     super(selected_packages,
                           ignore_errors: options[:keep_going],
                           checkout_only: true,
+                          non_imported_packages:
+                              (options[:checkout_missing] ? :checkout : :ignore),
                           report: false,
                           **options)
 

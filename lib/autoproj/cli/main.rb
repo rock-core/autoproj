@@ -265,6 +265,8 @@ In this case, the default is false
                                       desc: "provide -n for --no-deps"
             option :parallel, aliases: :p, type: :numeric,
                               desc: "maximum number of parallel jobs"
+            option :checkout_missing, type: :boolean, default: true,
+                                      desc: "whether missing packages should be checked out"
             option :auto_exclude, type: :boolean,
                                   desc: "if true, packages that fail to import will be excluded from the build"
             option :tool, type: :boolean,

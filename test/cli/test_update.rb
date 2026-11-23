@@ -214,6 +214,24 @@ module Autoproj
                                          .and_return([[], []])
                     cli.run([], packages: true, checkout_only: true, osdeps: true)
                 end
+                it "checks missing packages out by default" do
+                    flexmock(Ops::Import).new_instances
+                                         .should_receive(:import_packages)
+                                         .with(PackageSelection)
+                                         .with_kw_args(hsh(non_imported_packages: :checkout))
+                                         .once
+                                         .and_return([[], []])
+                    cli.run([], packages: true)
+                end
+                it "passes non_imported_packages on to the import operation" do
+                    flexmock(Ops::Import).new_instances
+                                         .should_receive(:import_packages)
+                                         .with(PackageSelection)
+                                         .with_kw_args(hsh(non_imported_packages: :ignore))
+                                         .once
+                                         .and_return([[], []])
+                    cli.run([], packages: true, non_imported_packages: :ignore)
+                end
                 it "raises CLIInvalidSelection if an excluded package is in the dependency tree" do
                     pkg0 = ws_add_package_to_layout :cmake, "pkg0"
                     pkg1 = ws_define_package :cmake, "pkg1"
