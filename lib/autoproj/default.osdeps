@@ -199,6 +199,12 @@ python:
   opensuse: python-devel
   default: ignore # will be installed manually by the user
 
+# Needed to create the workspace's venv (if enabled)
+python-venv:
+  debian: python3-venv
+  ubuntu: python3-venv
+  default: ignore # the venv module is part of python's standard library
+
 python-setuptools:
   arch: python2-distribute
   debian:
