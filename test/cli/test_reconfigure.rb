@@ -17,7 +17,7 @@ module Autoproj
             describe "#reconfigure" do
                 it "reconfigure should run interactively" do
                     cmd = run_command "#{@autoproj_bin} reconfigure"
-                    cmd.stdin.write("\n" * 100)
+                    cmd.write("\n" * 100)
                     cmd.stop
                     assert_equal 0, cmd.exit_status
                 end
