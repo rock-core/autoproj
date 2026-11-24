@@ -357,7 +357,7 @@ module Autoproj
         end
 
         def ws_define_package_set(
-            name, vcs = VCSDefinition.from_raw({ type: "none" }),
+            name, vcs = VCSDefinition.from_raw(type: "none"),
             raw_local_dir: PackageSet.raw_local_dir_of(ws, vcs)
         )
             package_set = PackageSet.new(
@@ -368,7 +368,7 @@ module Autoproj
         end
 
         def ws_create_local_package_set(name, path, source_data: Hash.new, **options)
-            vcs = VCSDefinition.from_raw({ type: "local", url: path })
+            vcs = VCSDefinition.from_raw(type: "local", url: path)
             package_set = PackageSet.new(ws, vcs, name: name, **options)
             FileUtils.mkdir_p(path)
             File.open(File.join(path, "source.yml"), "w") do |io|
@@ -379,7 +379,7 @@ module Autoproj
         end
 
         def ws_add_package_set_to_layout(
-            name, vcs = VCSDefinition.from_raw({ type: "none" }), **options
+            name, vcs = VCSDefinition.from_raw(type: "none"), **options
         )
             package_set = ws_define_package_set(name, vcs, **options)
             ws.manifest.add_package_set_to_layout(package_set)

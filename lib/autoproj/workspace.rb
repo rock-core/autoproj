@@ -283,10 +283,10 @@ module Autoproj
                 config.load(path: config_file_path, reconfigure: reconfigure)
                 manifest.vcs =
                     if (raw_vcs = config.get("manifest_source", nil))
-                        VCSDefinition.from_raw(raw_vcs)
+                        VCSDefinition.from_raw(**raw_vcs)
                     else
                         local_vcs = { type: "local", url: config_dir }
-                        VCSDefinition.from_raw(local_vcs)
+                        VCSDefinition.from_raw(**local_vcs)
                     end
 
                 if config.source_dir && Pathname.new(config.source_dir).absolute?

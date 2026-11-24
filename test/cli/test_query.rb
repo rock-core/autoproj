@@ -52,7 +52,7 @@ module Autoproj
                     it "filters out non-imported packages if only_present is true" do
                         base_cmake = ws_add_package_to_layout :cmake, "base/cmake"
                         base_cmake.vcs = VCSDefinition.from_raw(
-                            { type: "git", url: "github.com" }
+                            type: "git", url: "github.com"
                         )
                         base_cmake.autobuild.srcdir = File.join(ws.root_dir, "base-cmake")
                         base_types = ws_add_package_to_layout :cmake, "base/types"
@@ -187,7 +187,7 @@ TEST FORMAT pkg os_indep test3
                     package.autobuild.srcdir = srcdir
                     package.autobuild.builddir = builddir
                     package.autobuild.prefix = prefix
-                    package.vcs = VCSDefinition.from_raw({ type: "local", url: "/test" })
+                    package.vcs = VCSDefinition.from_raw(type: "local", url: "/test")
 
                     expected = "base/cmake #{srcdir} #{builddir} #{prefix} 0 /test false"
                     actual = cli.format_source_package(
@@ -203,7 +203,7 @@ TEST FORMAT pkg os_indep test3
                     flexmock(package.autobuild).should_receive(:respond_to?).with(:builddir).and_return(false)
                     flexmock(package.autobuild).should_receive(:builddir).never
                     package.autobuild.prefix = prefix = File.join(ws.root_dir, "prefix")
-                    package.vcs = VCSDefinition.from_raw({ type: "local", url: "/test" })
+                    package.vcs = VCSDefinition.from_raw(type: "local", url: "/test")
                     assert_equal "base/cmake #{srcdir} #{prefix} 0 /test false",
                                  cli.format_source_package("$NAME $SRCDIR $PREFIX $PRIORITY $URL $PRESENT",
                                                            0, package)
@@ -215,7 +215,7 @@ TEST FORMAT pkg os_indep test3
                     package.autobuild.builddir = File.join(ws.root_dir, "build")
                     flexmock(package.autobuild).should_receive(:respond_to?).with(:builddir).and_return(false)
                     package.autobuild.prefix = File.join(ws.root_dir, "prefix")
-                    package.vcs = VCSDefinition.from_raw({ type: "local", url: "/test" })
+                    package.vcs = VCSDefinition.from_raw(type: "local", url: "/test")
                     exception = assert_raises(ArgumentError) do
                         cli.format_source_package("$NAME $SRCDIR $BUILDDIR $PREFIX $PRIORITY $URL $PRESENT",
                                                   0, package)
