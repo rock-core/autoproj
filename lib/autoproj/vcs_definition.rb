@@ -211,12 +211,12 @@ module Autoproj
                       "which does not have a VCS type"
             end
 
-            if !(url  = normalized_spec.delete(:url)) && type != "none"
+            if !(url  = normalized_spec.delete(:url)) && type != "none" && type != "subpackage"
                 raise ArgumentError,
                       "the source specification #{raw_spec_to_s(spec)} normalizes "\
                       "into #{raw_spec_to_s(normalized_spec)}, "\
                       "which does not have a URL. "\
-                      "Only VCS of type 'none' do not require one"
+                      "Only VCS of type 'none' or 'subpackage' do not require one"
             end
 
             VCSDefinition.new(
