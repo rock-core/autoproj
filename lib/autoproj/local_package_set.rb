@@ -81,6 +81,9 @@ module Autoproj
             manifest_data = Autoproj.in_file(manifest_path, Autoproj::YAML_LOAD_ERROR) do
                 YAML.load(File.read(manifest_path)) || Hash.new
             end
+            if !manifest_data["package_sets"].is_a?(Array)
+                raise SyntaxError.new "The package_sets field in your manifest file is not an array, check your YAML syntax"
+            end
             description["imports"] = description["imports"]
                                      .concat(manifest_data["package_sets"] || Array.new)
             description["name"] = name
